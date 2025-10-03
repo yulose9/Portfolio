@@ -98,11 +98,11 @@ export default function Hero() {
                 className="w-full text-[40px] font-medium leading-[107%] tracking-[-0.08em] text-left"
                 style={{ fontFamily: "SF Pro Text, Inter, sans-serif" }}
               >
-                Freelance
+                Developer
                 <br />
-                Full Stack Developer
+                Cloud Engineer
                 <br />
-                Computer Engineer
+                Artificial Intelligence
               </div>
             </div>
 

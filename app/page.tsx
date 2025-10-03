@@ -1,7 +1,6 @@
 // import HelloWorld from "./components/helloworld";
-import PreLoadHero from "./components/PreLoadHero";
-
 import Hero from "./components/Hero";
+import PreLoadHero from "./components/PreLoadHero";
 
 export default function Page() {
   return (
