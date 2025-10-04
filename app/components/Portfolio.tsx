@@ -1,7 +1,8 @@
-import { ArrowRight } from "lucide-react";
 import { Inter } from "next/font/google";
 import BlogCard from "./BlogCard";
 import Carousel from "./Carousel";
+import SectionHeader from "./SectionHeader";
+import TextFadeIn from "./TextFadeIn";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -70,27 +71,14 @@ export default function Portfolio() {
       {/* Projects Section - Full Screen */}
       <section className="relative min-h-screen flex flex-col justify-center px-8 py-8">
         {/* Project Header */}
-        <div className="flex flex-col gap-6 mb-6 max-w-[1280px] mx-auto w-full">
-          <div className="flex items-center justify-between h-[90px]">
-            <h2
-              className="text-[96px] font-medium leading-[0.938] tracking-[-3.84px] text-black"
-              style={{ fontFamily: "Inter, sans-serif" }}
-            >
-              Project/s Title
-            </h2>
-            <button className="p-1 hover:scale-110 transition-transform">
-              <ArrowRight className="w-8 h-8 text-black" strokeWidth={2} />
-            </button>
-          </div>
-          <p
-            className="text-[32px] leading-[1.588] tracking-[-1.28px] text-black max-w-[1280px] whitespace-pre-wrap"
-            style={{ fontFamily: "SF Pro Display, sans-serif" }}
-          >
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut et massa
-            mi. Aliquam in hendrerit urna. Pellentesque sit amet sapien
-            fringilla, mattis ligula consectetur, ultrices mauris. Maecenas
-            vitae mattis tellus. Nullam quis imperdiet augue.
-          </p>
+        <div className="flex flex-col gap-4 mb-6 max-w-[1280px] mx-auto w-full">
+          <SectionHeader title="Project/s Title" />
+          <TextFadeIn
+            text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut et massa mi. Aliquam in hendrerit urna. Pellentesque sit amet sapien fringilla, mattis ligula consectetur, ultrices mauris. Maecenas vitae mattis tellus. Nullam quis imperdiet augue."
+            className="text-[20px] leading-[1.588] tracking-[-0.8px] text-black max-w-[1280px] whitespace-pre-wrap"
+            style={{ fontFamily: "Inter, SF Pro Display, sans-serif" }}
+            delay={0.3}
+          />
         </div>
 
         {/* Carousel */}
@@ -102,27 +90,14 @@ export default function Portfolio() {
       {/* Blogs Section - Full Screen */}
       <section className="relative min-h-screen flex flex-col justify-center px-8 py-8">
         {/* Blogs Header */}
-        <div className="flex flex-col gap-6 mb-6 max-w-[1280px] mx-auto w-full">
-          <div className="flex items-center justify-between h-[90px]">
-            <h2
-              className="text-[96px] font-medium leading-[0.938] tracking-[-3.84px] text-black"
-              style={{ fontFamily: "Inter, sans-serif" }}
-            >
-              Blogs
-            </h2>
-            <button className="p-1 hover:scale-110 transition-transform">
-              <ArrowRight className="w-8 h-8 text-black" strokeWidth={2} />
-            </button>
-          </div>
-          <p
-            className="text-[32px] leading-[1.588] tracking-[-1.28px] text-black max-w-[1280px] whitespace-pre-wrap"
-            style={{ fontFamily: "SF Pro Display, sans-serif" }}
-          >
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut et massa
-            mi. Aliquam in hendrerit urna. Pellentesque sit amet sapien
-            fringilla, mattis ligula consectetur, ultrices mauris. Maecenas
-            vitae mattis tellus. Nullam quis imperdiet augue.
-          </p>
+        <div className="flex flex-col gap-4 mb-6 max-w-[1280px] mx-auto w-full">
+          <SectionHeader title="Blogs" />
+          <TextFadeIn
+            text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut et massa mi. Aliquam in hendrerit urna. Pellentesque sit amet sapien fringilla, mattis ligula consectetur, ultrices mauris. Maecenas vitae mattis tellus. Nullam quis imperdiet augue."
+            className="text-[20px] leading-[1.588] tracking-[-0.8px] text-black max-w-[1280px] whitespace-pre-wrap"
+            style={{ fontFamily: "Inter, SF Pro Display, sans-serif" }}
+            delay={0.3}
+          />
         </div>
 
         {/* Blog Cards */}

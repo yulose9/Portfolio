@@ -1,37 +1,62 @@
+"use client";
+
 import { Home, Mail, Menu } from "lucide-react";
 
 const navLinks = [
-  { href: "#", label: "Portfolio" },
-  { href: "#", label: "Experience" },
-  { href: "#", label: "About" },
+  { id: "portfolio", label: "Portfolio" },
+  { id: "work", label: "Experience" },
+  { id: "about", label: "About" },
 ];
 
 export default function TopNavigation() {
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      // Check if Lenis is available for smooth scroll
+      if ((window as any).lenis) {
+        (window as any).lenis.scrollTo(element, {
+          offset: 0,
+          duration: 1.5,
+          easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        });
+      } else {
+        // Fallback to standard smooth scroll
+        window.scrollTo({
+          top: element.offsetTop,
+          behavior: "smooth",
+        });
+      }
+    }
+  };
+
   return (
     <header className="absolute top-0 left-0 right-0 z-20">
       <nav className="flex items-center justify-between p-4 md:p-6 lg:p-8">
         {/* Left: Code by */}
         <div
           className="text-lg md:text-xl lg:text-2xl font-semibold tracking-tighter"
-          style={{ fontFamily: "SF Pro Text, Inter, sans-serif" }}
+          style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
         >
           © Code by John Nazarene
         </div>
 
         {/* Center: Navigation */}
         <div className="hidden md:flex items-center gap-2 absolute left-1/2 -translate-x-1/2">
-          <button className="flex items-center justify-center w-12 h-12 bg-white/10 backdrop-blur-lg rounded-full hover:bg-white/20 transition-all duration-300">
+          <button
+            onClick={() => scrollToSection("home")}
+            className="flex items-center justify-center w-12 h-12 bg-white/10 backdrop-blur-lg rounded-full hover:bg-white/20 transition-all duration-300"
+          >
             <Home className="w-6 h-6 text-white" />
           </button>
           <div className="flex items-center bg-[#374136]/50 backdrop-blur-lg rounded-full px-2 py-1 shadow-lg">
             {navLinks.map((link) => (
-              <a
+              <button
                 key={link.label}
-                href={link.href}
+                onClick={() => scrollToSection(link.id)}
                 className="px-4 py-2 text-base lg:px-6 lg:text-lg font-medium rounded-full hover:bg-white/10 transition-all duration-300"
               >
                 {link.label}
-              </a>
+              </button>
             ))}
           </div>
         </div>

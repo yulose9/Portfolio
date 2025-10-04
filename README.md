@@ -24,17 +24,20 @@ A modern, responsive portfolio website built with Next.js 15, React 19, TypeScri
 ## 📦 Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/yulose9/Portfolio.git
 cd Portfolio
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Run the development server:
+
 ```bash
 npm run dev
 ```
@@ -66,18 +69,21 @@ Portfolio/
 ## 🎨 Key Features
 
 ### Animated Sticky Navigation
+
 - Smooth scale and fade animations using Framer Motion
 - Teleport effect between top and bottom positions
 - Active section detection with scroll tracking
 - Spring physics for natural motion
 
 ### Hero Section
+
 - Full-screen hero with gradient background
 - Location badge with map integration
 - Responsive layout with optimized images
 - Professional typography with custom fonts
 
 ### Portfolio Section
+
 - Project carousel with auto-play
 - Navigation controls with smooth transitions
 - Blog cards grid with hover effects

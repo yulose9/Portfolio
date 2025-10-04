@@ -8,10 +8,11 @@ export default function StickyNav() {
   const [activeSection, setActiveSection] = useState("home");
   const [isAtBottom, setIsAtBottom] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isInContactOrFooter, setIsInContactOrFooter] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      const sections = ["home", "portfolio"];
+      const sections = ["home", "portfolio", "work", "about"];
       const scrollPosition = window.scrollY + 200;
 
       // Check if we're past 50% of the hero section
@@ -45,6 +46,38 @@ export default function StickyNav() {
           }
         }
       }
+
+      // Check if we're in Contact or Footer sections
+      const contactElement = document.getElementById("contact");
+      const footerElement = document.querySelector("footer");
+      const viewportHeight = window.innerHeight;
+      const scrollTop = window.scrollY;
+
+      let inContactOrFooter = false;
+
+      if (contactElement) {
+        const contactTop = contactElement.offsetTop;
+        const contactBottom = contactTop + contactElement.offsetHeight;
+        if (
+          scrollTop + viewportHeight > contactTop &&
+          scrollTop < contactBottom
+        ) {
+          inContactOrFooter = true;
+        }
+      }
+
+      if (footerElement && !inContactOrFooter) {
+        const footerTop = footerElement.offsetTop;
+        const footerBottom = footerTop + footerElement.offsetHeight;
+        if (
+          scrollTop + viewportHeight > footerTop &&
+          scrollTop < footerBottom
+        ) {
+          inContactOrFooter = true;
+        }
+      }
+
+      setIsInContactOrFooter(inContactOrFooter);
     };
 
     // Set initial section
@@ -62,7 +95,20 @@ export default function StickyNav() {
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
+      // Check if Lenis is available for smooth scroll
+      if ((window as any).lenis) {
+        (window as any).lenis.scrollTo(element, {
+          offset: 0,
+          duration: 1.5,
+          easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        });
+      } else {
+        // Fallback to standard smooth scroll
+        window.scrollTo({
+          top: element.offsetTop,
+          behavior: "smooth",
+        });
+      }
     }
   };
 
@@ -105,7 +151,18 @@ export default function StickyNav() {
         }}
         variants={navVariants}
         initial="initial"
-        animate="animate"
+        animate={
+          isInContactOrFooter
+            ? {
+                opacity: 0,
+                scale: 0.8,
+                transition: {
+                  duration: 0.3,
+                  ease: [0.43, 0.13, 0.23, 0.96],
+                },
+              }
+            : "animate"
+        }
         exit="exit"
       >
         {/* Home Button - Active when on Hero section */}
@@ -114,7 +171,7 @@ export default function StickyNav() {
           className={`flex items-center justify-center w-12 h-12 backdrop-blur-lg rounded-full hover:scale-110 transition-all duration-300 shadow-lg ${
             activeSection === "home"
               ? "bg-[#374136] text-white"
-              : "bg-white/10 text-white hover:bg-white/20"
+              : "bg-[#374136]/50 text-white hover:bg-[#374136]/70"
           }`}
         >
           <Home className="w-6 h-6" />
@@ -132,18 +189,26 @@ export default function StickyNav() {
           >
             Portfolio
           </button>
-          <a
-            href="#experience"
-            className="px-4 py-2 text-base lg:px-6 lg:text-lg font-medium rounded-full hover:bg-white/10 transition-all duration-300 text-white opacity-50 cursor-not-allowed"
+          <button
+            onClick={() => scrollToSection("work")}
+            className={`px-4 py-2 text-base lg:px-6 lg:text-lg font-medium rounded-full transition-all duration-300 ${
+              activeSection === "work"
+                ? "bg-[#374136] text-white"
+                : "hover:bg-white/10 text-white"
+            }`}
           >
             Experience
-          </a>
-          <a
-            href="#about"
-            className="px-4 py-2 text-base lg:px-6 lg:text-lg font-medium rounded-full hover:bg-white/10 transition-all duration-300 text-white opacity-50 cursor-not-allowed"
+          </button>
+          <button
+            onClick={() => scrollToSection("about")}
+            className={`px-4 py-2 text-base lg:px-6 lg:text-lg font-medium rounded-full transition-all duration-300 ${
+              activeSection === "about"
+                ? "bg-[#374136] text-white"
+                : "hover:bg-white/10 text-white"
+            }`}
           >
             About
-          </a>
+          </button>
         </div>
       </motion.div>
     </AnimatePresence>

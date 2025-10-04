@@ -10,17 +10,58 @@ export default function PreLoadHero() {
   const [remove, setRemove] = useState(false);
 
   useEffect(() => {
+    // Disable scrolling when component mounts
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.width = "100%";
+    document.body.style.height = "100%";
+
+    // Prevent scroll events
+    const preventScroll = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    };
+
+    // Block all scroll attempts
+    window.addEventListener("scroll", preventScroll, { passive: false });
+    window.addEventListener("wheel", preventScroll, { passive: false });
+    window.addEventListener("touchmove", preventScroll, { passive: false });
+
     const timer = setTimeout(() => {
       setSlideUp(true);
     }, 5000);
 
     const removeTimer = setTimeout(() => {
       setRemove(true);
-    }, 6000); // 500ms for animation
+      // Re-enable scrolling after component is removed
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+      document.body.style.height = "";
+
+      // Remove scroll event listeners
+      window.removeEventListener("scroll", preventScroll);
+      window.removeEventListener("wheel", preventScroll);
+      window.removeEventListener("touchmove", preventScroll);
+    }, 6000); // 1000ms for animation
 
     return () => {
       clearTimeout(timer);
       clearTimeout(removeTimer);
+      // Ensure scrolling is re-enabled on cleanup
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+      document.body.style.height = "";
+
+      // Remove scroll event listeners
+      window.removeEventListener("scroll", preventScroll);
+      window.removeEventListener("wheel", preventScroll);
+      window.removeEventListener("touchmove", preventScroll);
     };
   }, []);
 

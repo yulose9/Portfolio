@@ -44,3 +44,18 @@
 .animate-fadeIn {
   animation: fadeIn 0.5s ease-out forwards;
 }
+
+/* Hero title gradient */
+.bg-hero-title-gradient {
+  background: radial-gradient(
+    13731.17% 574.54% at 98.77% -239.38%,
+    #1173fc 0%,
+    #9db1d3 12.31%,
+    #cdc6c6 27.35%,
+    #f9dab9 49.66%,
+    #f9dab8 67.51%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

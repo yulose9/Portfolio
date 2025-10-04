@@ -10,7 +10,7 @@ export default function HeroContent() {
           <Highlighter />
           <div
             className="w-full text-[49px] font-medium leading-[107%] tracking-[-0.08em] text-left"
-            style={{ fontFamily: "SF Pro Text, Inter, sans-serif" }}
+            style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
           >
             Freelance
             <br />

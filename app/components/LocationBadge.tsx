@@ -6,7 +6,7 @@ export default function LocationBadge() {
       <div className="flex items-center gap-[51px] px-[54px]">
         <div
           className="text-[26px] font-semibold leading-[107%] tracking-[-0.105em] text-left"
-          style={{ fontFamily: "SF UI Text, Inter, sans-serif" }}
+          style={{ fontFamily: "Inter, SF UI Text, sans-serif" }}
         >
           Located
           <br />
