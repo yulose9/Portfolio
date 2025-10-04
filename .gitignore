@@ -2,6 +2,7 @@
 node_modules/
 /.pnp
 .pnp.js
+.yarn/
 
 # testing
 /coverage
@@ -12,6 +13,7 @@ node_modules/
 
 # production
 /build
+dist/
 
 # misc
 .DS_Store
@@ -21,6 +23,7 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.pnpm-debug.log*
 
 # local env files
 .env*.local
@@ -37,10 +40,32 @@ yarn-error.log*
 next-env.d.ts
 
 # cursor
-.cursor
+.cursor/
 
 # superdesign
-.superdesign
+.superdesign/
 
 # vscode
 .vscode/
+
+# windsurf
+.windsurfrules
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Temporary files
+*.tmp
+*.temp

@@ -1,13 +1,15 @@
-import { ArrowDown, Home, Mail, Menu } from "lucide-react";
+import { ArrowDown, Mail, Menu } from "lucide-react";
 import { Inter } from "next/font/google";
 import Image from "next/image";
 import Highlighter from "./icons/Highlighter";
+import StickyNav from "./StickyNav";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export default function Hero() {
   return (
     <div
+      id="home"
       className={`relative w-screen h-screen bg-[#657A62] text-white ${inter.className} overflow-hidden flex flex-col`}
     >
       {/* Top Navigation */}
@@ -21,35 +23,8 @@ export default function Hero() {
             made by nazarene
           </div>
 
-          {/* Center: Navigation */}
-          <div className="hidden md:flex items-center gap-2 absolute left-1/2 -translate-x-1/2">
-            <button className="flex items-center justify-center w-12 h-12 bg-white/10 backdrop-blur-lg rounded-full hover:bg-white/20 transition-all duration-300">
-              <Home className="w-6 h-6 text-white" />
-            </button>
-            <div className="flex items-center bg-[#374136]/50 backdrop-blur-lg rounded-full px-2 py-1 shadow-lg">
-              <a
-                href="#"
-                className="px-4 py-2 text-base lg:px-6 lg:text-lg font-medium rounded-full hover:bg-white/10 transition-all duration-300"
-              >
-                Portfolio
-              </a>
-              <a
-                href="#"
-                className="px-4 py-2 text-base lg:px-6 lg:text-lg font-medium rounded-full hover:bg-white/10 transition-all duration-300"
-              >
-                Experience
-              </a>
-              <a
-                href="#"
-                className="px-4 py-2 text-base lg:px-6 lg:text-lg font-medium rounded-full hover:bg-white/10 transition-all duration-300"
-              >
-                About
-              </a>
-            </div>
-          </div>
-
           {/* Right: Get in touch / Hamburger */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 ml-auto">
             <button className="hidden md:flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 bg-[#374136]/50 backdrop-blur-lg rounded-full text-base lg:text-lg font-semibold hover:bg-[#374136]/70 hover:scale-105 transition-all duration-300">
               <Mail className="w-5 h-5" />
               Get in touch
@@ -60,6 +35,9 @@ export default function Hero() {
           </div>
         </nav>
       </header>
+
+      {/* Sticky Floating Navigation - With Active States */}
+      <StickyNav />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center justify-center text-center relative">

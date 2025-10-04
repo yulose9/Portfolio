@@ -1,19 +1,27 @@
 {
   "name": "portfolio",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Modern portfolio website built with Next.js, React, TypeScript, and Framer Motion",
+  "author": "John Nazarene Dela Pisa",
+  "license": "ISC",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "next dev --turbopack",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "lint": "next lint"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "portfolio",
+    "nextjs",
+    "react",
+    "typescript",
+    "framer-motion",
+    "tailwindcss"
+  ],
   "dependencies": {
     "framer-motion": "^12.23.22",
+    "liquid-glass-react": "^1.1.1",
     "lucide-react": "^0.544.0",
     "next": "^15.5.4",
     "react": "^19.1.1",
