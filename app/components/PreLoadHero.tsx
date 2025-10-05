@@ -69,7 +69,69 @@ export default function PreLoadHero() {
     return null;
   }
 
-  const greetings = [
+  // Mobile greetings with exact Figma positions
+  const mobileGreetings = [
+    { text: "Hole", style: "left-[calc(50%+-201px)] top-[calc(50%+-421.5px)]" },
+    { text: "مرحبا", style: "left-[calc(50%+-85px)] top-[calc(50%+-369.5px)]" },
+    {
+      text: "Сәлеметсіз бе",
+      style: "left-[calc(50%+76px)] top-[calc(50%+-358.5px)]",
+    },
+    { text: "سلام", style: "left-[calc(50%+-185px)] top-[calc(50%+-300.5px)]" },
+    {
+      text: "Bonjour",
+      style: "left-[calc(50%+-30px)] top-[calc(50%+-295.5px)]",
+    },
+    {
+      text: "こんにちは",
+      style: "left-[calc(50%+-102px)] top-[calc(50%+-221.5px)]",
+    },
+    {
+      text: "Hallo",
+      style: "left-[calc(50%+-189px)] top-[calc(50%+-159.5px)]",
+    },
+    {
+      text: "Bună ziua",
+      style: "left-[calc(50%+40.514px)] top-[calc(50%+-159.424px)]",
+    },
+    {
+      text: "Merhaba",
+      style: "left-[calc(50%+-96px)] top-[calc(50%+-103.5px)]",
+    },
+    { text: "Ciao", style: "left-[calc(50%+121px)] top-[calc(50%+-426.5px)]" },
+    {
+      text: "Γειά σας",
+      style: "left-[calc(50%+-307.917px)] top-[calc(50%+-68.792px)]",
+    },
+    { text: "Привет", style: "left-[calc(50%+88px)] top-[calc(50%+78.5px)]" },
+    { text: "হ্যালো", style: "left-[calc(50%+-49px)] top-[calc(50%+78.5px)]" },
+    {
+      text: "สวัสดี",
+      style: "left-[calc(50%+-202.179px)] top-[calc(50%+83.772px)]",
+    },
+    { text: "Olá", style: "left-[calc(50%+-185px)] top-[calc(50%+152.5px)]" },
+    {
+      text: "Здравейте",
+      style: "left-[calc(50%+11px)] top-[calc(50%+152.5px)]",
+    },
+    { text: "你好", style: "left-[calc(50%+116px)] top-[calc(50%+221.5px)]" },
+    {
+      text: "Xin chào",
+      style: "left-[calc(50%+-290px)] top-[calc(50%+221.5px)]",
+    },
+    { text: "Ahoj", style: "left-[calc(50%+-51px)] top-[calc(50%+221.5px)]" },
+    { text: "ہیلو", style: "left-[calc(50%+-51px)] top-[calc(50%+297.5px)]" },
+    { text: "Salom", style: "left-[calc(50%+88px)] top-[calc(50%+302.5px)]" },
+    { text: "Cześć", style: "left-[calc(50%+-230px)] top-[calc(50%+313.5px)]" },
+    { text: "Kamusta", style: "left-[calc(50%+29px)] top-[calc(50%+377.5px)]" },
+    {
+      text: "안녕하세요",
+      style: "left-[calc(50%+-189px)] top-[calc(50%+382.5px)]",
+    },
+  ];
+
+  // Desktop greetings with original positions
+  const desktopGreetings = [
     { text: "Hole", style: "top-[5%] left-[40%]" },
     { text: "مرحبا", style: "top-[3%] left-[50%]" },
     { text: "Сәлеметсіз бе", style: "top-[5%] left-[15%]" },
@@ -104,20 +166,57 @@ export default function PreLoadHero() {
         slideUp ? "-translate-y-full" : "translate-y-0"
       }`}
     >
-      {/* Background greetings */}
-      {greetings.map((greeting, index) => (
-        <div
-          key={index}
-          className={`absolute text-white text-5xl opacity-25 ${
-            greeting.style
-          } ${index % 2 === 0 ? "animate-move-left" : "animate-move-right"}`}
-        >
-          {greeting.text}
-        </div>
-      ))}
+      {/* Mobile Background greetings */}
+      <div className="md:hidden">
+        {mobileGreetings.map((greeting, index) => (
+          <div
+            key={index}
+            className={`absolute text-white text-[39.274px] opacity-25 translate-y-[-50%] whitespace-nowrap ${
+              greeting.style
+            } ${index % 2 === 0 ? "animate-move-left" : "animate-move-right"}`}
+            style={{
+              fontFamily: "SF Pro Text, sans-serif",
+              fontWeight: 400,
+              letterSpacing: "-1.8184px",
+              lineHeight: "20.644px",
+            }}
+          >
+            {greeting.text}
+          </div>
+        ))}
+      </div>
 
-      {/* Main greeting */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+      {/* Desktop Background greetings */}
+      <div className="hidden md:block">
+        {desktopGreetings.map((greeting, index) => (
+          <div
+            key={index}
+            className={`absolute text-white text-5xl opacity-25 ${
+              greeting.style
+            } ${index % 2 === 0 ? "animate-move-left" : "animate-move-right"}`}
+          >
+            {greeting.text}
+          </div>
+        ))}
+      </div>
+
+      {/* Mobile Main greeting */}
+      <div className="md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+        <h1
+          className="text-white text-[65.423px] font-bold whitespace-nowrap"
+          style={{
+            textShadow: "0px 0px 17.037px rgba(0, 0, 0, 0.5)",
+            fontFamily: "SF Pro Text, sans-serif",
+            letterSpacing: "-3.0291px",
+            lineHeight: "27.941px",
+          }}
+        >
+          Hi, I&apos;m John
+        </h1>
+      </div>
+
+      {/* Desktop Main greeting */}
+      <div className="hidden md:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
         <h1
           className="text-white text-7xl font-bold whitespace-nowrap"
           style={{
