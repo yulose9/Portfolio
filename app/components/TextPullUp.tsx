@@ -19,7 +19,7 @@ export default function TextPullUp({
   staggerDelay = 0.08,
 }: TextPullUpProps) {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const isInView = useInView(ref, { once: true, margin: "0px" });
 
   const words = text.split(" ");
 

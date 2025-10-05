@@ -20,7 +20,7 @@ export default function Hero() {
   useEffect(() => {
     // Prevent pinch zoom
     const preventZoom = (e: TouchEvent) => {
-      if (e.touches.length > 1 || (e as any).scale !== 1) {
+      if (e.touches.length > 1) {
         e.preventDefault();
       }
     };
@@ -36,7 +36,9 @@ export default function Hero() {
     };
 
     document.addEventListener("touchmove", preventZoom, { passive: false });
-    document.addEventListener("touchend", preventDoubleTapZoom, false);
+    document.addEventListener("touchend", preventDoubleTapZoom, {
+      passive: false,
+    });
 
     return () => {
       document.removeEventListener("touchmove", preventZoom);
@@ -134,19 +136,19 @@ export default function Hero() {
               style={{ fontFamily: "SF Pro Text, Inter, sans-serif" }}
             >
               <TextFadeIn
-                text="Freelance"
+                text="Developer"
                 as="div"
                 delay={5.1}
                 staggerDelay={0.03}
               />
               <TextFadeIn
-                text="Full Stack Developer"
+                text="Cloud Engineer"
                 as="div"
                 delay={5.15}
                 staggerDelay={0.03}
               />
               <TextFadeIn
-                text="Computer Engineer"
+                text="Artificial Intelligence"
                 as="div"
                 delay={5.2}
                 staggerDelay={0.03}

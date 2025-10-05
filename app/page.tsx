@@ -4,7 +4,7 @@ import PreLoadHero from "./components/PreLoadHero";
 // import Contact from "./components/Contact";
 // import Footer from "./components/Footer";
 import Hero from "./components/Hero";
-// import Portfolio from "./components/Portfolio";
+import Portfolio from "./components/Portfolio";
 // import Work from "./components/Work";
 
 export default function Page() {
@@ -12,7 +12,7 @@ export default function Page() {
     <main className="relative overflow-x-hidden w-full">
       <PreLoadHero />
       <Hero />
-      {/* <Portfolio /> */}
+      <Portfolio />
       {/* <Work /> */}
       {/* <About /> */}
       {/* <Contact /> */}

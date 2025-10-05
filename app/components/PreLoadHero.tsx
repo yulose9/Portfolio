@@ -10,24 +10,33 @@ export default function PreLoadHero() {
   const [remove, setRemove] = useState(false);
 
   useEffect(() => {
-    // Disable scrolling when component mounts
+    // Store the current scroll position
+    const scrollY = window.scrollY;
+
+    // Disable ALL scrolling and touch interactions when component mounts
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
     document.body.style.position = "fixed";
     document.body.style.width = "100%";
     document.body.style.height = "100%";
+    document.body.style.top = `-${scrollY}px`;
 
-    // Prevent scroll events
-    const preventScroll = (e: Event) => {
+    // Prevent ALL scroll and touch events
+    const preventInteraction = (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
       return false;
     };
 
-    // Block all scroll attempts
-    window.addEventListener("scroll", preventScroll, { passive: false });
-    window.addEventListener("wheel", preventScroll, { passive: false });
-    window.addEventListener("touchmove", preventScroll, { passive: false });
+    // Block ALL scroll and touch attempts while PreLoadHero is visible
+    window.addEventListener("scroll", preventInteraction, { passive: false });
+    window.addEventListener("wheel", preventInteraction, { passive: false });
+    window.addEventListener("touchmove", preventInteraction, {
+      passive: false,
+    });
+    window.addEventListener("touchstart", preventInteraction, {
+      passive: false,
+    });
 
     const timer = setTimeout(() => {
       setSlideUp(true);
@@ -35,33 +44,42 @@ export default function PreLoadHero() {
 
     const removeTimer = setTimeout(() => {
       setRemove(true);
-      // Re-enable scrolling after component is removed
+
+      // Re-enable ALL scrolling and touch after component is removed
       document.body.style.overflow = "";
       document.documentElement.style.overflow = "";
       document.body.style.position = "";
       document.body.style.width = "";
       document.body.style.height = "";
+      document.body.style.top = "";
 
-      // Remove scroll event listeners
-      window.removeEventListener("scroll", preventScroll);
-      window.removeEventListener("wheel", preventScroll);
-      window.removeEventListener("touchmove", preventScroll);
+      // Restore scroll position
+      window.scrollTo(0, scrollY);
+
+      // Remove ALL event listeners
+      window.removeEventListener("scroll", preventInteraction);
+      window.removeEventListener("wheel", preventInteraction);
+      window.removeEventListener("touchmove", preventInteraction);
+      window.removeEventListener("touchstart", preventInteraction);
     }, 6000); // 1000ms for animation
 
     return () => {
       clearTimeout(timer);
       clearTimeout(removeTimer);
-      // Ensure scrolling is re-enabled on cleanup
+
+      // Ensure everything is re-enabled on cleanup
       document.body.style.overflow = "";
       document.documentElement.style.overflow = "";
       document.body.style.position = "";
       document.body.style.width = "";
       document.body.style.height = "";
+      document.body.style.top = "";
 
-      // Remove scroll event listeners
-      window.removeEventListener("scroll", preventScroll);
-      window.removeEventListener("wheel", preventScroll);
-      window.removeEventListener("touchmove", preventScroll);
+      // Remove ALL event listeners
+      window.removeEventListener("scroll", preventInteraction);
+      window.removeEventListener("wheel", preventInteraction);
+      window.removeEventListener("touchmove", preventInteraction);
+      window.removeEventListener("touchstart", preventInteraction);
     };
   }, []);
 

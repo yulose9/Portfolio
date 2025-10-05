@@ -19,10 +19,10 @@ export default function SectionHeader({
   delay = 0,
 }: SectionHeaderProps) {
   return (
-    <div className="flex items-center justify-between h-[60px]">
+    <div className="flex items-center justify-between min-h-[40px] md:min-h-[60px]">
       <TextPullUp
         text={title}
-        className={`text-[64px] font-medium leading-[0.938] tracking-[-2.56px] ${textColor}`}
+        className={`text-[36px] md:text-[64px] font-medium leading-[0.938] tracking-[-1.44px] md:tracking-[-2.56px] ${textColor}`}
         style={{ fontFamily: "Inter, sans-serif" }}
         delay={delay}
       />
@@ -32,7 +32,10 @@ export default function SectionHeader({
           className="p-1 hover:scale-110 transition-transform"
           aria-label="View more"
         >
-          <ArrowRight className={`w-6 h-6 ${arrowColor}`} strokeWidth={2} />
+          <ArrowRight
+            className={`w-4 h-4 md:w-6 md:h-6 ${arrowColor}`}
+            strokeWidth={2}
+          />
         </button>
       )}
     </div>
