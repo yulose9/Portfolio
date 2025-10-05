@@ -25,6 +25,17 @@ export default function SmoothScrolling({ children }: SmoothScrollingProps) {
     // Expose lenis instance globally for smooth scrolling
     (window as any).lenis = lenis;
 
+    // Prevent horizontal scrolling
+    const preventHorizontalScroll = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("wheel", preventHorizontalScroll, {
+      passive: false,
+    });
+
     // Request animation frame loop
     function raf(time: number) {
       lenis.raf(time);
@@ -37,6 +48,7 @@ export default function SmoothScrolling({ children }: SmoothScrollingProps) {
     return () => {
       lenis.destroy();
       delete (window as any).lenis;
+      window.removeEventListener("wheel", preventHorizontalScroll);
     };
   }, []);
 

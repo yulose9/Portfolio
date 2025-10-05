@@ -6,6 +6,7 @@ import { Inter } from "next/font/google";
 import Image from "next/image";
 import { useState } from "react";
 import Highlighter from "./icons/Highlighter";
+import MobileNav from "./MobileNav";
 import StickyNav from "./StickyNav";
 import TextFadeIn from "./TextFadeIn";
 
@@ -13,6 +14,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export default function Hero() {
   const [isVisible, setIsVisible] = useState(true);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   const handleScrollToPortfolio = () => {
     // Hide the button with fade out
@@ -55,12 +57,21 @@ export default function Hero() {
               <Mail className="w-5 h-5" />
               Get in touch
             </button>
-            <button className="md:hidden flex items-center justify-center w-12 h-12 bg-white/10 backdrop-blur-lg rounded-full hover:bg-white/20 transition-all duration-300">
+            <button
+              onClick={() => setIsMobileNavOpen(true)}
+              className="md:hidden flex items-center justify-center w-12 h-12 bg-white/10 backdrop-blur-lg rounded-full hover:bg-white/20 transition-all duration-300"
+            >
               <Menu className="w-6 h-6 text-white" />
             </button>
           </div>
         </nav>
       </header>
+
+      {/* Mobile Navigation */}
+      <MobileNav
+        isOpen={isMobileNavOpen}
+        onClose={() => setIsMobileNavOpen(false)}
+      />
 
       {/* Sticky Floating Navigation - With Active States */}
       <StickyNav />
@@ -147,11 +158,12 @@ export default function Hero() {
           className="absolute bottom-20 inset-x-0 text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-[110px] font-bold z-[100] whitespace-nowrap text-center"
           style={{
             background:
-              "radial-gradient(13731.17% 574.54% at 98.77% -239.38%, #1173FC 0%, #9DB1D3 12.31%, #CDC6C6 27.35%, #F9DAB9 49.66%, #F9DAB8 67.51%)",
+              "linear-gradient(to right, #1173FC, #9DB1D3, #CDC6C6, #F9DAB9, #F9DAB8)",
             WebkitBackgroundClip: "text",
             backgroundClip: "text",
             WebkitTextFillColor: "transparent",
             color: "transparent",
+            textShadow: "0px 0px 12px rgba(0, 0, 0, 0.25)",
           }}
         >
           John Nazarene Dela Pisa
@@ -161,46 +173,41 @@ export default function Hero() {
       {/* Scroll to Discover */}
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0, y: 0 }}
+          initial={{ opacity: 0 }}
           animate={{
             opacity: isVisible ? 1 : 0,
-            y: [0, -10, 0],
+            y: [0, 10, 0],
           }}
           exit={{ opacity: 0 }}
           transition={{
+            opacity: {
+              duration: 0.5,
+              delay: 5.4,
+            },
             y: {
               duration: 1.5,
               repeat: Infinity,
               ease: "easeInOut",
               delay: 5.4,
             },
-            opacity: {
-              duration: 0.5,
-              delay: 5.4,
-            },
           }}
-          className="absolute bottom-4 md:bottom-8 right-4 md:right-8 z-10 cursor-pointer hover:scale-110 transition-transform"
+          className="absolute bottom-8 right-8 z-10 cursor-pointer hover:scale-105 transition-transform"
           onClick={handleScrollToPortfolio}
         >
-          <TextFadeIn
-            text="Scroll to Discover"
-            as="span"
-            className="text-base md:text-lg font-medium flex items-center gap-2"
-            delay={5.4}
-            staggerDelay={0.03}
-          />
-          <motion.div
-            animate={{
-              y: [0, 5, 0],
-            }}
-            transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          >
-            <ArrowDown className="w-5 h-5 md:w-6 md:h-6" />
-          </motion.div>
+          <div className="flex items-center gap-3">
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 5.4 }}
+              className="text-[20px] font-semibold leading-[1.068] tracking-[-0.08em] text-white"
+              style={{ fontFamily: "SF Pro Text, Inter, sans-serif" }}
+            >
+              Scroll to Discover
+            </motion.p>
+            <div className="flex items-center justify-center">
+              <ArrowDown className="w-[20px] h-[20px]" />
+            </div>
+          </div>
         </motion.div>
       )}
     </div>
