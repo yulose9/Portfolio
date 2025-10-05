@@ -73,30 +73,30 @@ export default function Hero() {
       <header className="absolute top-0 left-0 right-0 z-20">
         <nav className="flex items-center justify-between p-4 md:p-6 lg:p-8">
           {/* Left: made by nazarene */}
-          <TextFadeIn
-            text="made by nazarene"
-            as="div"
+          <div
             className="text-base md:text-xl lg:text-2xl font-semibold tracking-[-0.08em]"
             style={{ fontFamily: "SF Pro Text, Inter, sans-serif" }}
-            delay={5.0}
-            staggerDelay={0.02}
-          />
+          >
+            made by nazarene
+          </div>
 
-          {/* Right: Get in touch / Hamburger */}
+          {/* Right: Get in touch button (desktop only) */}
           <div className="flex items-center gap-4 ml-auto">
             <button className="hidden md:flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 bg-[#374136]/50 backdrop-blur-lg rounded-full text-base lg:text-lg font-semibold hover:bg-[#374136]/70 hover:scale-105 transition-all duration-300">
               <Mail className="w-5 h-5" />
               Get in touch
             </button>
-            <button
-              onClick={() => setIsMobileNavOpen(true)}
-              className="md:hidden flex items-center justify-center w-11 h-11 bg-white/10 backdrop-blur-lg rounded-full hover:bg-white/20 transition-all duration-300"
-            >
-              <Menu className="w-5 h-5 text-white rotate-180" />
-            </button>
           </div>
         </nav>
       </header>
+
+      {/* Mobile Hamburger - Fixed/Sticky position (always on screen) */}
+      <button
+        onClick={() => setIsMobileNavOpen(true)}
+        className="md:hidden fixed top-4 right-4 z-[100] flex items-center justify-center w-11 h-11 bg-white/10 backdrop-blur-lg rounded-full hover:bg-white/20 transition-all duration-300 shadow-lg"
+      >
+        <Menu className="w-5 h-5 text-white rotate-180" />
+      </button>
 
       {/* Mobile Navigation */}
       <MobileNav

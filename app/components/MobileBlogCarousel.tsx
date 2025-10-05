@@ -97,18 +97,33 @@ export default function MobileBlogCarousel({ blogs }: MobileBlogCarouselProps) {
               className="inline-block px-[6px] py-[2px] rounded-2xl mb-2"
               style={{ backgroundColor: blogs[currentIndex].tagColor }}
             >
-              <span className="text-white text-xs font-bold uppercase tracking-tight">
+              <span
+                className="text-white text-xs font-bold uppercase tracking-tight"
+                style={{
+                  fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
+                }}
+              >
                 {blogs[currentIndex].tag}
               </span>
             </div>
 
             {/* Title */}
-            <h3 className="text-white text-2xl font-bold leading-7 tracking-wide mb-3">
+            <h3
+              className="text-white text-2xl font-bold leading-7 tracking-wide mb-3"
+              style={{
+                fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
+              }}
+            >
               {blogs[currentIndex].title}
             </h3>
 
             {/* Date */}
-            <div className="flex items-center text-white text-sm font-semibold tracking-tight">
+            <div
+              className="flex items-center text-white text-sm font-semibold tracking-tight"
+              style={{
+                fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
+              }}
+            >
               {blogs[currentIndex].date}
             </div>
           </div>
@@ -135,16 +150,14 @@ export default function MobileBlogCarousel({ blogs }: MobileBlogCarouselProps) {
       <div className="flex justify-center gap-2">
         <button
           onClick={handlePrev}
-          disabled={currentIndex === 0}
-          className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center transition-all hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center transition-all hover:bg-gray-200 active:scale-95"
           aria-label="Previous blog"
         >
           <ChevronLeft className="w-7 h-7 text-gray-700" strokeWidth={2.5} />
         </button>
         <button
           onClick={handleNext}
-          disabled={currentIndex === blogs.length - 1}
-          className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center transition-all hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center transition-all hover:bg-gray-200 active:scale-95"
           aria-label="Next blog"
         >
           <ChevronRight className="w-7 h-7 text-gray-700" strokeWidth={2.5} />
@@ -156,6 +169,9 @@ export default function MobileBlogCarousel({ blogs }: MobileBlogCarouselProps) {
         <a
           href="#all-blogs"
           className="inline-block px-6 py-3 rounded-full bg-gray-100 text-gray-900 text-[17px] font-semibold tracking-tight transition-all hover:bg-gray-200"
+          style={{
+            fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
+          }}
         >
           View All
         </a>
