@@ -1,8 +1,8 @@
 import "lenis/dist/lenis.css";
 import { title } from "process";
-import ImagePreloader from "./components/ImagePreloader";
-import SmoothScrolling from "./components/SmoothScrolling";
+import { ImagePreloader } from "./components/shared";
 import "./globals.css";
+import { SmoothScrolling } from "./providers";
 
 export const metadata = {
   title: "John Nazarene",
@@ -51,20 +51,6 @@ export default function RootLayout({
 
         {/* Android Chrome specific */}
         <meta name="mobile-web-app-capable" content="yes" />
-
-        {/* Preload critical hero image for instant loading */}
-        <link
-          rel="preload"
-          as="image"
-          href="/7a97f9ff1efd6be56501753f1f090d23d760914c.png"
-          fetchPriority="high"
-        />
-        <link
-          rel="preload"
-          as="image"
-          href="/snazzy-image.png"
-          fetchPriority="high"
-        />
       </head>
       <body>
         <ImagePreloader />

@@ -1,11 +1,9 @@
-import PreLoadHero from "./components/PreLoadHero";
-// import HelloWorld from "./components/helloworld";
-import About from "./components/About";
-import Contact from "./components/Contact";
-import Footer from "./components/Footer";
-import Hero from "./components/Hero";
-import Portfolio from "./components/Portfolio";
-import Work from "./components/Work";
+import { About } from "./(sections)/about";
+import { Contact } from "./(sections)/contact";
+import { Hero, PreLoadHero } from "./(sections)/hero";
+import { Portfolio } from "./(sections)/portfolio";
+import { Work } from "./(sections)/work";
+import { Footer } from "./components/layout";
 
 export default function Page() {
   return (
