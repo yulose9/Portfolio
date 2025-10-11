@@ -198,48 +198,54 @@ export default function Work() {
               {/* Table Header */}
               <div className="grid grid-cols-[100px_1fr_1fr_1fr] gap-8 pb-4 border-b-[1.57px] border-white/20">
                 <div></div>
-                <motion.p
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.6,
-                    ease: [0.21, 0.47, 0.32, 0.98],
-                    delay: 0,
-                  }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  className="text-[14px] font-semibold leading-[24px] tracking-[-0.56px] text-[#f0f0f0]"
-                  style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-                >
-                  COMPANY NAME
-                </motion.p>
-                <motion.p
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.6,
-                    ease: [0.21, 0.47, 0.32, 0.98],
-                    delay: 0.1,
-                  }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  className="text-[14px] font-semibold leading-[24px] tracking-[-0.56px] text-[#f0f0f0]"
-                  style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-                >
-                  LOCATION
-                </motion.p>
-                <motion.p
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.6,
-                    ease: [0.21, 0.47, 0.32, 0.98],
-                    delay: 0.2,
-                  }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  className="text-[14px] font-semibold leading-[24px] tracking-[-0.56px] text-[#f0f0f0]"
-                  style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-                >
-                  JOB POSITION
-                </motion.p>
+                <div className="flex justify-start items-center">
+                  <motion.p
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.6,
+                      ease: [0.21, 0.47, 0.32, 0.98],
+                      delay: 0,
+                    }}
+                    viewport={{ once: true, margin: "-50px" }}
+                    className="text-[14px] font-semibold leading-[24px] tracking-[-0.56px] text-[#f0f0f0]"
+                    style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
+                  >
+                    COMPANY NAME
+                  </motion.p>
+                </div>
+                <div className="flex justify-start items-center">
+                  <motion.p
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.6,
+                      ease: [0.21, 0.47, 0.32, 0.98],
+                      delay: 0.1,
+                    }}
+                    viewport={{ once: true, margin: "-50px" }}
+                    className="text-[14px] font-semibold leading-[24px] tracking-[-0.56px] text-[#f0f0f0]"
+                    style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
+                  >
+                    LOCATION
+                  </motion.p>
+                </div>
+                <div className="flex justify-start items-center">
+                  <motion.p
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.6,
+                      ease: [0.21, 0.47, 0.32, 0.98],
+                      delay: 0.2,
+                    }}
+                    viewport={{ once: true, margin: "-50px" }}
+                    className="text-[14px] font-semibold leading-[24px] tracking-[-0.56px] text-[#f0f0f0]"
+                    style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
+                  >
+                    JOB POSITION
+                  </motion.p>
+                </div>
               </div>
 
               {/* Table Rows */}
@@ -256,28 +262,32 @@ export default function Work() {
                   viewport={{ once: true, margin: "-50px" }}
                   className="grid grid-cols-[100px_1fr_1fr_1fr] gap-8 py-6 border-b-[1.57px] border-white/20 last:border-0"
                 >
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <p
-                        className="text-[14px] font-light leading-[24px] tracking-[-0.56px] text-white whitespace-nowrap cursor-help"
-                        style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-                      >
-                        {work.duration}
-                      </p>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p
-                        className="text-[12px] font-semibold"
-                        style={{
-                          fontFamily: "Inter, SF Pro Text, sans-serif",
-                        }}
-                      >
-                        {work.customDuration ||
-                          calculateDuration(work.startYear, work.startMonth)}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <div className="flex items-center gap-4">
+                  <div className="flex justify-center items-center">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <p
+                          className="text-[14px] font-light leading-[24px] tracking-[-0.56px] text-white whitespace-nowrap cursor-help text-left"
+                          style={{
+                            fontFamily: "Inter, SF Pro Text, sans-serif",
+                          }}
+                        >
+                          {work.duration}
+                        </p>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p
+                          className="text-[12px] font-semibold"
+                          style={{
+                            fontFamily: "Inter, SF Pro Text, sans-serif",
+                          }}
+                        >
+                          {work.customDuration ||
+                            calculateDuration(work.startYear, work.startMonth)}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <div className="flex items-center justify-start gap-4">
                     {/* Company Logo */}
                     <a
                       href={work.linkedinUrl}
@@ -311,21 +321,25 @@ export default function Work() {
                       {work.companyName}
                     </a>
                   </div>
-                  <a
-                    href={work.locationUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[20px] font-light leading-[24px] tracking-[-0.8px] text-white hover:text-[#8eb08a] transition-colors duration-300 hover:underline underline-offset-4"
-                    style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-                  >
-                    {work.location}
-                  </a>
-                  <p
-                    className="text-[20px] font-light leading-[24px] tracking-[-0.8px] text-white"
-                    style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-                  >
-                    {work.position}
-                  </p>
+                  <div className="flex justify-start items-center">
+                    <a
+                      href={work.locationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[20px] font-light leading-[24px] tracking-[-0.8px] text-white hover:text-[#8eb08a] transition-colors duration-300 hover:underline underline-offset-4"
+                      style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
+                    >
+                      {work.location}
+                    </a>
+                  </div>
+                  <div className="flex justify-start items-center">
+                    <p
+                      className="text-[20px] font-light leading-[24px] tracking-[-0.8px] text-white"
+                      style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
+                    >
+                      {work.position}
+                    </p>
+                  </div>
                 </motion.div>
               ))}
             </div>

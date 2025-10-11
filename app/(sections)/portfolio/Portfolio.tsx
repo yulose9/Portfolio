@@ -4,7 +4,7 @@ import { BlogCard, MobileBlogCarousel } from "@/app/(sections)/blog";
 import { GsapBouncyText } from "@/app/(sections)/hero";
 import { SectionHeader } from "@/app/components/shared";
 import { Inter } from "next/font/google";
-import { Carousel, MobileProjectCarousel } from "./";
+import { DesktopProjectCarousel, MobileProjectCarousel } from "./";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -90,16 +90,15 @@ export default function Portfolio() {
         </div>
 
         {/* Carousel - Responsive */}
-        <div className="max-w-[1280px] mx-auto w-full">
-          {/* Mobile: Mobile Project Carousel */}
-          <div className="block md:hidden">
-            <MobileProjectCarousel projects={projects} />
-          </div>
 
-          {/* Desktop: Original Carousel */}
-          <div className="hidden md:block">
-            <Carousel projects={projects} />
-          </div>
+        {/* Mobile: Mobile Project Carousel */}
+        <div className="block md:hidden">
+          <MobileProjectCarousel projects={projects} />
+        </div>
+
+        {/* Desktop: Original Carousel */}
+        <div className="hidden md:block">
+          <DesktopProjectCarousel projects={projects} />
         </div>
       </section>
 
