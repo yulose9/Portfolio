@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import ProjectPlaceholder from "./ProjectPlaceholder";
 
 interface CarouselProps {
   projects: {
@@ -12,6 +13,7 @@ interface CarouselProps {
     description: string;
     blogUrl?: string;
     githubUrl?: string;
+    isPlaceholder?: boolean;
   }[];
 }
 
@@ -179,10 +181,18 @@ export default function Carousel({ projects }: CarouselProps) {
                 src={project.image}
                 alt={project.title}
                 fill
+                quality={95} // High quality for carousel images
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
                 className="object-cover"
                 priority={index === 1} // Prioritize first real slide
               />
+              {/* Placeholder Overlay */}
+              {project.isPlaceholder && (
+                <ProjectPlaceholder
+                  title={project.title}
+                  message={project.description}
+                />
+              )}
             </div>
           ))}
         </div>

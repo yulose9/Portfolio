@@ -11,6 +11,7 @@ interface Blog {
   title: string;
   date: string;
   url?: string;
+  isPlaceholder?: boolean;
 }
 
 interface MobileBlogCarouselProps {
@@ -75,7 +76,11 @@ export default function MobileBlogCarousel({ blogs }: MobileBlogCarouselProps) {
       >
         <a
           href={blogs[currentIndex].url || "#"}
-          className="block relative w-full h-full rounded-3xl overflow-hidden bg-white cursor-pointer group"
+          className={`block relative w-full h-full rounded-3xl overflow-hidden bg-white ${
+            blogs[currentIndex].isPlaceholder
+              ? "cursor-default"
+              : "cursor-pointer group"
+          }`}
         >
           {/* Image Container with Gradient Overlay */}
           <div className="absolute inset-0">
@@ -83,50 +88,106 @@ export default function MobileBlogCarousel({ blogs }: MobileBlogCarouselProps) {
               src={blogs[currentIndex].image}
               alt={blogs[currentIndex].title}
               fill
-              className="object-cover transition-transform duration-400 ease-out group-hover:scale-105"
+              className={`object-cover transition-transform duration-400 ease-out ${
+                !blogs[currentIndex].isPlaceholder && "group-hover:scale-105"
+              }`}
             />
 
             {/* Gradient Overlay - from transparent to black */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent" />
+
+            {/* Dimmer overlay for placeholder */}
+            {blogs[currentIndex].isPlaceholder && (
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+            )}
           </div>
 
-          {/* Content Overlay - Bottom */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
-            {/* Category Badge */}
-            <div
-              className="inline-block px-[6px] py-[2px] rounded-2xl mb-2"
-              style={{ backgroundColor: blogs[currentIndex].tagColor }}
-            >
-              <span
-                className="text-white text-xs font-bold uppercase tracking-tight"
+          {/* Content Overlay */}
+          {blogs[currentIndex].isPlaceholder ? (
+            // Placeholder Content - Centered
+            <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
+              {/* Animated Book Icon */}
+              <div className="mb-4 animate-pulse">
+                <svg
+                  className="w-12 h-12 text-white/80"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                  />
+                </svg>
+              </div>
+
+              {/* Coming Soon Badge */}
+              <div
+                className="inline-block px-4 py-2 rounded-full mb-3"
+                style={{ backgroundColor: blogs[currentIndex].tagColor }}
+              >
+                <span className="text-white text-xs font-bold uppercase tracking-wide">
+                  {blogs[currentIndex].tag}
+                </span>
+              </div>
+
+              {/* Title */}
+              <h3 className="text-white text-xl font-bold text-center mb-2">
+                Coming Soon
+              </h3>
+
+              {/* Description */}
+              <p className="text-white/70 text-center text-xs max-w-[240px]">
+                Working on new content. Check back soon!
+              </p>
+
+              {/* Date */}
+              <p className="text-white/50 text-xs mt-3">
+                {blogs[currentIndex].date}
+              </p>
+            </div>
+          ) : (
+            // Normal Content - Bottom
+            <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+              {/* Category Badge */}
+              <div
+                className="inline-block px-[6px] py-[2px] rounded-2xl mb-2"
+                style={{ backgroundColor: blogs[currentIndex].tagColor }}
+              >
+                <span
+                  className="text-white text-xs font-bold uppercase tracking-tight"
+                  style={{
+                    fontFamily:
+                      "Inter, SF Pro Display, SF Pro Text, sans-serif",
+                  }}
+                >
+                  {blogs[currentIndex].tag}
+                </span>
+              </div>
+
+              {/* Title */}
+              <h3
+                className="text-white text-2xl font-bold leading-7 tracking-wide mb-3"
                 style={{
                   fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
                 }}
               >
-                {blogs[currentIndex].tag}
-              </span>
-            </div>
+                {blogs[currentIndex].title}
+              </h3>
 
-            {/* Title */}
-            <h3
-              className="text-white text-2xl font-bold leading-7 tracking-wide mb-3"
-              style={{
-                fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
-              }}
-            >
-              {blogs[currentIndex].title}
-            </h3>
-
-            {/* Date */}
-            <div
-              className="flex items-center text-white text-sm font-semibold tracking-tight"
-              style={{
-                fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
-              }}
-            >
-              {blogs[currentIndex].date}
+              {/* Date */}
+              <div
+                className="flex items-center text-white text-sm font-semibold tracking-tight"
+                style={{
+                  fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
+                }}
+              >
+                {blogs[currentIndex].date}
+              </div>
             </div>
-          </div>
+          )}
         </a>
       </div>
 

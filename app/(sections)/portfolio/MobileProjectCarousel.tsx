@@ -12,6 +12,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ProjectPlaceholder from "./ProjectPlaceholder";
 
 interface Project {
   image: string;
@@ -19,6 +20,7 @@ interface Project {
   description: string;
   blogUrl: string;
   githubUrl: string;
+  isPlaceholder?: boolean;
 }
 
 interface MobileProjectCarouselProps {
@@ -30,6 +32,7 @@ type Card = {
   title: string;
   category: string;
   content: React.ReactNode;
+  isPlaceholder?: boolean;
 };
 
 export const CarouselContext = createContext<{
@@ -129,7 +132,10 @@ export const Card = ({
       <motion.button
         layoutId={layout ? `card-${card.title}` : undefined}
         onClick={handleOpen}
-        className="relative z-10 flex h-80 w-56 flex-col items-start justify-start overflow-hidden rounded-3xl bg-gray-100 md:h-[40rem] md:w-96 dark:bg-neutral-900"
+        className={`relative z-10 flex h-80 w-56 flex-col items-start justify-start overflow-hidden rounded-3xl bg-gray-100 md:h-[40rem] md:w-96 dark:bg-neutral-900 ${
+          card.isPlaceholder ? "cursor-default" : ""
+        }`}
+        disabled={card.isPlaceholder}
       >
         <div className="pointer-events-none absolute inset-x-0 top-0 z-30 h-full bg-gradient-to-b from-black/50 via-transparent to-transparent" />
         <div className="relative z-40 p-8">
@@ -150,8 +156,35 @@ export const Card = ({
           src={card.src}
           alt={card.title}
           fill
+          quality={90} // High quality for mobile carousel
+          sizes="(max-width: 768px) 56vw, 384px"
           className="absolute inset-0 z-10 object-cover"
         />
+        {/* Placeholder Overlay for Mobile */}
+        {card.isPlaceholder && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="animate-pulse mb-4">
+              <svg
+                className="w-12 h-12 text-white/80"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                />
+              </svg>
+            </div>
+            <div className="px-4 py-1.5 rounded-full bg-[#6b7280]/90 backdrop-blur-sm">
+              <span className="text-white text-xs font-bold uppercase tracking-wide">
+                Coming Soon
+              </span>
+            </div>
+          </div>
+        )}
       </motion.button>
     </>
   );
@@ -223,6 +256,7 @@ export default function MobileProjectCarousel({
     src: project.image,
     title: project.title,
     category: "Project",
+    isPlaceholder: project.isPlaceholder,
     content: (
       <div className="space-y-4">
         <p className="text-neutral-600 dark:text-neutral-400">

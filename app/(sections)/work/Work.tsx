@@ -9,10 +9,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/app/components/ui/tooltip";
-import { motion, useInView } from "framer-motion";
+import { AnimatePresence, motion, useInView } from "framer-motion";
 import { Inter } from "next/font/google";
 import { useRef, useState } from "react";
-import { MobileWorkExperiences } from "./";
+import { MobileWorkExperiences, WorkExperienceGrid } from "./";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -111,6 +111,9 @@ const certificates = [
 ];
 
 export default function Work() {
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list"); // Default to list view
+  const [hoveredRowIndex, setHoveredRowIndex] = useState<number | null>(null);
+
   return (
     <TooltipProvider>
       <div
@@ -123,10 +126,13 @@ export default function Work() {
         </div>
 
         {/* Desktop View - Work & Experiences Section - Full Screen */}
-        <section className="hidden md:flex relative min-h-screen flex-col justify-center px-8 py-16">
-          <div className="max-w-[1280px] mx-auto w-full">
-            {/* Work Header */}
-            <div className="flex items-center justify-between mb-10">
+        <section className="hidden md:flex relative min-h-screen flex-col px-8 py-16">
+          <div
+            className="max-w-[1280px] mx-auto w-full flex flex-col"
+            style={{ minHeight: "calc(100vh - 8rem)" }}
+          >
+            {/* Work Header - Fixed at top */}
+            <div className="flex items-center justify-between mb-10 flex-shrink-0">
               <SectionHeader
                 title="Work & Experiences"
                 textColor="text-white"
@@ -134,7 +140,12 @@ export default function Work() {
               <div className="flex gap-4">
                 {/* Grid View Button */}
                 <button
-                  className="w-[60px] h-[60px] rounded-full bg-[#697668]/80 backdrop-blur-[23.49px] border border-[rgba(117,117,117,0.4)] shadow-[0px_32px_64px_0px_rgba(0,0,0,0.19),0px_2px_21px_0px_rgba(0,0,0,0.15)] hover:scale-110 transition-transform flex items-center justify-center"
+                  onClick={() => setViewMode("grid")}
+                  className={`w-[60px] h-[60px] rounded-full backdrop-blur-[23.49px] border shadow-[0px_32px_64px_0px_rgba(0,0,0,0.19),0px_2px_21px_0px_rgba(0,0,0,0.15)] hover:scale-110 transition-all flex items-center justify-center ${
+                    viewMode === "grid"
+                      ? "bg-white border-white"
+                      : "bg-[#697668]/80 border-[rgba(117,117,117,0.4)]"
+                  }`}
                   aria-label="Grid view"
                 >
                   <svg
@@ -143,29 +154,36 @@ export default function Work() {
                     viewBox="0 0 22 22"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
-                    className="text-white"
+                    className={
+                      viewMode === "grid" ? "text-[#657a62]" : "text-white"
+                    }
                   >
                     <path
                       d="M15.0436 9.72797H18.7042C20.5265 9.72797 21.623 8.61441 21.623 6.68205V3.11209C21.623 1.1961 20.5265 0.0661621 18.7042 0.0661621H15.0436C13.2052 0.0661621 12.1248 1.1961 12.1248 3.11209V6.68205C12.1248 8.61441 13.2052 9.72797 15.0436 9.72797Z"
-                      fill="white"
+                      fill="currentColor"
                     />
                     <path
                       d="M3.40052 9.72797H7.06115C8.89953 9.72797 9.97998 8.61441 9.97998 6.68205V3.11209C9.97998 1.1961 8.89953 0.0661621 7.06115 0.0661621H3.40052C1.56215 0.0661621 0.481695 1.1961 0.481695 3.11209V6.68205C0.481695 8.61441 1.56215 9.72797 3.40052 9.72797Z"
-                      fill="white"
+                      fill="currentColor"
                     />
                     <path
                       d="M15.0436 21.2075H18.7042C20.5265 21.2075 21.623 20.1103 21.623 18.1943V14.5916C21.623 12.6756 20.5265 11.5785 18.7042 11.5785H15.0436C13.2052 11.5785 12.1248 12.6756 12.1248 14.5916V18.1943C12.1248 20.1103 13.2052 21.2075 15.0436 21.2075Z"
-                      fill="white"
+                      fill="currentColor"
                     />
                     <path
                       d="M3.40052 21.2075H7.06115C8.89953 21.2075 9.97998 20.1103 9.97998 18.1943V14.5916C9.97998 12.6756 8.89953 11.5785 7.06115 11.5785H3.40052C1.56215 11.5785 0.481695 12.6756 0.481695 14.5916V18.1943C0.481695 20.1103 1.56215 21.2075 3.40052 21.2075Z"
-                      fill="white"
+                      fill="currentColor"
                     />
                   </svg>
                 </button>
                 {/* List View Button */}
                 <button
-                  className="w-[60px] h-[60px] rounded-full bg-[#697668]/80 backdrop-blur-[23.49px] border border-[rgba(117,117,117,0.4)] shadow-[0px_32px_64px_0px_rgba(0,0,0,0.19),0px_2px_21px_0px_rgba(0,0,0,0.15)] hover:scale-110 transition-transform flex items-center justify-center"
+                  onClick={() => setViewMode("list")}
+                  className={`w-[60px] h-[60px] rounded-full backdrop-blur-[23.49px] border shadow-[0px_32px_64px_0px_rgba(0,0,0,0.19),0px_2px_21px_0px_rgba(0,0,0,0.15)] hover:scale-110 transition-all flex items-center justify-center ${
+                    viewMode === "list"
+                      ? "bg-white border-white"
+                      : "bg-[#697668]/80 border-[rgba(117,117,117,0.4)]"
+                  }`}
                   aria-label="List view"
                 >
                   <svg
@@ -174,174 +192,249 @@ export default function Work() {
                     viewBox="0 0 30 22"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
-                    className="text-white"
+                    className={
+                      viewMode === "list" ? "text-[#657a62]" : "text-white"
+                    }
                   >
                     <path
                       d="M2.29705 17.4165H27.6078C28.9371 17.4165 29.8677 18.2449 29.8677 19.4617C29.8677 20.6784 28.9371 21.481 27.6078 21.481H2.29705C0.994295 21.481 0.0637531 20.6784 0.0637531 19.4617C0.0637531 18.2449 0.994295 17.4165 2.29705 17.4165Z"
-                      fill="white"
+                      fill="currentColor"
                     />
                     <path
                       d="M2.29705 8.87345H27.6078C28.9371 8.87345 29.8677 9.70187 29.8677 10.9186C29.8677 12.1354 28.9371 12.9379 27.6078 12.9379H2.29705C0.994295 12.9379 0.0637531 12.1354 0.0637531 10.9186C0.0637531 9.70187 0.994295 8.87345 2.29705 8.87345Z"
-                      fill="white"
+                      fill="currentColor"
                     />
                     <path
                       d="M2.29705 0.304487H27.6078C28.9371 0.304487 29.8677 1.13291 29.8677 2.34965C29.8677 3.56639 28.9371 4.36892 27.6078 4.36892H2.29705C0.994295 4.36892 0.0637531 3.56639 0.0637531 2.34965C0.0637531 1.13291 0.994295 0.304487 2.29705 0.304487Z"
-                      fill="white"
+                      fill="currentColor"
                     />
                   </svg>
                 </button>
               </div>
             </div>
 
-            {/* Work Experience Table */}
-            <div className="w-full">
-              {/* Table Header */}
-              <div className="grid grid-cols-[100px_1fr_1fr_1fr] gap-8 pb-4 border-b-[1.57px] border-white/20">
-                <div></div>
-                <div className="flex justify-start items-center">
-                  <motion.p
+            {/* Conditional Rendering: List View or Grid View */}
+            {/* Wrapper with fixed minimum height to prevent layout shift */}
+            <div className="flex-1 flex items-start">
+              <AnimatePresence mode="wait">
+                {viewMode === "list" ? (
+                  /* List View - Table Layout */
+                  <motion.div
+                    key="list-view"
+                    className="w-full"
                     initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
                     transition={{
-                      duration: 0.6,
+                      duration: 0.3,
                       ease: [0.21, 0.47, 0.32, 0.98],
-                      delay: 0,
                     }}
-                    viewport={{ once: true, margin: "-50px" }}
-                    className="text-[14px] font-semibold leading-[24px] tracking-[-0.56px] text-[#f0f0f0]"
-                    style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
                   >
-                    COMPANY NAME
-                  </motion.p>
-                </div>
-                <div className="flex justify-start items-center">
-                  <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{
-                      duration: 0.6,
-                      ease: [0.21, 0.47, 0.32, 0.98],
-                      delay: 0.1,
-                    }}
-                    viewport={{ once: true, margin: "-50px" }}
-                    className="text-[14px] font-semibold leading-[24px] tracking-[-0.56px] text-[#f0f0f0]"
-                    style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-                  >
-                    LOCATION
-                  </motion.p>
-                </div>
-                <div className="flex justify-start items-center">
-                  <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{
-                      duration: 0.6,
-                      ease: [0.21, 0.47, 0.32, 0.98],
-                      delay: 0.2,
-                    }}
-                    viewport={{ once: true, margin: "-50px" }}
-                    className="text-[14px] font-semibold leading-[24px] tracking-[-0.56px] text-[#f0f0f0]"
-                    style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-                  >
-                    JOB POSITION
-                  </motion.p>
-                </div>
-              </div>
+                    {/* Table Header */}
+                    <div className="grid grid-cols-[100px_1fr_1fr_1fr] gap-8 pb-4 border-b-[1.57px] border-white/20">
+                      <div></div>
+                      <div className="flex justify-start items-center">
+                        <motion.p
+                          initial={{ opacity: 0, y: 20 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          transition={{
+                            duration: 0.6,
+                            ease: [0.21, 0.47, 0.32, 0.98],
+                            delay: 0,
+                          }}
+                          viewport={{ once: true, margin: "-50px" }}
+                          className="text-[14px] font-semibold leading-[24px] tracking-[-0.56px] text-[#f0f0f0]"
+                          style={{
+                            fontFamily: "Inter, SF Pro Text, sans-serif",
+                          }}
+                        >
+                          COMPANY NAME
+                        </motion.p>
+                      </div>
+                      <div className="flex justify-start items-center">
+                        <motion.p
+                          initial={{ opacity: 0, y: 20 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          transition={{
+                            duration: 0.6,
+                            ease: [0.21, 0.47, 0.32, 0.98],
+                            delay: 0.1,
+                          }}
+                          viewport={{ once: true, margin: "-50px" }}
+                          className="text-[14px] font-semibold leading-[24px] tracking-[-0.56px] text-[#f0f0f0]"
+                          style={{
+                            fontFamily: "Inter, SF Pro Text, sans-serif",
+                          }}
+                        >
+                          LOCATION
+                        </motion.p>
+                      </div>
+                      <div className="flex justify-start items-center">
+                        <motion.p
+                          initial={{ opacity: 0, y: 20 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          transition={{
+                            duration: 0.6,
+                            ease: [0.21, 0.47, 0.32, 0.98],
+                            delay: 0.2,
+                          }}
+                          viewport={{ once: true, margin: "-50px" }}
+                          className="text-[14px] font-semibold leading-[24px] tracking-[-0.56px] text-[#f0f0f0]"
+                          style={{
+                            fontFamily: "Inter, SF Pro Text, sans-serif",
+                          }}
+                        >
+                          JOB POSITION
+                        </motion.p>
+                      </div>
+                    </div>
 
-              {/* Table Rows */}
-              {workExperiences.map((work, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.6,
-                    ease: [0.21, 0.47, 0.32, 0.98],
-                    delay: index * 0.1 + 0.3,
-                  }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  className="grid grid-cols-[100px_1fr_1fr_1fr] gap-8 py-6 border-b-[1.57px] border-white/20 last:border-0"
-                >
-                  <div className="flex justify-center items-center">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <p
-                          className="text-[14px] font-light leading-[24px] tracking-[-0.56px] text-white whitespace-nowrap cursor-help text-left"
-                          style={{
-                            fontFamily: "Inter, SF Pro Text, sans-serif",
-                          }}
-                        >
-                          {work.duration}
-                        </p>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p
-                          className="text-[12px] font-semibold"
-                          style={{
-                            fontFamily: "Inter, SF Pro Text, sans-serif",
-                          }}
-                        >
-                          {work.customDuration ||
-                            calculateDuration(work.startYear, work.startMonth)}
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <div className="flex items-center justify-start gap-4">
-                    {/* Company Logo */}
-                    <a
-                      href={work.linkedinUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-[48px] h-[48px] rounded-[8px] overflow-hidden bg-white/10 flex items-center justify-center flex-shrink-0 hover:bg-white/20 transition-all duration-300 hover:scale-105"
-                    >
-                      <img
-                        src={work.logo}
-                        alt={`${work.companyName} logo`}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // Fallback to placeholder icon if image fails to load
-                          e.currentTarget.style.display = "none";
-                          e.currentTarget.parentElement!.innerHTML = `
+                    {/* Table Rows */}
+                    {workExperiences.map((work, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{
+                          duration: 0.6,
+                          ease: [0.21, 0.47, 0.32, 0.98],
+                          delay: index * 0.1 + 0.3,
+                        }}
+                        viewport={{ once: true, margin: "-50px" }}
+                        onMouseEnter={() => setHoveredRowIndex(index)}
+                        onMouseLeave={() => setHoveredRowIndex(null)}
+                        className="relative grid grid-cols-[100px_1fr_1fr_1fr] gap-8 py-6 border-b-[1.57px] border-white/20 last:border-0 group"
+                      >
+                        {/* Glass Hover Effect Background */}
+                        <AnimatePresence>
+                          {hoveredRowIndex === index && (
+                            <motion.div
+                              layoutId="rowHoverBackground"
+                              className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-xl -mx-4 px-4"
+                              style={{
+                                boxShadow:
+                                  "0px 8px 32px 0px rgba(0,0,0,0.15), inset 0px 0px 20px 0px rgba(255,255,255,0.1)",
+                              }}
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                              transition={{
+                                duration: 0.3,
+                                ease: [0.21, 0.47, 0.32, 0.98],
+                              }}
+                            />
+                          )}
+                        </AnimatePresence>
+
+                        <div className="relative z-10 flex justify-center items-center">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <p
+                                className="text-[14px] font-light leading-[24px] tracking-[-0.56px] text-white whitespace-nowrap cursor-help text-left"
+                                style={{
+                                  fontFamily: "Inter, SF Pro Text, sans-serif",
+                                }}
+                              >
+                                {work.duration}
+                              </p>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p
+                                className="text-[12px] font-semibold"
+                                style={{
+                                  fontFamily: "Inter, SF Pro Text, sans-serif",
+                                }}
+                              >
+                                {work.customDuration ||
+                                  calculateDuration(
+                                    work.startYear,
+                                    work.startMonth
+                                  )}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <div className="relative z-10 flex items-center justify-start gap-4">
+                          {/* Company Logo */}
+                          <a
+                            href={work.linkedinUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-[48px] h-[48px] rounded-[8px] overflow-hidden bg-white/10 flex items-center justify-center flex-shrink-0 hover:bg-white/20 transition-all duration-300 hover:scale-105"
+                          >
+                            <img
+                              src={work.logo}
+                              alt={`${work.companyName} logo`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // Fallback to placeholder icon if image fails to load
+                                e.currentTarget.style.display = "none";
+                                e.currentTarget.parentElement!.innerHTML = `
                             <svg class="w-6 h-6 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
                           `;
-                        }}
-                      />
-                    </a>
-                    {/* Company Name */}
-                    <a
-                      href={work.companyUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[20px] font-light leading-[24px] tracking-[-0.8px] text-white hover:text-[#8eb08a] transition-colors duration-300 hover:underline underline-offset-4"
-                      style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-                    >
-                      {work.companyName}
-                    </a>
-                  </div>
-                  <div className="flex justify-start items-center">
-                    <a
-                      href={work.locationUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[20px] font-light leading-[24px] tracking-[-0.8px] text-white hover:text-[#8eb08a] transition-colors duration-300 hover:underline underline-offset-4"
-                      style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-                    >
-                      {work.location}
-                    </a>
-                  </div>
-                  <div className="flex justify-start items-center">
-                    <p
-                      className="text-[20px] font-light leading-[24px] tracking-[-0.8px] text-white"
-                      style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-                    >
-                      {work.position}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
+                              }}
+                            />
+                          </a>
+                          {/* Company Name */}
+                          <a
+                            href={work.companyUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[20px] font-light leading-[24px] tracking-[-0.8px] text-white hover:text-[#8eb08a] transition-colors duration-300 hover:underline underline-offset-4"
+                            style={{
+                              fontFamily: "Inter, SF Pro Text, sans-serif",
+                            }}
+                          >
+                            {work.companyName}
+                          </a>
+                        </div>
+                        <div className="relative z-10 flex justify-start items-center">
+                          <a
+                            href={work.locationUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[20px] font-light leading-[24px] tracking-[-0.8px] text-white hover:text-[#8eb08a] transition-colors duration-300 hover:underline underline-offset-4"
+                            style={{
+                              fontFamily: "Inter, SF Pro Text, sans-serif",
+                            }}
+                          >
+                            {work.location}
+                          </a>
+                        </div>
+                        <div className="relative z-10 flex justify-start items-center">
+                          <p
+                            className="text-[20px] font-light leading-[24px] tracking-[-0.8px] text-white"
+                            style={{
+                              fontFamily: "Inter, SF Pro Text, sans-serif",
+                            }}
+                          >
+                            {work.position}
+                          </p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                ) : (
+                  /* Grid View - Card Layout */
+                  <motion.div
+                    key="grid-view"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{
+                      duration: 0.3,
+                      ease: [0.21, 0.47, 0.32, 0.98],
+                    }}
+                  >
+                    <WorkExperienceGrid
+                      workExperiences={workExperiences}
+                      calculateDuration={calculateDuration}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </section>

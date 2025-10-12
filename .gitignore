@@ -69,3 +69,7 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Documentation drafts and issue tracking (keep final docs in docs/)
+docs/issues/
+scripts/check-*.ps1
