@@ -103,7 +103,7 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[999]"
             onClick={onClose}
           />
@@ -114,7 +114,7 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{
-              duration: 0.6,
+              duration: 0.4,
               ease: [0.32, 0.72, 0, 1], // Custom cubic-bezier for smooth, professional animation
             }}
             className="mobile-nav-content fixed inset-0 bg-[#374136]/50 backdrop-blur-lg z-[1000] overflow-hidden"
@@ -127,8 +127,8 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{
-                      delay: 0.15,
-                      duration: 0.5,
+                      delay: 0.1,
+                      duration: 0.35,
                       ease: [0.34, 1.56, 0.64, 1], // Bouncy ease
                     }}
                     className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-lg flex items-center justify-center text-white font-bold text-xl shadow-lg border border-white/10"
@@ -210,7 +210,7 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                           ease: [0.32, 0.72, 0, 1],
                         }}
                         onClick={() => handleNavigate(item.section)}
-                        className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left group hover:bg-white/10 active:scale-[0.98] transition-all duration-300 relative overflow-hidden"
+                        className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left group hover:bg-white/10 active:scale-[0.98] transition-all duration-200 relative overflow-hidden"
                       >
                         {/* Hover effect background */}
                         <div className="absolute inset-0 bg-[#374136] opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
@@ -265,12 +265,12 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                   duration: 0.6,
                   ease: [0.32, 0.72, 0, 1],
                 }}
-                className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-[#374136] hover:bg-[#374136]/70 active:scale-[0.98] transition-all duration-300 shadow-lg hover:shadow-xl group border border-white/20"
+                className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-[#374136] hover:bg-[#374136]/70 active:scale-[0.98] transition-all duration-200 shadow-lg hover:shadow-xl group border border-white/20"
                 onClick={() => {
                   handleNavigate("contact");
                 }}
               >
-                <Mail className="w-5 h-5 text-white group-hover:scale-110 transition-transform duration-300" />
+                <Mail className="w-5 h-5 text-white group-hover:scale-110 transition-transform duration-200" />
                 <span className="font-bold text-base text-white">
                   Get in Touch
                 </span>

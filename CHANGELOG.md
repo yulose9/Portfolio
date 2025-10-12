@@ -105,14 +105,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Previous Releases
 
 ### [1.2.0] - 2025-10-11
+
 - Enhanced carousel with infinite loop
 - Improved table alignment
 
 ### [1.1.0] - 2025-10-10
+
 - Restructured project architecture
 - Added work experience features
 
 ### [1.0.0] - 2025-10-09
+
 - Initial release with core features
 - Apple Cards Carousel implementation
 - Table and Tooltip components
@@ -120,6 +123,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## Links
+
 - [Repository](https://github.com/yulose9/Portfolio)
 - [Documentation](./docs/)
 - [Issues](https://github.com/yulose9/Portfolio/issues)

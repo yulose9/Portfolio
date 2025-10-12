@@ -29,7 +29,7 @@ export default function BlogCard({
       ref={ref}
       initial={{ opacity: 0, y: 30 }}
       animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-      transition={{ duration: 0.6, ease: [0.21, 0.47, 0.32, 0.98] }}
+      transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
       className={`relative bg-black rounded-[31px] overflow-hidden w-full h-[471px] ${
         isPlaceholder ? "cursor-default" : "group cursor-pointer"
       }`}
@@ -37,7 +37,7 @@ export default function BlogCard({
       {/* Image Container - fills entire card with zoom effect on hover */}
       <div className="absolute inset-0 w-full h-full overflow-hidden">
         <div
-          className={`relative w-full h-full transition-transform duration-700 ease-out ${
+          className={`relative w-full h-full transition-transform duration-500 ease-out ${
             !isPlaceholder && "group-hover:scale-110"
           }`}
         >
@@ -58,7 +58,7 @@ export default function BlogCard({
 
       {/* Gradient overlay - enhanced on hover */}
       <div
-        className={`absolute inset-0 bg-gradient-to-b from-transparent via-black/30 to-black/90 transition-all duration-500 ${
+        className={`absolute inset-0 bg-gradient-to-b from-transparent via-black/30 to-black/90 transition-all duration-300 ${
           !isPlaceholder &&
           "group-hover:from-transparent group-hover:via-black/50 group-hover:to-black"
         }`}
@@ -66,8 +66,8 @@ export default function BlogCard({
 
       {/* Animated shine effect on hover */}
       {!isPlaceholder && (
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
-          <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-[-20deg]" />
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400">
+          <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-600 ease-in-out bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-[-20deg]" />
         </div>
       )}
 
@@ -81,7 +81,7 @@ export default function BlogCard({
               opacity: [0.7, 1, 0.7],
             }}
             transition={{
-              duration: 2,
+              duration: 1.5,
               repeat: Infinity,
               ease: "easeInOut",
             }}
@@ -129,7 +129,7 @@ export default function BlogCard({
       ) : (
         <>
           {/* Content Container - slides up slightly on hover */}
-          <div className="absolute bottom-0 left-0 right-0 flex items-end pb-[31px] px-[31px] transition-all duration-500 group-hover:pb-[35px]">
+          <div className="absolute bottom-0 left-0 right-0 flex items-end pb-[31px] px-[31px] transition-all duration-300 group-hover:pb-[35px]">
             <div className="w-full space-y-[10px]">
               {/* Tag - glows on hover */}
               <motion.div
@@ -137,11 +137,11 @@ export default function BlogCard({
                 animate={
                   isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }
                 }
-                transition={{ duration: 0.5, delay: 0.2 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
                 className="mb-[10px]"
               >
                 <span
-                  className="inline-block px-[8px] py-[3px] rounded-[21px] text-white text-[16px] font-bold uppercase tracking-tight transition-all duration-300 group-hover:shadow-lg group-hover:scale-105"
+                  className="inline-block px-[8px] py-[3px] rounded-[21px] text-white text-[16px] font-bold uppercase tracking-tight transition-all duration-200 group-hover:shadow-lg group-hover:scale-105"
                   style={{ backgroundColor: tagColor }}
                 >
                   {tag}
@@ -154,8 +154,8 @@ export default function BlogCard({
                 animate={
                   isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
                 }
-                transition={{ duration: 0.5, delay: 0.3 }}
-                className="text-white text-[27px] font-bold leading-[33px] tracking-wide transition-all duration-300 group-hover:text-[28px] group-hover:tracking-wider"
+                transition={{ duration: 0.3, delay: 0.15 }}
+                className="text-white text-[27px] font-bold leading-[33px] tracking-wide transition-all duration-200 group-hover:text-[28px] group-hover:tracking-wider"
               >
                 {title}
               </motion.h3>
@@ -166,8 +166,8 @@ export default function BlogCard({
                 animate={
                   isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
                 }
-                transition={{ duration: 0.5, delay: 0.4 }}
-                className="text-white/80 text-[18px] font-semibold tracking-tight mt-[16px] transition-colors duration-300 group-hover:text-white"
+                transition={{ duration: 0.3, delay: 0.2 }}
+                className="text-white/80 text-[18px] font-semibold tracking-tight mt-[16px] transition-colors duration-200 group-hover:text-white"
               >
                 {date}
               </motion.p>
@@ -177,7 +177,7 @@ export default function BlogCard({
       )}
 
       {/* Subtle border glow on hover */}
-      <div className="absolute inset-0 rounded-[31px] ring-0 ring-white/0 transition-all duration-500 group-hover:ring-2 group-hover:ring-white/20 pointer-events-none" />
+      <div className="absolute inset-0 rounded-[31px] ring-0 ring-white/0 transition-all duration-300 group-hover:ring-2 group-hover:ring-white/20 pointer-events-none" />
     </motion.div>
   );
 }

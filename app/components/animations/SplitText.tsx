@@ -16,7 +16,7 @@ export function SplitText({
   className = "",
   style = {},
   delay = 0,
-  staggerDelay = 0.15,
+  staggerDelay = 0.08,
 }: SplitTextProps) {
   const containerRef = useRef<HTMLSpanElement>(null);
   const wordsRef = useRef<HTMLSpanElement[]>([]);
@@ -41,8 +41,8 @@ export function SplitText({
               },
               {
                 yPercent: 0,
-                duration: 0.8,
-                ease: "circ.out", // Smooth circular easing
+                duration: 0.5,
+                ease: "power2.out", // Faster, smoother easing
                 stagger: staggerDelay,
               },
               0
@@ -56,7 +56,7 @@ export function SplitText({
               },
               {
                 opacity: 1,
-                duration: 0.8,
+                duration: 0.4,
                 ease: "power1.out",
                 stagger: staggerDelay,
               },

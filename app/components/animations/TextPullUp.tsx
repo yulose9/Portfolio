@@ -16,7 +16,7 @@ export default function TextPullUp({
   className = "",
   style = {},
   delay = 0,
-  staggerDelay = 0.08,
+  staggerDelay = 0.04,
 }: TextPullUpProps) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "0px" });
@@ -41,8 +41,8 @@ export default function TextPullUp({
               animate={isInView ? { y: 0 } : { y: "100%" }}
               transition={{
                 delay: delay + i * staggerDelay,
-                duration: 0.5,
-                ease: [0.33, 1, 0.68, 1],
+                duration: 0.35,
+                ease: [0.25, 0.46, 0.45, 0.94],
               }}
             >
               {word + (i !== words.length - 1 ? "\u00A0" : "")}

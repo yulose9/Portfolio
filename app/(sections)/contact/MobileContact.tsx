@@ -19,7 +19,7 @@ export default function MobileContact() {
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
+            transition={{ duration: 0.4, delay: 0.05 }}
             className="text-[48px] font-medium leading-[1.07] tracking-[-0.48px] text-black text-center mb-[40px] max-w-[289.49px]"
             style={{
               fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
@@ -34,7 +34,7 @@ export default function MobileContact() {
             animate={
               isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }
             }
-            transition={{ duration: 0.5, delay: 0.2 }}
+            transition={{ duration: 0.35, delay: 0.1 }}
             className="relative flex items-center justify-center w-full mb-[53px]"
           >
             {/* Horizontal line */}
@@ -59,7 +59,7 @@ export default function MobileContact() {
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
+              transition={{ duration: 0.35, delay: 0.15 }}
               className="flex items-center gap-[11px]"
             >
               {/* Envelope Emoji/Icon */}
@@ -81,7 +81,7 @@ export default function MobileContact() {
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
+              transition={{ duration: 0.35, delay: 0.2 }}
               className="flex items-center gap-[11px]"
             >
               {/* Phone Emoji/Icon */}

@@ -485,7 +485,7 @@ export default function Work() {
                   <div
                     key={index}
                     ref={ref}
-                    className="group relative w-full h-[495px] rounded-[21px] bg-[rgba(243,243,243,0.5)] backdrop-blur-[36.31px] border-[0.303px] border-[rgba(117,117,117,0.4)] cursor-pointer transition-all duration-500 ease-out hover:scale-[1.03] hover:shadow-[0px_20px_60px_0px_rgba(0,0,0,0.4),0px_8px_30px_0px_rgba(0,0,0,0.3)] hover:bg-[rgba(255,255,255,0.7)] hover:-translate-y-2"
+                    className="group relative w-full h-[495px] rounded-[21px] bg-[rgba(243,243,243,0.5)] backdrop-blur-[36.31px] border-[0.303px] border-[rgba(117,117,117,0.4)] cursor-pointer transition-all duration-300 ease-out hover:scale-[1.03] hover:shadow-[0px_20px_60px_0px_rgba(0,0,0,0.4),0px_8px_30px_0px_rgba(0,0,0,0.3)] hover:bg-[rgba(255,255,255,0.7)] hover:-translate-y-2"
                   >
                     {/* Date Badge - Issued Date */}
                     <motion.div
@@ -521,10 +521,10 @@ export default function Work() {
                         ease: [0.21, 0.47, 0.32, 0.98],
                         delay: index * 0.1 + 0.3,
                       }}
-                      className="absolute left-[84px] top-[88px] w-[205px] h-[205px] rounded-[5px] overflow-hidden transition-all duration-500 group-hover:shadow-xl group-hover:scale-105 group-hover:rounded-[8px]"
+                      className="absolute left-[84px] top-[88px] w-[205px] h-[205px] rounded-[5px] overflow-hidden transition-all duration-300 group-hover:shadow-xl group-hover:scale-105 group-hover:rounded-[8px]"
                     >
                       {/* Animated gradient background */}
-                      <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-[#f5f5f5] via-[#e8e8e8] to-[#d9d9d9] group-hover:from-[#8eb08a]/30 group-hover:via-[#7a9677]/25 group-hover:to-[#657a62]/30 transition-all duration-500">
+                      <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-[#f5f5f5] via-[#e8e8e8] to-[#d9d9d9] group-hover:from-[#8eb08a]/30 group-hover:via-[#7a9677]/25 group-hover:to-[#657a62]/30 transition-all duration-300">
                         {/* Decorative circles in background */}
                         <div className="absolute inset-0 overflow-hidden">
                           <div className="absolute top-4 right-4 w-16 h-16 rounded-full bg-white/20 blur-xl" />
@@ -533,9 +533,9 @@ export default function Work() {
 
                         {/* Main certificate icon with glow effect */}
                         <div className="relative z-10 flex items-center justify-center">
-                          <div className="absolute w-24 h-24 rounded-full bg-[#657a62]/10 blur-lg group-hover:bg-[#657a62]/20 transition-all duration-500" />
+                          <div className="absolute w-24 h-24 rounded-full bg-[#657a62]/10 blur-lg group-hover:bg-[#657a62]/20 transition-all duration-300" />
                           <svg
-                            className="relative w-20 h-20 text-gray-400/80 group-hover:text-[#657a62] transition-all duration-300 drop-shadow-sm"
+                            className="relative w-20 h-20 text-gray-400/80 group-hover:text-[#657a62] transition-all duration-200 drop-shadow-sm"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -595,8 +595,8 @@ export default function Work() {
                     </div>
 
                     {/* Hover Effect - Shine Animation */}
-                    <div className="absolute inset-0 rounded-[21px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none overflow-hidden">
-                      <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-20deg]" />
+                    <div className="absolute inset-0 rounded-[21px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none overflow-hidden">
+                      <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-600 ease-in-out bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-20deg]" />
                     </div>
                   </div>
                 );

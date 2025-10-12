@@ -18,7 +18,7 @@ export default function TextFadeIn({
   className = "",
   style = {},
   delay = 0,
-  staggerDelay = 0.05,
+  staggerDelay = 0.03,
   as = "p",
   animateOpacity = true, // Default to true to not break other usages
 }: TextFadeInProps) {
@@ -62,8 +62,8 @@ export default function TextFadeIn({
               }
               transition={{
                 delay: delay + i * staggerDelay,
-                duration: 0.5,
-                ease: [0.33, 1, 0.68, 1],
+                duration: 0.35,
+                ease: [0.25, 0.46, 0.45, 0.94],
               }}
             >
               {word + (i !== words.length - 1 ? "\u00A0" : "")}

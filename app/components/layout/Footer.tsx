@@ -27,7 +27,7 @@ export default function Footer() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.4 }}
             className="flex items-center justify-between gap-8"
           >
             {/* Resume & CV Button */}

@@ -42,7 +42,7 @@ export default function WorkExperienceGrid({
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.2 }}
       >
         {workExperiences.map((work, idx) => (
           <motion.div
@@ -54,9 +54,9 @@ export default function WorkExperienceGrid({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
-              duration: 0.5,
-              delay: idx * 0.1,
-              ease: [0.21, 0.47, 0.32, 0.98],
+              duration: 0.35,
+              delay: idx * 0.08,
+              ease: [0.25, 0.46, 0.45, 0.94],
             }}
           >
             <AnimatePresence>
@@ -67,11 +67,11 @@ export default function WorkExperienceGrid({
                   initial={{ opacity: 0 }}
                   animate={{
                     opacity: 1,
-                    transition: { duration: 0.15 },
+                    transition: { duration: 0.1 },
                   }}
                   exit={{
                     opacity: 0,
-                    transition: { duration: 0.15, delay: 0.2 },
+                    transition: { duration: 0.1, delay: 0.1 },
                   }}
                 />
               )}
@@ -100,7 +100,7 @@ const Card = ({
   return (
     <div
       className={cn(
-        "rounded-2xl h-full w-full p-4 overflow-hidden bg-[rgba(243,243,243,0.5)] backdrop-blur-[36.31px] border border-[rgba(117,117,117,0.4)] relative z-20 shadow-[0px_8px_32px_0px_rgba(0,0,0,0.15)] hover:shadow-[0px_20px_60px_0px_rgba(0,0,0,0.4)] transition-all duration-300 group-hover:border-[#8eb08a]/60 flex flex-col justify-between",
+        "rounded-2xl h-full w-full p-4 overflow-hidden bg-[rgba(243,243,243,0.5)] backdrop-blur-[36.31px] border border-[rgba(117,117,117,0.4)] relative z-20 shadow-[0px_8px_32px_0px_rgba(0,0,0,0.15)] hover:shadow-[0px_20px_60px_0px_rgba(0,0,0,0.4)] transition-all duration-200 group-hover:border-[#8eb08a]/60 flex flex-col justify-between",
         className
       )}
     >
@@ -208,7 +208,7 @@ const CardFooter = ({ work }: { work: WorkExperience }) => {
         href={work.locationUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-1 text-[11px] font-medium text-black/60 hover:text-[#657a62] transition-colors duration-300"
+        className="flex items-center gap-1 text-[11px] font-medium text-black/60 hover:text-[#657a62] transition-colors duration-200"
         style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
       >
         <svg

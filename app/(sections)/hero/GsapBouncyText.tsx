@@ -17,7 +17,7 @@ export default function GsapBouncyText({
   className = "",
   style = {},
   delay = 0,
-  staggerDelay = 0.15,
+  staggerDelay = 0.08,
   as = "div",
 }: GsapBouncyTextProps) {
   const containerRef = useRef<HTMLElement>(null);
@@ -42,8 +42,8 @@ export default function GsapBouncyText({
               },
               {
                 yPercent: 0,
-                duration: 0.8,
-                ease: "circ.out", // Smooth circular easing for elegant movement
+                duration: 0.5,
+                ease: "power2.out", // Faster, smoother easing for snappier movement
                 stagger: staggerDelay,
               },
               0 // Start at timeline position 0
@@ -57,7 +57,7 @@ export default function GsapBouncyText({
               },
               {
                 opacity: 1,
-                duration: 0.8,
+                duration: 0.4,
                 ease: "power1.out", // Gentle easing for opacity
                 stagger: staggerDelay,
               },
