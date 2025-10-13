@@ -1,28 +1,33 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
+import { useRef } from "react";
 
-// Sample certificates data
+// Certificates data matching desktop version
 const certificates = [
   {
-    title: "Title",
-    issuingOrg: "Issuing Org",
-    date: "MMM yyyy",
+    title: "Azure Fundamentals",
+    issuingOrg: "Microsoft",
+    date: "Oct 2024",
+    image: "/images/certifications/microsoft-certified-fundamentals-badge.svg",
+    credentialUrl:
+      "https://learn.microsoft.com/api/credentials/share/en-us/JohnNazareneDelaPisa-8958/D57215FE29EAA434?sharingId",
   },
   {
-    title: "Title",
-    issuingOrg: "Issuing Org",
-    date: "MMM yyyy",
+    title: "Cloud Digital Leader",
+    issuingOrg: "Google",
+    date: "Jan 2025",
+    image: "/images/certifications/googlecloudpractitioner.png",
+    credentialUrl:
+      "https://www.credly.com/badges/95d75765-13fa-4c81-802c-834c0217da8a/linked_in_profile",
   },
   {
-    title: "Title",
-    issuingOrg: "Issuing Org",
-    date: "MMM yyyy",
-  },
-  {
-    title: "Title",
-    issuingOrg: "Issuing Org",
-    date: "MMM yyyy",
+    title: "Terraform Associate",
+    issuingOrg: "HashiCorp",
+    date: "Feb 2025",
+    image: "/images/certifications/TerraformAssociate.png",
+    credentialUrl:
+      "https://www.credly.com/badges/bebd520f-8e29-4ec4-9f11-22a35b047349/linked_in_profile",
   },
 ];
 
@@ -68,27 +73,44 @@ export default function MobileCertificates() {
           delay: 0.2,
         }}
         viewport={{ once: true, margin: "-50px" }}
-        className="text-[16px] font-normal leading-[25.4px] tracking-[-0.64px] text-white text-center mb-[95px] px-[41px]"
+        className="text-[16px] font-normal leading-[25.4px] tracking-[-0.64px] text-white text-center mb-[95px] px-[20px]"
         style={{ fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif" }}
       >
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut et massa mi.
+        Professional certifications and credentials that validate my technical
+        expertise and continuous learning journey.
       </motion.p>
 
       {/* Certificates Grid - 2 Columns */}
       <div className="grid grid-cols-2 gap-[13px] mb-[111px]">
-        {certificates.map((cert, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            whileInView={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{
-              duration: 0.6,
-              ease: [0.21, 0.47, 0.32, 0.98],
-              delay: index * 0.1 + 0.3,
-            }}
-            viewport={{ once: true, margin: "-50px" }}
-            className="relative w-full h-[238.732px] rounded-[10.141px] bg-white/50 backdrop-blur-[17.512px] border-[0.146px] border-[rgba(117,117,117,0.4)] shadow-[0px_4.673px_9.346px_0px_rgba(0,0,0,0.28),0px_0.292px_3.067px_0px_rgba(0,0,0,0.22)] overflow-hidden"
-          >
+        {certificates.map((cert, index) => {
+          const ref = useRef(null);
+          const isInView = useInView(ref, {
+            once: true,
+            margin: "-50px",
+          });
+
+          return (
+            <motion.div
+              key={index}
+              ref={ref}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{
+                duration: 0.6,
+                ease: [0.21, 0.47, 0.32, 0.98],
+                delay: index * 0.1 + 0.3,
+              }}
+              viewport={{ once: true, margin: "-50px" }}
+              onClick={() =>
+                cert.credentialUrl &&
+                window.open(
+                  cert.credentialUrl,
+                  "_blank",
+                  "noopener,noreferrer"
+                )
+              }
+              className="relative w-full h-[238.732px] rounded-[10.141px] bg-white/50 backdrop-blur-[17.512px] border-[0.146px] border-[rgba(117,117,117,0.4)] shadow-[0px_4.673px_9.346px_0px_rgba(0,0,0,0.28),0px_0.292px_3.067px_0px_rgba(0,0,0,0.22)] overflow-hidden cursor-pointer active:scale-95 transition-transform"
+            >
             {/* Date Badge */}
             <div className="absolute top-[9.3px] left-[106.48px] bg-[#d9d9d9] rounded-[41.831px] px-[4.225px] py-[4.225px] shadow-sm">
               <p
@@ -102,35 +124,36 @@ export default function MobileCertificates() {
             </div>
 
             {/* Certificate Image Placeholder */}
-            <div className="absolute left-[40.56px] top-[42.25px] w-[98.873px] h-[98.873px] rounded-[2.535px] bg-gradient-to-br from-[#f5f5f5] via-[#e8e8e8] to-[#d9d9d9] overflow-hidden">
-              {/* Decorative elements */}
-              <div className="absolute inset-0 overflow-hidden">
-                <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/20 blur-lg" />
-                <div className="absolute bottom-3 left-3 w-10 h-10 rounded-full bg-white/30 blur-xl" />
-              </div>
-
-              {/* Certificate icon */}
-              <div className="relative z-10 flex items-center justify-center h-full">
-                <div className="absolute w-12 h-12 rounded-full bg-[#657a62]/10 blur-md" />
-                <svg
-                  className="relative w-10 h-10 text-gray-400/80"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-
-              {/* Corner accents */}
-              <div className="absolute top-0 left-0 w-4 h-4 border-l border-t border-white/40 rounded-tl-[2.535px]" />
-              <div className="absolute bottom-0 right-0 w-4 h-4 border-r border-b border-white/40 rounded-br-[2.535px]" />
+            <div className="absolute left-[40.56px] top-[42.25px] w-[98.873px] h-[98.873px] rounded-[2.535px] overflow-hidden">
+              {/* Certificate Badge Image */}
+              <img
+                src={cert.image}
+                alt={cert.title}
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  // Fallback to placeholder icon if image fails to load
+                  const target = e.currentTarget;
+                  target.style.display = "none";
+                  if (target.parentElement) {
+                    target.parentElement.innerHTML = `
+                      <div class="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-[#f5f5f5] via-[#e8e8e8] to-[#d9d9d9]">
+                        <div class="absolute inset-0 overflow-hidden">
+                          <div class="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/20 blur-lg" />
+                          <div class="absolute bottom-3 left-3 w-10 h-10 rounded-full bg-white/30 blur-xl" />
+                        </div>
+                        <div class="relative z-10 flex items-center justify-center h-full">
+                          <div class="absolute w-12 h-12 rounded-full bg-[#657a62]/10 blur-md" />
+                          <svg class="relative w-10 h-10 text-gray-400/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div class="absolute top-0 left-0 w-4 h-4 border-l border-t border-white/40 rounded-tl-[2.535px]" />
+                        <div class="absolute bottom-0 right-0 w-4 h-4 border-r border-b border-white/40 rounded-br-[2.535px]" />
+                      </div>
+                    `;
+                  }
+                }}
+              />
             </div>
 
             {/* Certificate Info */}
@@ -153,7 +176,8 @@ export default function MobileCertificates() {
               </p>
             </div>
           </motion.div>
-        ))}
+          );
+        })}
       </div>
 
       {/* View All Button */}

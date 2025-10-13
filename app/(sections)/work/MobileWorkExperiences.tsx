@@ -30,52 +30,30 @@ const calculateDuration = (startYear: number): string => {
 // Sample work experience data
 const workExperiences = [
   {
-    duration: `2023-${new Date().getFullYear()}`,
-    startYear: 2023,
-    companyName: "Company Name",
-    location: "Address",
-    position: "Position",
-    companyLogo: null, // Will be added later
+    duration: `Nov 2024-present`,
+    startYear: 2024,
+    startMonth: 10, // November (0-indexed: 0 = Jan, 10 = Nov)
+    companyName: "Trends and Technologies Inc.",
+    companyUrl: "https://www.trends.com.ph/",
+    location: "Makati, Metro Manila",
+    locationUrl: "https://maps.app.goo.gl/JS5rtf9FL29xoCv67",
+    position: "Solutions Architect (AWS & RHEL)",
+    customDuration: undefined, // Will auto-calculate
+    logo: "/images/company-logos/trends-and-technologies.png",
+    linkedinUrl: "https://www.linkedin.com/company/trendsandtechnologiesinc/",
   },
   {
-    duration: `2023-${new Date().getFullYear()}`,
+    duration: `Oct 2023-Mar 2024`,
     startYear: 2023,
-    companyName: "Company Name",
-    location: "Address",
-    position: "Position",
-    companyLogo: null,
-  },
-  {
-    duration: `2023-${new Date().getFullYear()}`,
-    startYear: 2023,
-    companyName: "Company Name",
-    location: "Address",
-    position: "Position",
-    companyLogo: null,
-  },
-  {
-    duration: `2023-${new Date().getFullYear()}`,
-    startYear: 2023,
-    companyName: "Company Name",
-    location: "Address",
-    position: "Position",
-    companyLogo: null,
-  },
-  {
-    duration: `2023-${new Date().getFullYear()}`,
-    startYear: 2023,
-    companyName: "Company Name",
-    location: "Address",
-    position: "Position",
-    companyLogo: null,
-  },
-  {
-    duration: `2023-${new Date().getFullYear()}`,
-    startYear: 2023,
-    companyName: "Company Name",
-    location: "Address",
-    position: "Position",
-    companyLogo: null,
+    startMonth: 9, // October
+    companyName: "Archicoders",
+    companyUrl: "https://archicoders.com/",
+    location: "City of Imus, Cavite",
+    locationUrl: "https://maps.app.goo.gl/mcTySuATDX7x8CV89",
+    position: "Design Intern (UI/UX)",
+    customDuration: "6m",
+    logo: "/images/company-logos/archicoders.jpg",
+    linkedinUrl: "https://www.linkedin.com/company/archicoders/",
   },
 ];
 
@@ -152,22 +130,39 @@ export default function MobileWorkExperiences() {
               >
                 <TableCell className="px-[14px] py-[22px] align-top">
                   <div className="flex items-start gap-[8px]">
-                    {/* Company Logo Square Placeholder */}
-                    <div className="w-[24px] h-[24px] bg-white/10 rounded-[4px] flex-shrink-0 flex items-center justify-center">
-                      <span
-                        className="text-[10px] text-white/50"
-                        style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-                      >
-                        {work.companyName.charAt(0)}
-                      </span>
-                    </div>
+                    {/* Company Logo */}
+                    <a
+                      href={work.linkedinUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-[32px] h-[32px] bg-white/10 rounded-[4px] flex-shrink-0 flex items-center justify-center overflow-hidden hover:bg-white/20 transition-all"
+                    >
+                      <img
+                        src={work.logo}
+                        alt={`${work.companyName} logo`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                          if (e.currentTarget.parentElement) {
+                            e.currentTarget.parentElement.innerHTML = `
+                              <span class="text-[10px] text-white/50" style="font-family: Inter, SF Pro Text, sans-serif">
+                                ${work.companyName.charAt(0)}
+                              </span>
+                            `;
+                          }
+                        }}
+                      />
+                    </a>
                     <div className="flex flex-col">
-                      <p
-                        className="text-[11px] font-semibold leading-[10.4px] tracking-[-0.454px] text-white mb-[8px]"
+                      <a
+                        href={work.companyUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] font-semibold leading-[10.4px] tracking-[-0.454px] text-white mb-[8px] hover:text-[#8eb08a] transition-colors"
                         style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
                       >
                         {work.companyName}
-                      </p>
+                      </a>
                       <p
                         className="text-[10px] font-light leading-[10.4px] tracking-[-0.413px] text-white"
                         style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
@@ -178,12 +173,15 @@ export default function MobileWorkExperiences() {
                   </div>
                 </TableCell>
                 <TableCell className="px-[14px] py-[22px] align-middle">
-                  <p
-                    className="text-[11px] font-light leading-[10.4px] tracking-[-0.454px] text-white"
+                  <a
+                    href={work.locationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] font-light leading-[10.4px] tracking-[-0.454px] text-white hover:text-[#8eb08a] transition-colors"
                     style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
                   >
                     {work.location}
-                  </p>
+                  </a>
                 </TableCell>
                 <TableCell className="px-[14px] py-[22px] align-middle">
                   <p

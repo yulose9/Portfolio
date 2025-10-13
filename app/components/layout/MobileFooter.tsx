@@ -42,7 +42,7 @@ export default function MobileFooter() {
           <div className="flex gap-[10px] items-center shrink-0">
             {/* Facebook */}
             <a
-              href="https://facebook.com"
+              href="https://www.facebook.com/xcszan"
               target="_blank"
               rel="noopener noreferrer"
               className="bg-[#8eb08a] hover:bg-[#7a9d76] active:scale-95 transition-all rounded-full w-[34px] h-[34px] flex items-center justify-center"
@@ -53,7 +53,7 @@ export default function MobileFooter() {
 
             {/* Twitter/X */}
             <a
-              href="https://twitter.com"
+              href="https://x.com/xcszan"
               target="_blank"
               rel="noopener noreferrer"
               className="bg-[#8eb08a] hover:bg-[#7a9d76] active:scale-95 transition-all rounded-full w-[34px] h-[34px] flex items-center justify-center"
@@ -64,7 +64,7 @@ export default function MobileFooter() {
 
             {/* Instagram */}
             <a
-              href="https://instagram.com"
+              href="https://www.instagram.com/nazarenexcsz/"
               target="_blank"
               rel="noopener noreferrer"
               className="bg-[#8eb08a] hover:bg-[#7a9d76] active:scale-95 transition-all rounded-full w-[34px] h-[34px] flex items-center justify-center"
@@ -75,7 +75,7 @@ export default function MobileFooter() {
 
             {/* LinkedIn */}
             <a
-              href="https://linkedin.com"
+              href="https://www.linkedin.com/in/jannazarene/"
               target="_blank"
               rel="noopener noreferrer"
               className="bg-[#8eb08a] hover:bg-[#7a9d76] active:scale-95 transition-all rounded-full w-[34px] h-[34px] flex items-center justify-center"
