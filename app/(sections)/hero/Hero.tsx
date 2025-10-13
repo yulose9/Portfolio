@@ -240,25 +240,25 @@ export default function Hero() {
               <Highlighter />
             </div>
             <div
-              className="text-[23px] font-medium leading-[1.068] tracking-[-0.08em] text-white"
+              className="text-[23px] font-medium leading-[1.068] tracking-normal text-white"
               style={{ fontFamily: "SF Pro Text, Inter, sans-serif" }}
             >
               <GsapBouncyText
                 text="Developer"
                 as="div"
-                delay={5.1}
+                delay={4.5}
                 staggerDelay={0.03}
               />
               <GsapBouncyText
                 text="Cloud Engineer"
                 as="div"
-                delay={5.15}
+                delay={4.6}
                 staggerDelay={0.03}
               />
               <GsapBouncyText
                 text="Artificial Intelligence"
                 as="div"
-                delay={5.2}
+                delay={4.7}
                 staggerDelay={0.03}
               />
             </div>
@@ -273,7 +273,7 @@ export default function Hero() {
               fontFamily: "SF Pro Display, Inter, sans-serif",
             }}
             animationDuration={32}
-            delay={5.3}
+            delay={4.8}
           />
 
           {/* Scroll Prompt - Mobile - Pointing Down */}
@@ -289,13 +289,13 @@ export default function Hero() {
                 transition={{
                   opacity: {
                     duration: 0.5,
-                    delay: 5.4,
+                    delay: 5.2,
                   },
                   y: {
                     duration: 1.5,
                     repeat: Infinity,
                     ease: "easeInOut",
-                    delay: 5.4,
+                    delay: 5.2,
                   },
                   scale: {
                     duration: 0.3,
@@ -319,9 +319,9 @@ export default function Hero() {
               <GsapBouncyText
                 text="Located in the Philippines"
                 as="div"
-                className="text-[26px] font-semibold leading-[107%] tracking-[-0.105em] text-left"
+                className="text-[26px] font-semibold leading-[107%] tracking-[-0.02em] text-left"
                 style={{ fontFamily: "Inter, SF UI Text, sans-serif" }}
-                delay={5.05}
+                delay={4.4}
                 staggerDelay={0.03}
               />
               <PhilippineCulturalRoulette />

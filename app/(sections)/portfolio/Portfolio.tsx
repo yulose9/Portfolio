@@ -47,7 +47,7 @@ const projects = [
 
 const blogs = [
   {
-    image: "/images/image-blogcard.png",
+    image: "/images/image-blogcard01.png",
     tag: "COMING SOON",
     tagColor: "#6b7280",
     title: "Stay Tuned",
@@ -55,7 +55,7 @@ const blogs = [
     isPlaceholder: true,
   },
   {
-    image: "/images/image-blogcard.png",
+    image: "/images/image-blogcard02.png",
     tag: "COMING SOON",
     tagColor: "#6b7280",
     title: "Stay Tuned",
@@ -63,7 +63,7 @@ const blogs = [
     isPlaceholder: true,
   },
   {
-    image: "/images/image-blogcard.png",
+    image: "/images/image-blogcard03.png",
     tag: "COMING SOON",
     tagColor: "#6b7280",
     title: "Stay Tuned",

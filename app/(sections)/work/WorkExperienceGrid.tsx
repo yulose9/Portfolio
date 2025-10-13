@@ -119,7 +119,7 @@ const CardHeader = ({
   calculateDuration: (startYear: number, startMonth?: number) => string;
 }) => {
   return (
-    <div className="flex flex-col items-center justify-center mb-4">
+    <div className="flex flex-col items-center justify-center my-8">
       {/* Logo and Duration Badge - Grouped and Centered */}
       <div className="flex flex-col items-center gap-3">
         {/* Company Logo */}
@@ -127,7 +127,7 @@ const CardHeader = ({
           href={work.linkedinUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="w-24 h-24 rounded-2xl overflow-hidden bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all duration-300 hover:scale-105 shadow-lg"
+          className="w-32 h-32 rounded-2xl overflow-hidden bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all duration-300 hover:scale-105 shadow-lg"
         >
           <img
             src={work.logo}
@@ -173,7 +173,7 @@ const CardHeader = ({
 
 const CardBody = ({ work }: { work: WorkExperience }) => {
   return (
-    <div className="space-y-1.5 flex-1 flex flex-col justify-center py-2">
+    <div className="space-y-1.5 flex flex-col justify-center py-2">
       {/* Company Name */}
       <a
         href={work.companyUrl}
@@ -208,7 +208,7 @@ const CardFooter = ({ work }: { work: WorkExperience }) => {
         href={work.locationUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-1 text-[11px] font-medium text-black/60 hover:text-[#657a62] transition-colors duration-200"
+        className="flex items-center gap-1 text-[13px] font-medium text-black/60 hover:text-[#657a62] transition-colors duration-200"
         style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
       >
         <svg

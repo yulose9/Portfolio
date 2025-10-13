@@ -96,8 +96,11 @@ export default function GsapBouncyText({
           style={{
             display: "inline-block",
             overflow: "hidden",
-            padding: "0 0 0.2em 0",
-            margin: "0 0 -0.1em",
+            paddingTop: "0.15em",
+            paddingBottom: "0.35em",
+            marginBottom: "-0.25em",
+            verticalAlign: "top",
+            lineHeight: "1.2",
           }}
         >
           <span
@@ -107,6 +110,8 @@ export default function GsapBouncyText({
             style={{
               display: "inline-block",
               willChange: "transform, opacity",
+              paddingLeft: "0.02em",
+              paddingRight: "0.02em",
             }}
           >
             {word + (i !== words.length - 1 ? "\u00A0" : "")}

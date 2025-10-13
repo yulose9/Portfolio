@@ -14,15 +14,18 @@ export default function SectionHeader({
   title,
   onArrowClick,
   textColor = "text-black",
-  arrowColor = "text-black",
+  arrowColor,
   delay = 0,
 }: SectionHeaderProps) {
+  // If arrowColor is not provided, use textColor
+  const finalArrowColor = arrowColor || textColor;
+
   return (
     <div className="flex items-center justify-between">
       <GsapBouncyText
         text={title}
         as="h2"
-        className={`text-[64px] font-medium leading-[0.938] tracking-[-2.56px] ${textColor}`}
+        className={`text-[64px] font-medium leading-[0.938] tracking-[-1.28px] ${textColor}`}
         style={{ fontFamily: "Inter, sans-serif" }}
         delay={delay}
       />
@@ -33,7 +36,7 @@ export default function SectionHeader({
           aria-label="View more"
         >
           <svg
-            className={`w-12 h-12 ${arrowColor}`}
+            className={`w-12 h-12 ${finalArrowColor}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

@@ -73,40 +73,28 @@ const workExperiences = [
 // Sample certificates data
 const certificates = [
   {
-    title: "Title",
-    issuingOrg: "Issuing Org",
-    date: "MMM yyyy",
-    image: "/images/cert-placeholder.png",
+    title: "Azure Fundamentals",
+    issuingOrg: "Microsoft",
+    date: "Oct 2024",
+    image: "/images/certifications/microsoft-certified-fundamentals-badge.svg",
+    credentialUrl:
+      "https://learn.microsoft.com/api/credentials/share/en-us/JohnNazareneDelaPisa-8958/D57215FE29EAA434?sharingId",
   },
   {
-    title: "Title",
-    issuingOrg: "Issuing Org",
-    date: "MMM yyyy",
-    image: "/images/cert-placeholder.png",
+    title: "Cloud Digital Leader",
+    issuingOrg: "Google",
+    date: "Jan 2025",
+    image: "/images/certifications/googlecloudpractitioner.png",
+    credentialUrl:
+      "https://www.credly.com/badges/95d75765-13fa-4c81-802c-834c0217da8a/linked_in_profile",
   },
   {
-    title: "Title",
-    issuingOrg: "Issuing Org",
-    date: "MMM yyyy",
-    image: "/images/cert-placeholder.png",
-  },
-  {
-    title: "Title",
-    issuingOrg: "Issuing Org",
-    date: "MMM yyyy",
-    image: "/images/cert-placeholder.png",
-  },
-  {
-    title: "Title",
-    issuingOrg: "Issuing Org",
-    date: "MMM yyyy",
-    image: "/images/cert-placeholder.png",
-  },
-  {
-    title: "Title",
-    issuingOrg: "Issuing Org",
-    date: "MMM yyyy",
-    image: "/images/cert-placeholder.png",
+    title: "Terraform Associate",
+    issuingOrg: "HashiCorp",
+    date: "Feb 2025",
+    image: "/images/certifications/TerraformAssociate.png",
+    credentialUrl:
+      "https://www.credly.com/badges/bebd520f-8e29-4ec4-9f11-22a35b047349/linked_in_profile",
   },
 ];
 
@@ -306,25 +294,22 @@ export default function Work() {
                         className="relative grid grid-cols-[100px_1fr_1fr_1fr] gap-8 py-6 border-b-[1.57px] border-white/20 last:border-0 group"
                       >
                         {/* Glass Hover Effect Background */}
-                        <AnimatePresence>
-                          {hoveredRowIndex === index && (
-                            <motion.div
-                              layoutId="rowHoverBackground"
-                              className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-xl -mx-4 px-4"
-                              style={{
-                                boxShadow:
-                                  "0px 8px 32px 0px rgba(0,0,0,0.15), inset 0px 0px 20px 0px rgba(255,255,255,0.1)",
-                              }}
-                              initial={{ opacity: 0, scale: 0.95 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.95 }}
-                              transition={{
-                                duration: 0.3,
-                                ease: [0.21, 0.47, 0.32, 0.98],
-                              }}
-                            />
-                          )}
-                        </AnimatePresence>
+                        <motion.div
+                          className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-xl -mx-4 px-4"
+                          style={{
+                            boxShadow:
+                              "0px 8px 32px 0px rgba(0,0,0,0.15), inset 0px 0px 20px 0px rgba(255,255,255,0.1)",
+                          }}
+                          initial={false}
+                          animate={{
+                            opacity: hoveredRowIndex === index ? 1 : 0,
+                            scale: hoveredRowIndex === index ? 1 : 0.98,
+                          }}
+                          transition={{
+                            duration: 0.2,
+                            ease: [0.21, 0.47, 0.32, 0.98],
+                          }}
+                        />
 
                         <div className="relative z-10 flex justify-center items-center">
                           <Tooltip>
@@ -360,7 +345,7 @@ export default function Work() {
                             href={work.linkedinUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-[48px] h-[48px] rounded-[8px] overflow-hidden bg-white/10 flex items-center justify-center flex-shrink-0 hover:bg-white/20 transition-all duration-300 hover:scale-105"
+                            className="w-[64px] h-[64px] rounded-[8px] overflow-hidden bg-white/10 flex items-center justify-center flex-shrink-0 hover:bg-white/20 transition-all duration-300 hover:scale-105"
                           >
                             <img
                               src={work.logo}
@@ -448,28 +433,21 @@ export default function Work() {
         <section className="hidden md:flex relative min-h-screen flex-col justify-center px-8 py-16">
           <div className="max-w-[1280px] mx-auto w-full">
             {/* Certificates Header */}
-            <div className="flex items-center justify-between">
-              <GsapBouncyText
-                text="Certificates & Licenses"
-                as="h2"
-                className="text-[64px] font-medium leading-[0.938] tracking-[-2.56px] text-white"
-                style={{ fontFamily: "Inter, sans-serif" }}
+            <div className="flex flex-col gap-2 md:gap-4 mb-4 md:mb-6 max-w-[1280px] mx-auto w-full">
+              <SectionHeader
+                title="Certificates & Licenses"
+                textColor="text-white"
+                onArrowClick={() => {
+                  // Add your navigation logic here
+                  console.log("Navigate to certificates");
+                }}
               />
-              <button className="p-1 hover:scale-110 transition-transform">
-                <svg
-                  className="w-12 h-12 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M14 5l7 7m0 0l-7 7m7-7H3"
-                  />
-                </svg>
-              </button>
+              <GsapBouncyText
+                text="Professional certifications and credentials that validate my technical expertise and continuous learning journey. These represent formal recognition of skills in cloud computing, system administration, and emerging technologies. Each credential reflects a commitment to staying current and mastering industry standards."
+                className="text-[14px] md:text-[20px] leading-[1.588] tracking-[-0.56px] md:tracking-[-0.8px] text-white max-w-[1280px] whitespace-pre-wrap"
+                style={{ fontFamily: "Inter, SF Pro Display, sans-serif" }}
+                delay={0.3}
+              />
             </div>
 
             {/* Certificates Grid */}
@@ -485,6 +463,14 @@ export default function Work() {
                   <div
                     key={index}
                     ref={ref}
+                    onClick={() =>
+                      cert.credentialUrl &&
+                      window.open(
+                        cert.credentialUrl,
+                        "_blank",
+                        "noopener,noreferrer"
+                      )
+                    }
                     className="group relative w-full h-[495px] rounded-[21px] bg-[rgba(243,243,243,0.5)] backdrop-blur-[36.31px] border-[0.303px] border-[rgba(117,117,117,0.4)] cursor-pointer transition-all duration-300 ease-out hover:scale-[1.03] hover:shadow-[0px_20px_60px_0px_rgba(0,0,0,0.4),0px_8px_30px_0px_rgba(0,0,0,0.3)] hover:bg-[rgba(255,255,255,0.7)] hover:-translate-y-2"
                   >
                     {/* Date Badge - Issued Date */}
@@ -521,43 +507,32 @@ export default function Work() {
                         ease: [0.21, 0.47, 0.32, 0.98],
                         delay: index * 0.1 + 0.3,
                       }}
-                      className="absolute left-[84px] top-[88px] w-[205px] h-[205px] rounded-[5px] overflow-hidden transition-all duration-300 group-hover:shadow-xl group-hover:scale-105 group-hover:rounded-[8px]"
+                      className="absolute left-[84px] top-[88px] w-[205px] h-[205px] rounded-[5px] overflow-hidden"
                     >
-                      {/* Animated gradient background */}
-                      <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-[#f5f5f5] via-[#e8e8e8] to-[#d9d9d9] group-hover:from-[#8eb08a]/30 group-hover:via-[#7a9677]/25 group-hover:to-[#657a62]/30 transition-all duration-300">
-                        {/* Decorative circles in background */}
-                        <div className="absolute inset-0 overflow-hidden">
-                          <div className="absolute top-4 right-4 w-16 h-16 rounded-full bg-white/20 blur-xl" />
-                          <div className="absolute bottom-6 left-6 w-20 h-20 rounded-full bg-white/30 blur-2xl" />
-                        </div>
-
-                        {/* Main certificate icon with glow effect */}
-                        <div className="relative z-10 flex items-center justify-center">
-                          <div className="absolute w-24 h-24 rounded-full bg-[#657a62]/10 blur-lg group-hover:bg-[#657a62]/20 transition-all duration-300" />
-                          <svg
-                            className="relative w-20 h-20 text-gray-400/80 group-hover:text-[#657a62] transition-all duration-200 drop-shadow-sm"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                        </div>
-
-                        {/* Subtle corner accents */}
-                        <div className="absolute top-0 left-0 w-8 h-8 border-l-2 border-t-2 border-white/40 rounded-tl-[5px] transition-all duration-300 group-hover:border-[#8eb08a]/60" />
-                        <div className="absolute bottom-0 right-0 w-8 h-8 border-r-2 border-b-2 border-white/40 rounded-br-[5px] transition-all duration-300 group-hover:border-[#8eb08a]/60" />
-                      </div>
+                      {/* Certificate Badge Image */}
+                      <img
+                        src={cert.image}
+                        alt={cert.title}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          // Fallback to placeholder icon if image fails to load
+                          const target = e.currentTarget;
+                          target.style.display = "none";
+                          if (target.parentElement) {
+                            target.parentElement.innerHTML = `
+                                <div class="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-[#f5f5f5] via-[#e8e8e8] to-[#d9d9d9]">
+                                  <svg class="w-20 h-20 text-gray-400/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                </div>
+                              `;
+                          }
+                        }}
+                      />
                     </motion.div>
 
                     {/* Certificate Info */}
-                    <div className="absolute bottom-[110px] left-[42px] right-[42px] transition-all duration-300 group-hover:bottom-[115px]">
+                    <div className="absolute bottom-[80px] left-[42px] right-[42px]">
                       <motion.p
                         initial={{ opacity: 0, y: 20 }}
                         animate={
@@ -570,7 +545,7 @@ export default function Work() {
                           ease: [0.21, 0.47, 0.32, 0.98],
                           delay: index * 0.1 + 0.4,
                         }}
-                        className="text-[38px] font-semibold leading-[12px] tracking-[-1.58px] text-black mb-10 transition-colors duration-300 group-hover:text-[#657a62]"
+                        className="text-[32px] font-semibold leading-[1.3] tracking-[-0.02em] text-black mb-4 transition-colors duration-300 group-hover:text-[#657a62]"
                         style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
                       >
                         {cert.title}
@@ -587,7 +562,7 @@ export default function Work() {
                           ease: [0.21, 0.47, 0.32, 0.98],
                           delay: index * 0.1 + 0.5,
                         }}
-                        className="text-[24px] font-normal leading-[12px] tracking-[-1px] text-black/80 transition-colors duration-300 group-hover:text-black"
+                        className="text-[20px] font-normal leading-[1.3] tracking-normal text-black/80 transition-colors duration-300 group-hover:text-black"
                         style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
                       >
                         {cert.issuingOrg}

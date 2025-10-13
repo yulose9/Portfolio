@@ -148,6 +148,8 @@ export default function StickyNav() {
         key={isAtBottom ? "bottom" : "top"}
         className={`fixed z-50 hidden md:flex items-center gap-2 ${
           isAtBottom ? "bottom-8" : "top-8"
+        } ${
+          isInContactOrFooter ? "pointer-events-none" : "pointer-events-auto"
         }`}
         style={{
           left: "50%",
