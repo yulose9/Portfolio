@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### Mobile Work Experience View Toggle
+
+- **Dual View System**: Added list and grid view toggle for mobile work experience section
+- **View Toggle Buttons**:
+  - Circular glassmorphism buttons (50x50px)
+  - Active state with white background and green icon
+  - Inactive state with transparent background
+  - Smooth scale animations and transitions
+- **Grid View Cards**:
+  - Professional glassmorphism cards with backdrop blur
+  - Company logo (64x64px) with hover effects
+  - Duration badge with tooltip showing calculated duration
+  - Position and location details maintained from desktop
+  - Touch-friendly interactions (onTouchStart/onTouchEnd)
+  - Gradient hover overlay effect
+  - Staggered entrance animations (0.08s delay)
+- **List View**:
+  - Traditional table layout maintained
+  - Company logos (32x32px)
+  - Clean and compact information display
+- **Smooth Transitions**: AnimatePresence for 300ms view switching
+- **Improved Duration Calculator**: Fixed calculation with proper month handling
+
+#### Documentation
+
+- `docs/implementation/mobile-work-view-toggle.md`: Complete implementation guide
+- `docs/features/mobile-work-view-visual-guide.md`: Visual specifications and ASCII diagrams
+
+### Changed
+
+- **MobileWorkExperiences.tsx**: Complete rewrite with dual-view support
+- **Duration Calculation**: Enhanced to handle month-based calculations correctly
+- **Spacing**: Reduced header margin from 121px to 60px for better proportion
+
 ## [2.0.0] - 2025-10-12
 
 ### Added

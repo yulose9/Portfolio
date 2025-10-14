@@ -103,39 +103,36 @@ export default function MobileCertificates() {
               viewport={{ once: true, margin: "-50px" }}
               onClick={() =>
                 cert.credentialUrl &&
-                window.open(
-                  cert.credentialUrl,
-                  "_blank",
-                  "noopener,noreferrer"
-                )
+                window.open(cert.credentialUrl, "_blank", "noopener,noreferrer")
               }
               className="relative w-full h-[238.732px] rounded-[10.141px] bg-white/50 backdrop-blur-[17.512px] border-[0.146px] border-[rgba(117,117,117,0.4)] shadow-[0px_4.673px_9.346px_0px_rgba(0,0,0,0.28),0px_0.292px_3.067px_0px_rgba(0,0,0,0.22)] overflow-hidden cursor-pointer active:scale-95 transition-transform"
             >
-            {/* Date Badge */}
-            <div className="absolute top-[9.3px] left-[106.48px] bg-[#d9d9d9] rounded-[41.831px] px-[4.225px] py-[4.225px] shadow-sm">
-              <p
-                className="text-[11.724px] font-normal leading-[5.917px] tracking-[-0.4842px] text-black whitespace-nowrap"
-                style={{
-                  fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
-                }}
-              >
-                {cert.date}
-              </p>
-            </div>
+              {/* Date Badge */}
+              <div className="absolute top-[9.3px] left-[106.48px] bg-[#d9d9d9] rounded-[41.831px] px-[4.225px] py-[4.225px] shadow-sm">
+                <p
+                  className="text-[11.724px] font-normal leading-[5.917px] tracking-[-0.4842px] text-black whitespace-nowrap"
+                  style={{
+                    fontFamily:
+                      "Inter, SF Pro Display, SF Pro Text, sans-serif",
+                  }}
+                >
+                  {cert.date}
+                </p>
+              </div>
 
-            {/* Certificate Image Placeholder */}
-            <div className="absolute left-[40.56px] top-[42.25px] w-[98.873px] h-[98.873px] rounded-[2.535px] overflow-hidden">
-              {/* Certificate Badge Image */}
-              <img
-                src={cert.image}
-                alt={cert.title}
-                className="w-full h-full object-contain"
-                onError={(e) => {
-                  // Fallback to placeholder icon if image fails to load
-                  const target = e.currentTarget;
-                  target.style.display = "none";
-                  if (target.parentElement) {
-                    target.parentElement.innerHTML = `
+              {/* Certificate Image Placeholder */}
+              <div className="absolute left-[40.56px] top-[42.25px] w-[98.873px] h-[98.873px] rounded-[2.535px] overflow-hidden">
+                {/* Certificate Badge Image */}
+                <img
+                  src={cert.image}
+                  alt={cert.title}
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    // Fallback to placeholder icon if image fails to load
+                    const target = e.currentTarget;
+                    target.style.display = "none";
+                    if (target.parentElement) {
+                      target.parentElement.innerHTML = `
                       <div class="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-[#f5f5f5] via-[#e8e8e8] to-[#d9d9d9]">
                         <div class="absolute inset-0 overflow-hidden">
                           <div class="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/20 blur-lg" />
@@ -151,31 +148,33 @@ export default function MobileCertificates() {
                         <div class="absolute bottom-0 right-0 w-4 h-4 border-r border-b border-white/40 rounded-br-[2.535px]" />
                       </div>
                     `;
-                  }
-                }}
-              />
-            </div>
+                    }
+                  }}
+                />
+              </div>
 
-            {/* Certificate Info */}
-            <div className="absolute bottom-[46px] left-[20.28px] right-[20.28px]">
-              <p
-                className="text-[18.474px] font-semibold leading-[5.917px] tracking-[-0.763px] text-black mb-[20px]"
-                style={{
-                  fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
-                }}
-              >
-                {cert.title}
-              </p>
-              <p
-                className="text-[11.724px] font-normal leading-[5.917px] tracking-[-0.4842px] text-black"
-                style={{
-                  fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
-                }}
-              >
-                {cert.issuingOrg}
-              </p>
-            </div>
-          </motion.div>
+              {/* Certificate Info */}
+              <div className="absolute bottom-[46px] left-[20.28px] right-[20.28px]">
+                <p
+                  className="text-[18.474px] font-semibold leading-[5.917px] tracking-[-0.763px] text-black mb-[20px]"
+                  style={{
+                    fontFamily:
+                      "Inter, SF Pro Display, SF Pro Text, sans-serif",
+                  }}
+                >
+                  {cert.title}
+                </p>
+                <p
+                  className="text-[11.724px] font-normal leading-[5.917px] tracking-[-0.4842px] text-black"
+                  style={{
+                    fontFamily:
+                      "Inter, SF Pro Display, SF Pro Text, sans-serif",
+                  }}
+                >
+                  {cert.issuingOrg}
+                </p>
+              </div>
+            </motion.div>
           );
         })}
       </div>
