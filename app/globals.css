@@ -7,14 +7,14 @@ body {
   overflow-x: hidden;
   max-width: 100vw;
   width: 100%;
-  /* Disable pinch-to-zoom on mobile */
-  touch-action: pan-x pan-y;
+  /* Disable pinch-to-zoom on mobile but allow scrolling */
+  touch-action: pan-y pinch-zoom;
 }
 
 * {
   max-width: 100%;
-  /* Apply to all elements */
-  touch-action: pan-x pan-y;
+  /* Allow vertical scrolling, prevent horizontal scroll, disable zoom gestures on elements */
+  touch-action: pan-y;
 }
 
 @keyframes move-left {

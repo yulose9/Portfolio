@@ -17,9 +17,9 @@ export default function Hero() {
   const [isOnLightSection, setIsOnLightSection] = useState(false);
   const [isInHeroSection, setIsInHeroSection] = useState(true);
 
-  // Disable zoom on mobile devices
+  // Disable pinch zoom only (allow single-finger scrolling)
   useEffect(() => {
-    // Prevent pinch zoom
+    // Only prevent pinch zoom with 2+ fingers
     const preventZoom = (e: TouchEvent) => {
       if (e.touches.length > 1) {
         e.preventDefault();
@@ -36,13 +36,14 @@ export default function Hero() {
       lastTouchEnd = now;
     };
 
-    document.addEventListener("touchmove", preventZoom, { passive: false });
+    // Only prevent multi-touch zoom, not single-finger scrolling
+    document.addEventListener("touchstart", preventZoom, { passive: false });
     document.addEventListener("touchend", preventDoubleTapZoom, {
       passive: false,
     });
 
     return () => {
-      document.removeEventListener("touchmove", preventZoom);
+      document.removeEventListener("touchstart", preventZoom);
       document.removeEventListener("touchend", preventDoubleTapZoom);
     };
   }, []);
@@ -59,49 +60,39 @@ export default function Hero() {
         setIsVisible(false);
       }
 
-      const sections = [
-        { id: "home", isLight: false },
-        { id: "portfolio", isLight: true },
-        { id: "work", isLight: false },
-        { id: "about", isLight: true },
-        { id: "contact", isLight: true },
-      ];
-
+      // Simplified logic: Check if we're in About or Contact sections
       const scrollPosition = window.scrollY + 100;
-      let currentSection = sections[0];
 
-      for (const section of sections) {
-        const element = document.getElementById(section.id);
-        if (element) {
-          const { offsetTop, offsetHeight } = element;
-          if (
-            scrollPosition >= offsetTop &&
-            scrollPosition < offsetTop + offsetHeight
-          ) {
-            currentSection = section;
-            break;
-          }
+      // Get About section
+      const aboutElement = document.getElementById("about");
+      // Get Contact section
+      const contactElement = document.getElementById("contact");
+
+      let isOnLight = false;
+
+      // Check About section
+      if (aboutElement) {
+        const { offsetTop, offsetHeight } = aboutElement;
+        if (
+          scrollPosition >= offsetTop &&
+          scrollPosition < offsetTop + offsetHeight
+        ) {
+          isOnLight = true;
         }
       }
 
-      // Check footer
-      const footerElement = Array.from(
-        document.querySelectorAll("footer")
-      ).find((footer) => {
-        const display = window.getComputedStyle(footer).display;
-        return display !== "none";
-      });
-
-      if (footerElement) {
-        const footerTop = footerElement.offsetTop;
-        const footerBottom = footerTop + footerElement.offsetHeight;
-        if (scrollPosition >= footerTop && scrollPosition < footerBottom) {
-          setIsOnLightSection(true);
-          return;
+      // Check Contact section (only if not already in About)
+      if (!isOnLight && contactElement) {
+        const { offsetTop, offsetHeight } = contactElement;
+        if (
+          scrollPosition >= offsetTop &&
+          scrollPosition < offsetTop + offsetHeight
+        ) {
+          isOnLight = true;
         }
       }
 
-      setIsOnLightSection(currentSection.isLight);
+      setIsOnLightSection(isOnLight);
     };
 
     handleScroll();

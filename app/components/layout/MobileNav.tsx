@@ -34,28 +34,6 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
       document.body.style.position = "fixed";
       document.body.style.top = `-${scrollY}px`;
       document.body.style.width = "100%";
-
-      // Prevent wheel scrolling
-      const preventWheel = (e: WheelEvent) => {
-        e.preventDefault();
-      };
-
-      // Prevent touch scrolling
-      const preventTouch = (e: TouchEvent) => {
-        // Only prevent if it's not within the menu itself
-        const target = e.target as HTMLElement;
-        if (!target.closest(".mobile-nav-content")) {
-          e.preventDefault();
-        }
-      };
-
-      window.addEventListener("wheel", preventWheel, { passive: false });
-      window.addEventListener("touchmove", preventTouch, { passive: false });
-
-      return () => {
-        window.removeEventListener("wheel", preventWheel);
-        window.removeEventListener("touchmove", preventTouch);
-      };
     } else {
       // Restore scroll position
       const scrollY = document.body.style.top;
@@ -91,7 +69,7 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
           easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
         });
       }
-    }, 300);
+    }, 100); // Reduced from 300ms to 100ms
   };
 
   return (
@@ -103,7 +81,7 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.15 }}
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[999]"
             onClick={onClose}
           />
@@ -114,8 +92,8 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{
-              duration: 0.4,
-              ease: [0.32, 0.72, 0, 1], // Custom cubic-bezier for smooth, professional animation
+              duration: 0.2,
+              ease: [0.32, 0.72, 0, 1],
             }}
             className="mobile-nav-content fixed inset-0 bg-[#374136]/50 backdrop-blur-lg z-[1000] overflow-hidden"
           >
@@ -124,24 +102,22 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
               <div className="flex items-start justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <motion.div
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
                     transition={{
-                      delay: 0.1,
-                      duration: 0.35,
-                      ease: [0.34, 1.56, 0.64, 1], // Bouncy ease
+                      duration: 0.2,
+                      ease: [0.4, 0, 0.2, 1],
                     }}
                     className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-lg flex items-center justify-center text-white font-bold text-xl shadow-lg border border-white/10"
                   >
                     JN
                   </motion.div>
                   <motion.div
-                    initial={{ opacity: 0, x: 20 }}
+                    initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{
-                      delay: 0.25,
-                      duration: 0.5,
-                      ease: [0.32, 0.72, 0, 1],
+                      duration: 0.2,
+                      ease: [0.4, 0, 0.2, 1],
                     }}
                   >
                     <p className="text-base font-semibold text-white">
@@ -152,19 +128,13 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                     </p>
                   </motion.div>
                 </div>
-                <motion.button
-                  initial={{ opacity: 0, scale: 0, rotate: -90 }}
-                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                  transition={{
-                    delay: 0.35,
-                    duration: 0.4,
-                    ease: [0.34, 1.56, 0.64, 1],
-                  }}
+                {/* Close button - always visible, no animation delay */}
+                <button
                   onClick={onClose}
                   className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-lg transition-colors border border-white/10 active:scale-95"
                 >
                   <X className="w-5 h-5 text-white" />
-                </motion.button>
+                </button>
               </div>
 
               {/* Divider */}
@@ -172,22 +142,20 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
                 transition={{
-                  delay: 0.45,
-                  duration: 0.6,
-                  ease: [0.32, 0.72, 0, 1],
+                  duration: 0.25,
+                  ease: [0.4, 0, 0.2, 1],
                 }}
-                className="h-[1px] bg-white/20 mb-6 origin-right"
+                className="h-[1px] bg-white/20 mb-6 origin-left"
               />
 
               {/* Navigation Section */}
               <div className="flex-1 flex flex-col justify-center">
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
                   transition={{
-                    delay: 0.55,
-                    duration: 0.5,
-                    ease: [0.32, 0.72, 0, 1],
+                    duration: 0.2,
+                    ease: [0.4, 0, 0.2, 1],
                   }}
                   className="mb-4"
                 >
@@ -202,28 +170,28 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                     return (
                       <motion.button
                         key={item.id}
-                        initial={{ opacity: 0, x: 50 }}
+                        initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{
-                          delay: 0.65 + 0.08 * index,
-                          duration: 0.5,
-                          ease: [0.32, 0.72, 0, 1],
+                          delay: 0.05 * index,
+                          duration: 0.2,
+                          ease: [0.4, 0, 0.2, 1],
                         }}
                         onClick={() => handleNavigate(item.section)}
-                        className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left group hover:bg-white/10 active:scale-[0.98] transition-all duration-200 relative overflow-hidden"
+                        className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left group hover:bg-white/10 active:scale-[0.98] transition-all duration-150 relative overflow-hidden"
                       >
                         {/* Hover effect background */}
-                        <div className="absolute inset-0 bg-[#374136] opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+                        <div className="absolute inset-0 bg-[#374136] opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-2xl" />
 
-                        <div className="relative z-10 flex items-center justify-center w-11 h-11 rounded-xl bg-white/5 group-hover:bg-white/10 transition-all duration-300">
-                          <Icon className="w-6 h-6 text-white/70 group-hover:text-white transition-colors duration-300" />
+                        <div className="relative z-10 flex items-center justify-center w-11 h-11 rounded-xl bg-white/5 group-hover:bg-white/10 transition-all duration-200">
+                          <Icon className="w-6 h-6 text-white/70 group-hover:text-white transition-colors duration-200" />
                         </div>
-                        <span className="relative z-10 font-semibold text-lg text-white/90 group-hover:text-white transition-colors duration-300">
+                        <span className="relative z-10 font-semibold text-lg text-white/90 group-hover:text-white transition-colors duration-200">
                           {item.label}
                         </span>
 
                         {/* Arrow indicator */}
-                        <div className="relative z-10 ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="relative z-10 ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                           <svg
                             width="20"
                             height="20"
@@ -249,28 +217,26 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
                 transition={{
-                  delay: 0.97,
-                  duration: 0.6,
-                  ease: [0.32, 0.72, 0, 1],
+                  duration: 0.25,
+                  ease: [0.4, 0, 0.2, 1],
                 }}
-                className="h-[1px] bg-white/20 my-6 origin-right"
+                className="h-[1px] bg-white/20 my-6 origin-left"
               />
 
               {/* Contact Section */}
               <motion.button
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{
-                  delay: 1.05,
-                  duration: 0.6,
-                  ease: [0.32, 0.72, 0, 1],
+                  duration: 0.2,
+                  ease: [0.4, 0, 0.2, 1],
                 }}
-                className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-[#374136] hover:bg-[#374136]/70 active:scale-[0.98] transition-all duration-200 shadow-lg hover:shadow-xl group border border-white/20"
+                className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-[#374136] hover:bg-[#374136]/70 active:scale-[0.98] transition-all duration-150 shadow-lg hover:shadow-xl group border border-white/20"
                 onClick={() => {
                   handleNavigate("contact");
                 }}
               >
-                <Mail className="w-5 h-5 text-white group-hover:scale-110 transition-transform duration-200" />
+                <Mail className="w-5 h-5 text-white group-hover:scale-110 transition-transform duration-150" />
                 <span className="font-bold text-base text-white">
                   Get in Touch
                 </span>
@@ -281,9 +247,8 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{
-                  delay: 1.15,
-                  duration: 0.6,
-                  ease: [0.32, 0.72, 0, 1],
+                  duration: 0.2,
+                  ease: [0.4, 0, 0.2, 1],
                 }}
                 className="mt-6 pt-6 border-t border-white/10"
               >
