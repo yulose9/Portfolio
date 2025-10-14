@@ -154,9 +154,9 @@ export default function MobileCertificates() {
               </div>
 
               {/* Certificate Info */}
-              <div className="absolute bottom-[46px] left-[20.28px] right-[20.28px]">
+              <div className="absolute bottom-[16px] left-[20.28px] right-[20.28px]">
                 <p
-                  className="text-[18.474px] font-semibold leading-[5.917px] tracking-[-0.763px] text-black mb-[20px]"
+                  className="text-[18.474px] font-semibold tracking-[-0.763px] text-black mb-[5px]"
                   style={{
                     fontFamily:
                       "Inter, SF Pro Display, SF Pro Text, sans-serif",
