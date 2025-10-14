@@ -34,7 +34,7 @@ export default function GsapBouncyText({
             // Create timeline for coordinated animations
             const tl = gsap.timeline({ delay: delay });
 
-            // Animate words with y-axis movement (inspired by CodePen)
+            // Animate words with y-axis movement with smooth cascade
             tl.fromTo(
               wordsRef.current,
               {
@@ -42,14 +42,17 @@ export default function GsapBouncyText({
               },
               {
                 yPercent: 0,
-                duration: 0.5,
-                ease: "power2.out", // Faster, smoother easing for snappier movement
-                stagger: staggerDelay,
+                duration: 0.6, // Longer duration for smooth overlap
+                ease: "power2.out",
+                stagger: {
+                  each: staggerDelay,
+                  ease: "power1.inOut", // Smooth stagger distribution
+                },
               },
-              0 // Start at timeline position 0
+              0
             );
 
-            // Animate opacity simultaneously for smooth fade-in
+            // Animate opacity simultaneously with matching cascade
             tl.fromTo(
               wordsRef.current,
               {
@@ -57,11 +60,14 @@ export default function GsapBouncyText({
               },
               {
                 opacity: 1,
-                duration: 0.4,
-                ease: "power1.out", // Gentle easing for opacity
-                stagger: staggerDelay,
+                duration: 0.5, // Slightly longer opacity fade
+                ease: "power1.out",
+                stagger: {
+                  each: staggerDelay,
+                  ease: "power1.inOut",
+                },
               },
-              0 // Start at timeline position 0 (same time as y-animation)
+              0
             );
 
             // Unobserve after animation triggers (once: true behavior)
@@ -96,11 +102,8 @@ export default function GsapBouncyText({
           style={{
             display: "inline-block",
             overflow: "hidden",
-            paddingTop: "0.15em",
-            paddingBottom: "0.35em",
-            marginBottom: "-0.25em",
-            verticalAlign: "top",
-            lineHeight: "1.2",
+            padding: "0 0 0.2em 0",
+            margin: "0 0 -0.1em",
           }}
         >
           <span
@@ -110,8 +113,6 @@ export default function GsapBouncyText({
             style={{
               display: "inline-block",
               willChange: "transform, opacity",
-              paddingLeft: "0.02em",
-              paddingRight: "0.02em",
             }}
           >
             {word + (i !== words.length - 1 ? "\u00A0" : "")}
