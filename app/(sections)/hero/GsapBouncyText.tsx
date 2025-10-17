@@ -3,6 +3,14 @@
 import gsap from "gsap";
 import { useEffect, useRef } from "react";
 
+type AnimationStyle =
+  | "bouncy"
+  | "smooth"
+  | "elastic"
+  | "pop"
+  | "wave"
+  | "smooth-wave";
+
 interface GsapBouncyTextProps {
   text: string;
   className?: string;
@@ -10,6 +18,9 @@ interface GsapBouncyTextProps {
   delay?: number;
   staggerDelay?: number;
   as?: "p" | "span" | "div" | "h1" | "h2" | "h3";
+  animationStyle?: AnimationStyle;
+  duration?: number;
+  once?: boolean;
 }
 
 export default function GsapBouncyText({
@@ -19,9 +30,55 @@ export default function GsapBouncyText({
   delay = 0,
   staggerDelay = 0.08,
   as = "div",
+  animationStyle = "bouncy",
+  duration = 0.6,
+  once = true,
 }: GsapBouncyTextProps) {
   const containerRef = useRef<HTMLElement>(null);
   const wordsRef = useRef<HTMLSpanElement[]>([]);
+  const hasAnimated = useRef(false);
+
+  // Animation configurations for different styles
+  const animationStyles: Record<AnimationStyle, any> = {
+    bouncy: {
+      from: { yPercent: 100, opacity: 0 },
+      to: { yPercent: 0, opacity: 1 },
+      duration,
+      ease: "back.out(1.7)", // Playful bounce effect
+    },
+    smooth: {
+      from: { yPercent: 100, opacity: 0 },
+      to: { yPercent: 0, opacity: 1 },
+      duration,
+      ease: "power2.out", // Professional smooth entrance
+    },
+    elastic: {
+      from: { scale: 0.8, opacity: 0 },
+      to: { scale: 1, opacity: 1 },
+      duration,
+      ease: "elastic.out(1, 0.6)", // Elastic springy effect
+    },
+    pop: {
+      from: { scale: 0, opacity: 0 },
+      to: { scale: 1, opacity: 1 },
+      duration: duration * 0.8,
+      ease: "cubic.out", // Quick pop effect
+    },
+    wave: {
+      from: { yPercent: 100, opacity: 0, rotationZ: -5 },
+      to: { yPercent: 0, opacity: 1, rotationZ: 0 },
+      duration: duration + 0.1,
+      ease: "sine.out", // Wave-like motion
+    },
+    "smooth-wave": {
+      from: { yPercent: 100, opacity: 0, scaleY: 0.8 },
+      to: { yPercent: 0, opacity: 1, scaleY: 1 },
+      duration,
+      ease: "power3.out", // Smooth controlled wave
+    },
+  };
+
+  const config = animationStyles[animationStyle];
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -31,19 +88,17 @@ export default function GsapBouncyText({
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
+            if (once && hasAnimated.current) return;
+
             // Create timeline for coordinated animations
             const tl = gsap.timeline({ delay: delay });
 
-            // Animate words with y-axis movement with smooth cascade
+            // Animate words with selected animation style
             tl.fromTo(
               wordsRef.current,
+              config.from,
               {
-                yPercent: 100,
-              },
-              {
-                yPercent: 0,
-                duration: 0.6, // Longer duration for smooth overlap
-                ease: "power2.out",
+                ...config.to,
                 stagger: {
                   each: staggerDelay,
                   ease: "power1.inOut", // Smooth stagger distribution
@@ -56,11 +111,11 @@ export default function GsapBouncyText({
             tl.fromTo(
               wordsRef.current,
               {
-                opacity: 0,
+                opacity: config.from.opacity ?? 0,
               },
               {
                 opacity: 1,
-                duration: 0.5, // Slightly longer opacity fade
+                duration: config.duration * 0.85, // Slightly shorter opacity fade
                 ease: "power1.out",
                 stagger: {
                   each: staggerDelay,
@@ -70,8 +125,12 @@ export default function GsapBouncyText({
               0
             );
 
-            // Unobserve after animation triggers (once: true behavior)
-            observer.unobserve(entry.target);
+            hasAnimated.current = true;
+
+            // Unobserve after animation triggers if once is true
+            if (once) {
+              observer.unobserve(entry.target);
+            }
           }
         });
       },
@@ -88,7 +147,7 @@ export default function GsapBouncyText({
     return () => {
       observer.disconnect();
     };
-  }, [delay, staggerDelay]);
+  }, [delay, staggerDelay, animationStyle, duration, once]);
 
   const words = text.split(" ");
 
