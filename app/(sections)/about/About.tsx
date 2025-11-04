@@ -14,8 +14,10 @@ export default function About() {
   return (
     <>
       {/* Mobile Version */}
-      <div className="block md:hidden">
-        <MobileAbout />
+      <div className="md:hidden">
+        <div id="about" className="block">
+          <MobileAbout />
+        </div>
       </div>
 
       {/* Desktop Version */}

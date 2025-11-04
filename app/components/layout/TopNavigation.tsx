@@ -73,7 +73,31 @@ export default function TopNavigation() {
   }, []);
 
   const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
+    // Get all elements with this ID (there might be mobile + desktop versions)
+    const elements = document.querySelectorAll(`[id="${sectionId}"]`);
+
+    // Find the visible one by checking element and all parents
+    let element = null;
+    for (const el of elements) {
+      let currentEl = el as HTMLElement;
+      let isVisible = true;
+
+      // Check the element and all its parents for visibility
+      while (currentEl && currentEl !== document.body) {
+        const styles = window.getComputedStyle(currentEl);
+        if (styles.display === "none" || styles.visibility === "hidden") {
+          isVisible = false;
+          break;
+        }
+        currentEl = currentEl.parentElement!;
+      }
+
+      if (isVisible) {
+        element = el as HTMLElement;
+        break;
+      }
+    }
+
     if (element) {
       // Check if Lenis is available for smooth scroll
       if ((window as any).lenis) {
@@ -84,10 +108,7 @@ export default function TopNavigation() {
         });
       } else {
         // Fallback to standard smooth scroll
-        window.scrollTo({
-          top: element.offsetTop,
-          behavior: "smooth",
-        });
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }
   };
