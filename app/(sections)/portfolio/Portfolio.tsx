@@ -1,10 +1,9 @@
 "use client";
 
-import { BlogCard, MobileBlogCarousel } from "@/app/(sections)/blog";
 import { GsapBouncyText } from "@/app/(sections)/hero";
 import { SectionHeader } from "@/app/components/shared";
 import { Inter } from "next/font/google";
-import { DesktopProjectCarousel, MobileProjectCarousel } from "./";
+import { ResponsiveBlogShowcase, ResponsiveProjectShowcase } from "./";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -85,8 +84,7 @@ export default function Portfolio() {
           <SectionHeader
             title="Projects"
             onArrowClick={() => {
-              // Add your navigation logic here
-              console.log("Navigate to projects");
+              // TODO: Add navigation to dedicated projects page
             }}
           />
           <GsapBouncyText
@@ -98,16 +96,7 @@ export default function Portfolio() {
         </div>
 
         {/* Carousel - Responsive */}
-
-        {/* Mobile: Mobile Project Carousel */}
-        <div className="block md:hidden">
-          <MobileProjectCarousel projects={projects} />
-        </div>
-
-        {/* Desktop: Original Carousel */}
-        <div className="hidden md:block">
-          <DesktopProjectCarousel projects={projects} />
-        </div>
+        <ResponsiveProjectShowcase projects={projects} />
       </section>
 
       {/* Blogs Section - Full Screen */}
@@ -117,8 +106,7 @@ export default function Portfolio() {
           <SectionHeader
             title="Blogs"
             onArrowClick={() => {
-              // Add your navigation logic here
-              console.log("Navigate to blogs");
+              // TODO: Add navigation to dedicated blogs page
             }}
           />
           <GsapBouncyText
@@ -130,19 +118,7 @@ export default function Portfolio() {
         </div>
 
         {/* Blog Cards - Responsive */}
-        <div className="max-w-[1280px] mx-auto w-full">
-          {/* Mobile: Mobile Blog Carousel */}
-          <div className="block md:hidden">
-            <MobileBlogCarousel blogs={blogs} />
-          </div>
-
-          {/* Desktop: 3-column grid */}
-          <div className="hidden md:grid grid-cols-3 gap-[47px]">
-            {blogs.map((blog, index) => (
-              <BlogCard key={index} {...blog} />
-            ))}
-          </div>
-        </div>
+        <ResponsiveBlogShowcase blogs={blogs} />
       </section>
     </div>
   );

@@ -139,3 +139,136 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* ========================================
+   ACCESSIBILITY ENHANCEMENTS
+   WCAG 2.1 Level AA Compliance
+   ======================================== */
+
+/* Screen Reader Only Content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Skip to Main Content Link */
+.skip-link {
+  position: absolute;
+  top: -9999px;
+  left: 0;
+  z-index: 9999;
+  padding: 1rem 1.5rem;
+  background-color: #657A62;
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1rem;
+  border-radius: 0 0 0.5rem 0;
+  transition: top 0.3s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: 2px solid #42ad77;
+  outline-offset: 2px;
+}
+
+/* Enhanced Focus Indicators (WCAG 2.4.7) */
+*:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Button Focus States */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #42ad77;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(66, 173, 119, 0.2);
+  transition: box-shadow 0.2s ease, outline 0.2s ease;
+}
+
+/* Dark Background Focus (for elements on dark sections) */
+.focus-light:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2);
+}
+
+/* Light Background Focus */
+.focus-dark:focus-visible {
+  outline: 2px solid #000000;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Remove Focus for Mouse Users (but keep for keyboard) */
+*:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Reduced Motion Support (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Keep essential transitions for usability */
+  *:focus-visible {
+    transition: outline 0.15s ease, box-shadow 0.15s ease !important;
+  }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  *:focus-visible {
+    outline-width: 3px;
+    outline-offset: 3px;
+  }
+
+  button,
+  a {
+    border: 2px solid currentColor;
+  }
+}
+
+/* Touch Target Size Enforcement (WCAG 2.5.5) */
+@media (pointer: coarse) {
+  button,
+  a,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"] {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.5rem;
+  }
+}
+
+/* Improved Text Selection */
+::selection {
+  background-color: #42ad77;
+  color: #ffffff;
+}
+
+::-moz-selection {
+  background-color: #42ad77;
+  color: #ffffff;
+}

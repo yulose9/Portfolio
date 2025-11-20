@@ -150,19 +150,10 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
 
     onClose();
 
-    // Smooth scroll to section using Lenis
+    // Smooth scroll to section after menu closes
     setTimeout(() => {
-      const section = document.getElementById(sectionId);
-      if (section && (window as any).lenis) {
-        (window as any).lenis.scrollTo(section, {
-          offset: 0,
-          duration: 1.5,
-          easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        });
-      } else if (section) {
-        // Fallback to native scroll if Lenis isn't available
-        section.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+      const { scrollToSection } = require("@/app/utils/navigation");
+      scrollToSection(sectionId);
     }, 300);
   };
 
@@ -235,11 +226,10 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                       <button
                         key={item.id}
                         onClick={() => handleNavigate(item.section)}
-                        className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left group active:scale-[0.98] transition-all duration-200 relative overflow-hidden ${
-                          isActive
+                        className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left group active:scale-[0.98] transition-all duration-200 relative overflow-hidden ${isActive
                             ? "bg-[#2d3a2c] border-2 border-[#4a6349]/50"
                             : "hover:bg-white/10"
-                        }`}
+                          }`}
                       >
                         {/* Active state background - Only animate layout */}
                         {isActive && (
@@ -261,28 +251,25 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
 
                         {/* Icon container */}
                         <div
-                          className={`relative z-10 flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-200 ${
-                            isActive
+                          className={`relative z-10 flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-200 ${isActive
                               ? "bg-[#4a6349] shadow-lg shadow-[#4a6349]/50"
                               : "bg-white/5 group-hover:bg-white/10"
-                          }`}
+                            }`}
                         >
                           <Icon
-                            className={`w-6 h-6 transition-all duration-200 ${
-                              isActive
+                            className={`w-6 h-6 transition-all duration-200 ${isActive
                                 ? "text-white scale-110"
                                 : "text-white/70 group-hover:text-white"
-                            }`}
+                              }`}
                           />
                         </div>
 
                         {/* Label */}
                         <span
-                          className={`relative z-10 font-semibold text-lg transition-colors duration-200 ${
-                            isActive
+                          className={`relative z-10 font-semibold text-lg transition-colors duration-200 ${isActive
                               ? "text-white"
                               : "text-white/90 group-hover:text-white"
-                          }`}
+                            }`}
                         >
                           {item.label}
                         </span>

@@ -2,12 +2,12 @@
 
 import { Highlighter } from "@/app/components/icons";
 import { MobileNav, StickyNav } from "@/app/components/layout";
-import { AnimatePresence, motion } from "framer-motion";
-import { ArrowDown, Mail, Menu } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
+import { Mail, Menu } from "lucide-react";
 import { Inter } from "next/font/google";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { GradientText, GsapBouncyText, PhilippineCulturalRoulette } from "./";
+import { GradientText, GsapBouncyText, HeroRoles, PhilippineCulturalRoulette, ScrollPrompt } from "./";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -133,8 +133,8 @@ export default function Hero() {
     // Smooth scroll to portfolio section using Lenis
     setTimeout(() => {
       const portfolioSection = document.getElementById("portfolio");
-      if (portfolioSection && (window as any).lenis) {
-        (window as any).lenis.scrollTo(portfolioSection, {
+      if (portfolioSection && window.lenis) {
+        window.lenis.scrollTo(portfolioSection, {
           offset: 0,
           duration: 1.5,
           easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
@@ -145,8 +145,8 @@ export default function Hero() {
 
   const handleScrollToContact = () => {
     const contactSection = document.getElementById("contact");
-    if (contactSection && (window as any).lenis) {
-      (window as any).lenis.scrollTo(contactSection, {
+    if (contactSection && window.lenis) {
+      window.lenis.scrollTo(contactSection, {
         offset: 0,
         duration: 1.5,
         easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
@@ -162,7 +162,7 @@ export default function Hero() {
   return (
     <div
       id="home"
-      className={`relative w-screen h-screen bg-[#657A62] text-white ${inter.className} overflow-hidden flex flex-col`}
+      className={`relative w-screen h-screen bg-brand-primary text-white ${inter.className} overflow-hidden flex flex-col`}
       style={{ touchAction: "pan-x pan-y" }}
     >
       {/* Top Navigation */}
@@ -180,7 +180,7 @@ export default function Hero() {
           <div className="flex items-center gap-4 ml-auto">
             <button
               onClick={handleScrollToContact}
-              className="hidden md:flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 bg-[#374136]/50 backdrop-blur-lg rounded-full text-base lg:text-lg font-semibold hover:bg-[#374136]/70 hover:scale-105 transition-all duration-300"
+              className="hidden md:flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 bg-brand-secondary/50 backdrop-blur-lg rounded-full text-base lg:text-lg font-semibold hover:bg-brand-secondary/70 hover:scale-105 transition-all duration-300"
             >
               <Mail className="w-5 h-5" />
               Get in touch
@@ -192,16 +192,14 @@ export default function Hero() {
       {/* Mobile Hamburger - Fixed/Sticky position (always on screen) */}
       <button
         onClick={() => setIsMobileNavOpen(true)}
-        className={`md:hidden fixed top-4 right-4 z-[100] flex items-center justify-center w-11 h-11 backdrop-blur-lg rounded-full transition-all duration-300 shadow-lg ${
-          isOnLightSection
-            ? "bg-black/10 hover:bg-black/20"
-            : "bg-white/10 hover:bg-white/20"
-        }`}
+        className={`md:hidden fixed top-4 right-4 z-[100] flex items-center justify-center w-11 h-11 backdrop-blur-lg rounded-full transition-all duration-300 shadow-lg ${isOnLightSection
+          ? "bg-black/10 hover:bg-black/20"
+          : "bg-white/10 hover:bg-white/20"
+          }`}
       >
         <Menu
-          className={`w-5 h-5 rotate-180 transition-colors duration-300 ${
-            isOnLightSection ? "text-black" : "text-white"
-          }`}
+          className={`w-5 h-5 rotate-180 transition-colors duration-300 ${isOnLightSection ? "text-black" : "text-white"
+            }`}
         />
       </button>
 
@@ -243,24 +241,7 @@ export default function Hero() {
               className="text-[23px] font-medium leading-[1.068] tracking-normal text-white"
               style={{ fontFamily: "SF Pro Text, Inter, sans-serif" }}
             >
-              <GsapBouncyText
-                text="Developer"
-                as="div"
-                delay={4.5}
-                staggerDelay={0.03}
-              />
-              <GsapBouncyText
-                text="Cloud Engineer"
-                as="div"
-                delay={4.6}
-                staggerDelay={0.03}
-              />
-              <GsapBouncyText
-                text="Artificial Intelligence"
-                as="div"
-                delay={4.7}
-                staggerDelay={0.03}
-              />
+              <HeroRoles delay={4.5} />
             </div>
           </div>
 
@@ -275,40 +256,6 @@ export default function Hero() {
             animationDuration={32}
             delay={4.8}
           />
-
-          {/* Scroll Prompt - Mobile - Pointing Down */}
-          <AnimatePresence>
-            {isVisible && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{
-                  opacity: 1,
-                  y: [0, 10, 0],
-                }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{
-                  opacity: {
-                    duration: 0.5,
-                    delay: 5.2,
-                  },
-                  y: {
-                    duration: 1.5,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: 5.2,
-                  },
-                  scale: {
-                    duration: 0.3,
-                    ease: "easeOut",
-                  },
-                }}
-                className="absolute bottom-[40px] right-[34px] z-10 cursor-pointer"
-                onClick={handleScrollToPortfolio}
-              >
-                <ArrowDown className="w-[21px] h-[18px]" />
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
         {/* Desktop Layout (md and up) */}
@@ -338,24 +285,7 @@ export default function Hero() {
                   className="w-full text-[40px] font-medium leading-[107%] tracking-[-0.08em] text-left flex flex-col gap-2"
                   style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
                 >
-                  <GsapBouncyText
-                    text="Developer"
-                    as="div"
-                    delay={5.1}
-                    staggerDelay={0.03}
-                  />
-                  <GsapBouncyText
-                    text="Cloud Engineer"
-                    as="div"
-                    delay={5.15}
-                    staggerDelay={0.03}
-                  />
-                  <GsapBouncyText
-                    text="Artificial Intelligence"
-                    as="div"
-                    delay={5.2}
-                    staggerDelay={0.03}
-                  />
+                  <HeroRoles delay={5.1} />
                 </div>
               </div>
 
@@ -387,54 +317,10 @@ export default function Hero() {
             animationDuration={32}
             delay={5.3}
           />
-
-          {/* Scroll to Discover - Desktop */}
-          <AnimatePresence>
-            {isVisible && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{
-                  opacity: 1,
-                  y: [0, 10, 0],
-                }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{
-                  opacity: {
-                    duration: 0.5,
-                    delay: 5.4,
-                  },
-                  y: {
-                    duration: 1.5,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: 5.4,
-                  },
-                  scale: {
-                    duration: 0.3,
-                    ease: "easeOut",
-                  },
-                }}
-                className="absolute bottom-8 right-8 z-10 cursor-pointer hover:scale-105 transition-transform"
-                onClick={handleScrollToPortfolio}
-              >
-                <div className="flex items-center gap-3">
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5, delay: 5.4 }}
-                    className="text-[20px] font-semibold leading-[1.068] tracking-[-0.08em] text-white"
-                    style={{ fontFamily: "SF Pro Text, Inter, sans-serif" }}
-                  >
-                    Scroll to Discover
-                  </motion.p>
-                  <div className="flex items-center justify-center">
-                    <ArrowDown className="w-[20px] h-[20px]" />
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
+
+        {/* Shared Scroll Prompt (Handles its own responsive visibility) */}
+        <ScrollPrompt isVisible={isVisible} onClick={handleScrollToPortfolio} />
       </main>
     </div>
   );

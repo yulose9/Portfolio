@@ -1,12 +1,17 @@
-import "lenis/dist/lenis.css";
-import { title } from "process";
+import { SmoothScrolling } from "@/app/providers";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import Script from "next/script";
 import { ImagePreloader } from "./components/shared";
+import { ENHANCED_METADATA, PERSON_SCHEMA, PROFILE_PAGE_SCHEMA, WEBSITE_SCHEMA } from "./constants/seo";
 import "./globals.css";
-import { SmoothScrolling } from "./providers";
 
-export const metadata = {
-  title: "John Nazarene",
-  description: "Generated manually in existing folder",
+const inter = Inter({ subsets: ["latin"] });
+
+// Enhanced SEO metadata
+export const metadata: Metadata = {
+  ...ENHANCED_METADATA,
+  // PWA Configuration
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#F5EBE0" },
     { media: "(prefers-color-scheme: dark)", color: "#657A62" },
@@ -33,6 +38,23 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* Structured Data - JSON-LD */}
+        <Script
+          id="schema-person"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(PERSON_SCHEMA) }}
+        />
+        <Script
+          id="schema-website"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_SCHEMA) }}
+        />
+        <Script
+          id="schema-profile"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(PROFILE_PAGE_SCHEMA) }}
+        />
+
         {/* Theme color for browser chrome */}
         <meta
           name="theme-color"
@@ -53,6 +75,11 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body>
+        {/* Skip to Main Content - Accessibility */}
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
+
         <ImagePreloader />
         <SmoothScrolling>{children}</SmoothScrolling>
       </body>

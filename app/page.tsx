@@ -7,7 +7,7 @@ import { Footer } from "./components/layout";
 
 export default function Page() {
   return (
-    <main className="relative overflow-x-hidden w-full">
+    <main id="main-content" className="relative overflow-x-hidden w-full">
       <PreLoadHero />
       <Hero />
       <Portfolio />

@@ -58,7 +58,7 @@ export default function Contact() {
               <div className="w-[300px] md:w-[400px] h-[2px] bg-black" />
 
               {/* Button */}
-              <button className="bg-[#42ad77] hover:bg-[#3a9667] transition-colors rounded-[20px] px-[16px] py-[10px] h-[80px] w-[280px] flex items-center justify-center">
+              <button className="bg-brand-accent hover:bg-brand-accent-hover transition-colors rounded-[20px] px-[16px] py-[10px] h-[80px] w-[280px] flex items-center justify-center">
                 <span
                   className="text-[28px] font-semibold text-white tracking-[-0.408px] leading-tight"
                   style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
@@ -88,7 +88,7 @@ export default function Contact() {
                 </div>
                 <a
                   href="mailto:example.email@email.com"
-                  className="text-[20px] md:text-[24px] font-normal leading-[1.588] tracking-[-0.96px] text-black hover:text-[#42ad77] transition-colors"
+                  className="text-[20px] md:text-[24px] font-normal leading-[1.588] tracking-[-0.96px] text-black hover:text-brand-accent transition-colors"
                   style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
                 >
                   example.email@email.com
@@ -110,7 +110,7 @@ export default function Contact() {
                 </div>
                 <a
                   href="tel:+639XXXXXXXXX"
-                  className="text-[20px] md:text-[24px] font-normal leading-[1.588] tracking-[-0.96px] text-black hover:text-[#42ad77] transition-colors"
+                  className="text-[20px] md:text-[24px] font-normal leading-[1.588] tracking-[-0.96px] text-black hover:text-brand-accent transition-colors"
                   style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
                 >
                   +639 XXXX XXXXX

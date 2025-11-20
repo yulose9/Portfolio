@@ -9,21 +9,32 @@ interface SmoothScrollingProps {
 
 export default function SmoothScrolling({ children }: SmoothScrollingProps) {
   useEffect(() => {
-    // Initialize Lenis
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Detect mobile devices
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    // Initialize Lenis with optimized, platform-specific configuration
     const lenis = new Lenis({
-      duration: 1.2,
+      // Optimized duration: Faster for better responsiveness
+      // 0.8s feels snappier than 1.2s while still being smooth
+      duration: prefersReducedMotion ? 0 : (isMobile ? 0.6 : 0.8),
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: "vertical",
       gestureOrientation: "vertical",
-      smoothWheel: true,
-      wheelMultiplier: 1,
-      touchMultiplier: 2,
+      // Disable smooth scrolling if user prefers reduced motion
+      smoothWheel: !prefersReducedMotion && !isMobile,
+      // Slightly increased for desktop, optimized for mobile
+      wheelMultiplier: isMobile ? 1 : 1.1,
+      // Reduced from 2 to 1.5 for less aggressive mobile scrolling
+      touchMultiplier: 1.5,
       infinite: false,
       autoResize: true,
     });
 
     // Expose lenis instance globally for smooth scrolling
-    (window as any).lenis = lenis;
+    window.lenis = lenis;
 
     // Prevent horizontal scrolling
     const preventHorizontalScroll = (e: WheelEvent) => {
@@ -47,7 +58,7 @@ export default function SmoothScrolling({ children }: SmoothScrollingProps) {
     // Cleanup
     return () => {
       lenis.destroy();
-      delete (window as any).lenis;
+      delete window.lenis;
       window.removeEventListener("wheel", preventHorizontalScroll);
     };
   }, []);

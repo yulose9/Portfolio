@@ -73,54 +73,16 @@ export default function TopNavigation() {
   }, []);
 
   const scrollToSection = (sectionId: string) => {
-    // Get all elements with this ID (there might be mobile + desktop versions)
-    const elements = document.querySelectorAll(`[id="${sectionId}"]`);
-
-    // Find the visible one by checking element and all parents
-    let element = null;
-    for (const el of elements) {
-      let currentEl = el as HTMLElement;
-      let isVisible = true;
-
-      // Check the element and all its parents for visibility
-      while (currentEl && currentEl !== document.body) {
-        const styles = window.getComputedStyle(currentEl);
-        if (styles.display === "none" || styles.visibility === "hidden") {
-          isVisible = false;
-          break;
-        }
-        currentEl = currentEl.parentElement!;
-      }
-
-      if (isVisible) {
-        element = el as HTMLElement;
-        break;
-      }
-    }
-
-    if (element) {
-      // Check if Lenis is available for smooth scroll
-      if ((window as any).lenis) {
-        (window as any).lenis.scrollTo(element, {
-          offset: 0,
-          duration: 1.5,
-          easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        });
-      } else {
-        // Fallback to standard smooth scroll
-        element.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }
+    const { scrollToSection: scroll } = require("@/app/utils/navigation");
+    scroll(sectionId);
   };
 
   return (
     <>
       <header
-        className={`${
-          isScrolled ? "fixed md:absolute" : "absolute"
-        } top-0 left-0 right-0 z-20 transition-all duration-300 ${
-          isScrolled ? "bg-[#374136]/80 backdrop-blur-lg md:bg-transparent" : ""
-        }`}
+        className={`${isScrolled ? "fixed md:absolute" : "absolute"
+          } top-0 left-0 right-0 z-20 transition-all duration-300 ${isScrolled ? "bg-[#374136]/80 backdrop-blur-lg md:bg-transparent" : ""
+          }`}
       >
         <nav className="flex items-center justify-between p-4 md:p-6 lg:p-8">
           {/* Left: Code by */}
@@ -168,16 +130,14 @@ export default function TopNavigation() {
       {/* Mobile Hamburger - Sticky/Fixed position */}
       <button
         onClick={() => setIsMobileMenuOpen(true)}
-        className={`md:hidden fixed top-4 right-4 z-[100] flex items-center justify-center w-11 h-11 backdrop-blur-lg rounded-full transition-all duration-300 shadow-lg ${
-          isOnLightSection
-            ? "bg-black/10 hover:bg-black/20"
-            : "bg-white/10 hover:bg-white/20"
-        }`}
+        className={`md:hidden fixed top-4 right-4 z-[100] flex items-center justify-center w-11 h-11 backdrop-blur-lg rounded-full transition-all duration-300 shadow-lg ${isOnLightSection
+          ? "bg-black/10 hover:bg-black/20"
+          : "bg-white/10 hover:bg-white/20"
+          }`}
       >
         <Menu
-          className={`w-5 h-5 transition-colors duration-300 ${
-            isOnLightSection ? "text-black" : "text-white"
-          }`}
+          className={`w-5 h-5 transition-colors duration-300 ${isOnLightSection ? "text-black" : "text-white"
+            }`}
         />
       </button>
 

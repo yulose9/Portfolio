@@ -100,8 +100,8 @@ export default function StickyNav() {
     const element = document.getElementById(sectionId);
     if (element) {
       // Check if Lenis is available for smooth scroll
-      if ((window as any).lenis) {
-        (window as any).lenis.scrollTo(element, {
+      if (window.lenis) {
+        window.lenis.scrollTo(element, {
           offset: 0,
           duration: 1.5,
           easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
@@ -146,11 +146,9 @@ export default function StickyNav() {
     <AnimatePresence mode="wait">
       <motion.div
         key={isAtBottom ? "bottom" : "top"}
-        className={`fixed z-50 hidden md:flex items-center gap-2 ${
-          isAtBottom ? "bottom-8" : "top-8"
-        } ${
-          isInContactOrFooter ? "pointer-events-none" : "pointer-events-auto"
-        }`}
+        className={`fixed z-50 hidden md:flex items-center gap-2 ${isAtBottom ? "bottom-8" : "top-8"
+          } ${isInContactOrFooter ? "pointer-events-none" : "pointer-events-auto"
+          }`}
         style={{
           left: "50%",
           x: "-50%",
@@ -160,13 +158,13 @@ export default function StickyNav() {
         animate={
           isInContactOrFooter
             ? {
-                opacity: 0,
-                scale: 0.8,
-                transition: {
-                  duration: 0.3,
-                  ease: [0.43, 0.13, 0.23, 0.96],
-                },
-              }
+              opacity: 0,
+              scale: 0.8,
+              transition: {
+                duration: 0.3,
+                ease: [0.43, 0.13, 0.23, 0.96],
+              },
+            }
             : "animate"
         }
         exit="exit"
@@ -174,11 +172,10 @@ export default function StickyNav() {
         {/* Home Button - Active when on Hero section */}
         <button
           onClick={() => scrollToSection("home")}
-          className={`flex items-center justify-center w-12 h-12 backdrop-blur-lg rounded-full hover:scale-110 transition-all duration-300 shadow-lg ${
-            activeSection === "home"
+          className={`flex items-center justify-center w-12 h-12 backdrop-blur-lg rounded-full hover:scale-110 transition-all duration-300 shadow-lg ${activeSection === "home"
               ? "bg-[#374136] text-white"
               : "bg-[#374136]/50 text-white hover:bg-[#374136]/70"
-          }`}
+            }`}
         >
           <Home className="w-6 h-6" />
         </button>
@@ -187,31 +184,28 @@ export default function StickyNav() {
         <div className="flex items-center bg-[#374136]/50 backdrop-blur-lg rounded-full px-2 py-1 shadow-lg border border-white/10">
           <button
             onClick={() => scrollToSection("portfolio")}
-            className={`px-4 py-2 text-base lg:px-6 lg:text-lg font-medium rounded-full transition-all duration-300 ${
-              activeSection === "portfolio"
+            className={`px-4 py-2 text-base lg:px-6 lg:text-lg font-medium rounded-full transition-all duration-300 ${activeSection === "portfolio"
                 ? "bg-[#374136] text-white"
                 : "hover:bg-white/10 text-white"
-            }`}
+              }`}
           >
             Portfolio
           </button>
           <button
             onClick={() => scrollToSection("work")}
-            className={`px-4 py-2 text-base lg:px-6 lg:text-lg font-medium rounded-full transition-all duration-300 ${
-              activeSection === "work"
+            className={`px-4 py-2 text-base lg:px-6 lg:text-lg font-medium rounded-full transition-all duration-300 ${activeSection === "work"
                 ? "bg-[#374136] text-white"
                 : "hover:bg-white/10 text-white"
-            }`}
+              }`}
           >
             Experience
           </button>
           <button
             onClick={() => scrollToSection("about")}
-            className={`px-4 py-2 text-base lg:px-6 lg:text-lg font-medium rounded-full transition-all duration-300 ${
-              activeSection === "about"
+            className={`px-4 py-2 text-base lg:px-6 lg:text-lg font-medium rounded-full transition-all duration-300 ${activeSection === "about"
                 ? "bg-[#374136] text-white"
                 : "hover:bg-white/10 text-white"
-            }`}
+              }`}
           >
             About
           </button>

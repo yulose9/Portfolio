@@ -99,7 +99,7 @@ const certificates = [
 ];
 
 export default function Work() {
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list"); // Default to list view
+  const [viewMode, setViewMode] = useState<"list" | "grid">("grid"); // Default to grid view
   const [hoveredRowIndex, setHoveredRowIndex] = useState<number | null>(null);
 
   return (
@@ -129,11 +129,10 @@ export default function Work() {
                 {/* Grid View Button */}
                 <button
                   onClick={() => setViewMode("grid")}
-                  className={`w-[60px] h-[60px] rounded-full backdrop-blur-[23.49px] border shadow-[0px_32px_64px_0px_rgba(0,0,0,0.19),0px_2px_21px_0px_rgba(0,0,0,0.15)] hover:scale-110 transition-all flex items-center justify-center ${
-                    viewMode === "grid"
-                      ? "bg-white border-white"
-                      : "bg-[#697668]/80 border-[rgba(117,117,117,0.4)]"
-                  }`}
+                  className={`w-[60px] h-[60px] rounded-full backdrop-blur-[23.49px] border shadow-[0px_32px_64px_0px_rgba(0,0,0,0.19),0px_2px_21px_0px_rgba(0,0,0,0.15)] hover:scale-110 transition-all flex items-center justify-center ${viewMode === "grid"
+                    ? "bg-white border-white"
+                    : "bg-[#697668]/80 border-[rgba(117,117,117,0.4)]"
+                    }`}
                   aria-label="Grid view"
                 >
                   <svg
@@ -167,11 +166,10 @@ export default function Work() {
                 {/* List View Button */}
                 <button
                   onClick={() => setViewMode("list")}
-                  className={`w-[60px] h-[60px] rounded-full backdrop-blur-[23.49px] border shadow-[0px_32px_64px_0px_rgba(0,0,0,0.19),0px_2px_21px_0px_rgba(0,0,0,0.15)] hover:scale-110 transition-all flex items-center justify-center ${
-                    viewMode === "list"
-                      ? "bg-white border-white"
-                      : "bg-[#697668]/80 border-[rgba(117,117,117,0.4)]"
-                  }`}
+                  className={`w-[60px] h-[60px] rounded-full backdrop-blur-[23.49px] border shadow-[0px_32px_64px_0px_rgba(0,0,0,0.19),0px_2px_21px_0px_rgba(0,0,0,0.15)] hover:scale-110 transition-all flex items-center justify-center ${viewMode === "list"
+                    ? "bg-white border-white"
+                    : "bg-[#697668]/80 border-[rgba(117,117,117,0.4)]"
+                    }`}
                   aria-label="List view"
                 >
                   <svg
@@ -438,8 +436,7 @@ export default function Work() {
                 title="Certificates & Licenses"
                 textColor="text-white"
                 onArrowClick={() => {
-                  // Add your navigation logic here
-                  console.log("Navigate to certificates");
+                  // TODO: Add navigation to dedicated certificates page
                 }}
               />
               <GsapBouncyText

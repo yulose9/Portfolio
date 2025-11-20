@@ -1,0 +1,24 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://johnnazarene.com/sitemap.xml
+
+# Disallow admin/development paths (if any exist in production)
+# User-agent: *
+# Disallow: /api/
+# Disallow: /_next/static/
+
+# Allow all common bots
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+# Crawl-delay (optional, uncomment if needed)
+# Crawl-delay: 1
