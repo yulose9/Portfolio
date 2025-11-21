@@ -12,7 +12,7 @@ export default function MobileAbout() {
   return (
     <div
       ref={ref}
-      id="about"
+      id="about-mobile"
       className="relative w-full min-h-screen bg-gradient-to-r from-[#dfffd9] via-[#f5f5f5] to-[#ffcae7] px-4 py-16"
     >
       {/* Header with About and Arrow */}
@@ -91,10 +91,10 @@ export default function MobileAbout() {
                 top: "0%",
               }}
             >
-              <ImageZoom src="/images/bento/About image-7.png" alt="About 1">
+              <ImageZoom src="/new_images/20240505_002215.jpg" alt="About 1">
                 <div className="relative w-full h-full">
                   <Image
-                    src="/images/bento/About image-7.png"
+                    src="/new_images/20240505_002215.jpg"
                     alt="About 1"
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -124,10 +124,10 @@ export default function MobileAbout() {
                 top: "0%",
               }}
             >
-              <ImageZoom src="/images/bento/About image-9.png" alt="About 2">
+              <ImageZoom src="/new_images/20241103_174110.jpg" alt="About 2">
                 <div className="relative w-full h-full">
                   <Image
-                    src="/images/bento/About image-9.png"
+                    src="/new_images/20241103_174110.jpg"
                     alt="About 2"
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -157,10 +157,10 @@ export default function MobileAbout() {
                 top: "0%",
               }}
             >
-              <ImageZoom src="/images/bento/About image-11.png" alt="About 3">
+              <ImageZoom src="/new_images/20241217_214653.jpg" alt="About 3">
                 <div className="relative w-full h-full">
                   <Image
-                    src="/images/bento/About image-11.png"
+                    src="/new_images/20241217_214653.jpg"
                     alt="About 3"
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -190,10 +190,10 @@ export default function MobileAbout() {
                 top: "0%",
               }}
             >
-              <ImageZoom src="/images/bento/About image-10.png" alt="About 4">
+              <ImageZoom src="/new_images/20250122_180802.jpg" alt="About 4">
                 <div className="relative w-full h-full">
                   <Image
-                    src="/images/bento/About image-10.png"
+                    src="/new_images/20250122_180802.jpg"
                     alt="About 4"
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -223,10 +223,10 @@ export default function MobileAbout() {
                 top: "0%",
               }}
             >
-              <ImageZoom src="/images/bento/About image-12.png" alt="About 5">
+              <ImageZoom src="/new_images/20250429_151140.jpg" alt="About 5">
                 <div className="relative w-full h-full">
                   <Image
-                    src="/images/bento/About image-12.png"
+                    src="/new_images/20250429_151140.jpg"
                     alt="About 5"
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -256,10 +256,10 @@ export default function MobileAbout() {
                 top: "14.43%", // 99/686
               }}
             >
-              <ImageZoom src="/images/bento/About image-8.png" alt="About 6">
+              <ImageZoom src="/new_images/20250429_152858.jpg" alt="About 6">
                 <div className="relative w-full h-full">
                   <Image
-                    src="/images/bento/About image-8.png"
+                    src="/new_images/20250429_152858.jpg"
                     alt="About 6"
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -289,10 +289,10 @@ export default function MobileAbout() {
                 top: "15.16%", // 104/686
               }}
             >
-              <ImageZoom src="/images/bento/About image-6.png" alt="About 7">
+              <ImageZoom src="/new_images/IMG_0142.JPG" alt="About 7">
                 <div className="relative w-full h-full">
                   <Image
-                    src="/images/bento/About image-6.png"
+                    src="/new_images/IMG_0142.JPG"
                     alt="About 7"
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -322,10 +322,10 @@ export default function MobileAbout() {
                 top: "37.46%", // 257/686
               }}
             >
-              <ImageZoom src="/images/bento/About image-5.png" alt="About 8">
+              <ImageZoom src="/new_images/IMG_20210208_172445.jpg" alt="About 8">
                 <div className="relative w-full h-full">
                   <Image
-                    src="/images/bento/About image-5.png"
+                    src="/new_images/IMG_20210208_172445.jpg"
                     alt="About 8"
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -355,10 +355,10 @@ export default function MobileAbout() {
                 top: "29.30%", // 201/686
               }}
             >
-              <ImageZoom src="/images/bento/About image-14.png" alt="About 9">
+              <ImageZoom src="/new_images/IMG_20230623_134358.jpg" alt="About 9">
                 <div className="relative w-full h-full">
                   <Image
-                    src="/images/bento/About image-14.png"
+                    src="/new_images/IMG_20230623_134358.jpg"
                     alt="About 9"
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -388,10 +388,10 @@ export default function MobileAbout() {
                 top: "29.30%", // 201/686
               }}
             >
-              <ImageZoom src="/images/bento/About image-13.png" alt="About 10">
+              <ImageZoom src="/new_images/IMG_20211209_161208.jpg" alt="About 10">
                 <div className="relative w-full h-full">
                   <Image
-                    src="/images/bento/About image-13.png"
+                    src="/new_images/IMG_20211209_161208.jpg"
                     alt="About 10"
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -421,10 +421,10 @@ export default function MobileAbout() {
                 top: "65.01%", // 446/686
               }}
             >
-              <ImageZoom src="/images/bento/About image-4.png" alt="About 11">
+              <ImageZoom src="/new_images/IMG_20211216_162442.jpg" alt="About 11">
                 <div className="relative w-full h-full">
                   <Image
-                    src="/images/bento/About image-4.png"
+                    src="/new_images/IMG_20211216_162442.jpg"
                     alt="About 11"
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -454,10 +454,10 @@ export default function MobileAbout() {
                 top: "72.74%", // 499/686
               }}
             >
-              <ImageZoom src="/images/bento/About image-3.png" alt="About 12">
+              <ImageZoom src="/new_images/IMG_20220724_065655.jpg" alt="About 12">
                 <div className="relative w-full h-full">
                   <Image
-                    src="/images/bento/About image-3.png"
+                    src="/new_images/IMG_20220724_065655.jpg"
                     alt="About 12"
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -487,10 +487,10 @@ export default function MobileAbout() {
                 top: "72.74%", // 499/686
               }}
             >
-              <ImageZoom src="/images/bento/About image-2.png" alt="About 13">
+              <ImageZoom src="/new_images/IMG_20230209_191600.jpg" alt="About 13">
                 <div className="relative w-full h-full">
                   <Image
-                    src="/images/bento/About image-2.png"
+                    src="/new_images/IMG_20230209_191600.jpg"
                     alt="About 13"
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -520,10 +520,10 @@ export default function MobileAbout() {
                 top: "86.88%", // 596/686
               }}
             >
-              <ImageZoom src="/images/bento/About image-1.png" alt="About 14">
+              <ImageZoom src="/new_images/IMG_20230313_134905.jpg" alt="About 14">
                 <div className="relative w-full h-full">
                   <Image
-                    src="/images/bento/About image-1.png"
+                    src="/new_images/IMG_20230313_134905.jpg"
                     alt="About 14"
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -553,10 +553,10 @@ export default function MobileAbout() {
                 top: "86.88%", // 596/686
               }}
             >
-              <ImageZoom src="/images/bento/About image.png" alt="About 15">
+              <ImageZoom src="/new_images/IMG_20230316_161832.jpg" alt="About 15">
                 <div className="relative w-full h-full">
                   <Image
-                    src="/images/bento/About image.png"
+                    src="/new_images/IMG_20230316_161832.jpg"
                     alt="About 15"
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-110"

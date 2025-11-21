@@ -29,6 +29,13 @@ const certificates = [
     credentialUrl:
       "https://www.credly.com/badges/bebd520f-8e29-4ec4-9f11-22a35b047349/linked_in_profile",
   },
+  {
+    title: "GitHub Copilot",
+    issuingOrg: "Microsoft",
+    date: "Oct 2025",
+    image: "/images/certifications/Github_Copilot_badge.png",
+    credentialUrl: "",
+  },
 ];
 
 export default function MobileCertificates() {

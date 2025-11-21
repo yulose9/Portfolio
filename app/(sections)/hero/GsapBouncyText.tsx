@@ -161,8 +161,8 @@ export default function GsapBouncyText({
           style={{
             display: "inline-block",
             overflow: "hidden",
-            padding: "0 0 0.2em 0",
-            margin: "0 0 -0.1em",
+            padding: "0 0.1em 0.2em 0.02em",
+            margin: "0 -0.1em -0.1em -0.02em",
           }}
         >
           <span

@@ -26,6 +26,7 @@ export default function TopNavigation() {
         { id: "portfolio", isLight: true },
         { id: "work", isLight: false },
         { id: "about", isLight: true },
+        { id: "about-mobile", isLight: true },
         { id: "contact", isLight: true },
       ];
 

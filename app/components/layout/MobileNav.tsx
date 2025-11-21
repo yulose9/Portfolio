@@ -19,7 +19,7 @@ const navigationItems = [
     section: "portfolio",
   },
   { id: "experience", label: "Experience", icon: Code, section: "work" },
-  { id: "about", label: "About", icon: User, section: "about" },
+  { id: "about", label: "About", icon: User, section: "about-mobile" },
 ];
 
 export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
@@ -28,7 +28,7 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
   // Detect which section is currently in view - More aggressive detection
   useEffect(() => {
     const handleScroll = () => {
-      const sections = ["home", "portfolio", "work", "about", "contact"];
+      const sections = ["home", "portfolio", "work", "about-mobile", "contact"];
 
       // Use a smaller offset for more accurate detection
       const scrollPosition = window.scrollY + 150; // 150px from top
@@ -227,8 +227,8 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                         key={item.id}
                         onClick={() => handleNavigate(item.section)}
                         className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left group active:scale-[0.98] transition-all duration-200 relative overflow-hidden ${isActive
-                            ? "bg-[#2d3a2c] border-2 border-[#4a6349]/50"
-                            : "hover:bg-white/10"
+                          ? "bg-[#2d3a2c] border-2 border-[#4a6349]/50"
+                          : "hover:bg-white/10"
                           }`}
                       >
                         {/* Active state background - Only animate layout */}
@@ -252,14 +252,14 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                         {/* Icon container */}
                         <div
                           className={`relative z-10 flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-200 ${isActive
-                              ? "bg-[#4a6349] shadow-lg shadow-[#4a6349]/50"
-                              : "bg-white/5 group-hover:bg-white/10"
+                            ? "bg-[#4a6349] shadow-lg shadow-[#4a6349]/50"
+                            : "bg-white/5 group-hover:bg-white/10"
                             }`}
                         >
                           <Icon
                             className={`w-6 h-6 transition-all duration-200 ${isActive
-                                ? "text-white scale-110"
-                                : "text-white/70 group-hover:text-white"
+                              ? "text-white scale-110"
+                              : "text-white/70 group-hover:text-white"
                               }`}
                           />
                         </div>
@@ -267,8 +267,8 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                         {/* Label */}
                         <span
                           className={`relative z-10 font-semibold text-lg transition-colors duration-200 ${isActive
-                              ? "text-white"
-                              : "text-white/90 group-hover:text-white"
+                            ? "text-white"
+                            : "text-white/90 group-hover:text-white"
                             }`}
                         >
                           {item.label}
