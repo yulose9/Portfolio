@@ -98,6 +98,11 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
   // Prevent body scroll when menu is open
   useEffect(() => {
     if (isOpen) {
+      // Stop Lenis if active
+      if (window.lenis) {
+        window.lenis.stop();
+      }
+
       // Store current scroll position
       const scrollY = window.scrollY;
 
@@ -139,6 +144,11 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
         // Restore the scroll position
         if (scrollY) {
           window.scrollTo(0, parseInt(scrollY || "0") * -1);
+        }
+
+        // Resume Lenis
+        if (window.lenis) {
+          window.lenis.start();
         }
       };
     }
@@ -193,7 +203,7 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                     <p className="text-base font-semibold text-white">
                       John Nazarene
                     </p>
-                    <p className="text-xs text-white/60 font-medium tracking-wider uppercase">
+                    <p className="text-sm text-white/60 font-medium tracking-wider uppercase">
                       Developer
                     </p>
                   </div>
@@ -209,38 +219,45 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
               {/* Divider */}
               <div className="h-[1px] bg-white/20 mb-6" />
 
-              {/* Navigation Section - Simplified animations */}
+              {/* Navigation Section - Improved animations */}
               <div className="flex-1 flex flex-col justify-center">
                 <div className="mb-4">
-                  <p className="text-xs font-semibold text-white/50 tracking-widest uppercase px-2">
+                  <motion.p
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-sm font-semibold text-white/50 tracking-widest uppercase px-2"
+                  >
                     Navigation
-                  </p>
+                  </motion.p>
                 </div>
 
                 <div className="space-y-2">
-                  {navigationItems.map((item) => {
+                  {navigationItems.map((item, index) => {
                     const Icon = item.icon;
                     const isActive = activeSection === item.section;
 
                     return (
-                      <button
+                      <motion.button
                         key={item.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4 + index * 0.1 }}
                         onClick={() => handleNavigate(item.section)}
-                        className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left group active:scale-[0.98] transition-all duration-200 relative overflow-hidden ${isActive
-                          ? "bg-[#2d3a2c] border-2 border-[#4a6349]/50"
-                          : "hover:bg-white/10"
-                          }`}
+                        className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left group active:scale-[0.98] transition-all duration-200 relative overflow-hidden ${
+                          isActive
+                            ? "bg-[#2d3a2c] border-2 border-[#4a6349]/50"
+                            : "hover:bg-white/10"
+                        }`}
                       >
                         {/* Active state background - Only animate layout */}
                         {isActive && (
                           <motion.div
-                            layoutId="activeNav"
                             className="absolute inset-0 bg-gradient-to-r from-[#2d3a2c] via-[#374136] to-[#2d3a2c] rounded-2xl"
-                            transition={{
-                              type: "spring",
-                              stiffness: 380,
-                              damping: 30,
-                            }}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.2 }}
                           />
                         )}
 
@@ -251,25 +268,28 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
 
                         {/* Icon container */}
                         <div
-                          className={`relative z-10 flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-200 ${isActive
-                            ? "bg-[#4a6349] shadow-lg shadow-[#4a6349]/50"
-                            : "bg-white/5 group-hover:bg-white/10"
-                            }`}
+                          className={`relative z-10 flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-200 ${
+                            isActive
+                              ? "bg-[#4a6349] shadow-lg shadow-[#4a6349]/50"
+                              : "bg-white/5 group-hover:bg-white/10"
+                          }`}
                         >
                           <Icon
-                            className={`w-6 h-6 transition-all duration-200 ${isActive
-                              ? "text-white scale-110"
-                              : "text-white/70 group-hover:text-white"
-                              }`}
+                            className={`w-6 h-6 transition-all duration-200 ${
+                              isActive
+                                ? "text-white scale-110"
+                                : "text-white/70 group-hover:text-white"
+                            }`}
                           />
                         </div>
 
                         {/* Label */}
                         <span
-                          className={`relative z-10 font-semibold text-lg transition-colors duration-200 ${isActive
-                            ? "text-white"
-                            : "text-white/90 group-hover:text-white"
-                            }`}
+                          className={`relative z-10 font-semibold text-lg transition-colors duration-200 ${
+                            isActive
+                              ? "text-white"
+                              : "text-white/90 group-hover:text-white"
+                          }`}
                         >
                           {item.label}
                         </span>
@@ -306,7 +326,7 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                             </svg>
                           </div>
                         )}
-                      </button>
+                      </motion.button>
                     );
                   })}
                 </div>
@@ -316,7 +336,10 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
               <div className="h-[1px] bg-white/20 my-6" />
 
               {/* Contact Section */}
-              <button
+              <motion.button
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
                 className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-[#374136] hover:bg-[#374136]/70 active:scale-[0.98] transition-all duration-200 shadow-lg hover:shadow-xl group border border-white/20"
                 onClick={() => handleNavigate("contact")}
               >
@@ -324,14 +347,19 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                 <span className="font-bold text-base text-white">
                   Get in Touch
                 </span>
-              </button>
+              </motion.button>
 
               {/* Footer */}
-              <div className="mt-6 pt-6 border-t border-white/10">
-                <p className="text-xs text-center text-white/50 font-medium">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.9 }}
+                className="mt-6 pt-6 border-t border-white/10"
+              >
+                <p className="text-sm text-center text-white/50 font-medium">
                   Located in the Philippines 🇵🇭
                 </p>
-              </div>
+              </motion.div>
             </div>
           </motion.div>
         </>

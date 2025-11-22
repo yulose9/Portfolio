@@ -88,7 +88,7 @@ export default function MobileCertificates() {
       </motion.p>
 
       {/* Certificates Grid - 2 Columns */}
-      <div className="grid grid-cols-2 gap-[13px] mb-[111px]">
+      <div className="grid grid-cols-2 gap-4 mb-24">
         {certificates.map((cert, index) => {
           const ref = useRef(null);
           const isInView = useInView(ref, {
@@ -112,12 +112,12 @@ export default function MobileCertificates() {
                 cert.credentialUrl &&
                 window.open(cert.credentialUrl, "_blank", "noopener,noreferrer")
               }
-              className="relative w-full h-[238.732px] rounded-[10.141px] bg-white/50 backdrop-blur-[17.512px] border-[0.146px] border-[rgba(117,117,117,0.4)] shadow-[0px_4.673px_9.346px_0px_rgba(0,0,0,0.28),0px_0.292px_3.067px_0px_rgba(0,0,0,0.22)] overflow-hidden cursor-pointer active:scale-95 transition-transform"
+              className="relative w-full aspect-[0.8] rounded-2xl bg-white/50 backdrop-blur-xl border border-white/20 shadow-lg overflow-hidden cursor-pointer active:scale-95 transition-transform"
             >
               {/* Date Badge */}
-              <div className="absolute top-[9.3px] left-[106.48px] bg-[#d9d9d9] rounded-[41.831px] px-[4.225px] py-[4.225px] shadow-sm">
+              <div className="absolute top-3 right-3 bg-gray-200/80 backdrop-blur-sm rounded-full px-2 py-1 shadow-sm z-10">
                 <p
-                  className="text-[11.724px] font-normal leading-[5.917px] tracking-[-0.4842px] text-black whitespace-nowrap"
+                  className="text-[10px] font-medium text-black whitespace-nowrap"
                   style={{
                     fontFamily:
                       "Inter, SF Pro Display, SF Pro Text, sans-serif",
@@ -128,20 +128,20 @@ export default function MobileCertificates() {
               </div>
 
               {/* Certificate Image Placeholder */}
-              <div className="absolute left-[40.56px] top-[42.25px] w-[98.873px] h-[98.873px] rounded-[2.535px] overflow-hidden">
-                {/* Certificate Badge Image */}
-                <img
-                  src={cert.image}
-                  alt={cert.title}
-                  className="w-full h-full object-contain"
-                  onError={(e) => {
-                    // Fallback to placeholder icon if image fails to load
-                    const target = e.currentTarget;
-                    target.style.display = "none";
-                    if (target.parentElement) {
-                      target.parentElement.innerHTML = `
-                      <div class="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-[#f5f5f5] via-[#e8e8e8] to-[#d9d9d9]">
-                        <div class="absolute inset-0 overflow-hidden">
+              <div className="absolute inset-x-0 top-0 bottom-16 p-6 flex items-center justify-center">
+                <div className="relative w-full h-full max-w-[100px] max-h-[100px]">
+                  <img
+                    src={cert.image}
+                    alt={cert.title}
+                    className="w-full h-full object-contain drop-shadow-md"
+                    onError={(e) => {
+                      // Fallback to placeholder icon if image fails to load
+                      const target = e.currentTarget;
+                      target.style.display = "none";
+                      if (target.parentElement) {
+                        target.parentElement.innerHTML = `
+                      <div class="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-[#f5f5f5] via-[#e8e8e8] to-[#d9d9d9] rounded-lg">
+                        <div class="absolute inset-0 overflow-hidden rounded-lg">
                           <div class="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/20 blur-lg" />
                           <div class="absolute bottom-3 left-3 w-10 h-10 rounded-full bg-white/30 blur-xl" />
                         </div>
@@ -151,19 +151,18 @@ export default function MobileCertificates() {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </div>
-                        <div class="absolute top-0 left-0 w-4 h-4 border-l border-t border-white/40 rounded-tl-[2.535px]" />
-                        <div class="absolute bottom-0 right-0 w-4 h-4 border-r border-b border-white/40 rounded-br-[2.535px]" />
                       </div>
                     `;
-                    }
-                  }}
-                />
+                      }
+                    }}
+                  />
+                </div>
               </div>
 
               {/* Certificate Info */}
-              <div className="absolute bottom-[16px] left-[20.28px] right-[20.28px]">
+              <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/40 backdrop-blur-md border-t border-white/20">
                 <p
-                  className="text-[18.474px] font-semibold tracking-[-0.763px] text-black mb-[5px]"
+                  className="text-sm font-bold text-black mb-1 leading-tight line-clamp-2"
                   style={{
                     fontFamily:
                       "Inter, SF Pro Display, SF Pro Text, sans-serif",
@@ -172,7 +171,7 @@ export default function MobileCertificates() {
                   {cert.title}
                 </p>
                 <p
-                  className="text-[11.724px] font-normal leading-[5.917px] tracking-[-0.4842px] text-black"
+                  className="text-[10px] font-medium text-black/70"
                   style={{
                     fontFamily:
                       "Inter, SF Pro Display, SF Pro Text, sans-serif",

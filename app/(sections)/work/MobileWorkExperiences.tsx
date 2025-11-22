@@ -72,7 +72,7 @@ const workExperiences = [
 ];
 
 export default function MobileWorkExperiences() {
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
   const [hoveredCardIndex, setHoveredCardIndex] = useState<number | null>(null);
 
   return (
@@ -193,7 +193,7 @@ export default function MobileWorkExperiences() {
         {/* Conditional Rendering: List or Grid View */}
         <AnimatePresence mode="wait">
           {viewMode === "list" ? (
-            /* List View - Table Layout */
+            /* List View - Clean Row Layout */
             <motion.div
               key="list-view"
               initial={{ opacity: 0, y: 20 }}
@@ -203,112 +203,39 @@ export default function MobileWorkExperiences() {
                 duration: 0.3,
                 ease: [0.21, 0.47, 0.32, 0.98],
               }}
-              className="w-full mb-[40px]"
+              className="w-full mb-[40px] flex flex-col gap-3"
             >
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-white/20 hover:bg-transparent">
-                    <TableHead
-                      className="text-[12px] font-semibold leading-[10.4px] tracking-[-0.496px] text-[#f0f0f0] uppercase px-[14px] h-auto pb-[18px]"
-                      style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-                    >
-                      Company Name
-                    </TableHead>
-                    <TableHead
-                      className="text-[12px] font-semibold leading-[10.4px] tracking-[-0.496px] text-[#f0f0f0] uppercase px-[14px] h-auto pb-[18px]"
-                      style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-                    >
-                      Location
-                    </TableHead>
-                    <TableHead
-                      className="text-[12px] font-semibold leading-[10.4px] tracking-[-0.496px] text-[#f0f0f0] uppercase px-[14px] h-auto pb-[18px]"
-                      style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-                    >
-                      Position
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {workExperiences.map((work, index) => (
-                    <TableRow
-                      key={index}
-                      className="border-white/20 hover:bg-transparent"
-                    >
-                      <TableCell className="px-[14px] py-[22px] align-top">
-                        <div className="flex items-start gap-[8px]">
-                          {/* Company Logo */}
-                          <a
-                            href={work.linkedinUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-[32px] h-[32px] bg-white/10 rounded-[4px] flex-shrink-0 flex items-center justify-center overflow-hidden hover:bg-white/20 transition-all"
-                          >
-                            <img
-                              src={work.logo}
-                              alt={`${work.companyName} logo`}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none";
-                                if (e.currentTarget.parentElement) {
-                                  e.currentTarget.parentElement.innerHTML = `
-                              <span class="text-[10px] text-white/50" style="font-family: Inter, SF Pro Text, sans-serif">
-                                ${work.companyName.charAt(0)}
-                              </span>
-                            `;
-                                }
-                              }}
-                            />
-                          </a>
-                          <div className="flex flex-col">
-                            <a
-                              href={work.companyUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[11px] font-semibold leading-[10.4px] tracking-[-0.454px] text-white mb-[8px] hover:text-[#8eb08a] transition-colors"
-                              style={{
-                                fontFamily: "Inter, SF Pro Text, sans-serif",
-                              }}
-                            >
-                              {work.companyName}
-                            </a>
-                            <p
-                              className="text-[10px] font-light leading-[10.4px] tracking-[-0.413px] text-white"
-                              style={{
-                                fontFamily: "Inter, SF Pro Text, sans-serif",
-                              }}
-                            >
-                              {work.duration}
-                            </p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-[14px] py-[22px] align-middle">
-                        <a
-                          href={work.locationUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[11px] font-light leading-[10.4px] tracking-[-0.454px] text-white hover:text-[#8eb08a] transition-colors"
-                          style={{
-                            fontFamily: "Inter, SF Pro Text, sans-serif",
-                          }}
-                        >
-                          {work.location}
-                        </a>
-                      </TableCell>
-                      <TableCell className="px-[14px] py-[22px] align-middle">
-                        <p
-                          className="text-[11px] font-light leading-[10.4px] tracking-[-0.454px] text-white"
-                          style={{
-                            fontFamily: "Inter, SF Pro Text, sans-serif",
-                          }}
-                        >
-                          {work.position}
-                        </p>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              {workExperiences.map((work, index) => (
+                <div
+                  key={index}
+                  className="group relative flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300"
+                >
+                  {/* Logo */}
+                  <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <img
+                      src={work.logo}
+                      alt={work.companyName}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base font-semibold text-white truncate">
+                      {work.companyName}
+                    </h3>
+                    <p className="text-sm text-white/70 truncate">
+                      {work.position}
+                    </p>
+                  </div>
+
+                  {/* Date & Location (Hidden on very small screens, visible on larger mobile) */}
+                  <div className="text-right hidden xs:block">
+                    <p className="text-xs text-white/50">{work.duration}</p>
+                    <p className="text-xs text-white/50">{work.location}</p>
+                  </div>
+                </div>
+              ))}
             </motion.div>
           ) : (
             /* Grid View - Card Layout */
@@ -321,12 +248,12 @@ export default function MobileWorkExperiences() {
                 duration: 0.3,
                 ease: [0.21, 0.47, 0.32, 0.98],
               }}
-              className="grid grid-cols-1 gap-6 mb-[40px]"
+              className="grid grid-cols-2 gap-4 mb-[40px]"
             >
               {workExperiences.map((work, idx) => (
                 <motion.div
                   key={idx}
-                  className="relative group"
+                  className="relative group aspect-square"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{
@@ -337,8 +264,8 @@ export default function MobileWorkExperiences() {
                   onTouchStart={() => setHoveredCardIndex(idx)}
                   onTouchEnd={() => setHoveredCardIndex(null)}
                 >
-                  {/* Card Container with Glassmorphism */}
-                  <div className="relative rounded-[20px] overflow-hidden bg-[rgba(243,243,243,0.08)] backdrop-blur-[30px] border border-white/20 shadow-[0px_8px_32px_0px_rgba(0,0,0,0.15)] hover:shadow-[0px_20px_60px_0px_rgba(0,0,0,0.3)] transition-all duration-300">
+                  {/* Card Container with Glassmorphism - Improved */}
+                  <div className="relative w-full h-full rounded-[24px] overflow-hidden bg-gradient-to-b from-white/10 to-white/5 backdrop-blur-xl border border-white/10 shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col p-4">
                     {/* Hover Gradient Background */}
                     <AnimatePresence>
                       {hoveredCardIndex === idx && (
@@ -353,126 +280,28 @@ export default function MobileWorkExperiences() {
                       )}
                     </AnimatePresence>
 
-                    {/* Card Content */}
-                    <div className="relative z-10 p-6">
-                      {/* Company Logo and Duration */}
-                      <div className="flex items-start gap-4 mb-4">
-                        {/* Company Logo */}
-                        <a
-                          href={work.linkedinUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="w-[64px] h-[64px] rounded-[12px] overflow-hidden bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all duration-300 hover:scale-105 shadow-md flex-shrink-0"
-                        >
+                    {/* Card Content - Optimized for Square */}
+                    <div className="relative z-10 flex flex-col h-full justify-between">
+                      {/* Header: Logo */}
+                      <div className="w-12 h-12 rounded-xl bg-white/10 p-1 shadow-inner">
+                        <div className="w-full h-full rounded-lg overflow-hidden relative">
                           <img
                             src={work.logo}
-                            alt={`${work.companyName} logo`}
+                            alt={work.companyName}
                             className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none";
-                              e.currentTarget.parentElement!.innerHTML = `
-                                <svg class="w-8 h-8 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                </svg>
-                              `;
-                            }}
                           />
-                        </a>
-
-                        {/* Company Info */}
-                        <div className="flex-1 min-w-0">
-                          <a
-                            href={work.companyUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block mb-1"
-                          >
-                            <h3
-                              className="text-[18px] font-bold text-white hover:text-[#8eb08a] transition-colors leading-tight truncate"
-                              style={{
-                                fontFamily: "Inter, SF Pro Text, sans-serif",
-                              }}
-                            >
-                              {work.companyName}
-                            </h3>
-                          </a>
-
-                          {/* Duration Badge with Tooltip */}
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="inline-flex bg-[#8eb08a] rounded-full px-3 py-1 shadow-sm cursor-help">
-                                <p
-                                  className="text-[11px] font-semibold text-white whitespace-nowrap"
-                                  style={{
-                                    fontFamily:
-                                      "Inter, SF Pro Text, sans-serif",
-                                  }}
-                                >
-                                  {work.duration}
-                                </p>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p
-                                className="text-sm font-semibold"
-                                style={{
-                                  fontFamily: "Inter, SF Pro Text, sans-serif",
-                                }}
-                              >
-                                {work.customDuration ||
-                                  calculateDuration(
-                                    work.startYear,
-                                    work.startMonth
-                                  )}
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
                         </div>
                       </div>
 
-                      {/* Position */}
-                      <div className="mb-4 pb-4 border-b border-white/10">
-                        <p
-                          className="text-[14px] font-semibold text-white/90 leading-snug"
-                          style={{
-                            fontFamily: "Inter, SF Pro Text, sans-serif",
-                          }}
-                        >
+                      {/* Footer: Company Name & Role */}
+                      <div className="flex flex-col gap-1">
+                        <h3 className="text-sm font-bold text-white leading-tight line-clamp-2">
+                          {work.companyName}
+                        </h3>
+                        <p className="text-xs text-white/60 font-medium line-clamp-1">
                           {work.position}
                         </p>
                       </div>
-
-                      {/* Location */}
-                      <a
-                        href={work.locationUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-[13px] font-medium text-white/70 hover:text-[#8eb08a] transition-colors"
-                        style={{
-                          fontFamily: "Inter, SF Pro Text, sans-serif",
-                        }}
-                      >
-                        <svg
-                          className="w-4 h-4 flex-shrink-0"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                        </svg>
-                        {work.location}
-                      </a>
                     </div>
                   </div>
                 </motion.div>
@@ -493,8 +322,8 @@ export default function MobileWorkExperiences() {
           viewport={{ once: true, margin: "-50px" }}
           className="flex justify-center"
         >
-          <button className="bg-[#8eb08a] rounded-[12.456px] px-[8.897px] py-[6.228px] h-[41.373px] w-[117px] shadow-md hover:scale-105 transition-transform">
-            <span className="text-[11.344px] font-semibold leading-[9.787px] tracking-[-0.182px] text-white text-center">
+          <button className="bg-[#8eb08a] rounded-full px-6 py-3 shadow-md hover:scale-105 transition-transform flex items-center justify-center">
+            <span className="text-base font-semibold leading-none tracking-[-0.182px] text-white text-center">
               View All
             </span>
           </button>

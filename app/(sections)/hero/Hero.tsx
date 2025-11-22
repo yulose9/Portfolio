@@ -7,7 +7,13 @@ import { Mail, Menu } from "lucide-react";
 import { Inter } from "next/font/google";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { GradientText, GsapBouncyText, HeroRoles, PhilippineCulturalRoulette, ScrollPrompt } from "./";
+import {
+  GradientText,
+  GsapBouncyText,
+  HeroRoles,
+  PhilippineCulturalRoulette,
+  ScrollPrompt,
+} from "./";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -192,14 +198,16 @@ export default function Hero() {
       {/* Mobile Hamburger - Fixed/Sticky position (always on screen) */}
       <button
         onClick={() => setIsMobileNavOpen(true)}
-        className={`md:hidden fixed top-4 right-4 z-[100] flex items-center justify-center w-11 h-11 backdrop-blur-lg rounded-full transition-all duration-300 shadow-lg ${isOnLightSection
-          ? "bg-black/10 hover:bg-black/20"
-          : "bg-white/10 hover:bg-white/20"
-          }`}
+        className={`md:hidden fixed top-4 right-4 z-[100] flex items-center justify-center w-11 h-11 backdrop-blur-lg rounded-full transition-all duration-300 shadow-lg ${
+          isOnLightSection
+            ? "bg-black hover:bg-black/80"
+            : "bg-white/10 hover:bg-white/20"
+        }`}
       >
         <Menu
-          className={`w-5 h-5 rotate-180 transition-colors duration-300 ${isOnLightSection ? "text-black" : "text-white"
-            }`}
+          className={`w-5 h-5 rotate-180 transition-colors duration-300 ${
+            isOnLightSection ? "text-white" : "text-white"
+          }`}
         />
       </button>
 
@@ -221,7 +229,7 @@ export default function Hero() {
           {/* Hero Portrait - Mobile - Bottom Right */}
           <div className="absolute right-0 bottom-0 w-[687px] h-[639px] overflow-hidden">
             <Image
-              src="/7a97f9ff1efd6be56501753f1f090d23d760914c.png"
+              src="/image 1-final.png"
               alt="John Nazarene Dela Pisa"
               width={687}
               height={639}
@@ -233,12 +241,12 @@ export default function Hero() {
           </div>
 
           {/* Hero Text Container - Mobile */}
-          <div className="absolute left-[15px] top-[342px] w-[192px] flex flex-col gap-[11px]">
-            <div className="w-[12px] h-[12px]">
+          <div className="absolute left-[15px] top-[342px] w-auto max-w-[80vw] flex flex-col gap-[11px]">
+            <div className="w-[24px] h-[24px]">
               <Highlighter />
             </div>
             <div
-              className="text-[23px] font-medium leading-[1.068] tracking-normal text-white"
+              className="text-[23px] font-medium leading-[1.068] tracking-normal text-white whitespace-nowrap"
               style={{ fontFamily: "SF Pro Text, Inter, sans-serif" }}
             >
               <HeroRoles delay={4.5} />
@@ -253,7 +261,7 @@ export default function Hero() {
               textShadow: "0px 0px 4.35px rgba(0, 0, 0, 0.25)",
               fontFamily: "SF Pro Display, Inter, sans-serif",
             }}
-            animationDuration={32}
+            animationDuration={10}
             delay={4.8}
           />
         </div>
@@ -292,7 +300,7 @@ export default function Hero() {
               {/* Main Image - Desktop */}
               <div className="w-full max-w-2xl -ml-72 transform translate-y-32">
                 <Image
-                  src="/7a97f9ff1efd6be56501753f1f090d23d760914c.png"
+                  src="/image 1-final.png"
                   alt="John Nazarene Dela Pisa"
                   width={981}
                   height={913}
@@ -314,7 +322,7 @@ export default function Hero() {
             style={{
               textShadow: "0px 0px 12px rgba(0, 0, 0, 0.25)",
             }}
-            animationDuration={32}
+            animationDuration={10}
             delay={5.3}
           />
         </div>

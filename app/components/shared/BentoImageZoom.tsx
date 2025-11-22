@@ -28,6 +28,7 @@ export function BentoImageZoom({ src, alt, children }: BentoImageZoomProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const cloneRef = useRef<HTMLDivElement>(null);
   const animatingRef = useRef(false);
+  const borderRadiusRef = useRef("0px");
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -88,6 +89,29 @@ export function BentoImageZoom({ src, alt, children }: BentoImageZoomProps) {
     // Hide original
     gsap.set(container, { visibility: "hidden" });
 
+    // Get original border radius to maintain it
+    let originalBorderRadius = getComputedStyle(container).borderRadius;
+
+    // If no border radius on container, check parent (common pattern with wrapper divs)
+    if (
+      (originalBorderRadius === "0px" || originalBorderRadius === "0") &&
+      container.parentElement
+    ) {
+      const parentRadius = getComputedStyle(
+        container.parentElement
+      ).borderRadius;
+      if (parentRadius !== "0px" && parentRadius !== "0") {
+        originalBorderRadius = parentRadius;
+      }
+    }
+
+    // Store for collapse animation
+    borderRadiusRef.current = originalBorderRadius;
+
+    // Apply border radius to clone immediately
+    clone.style.borderRadius = originalBorderRadius;
+    clone.style.overflow = "hidden";
+
     // Calculate target position (centered and larger)
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
@@ -95,7 +119,14 @@ export function BentoImageZoom({ src, alt, children }: BentoImageZoomProps) {
     const maxHeight = viewportHeight * 0.9;
 
     // Calculate aspect ratio to maintain proportions
-    const aspectRatio = originalRect.width / originalRect.height;
+    // Try to use the natural image aspect ratio to show the full image when zoomed
+    const img = container.querySelector("img");
+    let aspectRatio = originalRect.width / originalRect.height;
+
+    if (img && img.naturalWidth && img.naturalHeight) {
+      aspectRatio = img.naturalWidth / img.naturalHeight;
+    }
+
     let targetWidth = maxWidth;
     let targetHeight = maxWidth / aspectRatio;
 
@@ -132,9 +163,9 @@ export function BentoImageZoom({ src, alt, children }: BentoImageZoomProps) {
         left: targetLeft,
         width: targetWidth,
         height: targetHeight,
-        duration: 0.5,
-        ease: "power2.inOut",
-        borderRadius: "8px",
+        duration: 0.6,
+        ease: "power3.inOut",
+        borderRadius: originalBorderRadius,
       },
       0
     );
@@ -194,9 +225,9 @@ export function BentoImageZoom({ src, alt, children }: BentoImageZoomProps) {
         left: originalRect.left,
         width: originalRect.width,
         height: originalRect.height,
-        duration: 0.5,
-        ease: "power2.inOut",
-        borderRadius: getComputedStyle(container).borderRadius,
+        duration: 0.6,
+        ease: "power3.inOut",
+        borderRadius: borderRadiusRef.current,
       },
       0
     );

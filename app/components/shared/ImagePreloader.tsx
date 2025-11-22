@@ -24,7 +24,7 @@ export default function ImagePreloader() {
     const heroImageLink = document.createElement("link");
     heroImageLink.rel = "preload";
     heroImageLink.as = "image";
-    heroImageLink.href = "/7a97f9ff1efd6be56501753f1f090d23d760914c.png";
+    heroImageLink.href = "/image 1-final.png";
     heroImageLink.fetchPriority = "high";
     heroImageLink.type = "image/png";
 

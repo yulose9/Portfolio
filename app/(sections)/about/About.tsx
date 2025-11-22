@@ -260,10 +260,13 @@ export default function About() {
                 }}
                 className="absolute w-[154px] h-[142px] left-0 top-[104px] rounded-[26px] overflow-hidden group cursor-pointer"
               >
-                <BentoImageZoom src="/new_images/IMG_0142.JPG" alt="About 7">
+                <BentoImageZoom
+                  src="/new_images/IMG_20230623_134358.jpg"
+                  alt="About 7"
+                >
                   <div className="relative w-full h-full">
                     <Image
-                      src="/new_images/IMG_0142.JPG"
+                      src="/new_images/IMG_20230623_134358.jpg"
                       alt="About 7"
                       fill
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -317,13 +320,10 @@ export default function About() {
                 }}
                 className="absolute w-[425px] h-[287px] left-[324px] top-[201px] rounded-[26px] overflow-hidden group cursor-pointer"
               >
-                <BentoImageZoom
-                  src="/new_images/IMG_20230623_134358.jpg"
-                  alt="About 9"
-                >
+                <BentoImageZoom src="/new_images/IMG_0142.JPG" alt="About 9">
                   <div className="relative w-full h-full">
                     <Image
-                      src="/new_images/IMG_20230623_134358.jpg"
+                      src="/new_images/IMG_0142.JPG"
                       alt="About 9"
                       fill
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -518,7 +518,7 @@ export default function About() {
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-            transition={{ duration: 0.8, delay: 0.9 }}
+            transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
             className="text-center"
           >
             <h2
@@ -541,7 +541,7 @@ export default function About() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            transition={{ duration: 0.6, delay: 1.0 }}
+            transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
             className="flex items-center justify-center gap-3"
           >
             <div className="flex items-center gap-2">
@@ -569,7 +569,7 @@ export default function About() {
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            transition={{ duration: 0.6, delay: 1.1 }}
+            transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
             className="text-[24px] font-normal leading-[1.588] tracking-[-0.96px] text-black text-center max-w-[900px] mx-auto"
             style={{ fontFamily: "Inter, SF Pro Display, sans-serif" }}
           >

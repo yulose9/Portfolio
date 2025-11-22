@@ -23,7 +23,7 @@ export default function HeroContent() {
         {/* Main Image */}
         <div className="w-full max-w-lg -ml-48 transform translate-y-32">
           <Image
-            src="/7a97f9ff1efd6be56501753f1f090d23d760914c.png"
+            src="/image 1-final.png"
             alt="John Nazarene Dela Pisa"
             width={981}
             height={913}

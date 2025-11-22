@@ -10,6 +10,7 @@ export default function MobileContact() {
   return (
     <section
       ref={ref}
+      id="contact"
       className="relative min-h-screen flex flex-col justify-center items-center px-4 bg-white"
     >
       <div className="max-w-[402px] mx-auto w-full relative z-10">
@@ -20,7 +21,7 @@ export default function MobileContact() {
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             transition={{ duration: 0.4, delay: 0.05 }}
-            className="text-[48px] font-medium leading-[1.07] tracking-[-0.48px] text-black text-center mb-[40px] max-w-[289.49px]"
+            className="text-[clamp(32px,8vw,48px)] font-medium leading-[1.07] tracking-[-0.48px] text-black text-center mb-[40px] max-w-[90%] mx-auto"
             style={{
               fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
             }}
@@ -41,9 +42,9 @@ export default function MobileContact() {
             <div className="absolute left-0 right-0 h-[1px] bg-black" />
 
             {/* Button */}
-            <button className="relative z-10 bg-[#42ad77] hover:bg-[#3a9667] active:scale-95 transition-all rounded-[12.456px] px-[8.897px] py-[6.228px] h-[41.373px] w-[117px] flex items-center justify-center shadow-sm">
+            <button className="relative z-10 bg-[#42ad77] hover:bg-[#3a9667] active:scale-95 transition-all rounded-full px-6 py-3 flex items-center justify-center shadow-sm">
               <span
-                className="text-[11.344px] font-semibold text-white tracking-[-0.1815px] leading-[9.787px]"
+                className="text-base font-semibold text-white tracking-[-0.1815px] leading-none"
                 style={{
                   fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
                 }}
@@ -68,7 +69,7 @@ export default function MobileContact() {
               </div>
               <a
                 href="mailto:example.email@email.com"
-                className="text-[13px] font-medium leading-[1.588] tracking-[-0.52px] text-black hover:text-[#42ad77] transition-colors"
+                className="text-base font-medium leading-[1.588] tracking-[-0.52px] text-black hover:text-[#42ad77] transition-colors"
                 style={{
                   fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
                 }}
@@ -90,7 +91,7 @@ export default function MobileContact() {
               </div>
               <a
                 href="tel:+639XXXXXXXXX"
-                className="text-[13px] font-medium leading-[1.588] tracking-[-0.52px] text-black hover:text-[#42ad77] transition-colors"
+                className="text-base font-medium leading-[1.588] tracking-[-0.52px] text-black hover:text-[#42ad77] transition-colors"
                 style={{
                   fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
                 }}

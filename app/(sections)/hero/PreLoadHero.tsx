@@ -61,7 +61,7 @@ export default function PreLoadHero() {
       window.removeEventListener("wheel", preventInteraction);
       window.removeEventListener("touchmove", preventInteraction);
       window.removeEventListener("touchstart", preventInteraction);
-    }, 6000); // 1000ms for animation
+    }, 5500); // Reduced gap to 500ms to allow scrolling sooner
 
     return () => {
       clearTimeout(timer);
