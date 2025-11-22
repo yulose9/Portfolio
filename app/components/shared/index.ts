@@ -1,3 +1,4 @@
+export { BentoImageZoom } from "./BentoImageZoom";
 export { default as ImagePreloader } from "./ImagePreloader";
 export { ImageZoom } from "./ImageZoom";
 export { default as LocationBadge } from "./LocationBadge";

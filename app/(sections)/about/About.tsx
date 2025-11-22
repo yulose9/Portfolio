@@ -1,7 +1,7 @@
 "use client";
 
 import { GsapBouncyText } from "@/app/(sections)/hero";
-import { ImageZoom } from "@/app/components/shared";
+import { BentoImageZoom } from "@/app/components/shared";
 import { motion, useInView } from "framer-motion";
 import Image from "next/image";
 import { useRef } from "react";
@@ -80,7 +80,10 @@ export default function About() {
                 }}
                 className="absolute w-[154px] h-[93px] left-0 top-0 rounded-[26px] overflow-hidden group cursor-pointer"
               >
-                <ImageZoom src="/new_images/20240505_002215.jpg" alt="About 1">
+                <BentoImageZoom
+                  src="/new_images/20240505_002215.jpg"
+                  alt="About 1"
+                >
                   <div className="relative w-full h-full">
                     <Image
                       src="/new_images/20240505_002215.jpg"
@@ -89,7 +92,7 @@ export default function About() {
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
-                </ImageZoom>
+                </BentoImageZoom>
               </motion.div>
 
               {/* Image 2: Tall vertical - power lines */}
@@ -107,7 +110,10 @@ export default function About() {
                 }}
                 className="absolute w-[155px] h-[434px] left-[160px] top-0 rounded-[26px] overflow-hidden group cursor-pointer"
               >
-                <ImageZoom src="/new_images/20241103_174110.jpg" alt="About 2">
+                <BentoImageZoom
+                  src="/new_images/20241103_174110.jpg"
+                  alt="About 2"
+                >
                   <div className="relative w-full h-full">
                     <Image
                       src="/new_images/20241103_174110.jpg"
@@ -116,7 +122,7 @@ export default function About() {
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
-                </ImageZoom>
+                </BentoImageZoom>
               </motion.div>
 
               {/* Image 3: Top small square - sunflower */}
@@ -134,7 +140,10 @@ export default function About() {
                 }}
                 className="absolute w-[99px] h-[192px] left-[324px] top-0 rounded-[26px] overflow-hidden group cursor-pointer"
               >
-                <ImageZoom src="/new_images/20241217_214653.jpg" alt="About 3">
+                <BentoImageZoom
+                  src="/new_images/20241217_214653.jpg"
+                  alt="About 3"
+                >
                   <div className="relative w-full h-full">
                     <Image
                       src="/new_images/20241217_214653.jpg"
@@ -143,7 +152,7 @@ export default function About() {
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
-                </ImageZoom>
+                </BentoImageZoom>
               </motion.div>
 
               {/* Image 4: Wide horizontal - soju bottles */}
@@ -161,7 +170,10 @@ export default function About() {
                 }}
                 className="absolute w-[480px] h-[192px] left-[433px] top-0 rounded-[26px] overflow-hidden group cursor-pointer"
               >
-                <ImageZoom src="/new_images/20250122_180802.jpg" alt="About 4">
+                <BentoImageZoom
+                  src="/new_images/20250122_180802.jpg"
+                  alt="About 4"
+                >
                   <div className="relative w-full h-full">
                     <Image
                       src="/new_images/20250122_180802.jpg"
@@ -170,7 +182,7 @@ export default function About() {
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
-                </ImageZoom>
+                </BentoImageZoom>
               </motion.div>
 
               {/* Image 5: Small square top-right */}
@@ -188,7 +200,10 @@ export default function About() {
                 }}
                 className="absolute w-[153px] h-[92px] left-[921px] top-0 rounded-[26px] overflow-hidden group cursor-pointer"
               >
-                <ImageZoom src="/new_images/20250429_151140.jpg" alt="About 5">
+                <BentoImageZoom
+                  src="/new_images/20250429_151140.jpg"
+                  alt="About 5"
+                >
                   <div className="relative w-full h-full">
                     <Image
                       src="/new_images/20250429_151140.jpg"
@@ -197,7 +212,7 @@ export default function About() {
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
-                </ImageZoom>
+                </BentoImageZoom>
               </motion.div>
 
               {/* Image 6: Tall vertical right - building/ceiling */}
@@ -215,7 +230,10 @@ export default function About() {
                 }}
                 className="absolute w-[153px] h-[389px] left-[921px] top-[99px] rounded-[26px] overflow-hidden group cursor-pointer"
               >
-                <ImageZoom src="/new_images/20250429_152858.jpg" alt="About 6">
+                <BentoImageZoom
+                  src="/new_images/20250429_152858.jpg"
+                  alt="About 6"
+                >
                   <div className="relative w-full h-full">
                     <Image
                       src="/new_images/20250429_152858.jpg"
@@ -224,7 +242,7 @@ export default function About() {
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
-                </ImageZoom>
+                </BentoImageZoom>
               </motion.div>
 
               {/* Image 7: Medium vertical left */}
@@ -242,7 +260,7 @@ export default function About() {
                 }}
                 className="absolute w-[154px] h-[142px] left-0 top-[104px] rounded-[26px] overflow-hidden group cursor-pointer"
               >
-                <ImageZoom src="/new_images/IMG_0142.JPG" alt="About 7">
+                <BentoImageZoom src="/new_images/IMG_0142.JPG" alt="About 7">
                   <div className="relative w-full h-full">
                     <Image
                       src="/new_images/IMG_0142.JPG"
@@ -251,7 +269,7 @@ export default function About() {
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
-                </ImageZoom>
+                </BentoImageZoom>
               </motion.div>
 
               {/* Image 8: Bottom left */}
@@ -269,7 +287,10 @@ export default function About() {
                 }}
                 className="absolute w-[154px] h-[170px] left-0 top-[257px] rounded-[26px] overflow-hidden group cursor-pointer"
               >
-                <ImageZoom src="/new_images/IMG_20210208_172445.jpg" alt="About 8">
+                <BentoImageZoom
+                  src="/new_images/IMG_20210208_172445.jpg"
+                  alt="About 8"
+                >
                   <div className="relative w-full h-full">
                     <Image
                       src="/new_images/IMG_20210208_172445.jpg"
@@ -278,7 +299,7 @@ export default function About() {
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
-                </ImageZoom>
+                </BentoImageZoom>
               </motion.div>
 
               {/* Image 9: Wide middle horizontal - selfie */}
@@ -296,7 +317,10 @@ export default function About() {
                 }}
                 className="absolute w-[425px] h-[287px] left-[324px] top-[201px] rounded-[26px] overflow-hidden group cursor-pointer"
               >
-                <ImageZoom src="/new_images/IMG_20230623_134358.jpg" alt="About 9">
+                <BentoImageZoom
+                  src="/new_images/IMG_20230623_134358.jpg"
+                  alt="About 9"
+                >
                   <div className="relative w-full h-full">
                     <Image
                       src="/new_images/IMG_20230623_134358.jpg"
@@ -305,7 +329,7 @@ export default function About() {
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
-                </ImageZoom>
+                </BentoImageZoom>
               </motion.div>
 
               {/* Image 10: Medium right side */}
@@ -323,7 +347,7 @@ export default function About() {
                 }}
                 className="absolute w-[9.5983rem] h-[287px] left-[758px] top-[201px] rounded-[26px] overflow-hidden group cursor-pointer"
               >
-                <ImageZoom
+                <BentoImageZoom
                   src="/new_images/IMG_20211209_161208.jpg"
                   alt="About 10"
                 >
@@ -335,7 +359,7 @@ export default function About() {
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
-                </ImageZoom>
+                </BentoImageZoom>
               </motion.div>
 
               {/* Image 11: Bottom wide horizontal */}
@@ -353,7 +377,10 @@ export default function About() {
                 }}
                 className="absolute w-[314px] h-[240px] left-0 top-[446px] rounded-[26px] overflow-hidden group cursor-pointer"
               >
-                <ImageZoom src="/new_images/IMG_20211216_162442.jpg" alt="About 11">
+                <BentoImageZoom
+                  src="/new_images/IMG_20211216_162442.jpg"
+                  alt="About 11"
+                >
                   <div className="relative w-full h-full">
                     <Image
                       src="/new_images/IMG_20211216_162442.jpg"
@@ -362,7 +389,7 @@ export default function About() {
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
-                </ImageZoom>
+                </BentoImageZoom>
               </motion.div>
 
               {/* Image 12: Bottom middle small */}
@@ -380,7 +407,10 @@ export default function About() {
                 }}
                 className="absolute w-[209px] h-[190px] left-[324px] top-[499px] rounded-[26px] overflow-hidden group cursor-pointer"
               >
-                <ImageZoom src="/new_images/IMG_20220724_065655.jpg" alt="About 12">
+                <BentoImageZoom
+                  src="/new_images/IMG_20220724_065655.jpg"
+                  alt="About 12"
+                >
                   <div className="relative w-full h-full">
                     <Image
                       src="/new_images/IMG_20220724_065655.jpg"
@@ -389,7 +419,7 @@ export default function About() {
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
-                </ImageZoom>
+                </BentoImageZoom>
               </motion.div>
 
               {/* Image 13: Wide bottom horizontal */}
@@ -407,7 +437,10 @@ export default function About() {
                 }}
                 className="absolute w-[532px] h-[90px] left-[542px] top-[499px] rounded-[26px] overflow-hidden group cursor-pointer"
               >
-                <ImageZoom src="/new_images/IMG_20230209_191600.jpg" alt="About 13">
+                <BentoImageZoom
+                  src="/new_images/IMG_20230209_191600.jpg"
+                  alt="About 13"
+                >
                   <div className="relative w-full h-full">
                     <Image
                       src="/new_images/IMG_20230209_191600.jpg"
@@ -416,7 +449,7 @@ export default function About() {
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
-                </ImageZoom>
+                </BentoImageZoom>
               </motion.div>
 
               {/* Image 14: Bottom small */}
@@ -434,7 +467,10 @@ export default function About() {
                 }}
                 className="absolute w-[262px] h-[90px] left-[542px] top-[596px] rounded-[26px] overflow-hidden group cursor-pointer"
               >
-                <ImageZoom src="/new_images/IMG_20230313_134905.jpg" alt="About 14">
+                <BentoImageZoom
+                  src="/new_images/IMG_20230313_134905.jpg"
+                  alt="About 14"
+                >
                   <div className="relative w-full h-full">
                     <Image
                       src="/new_images/IMG_20230313_134905.jpg"
@@ -443,7 +479,7 @@ export default function About() {
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
-                </ImageZoom>
+                </BentoImageZoom>
               </motion.div>
 
               {/* Image 15: Bottom right */}
@@ -461,7 +497,10 @@ export default function About() {
                 }}
                 className="absolute w-[263px] h-[90px] left-[812px] top-[596px] rounded-[26px] overflow-hidden group cursor-pointer"
               >
-                <ImageZoom src="/new_images/IMG_20230316_161832.jpg" alt="About 15">
+                <BentoImageZoom
+                  src="/new_images/IMG_20230316_161832.jpg"
+                  alt="About 15"
+                >
                   <div className="relative w-full h-full">
                     <Image
                       src="/new_images/IMG_20230316_161832.jpg"
@@ -470,7 +509,7 @@ export default function About() {
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
-                </ImageZoom>
+                </BentoImageZoom>
               </motion.div>
             </div>
           </div>
