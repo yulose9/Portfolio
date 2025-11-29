@@ -47,7 +47,7 @@ export default function StickyNav() {
         }
       }
 
-      // Check if we're approaching or in Contact or Footer sections
+      // Check if we're currently viewing Contact or Footer sections
       const contactElement = document.getElementById("contact");
       // Select only visible footer (desktop version has .hidden.md:block)
       const footerElement = Array.from(
@@ -58,15 +58,15 @@ export default function StickyNav() {
       });
       const viewportHeight = window.innerHeight;
       const scrollTop = window.scrollY;
+      const viewportCenter = scrollTop + viewportHeight / 2;
 
       let inContactOrFooter = false;
 
       if (contactElement) {
         const contactTop = contactElement.offsetTop;
         const contactBottom = contactTop + contactElement.offsetHeight;
-        // Hide nav when we're 200px before entering the contact section
-        const triggerPoint = contactTop - 200;
-        if (scrollTop >= triggerPoint && scrollTop < contactBottom) {
+        // Hide nav when viewport center is within the contact section
+        if (viewportCenter >= contactTop && viewportCenter < contactBottom) {
           inContactOrFooter = true;
         }
       }
@@ -74,9 +74,8 @@ export default function StickyNav() {
       if (footerElement && !inContactOrFooter) {
         const footerTop = footerElement.offsetTop;
         const footerBottom = footerTop + footerElement.offsetHeight;
-        // Hide nav when we're 200px before entering the footer section
-        const triggerPoint = footerTop - 200;
-        if (scrollTop >= triggerPoint && scrollTop < footerBottom) {
+        // Hide nav when viewport center is within the footer section
+        if (viewportCenter >= footerTop && viewportCenter < footerBottom) {
           inContactOrFooter = true;
         }
       }
@@ -120,7 +119,7 @@ export default function StickyNav() {
   const navVariants = {
     initial: {
       opacity: 0,
-      scale: 0.8,
+      scale: 0.5,
     },
     animate: {
       opacity: 1,
@@ -134,7 +133,7 @@ export default function StickyNav() {
     },
     exit: {
       opacity: 0,
-      scale: 0.8,
+      scale: 0.5,
       transition: {
         duration: 0.3,
         ease: [0.43, 0.13, 0.23, 0.96] as const, // Smooth ease out
@@ -159,7 +158,7 @@ export default function StickyNav() {
           isInContactOrFooter
             ? {
               opacity: 0,
-              scale: 0.8,
+              scale: 0.5,
               transition: {
                 duration: 0.3,
                 ease: [0.43, 0.13, 0.23, 0.96],
@@ -172,12 +171,13 @@ export default function StickyNav() {
         {/* Home Button - Active when on Hero section */}
         <button
           onClick={() => scrollToSection("home")}
+          aria-label="Navigate to home section"
           className={`flex items-center justify-center w-12 h-12 backdrop-blur-lg rounded-full hover:scale-110 transition-all duration-300 shadow-lg ${activeSection === "home"
               ? "bg-[#374136] text-white"
               : "bg-[#374136]/50 text-white hover:bg-[#374136]/70"
             }`}
         >
-          <Home className="w-6 h-6" />
+          <Home className="w-6 h-6" aria-hidden="true" />
         </button>
 
         {/* Navigation Pills */}

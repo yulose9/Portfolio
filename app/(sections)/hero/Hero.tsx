@@ -23,35 +23,8 @@ export default function Hero() {
   const [isOnLightSection, setIsOnLightSection] = useState(false);
   const [isInHeroSection, setIsInHeroSection] = useState(true);
 
-  // Disable zoom on mobile devices
-  useEffect(() => {
-    // Prevent pinch zoom
-    const preventZoom = (e: TouchEvent) => {
-      if (e.touches.length > 1) {
-        e.preventDefault();
-      }
-    };
-
-    // Prevent double-tap zoom
-    let lastTouchEnd = 0;
-    const preventDoubleTapZoom = (e: TouchEvent) => {
-      const now = Date.now();
-      if (now - lastTouchEnd <= 300) {
-        e.preventDefault();
-      }
-      lastTouchEnd = now;
-    };
-
-    document.addEventListener("touchmove", preventZoom, { passive: false });
-    document.addEventListener("touchend", preventDoubleTapZoom, {
-      passive: false,
-    });
-
-    return () => {
-      document.removeEventListener("touchmove", preventZoom);
-      document.removeEventListener("touchend", preventDoubleTapZoom);
-    };
-  }, []);
+  // Note: Zoom prevention is handled via CSS touch-action in globals.css
+  // No JavaScript event listeners needed - this prevents scroll blocking issues
 
   // Detect section for hamburger color and hero section
   useEffect(() => {

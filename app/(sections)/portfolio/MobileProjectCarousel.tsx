@@ -1,6 +1,7 @@
 "use client";
 
 import { useOutsideClick } from "@/app/hooks/use-outside-click";
+import { lockScroll, unlockScroll } from "@/app/utils/scroll-lock";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
@@ -63,18 +64,19 @@ export const Card = ({
       }
     }
 
+    // Generate unique lock ID for this card
+    const lockId = `mobile-project-carousel-${index}`;
+
     if (open) {
-      document.body.style.overflow = "hidden";
+      lockScroll(lockId, true);
       window.addEventListener("keydown", onKeyDown);
-    } else {
-      document.body.style.overflow = "auto";
     }
 
     return () => {
-      document.body.style.overflow = "auto";
+      unlockScroll(lockId, true);
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [open]);
+  }, [open, index]);
 
   useOutsideClick(containerRef, () => handleClose());
 

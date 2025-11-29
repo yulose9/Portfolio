@@ -1,9 +1,13 @@
 "use client";
 
+import { scrollToSection } from "@/app/utils/navigation";
+import { lockScroll, unlockScroll } from "@/app/utils/scroll-lock";
 import { AnimatePresence, motion } from "framer-motion";
 import { Briefcase, Code, Home, Mail, User, X } from "lucide-react";
-import Image from "next/image";
 import { useEffect, useState } from "react";
+
+// Unique lock ID for this component
+const SCROLL_LOCK_ID = "mobile-nav";
 
 interface MobileNavProps {
   isOpen: boolean;
@@ -98,19 +102,8 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
   // Prevent body scroll when menu is open
   useEffect(() => {
     if (isOpen) {
-      // Stop Lenis if active
-      if (window.lenis) {
-        window.lenis.stop();
-      }
-
-      // Store current scroll position
-      const scrollY = window.scrollY;
-
-      // Prevent scrolling
-      document.body.style.overflow = "hidden";
-      document.body.style.position = "fixed";
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = "100%";
+      // Use centralized scroll lock
+      lockScroll(SCROLL_LOCK_ID, true);
 
       // Prevent wheel scrolling
       const preventWheel = (e: WheelEvent) => {
@@ -134,22 +127,8 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
         window.removeEventListener("wheel", preventWheel);
         window.removeEventListener("touchmove", preventTouch);
 
-        // Restore scroll position when closing
-        const scrollY = document.body.style.top;
-        document.body.style.overflow = "";
-        document.body.style.position = "";
-        document.body.style.top = "";
-        document.body.style.width = "";
-
-        // Restore the scroll position
-        if (scrollY) {
-          window.scrollTo(0, parseInt(scrollY || "0") * -1);
-        }
-
-        // Resume Lenis
-        if (window.lenis) {
-          window.lenis.start();
-        }
+        // Use centralized scroll unlock
+        unlockScroll(SCROLL_LOCK_ID, true);
       };
     }
   }, [isOpen]);
@@ -162,7 +141,6 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
 
     // Smooth scroll to section after menu closes
     setTimeout(() => {
-      const { scrollToSection } = require("@/app/utils/navigation");
       scrollToSection(sectionId);
     }, 300);
   };
@@ -210,9 +188,10 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                 </div>
                 <button
                   onClick={onClose}
+                  aria-label="Close navigation menu"
                   className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-lg transition-colors border border-white/10 active:scale-95"
                 >
-                  <X className="w-5 h-5 text-white" />
+                  <X className="w-5 h-5 text-white" aria-hidden="true" />
                 </button>
               </div>
 

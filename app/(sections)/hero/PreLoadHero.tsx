@@ -8,80 +8,53 @@ const inter = Inter({ subsets: ["latin"] });
 export default function PreLoadHero() {
   const [slideUp, setSlideUp] = useState(false);
   const [remove, setRemove] = useState(false);
+  // New state to control when scroll is allowed
+  const [allowScroll, setAllowScroll] = useState(false);
 
   useEffect(() => {
-    // Store the current scroll position
-    const scrollY = window.scrollY;
+    // CREATIVE APPROACH: Don't block scroll at all!
+    // Instead, use pointer-events: none on content behind the overlay
+    // This way, when overlay slides up, scroll works INSTANTLY
+    
+    // Stop Lenis during preload if available
+    if (window.lenis) {
+      window.lenis.stop();
+    }
 
-    // Disable ALL scrolling and touch interactions when component mounts
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.position = "fixed";
-    document.body.style.width = "100%";
-    document.body.style.height = "100%";
-    document.body.style.top = `-${scrollY}px`;
-
-    // Prevent ALL scroll and touch events
-    const preventInteraction = (e: Event) => {
-      e.preventDefault();
-      e.stopPropagation();
-      return false;
-    };
-
-    // Block ALL scroll and touch attempts while PreLoadHero is visible
-    window.addEventListener("scroll", preventInteraction, { passive: false });
-    window.addEventListener("wheel", preventInteraction, { passive: false });
-    window.addEventListener("touchmove", preventInteraction, {
-      passive: false,
-    });
-    window.addEventListener("touchstart", preventInteraction, {
-      passive: false,
-    });
-
-    const timer = setTimeout(() => {
+    // Start slide up animation at 5s
+    const slideTimer = setTimeout(() => {
       setSlideUp(true);
+      // Allow scroll IMMEDIATELY when slide starts
+      setAllowScroll(true);
+      
+      // Restart Lenis right away
+      if (window.lenis) {
+        window.lenis.start();
+      }
     }, 5000);
 
+    // Remove component after animation completes
     const removeTimer = setTimeout(() => {
       setRemove(true);
-
-      // Re-enable ALL scrolling and touch after component is removed
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.width = "";
-      document.body.style.height = "";
-      document.body.style.top = "";
-
-      // Restore scroll position
-      window.scrollTo(0, scrollY);
-
-      // Remove ALL event listeners
-      window.removeEventListener("scroll", preventInteraction);
-      window.removeEventListener("wheel", preventInteraction);
-      window.removeEventListener("touchmove", preventInteraction);
-      window.removeEventListener("touchstart", preventInteraction);
-    }, 5500); // Reduced gap to 500ms to allow scrolling sooner
+    }, 6000); // Give full 1s for slide animation
 
     return () => {
-      clearTimeout(timer);
+      clearTimeout(slideTimer);
       clearTimeout(removeTimer);
-
-      // Ensure everything is re-enabled on cleanup
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.width = "";
-      document.body.style.height = "";
-      document.body.style.top = "";
-
-      // Remove ALL event listeners
-      window.removeEventListener("scroll", preventInteraction);
-      window.removeEventListener("wheel", preventInteraction);
-      window.removeEventListener("touchmove", preventInteraction);
-      window.removeEventListener("touchstart", preventInteraction);
+      
+      // Ensure Lenis is running on cleanup
+      if (window.lenis) {
+        window.lenis.start();
+      }
     };
   }, []);
+
+  // Emit a custom event when scroll should be allowed
+  useEffect(() => {
+    if (allowScroll) {
+      window.dispatchEvent(new CustomEvent('preloadComplete'));
+    }
+  }, [allowScroll]);
 
   if (remove) {
     return null;
@@ -180,9 +153,13 @@ export default function PreLoadHero() {
     <div
       className={`${
         inter.className
-      } absolute inset-0 z-[9999] w-screen h-screen bg-[#3B5237] overflow-hidden transition-transform duration-1000 ease-out ${
+      } fixed inset-0 z-[9999] w-screen h-screen bg-[#3B5237] overflow-hidden transition-transform duration-1000 ease-out ${
         slideUp ? "-translate-y-full" : "translate-y-0"
       }`}
+      style={{ 
+        // Use pointer-events to block interaction, not scroll blocking
+        pointerEvents: slideUp ? 'none' : 'auto',
+      }}
     >
       {/* Mobile Background greetings */}
       <div className="md:hidden">

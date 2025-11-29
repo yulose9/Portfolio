@@ -1,5 +1,5 @@
 import { SmoothScrolling } from "@/app/providers";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
 import { ImagePreloader } from "./components/shared";
@@ -13,16 +13,16 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
+// Viewport configuration (separate from metadata in Next.js 14+)
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Allow user scaling for accessibility (WCAG 1.4.4)
+};
+
 // Enhanced SEO metadata
 export const metadata: Metadata = {
   ...ENHANCED_METADATA,
-  // PWA Configuration
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

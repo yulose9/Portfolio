@@ -25,7 +25,9 @@ export default function MobileFooter() {
         <div className="flex items-center justify-between w-full">
           {/* Resume & CV Button */}
           <a
-            href="#"
+            href="https://nazarene-resume-bucket.s3.us-east-1.amazonaws.com/DelaPisa_Resume_v1.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
             className="bg-[#8eb08a] hover:bg-[#7a9d76] active:scale-95 transition-all rounded-[10.237px] px-[7.312px] py-[5.118px] h-[34px] w-[96.15px] flex items-center justify-center shrink-0"
           >
             <span

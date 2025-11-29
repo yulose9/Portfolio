@@ -68,13 +68,13 @@ export default function MobileContact() {
                 <span className="text-[27px] leading-none">📧</span>
               </div>
               <a
-                href="mailto:example.email@email.com"
+                href="mailto:jannazarene09@gmail.com"
                 className="text-base font-medium leading-[1.588] tracking-[-0.52px] text-black hover:text-[#42ad77] transition-colors"
                 style={{
                   fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
                 }}
               >
-                example.email@email.com
+                jannazarene09@gmail.com
               </a>
             </motion.div>
 
@@ -90,13 +90,13 @@ export default function MobileContact() {
                 <span className="text-[27px] leading-none">📞</span>
               </div>
               <a
-                href="tel:+639XXXXXXXXX"
+                href="tel:+639454178422"
                 className="text-base font-medium leading-[1.588] tracking-[-0.52px] text-black hover:text-[#42ad77] transition-colors"
                 style={{
                   fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
                 }}
               >
-                +639 XXXX XXXXX
+                +639 454 178 422
               </a>
             </motion.div>
           </div>

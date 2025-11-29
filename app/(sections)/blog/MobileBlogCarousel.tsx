@@ -238,16 +238,16 @@ export default function MobileBlogCarousel({ blogs }: MobileBlogCarouselProps) {
         </AnimatePresence>
       </div>
 
-      {/* Pagination Dots */}
-      <div className="flex justify-center gap-1.5 mb-6">
+      {/* Pagination Dots - Small and subtle */}
+      <div className="flex justify-center items-center gap-2 mb-6">
         {blogs.map((_, index) => (
           <button
             key={index}
             onClick={() => handleDotClick(index)}
             className={`rounded-full transition-all duration-300 ${
               index === currentIndex
-                ? "bg-gray-800 w-1.5 h-1.5"
-                : "bg-gray-800/30 w-1 h-1"
+                ? "bg-gray-800 w-2 h-2"
+                : "bg-gray-400/50 w-1.5 h-1.5"
             }`}
             aria-label={`Go to blog ${index + 1}`}
           />
@@ -270,19 +270,6 @@ export default function MobileBlogCarousel({ blogs }: MobileBlogCarouselProps) {
         >
           <ChevronRight className="w-7 h-7 text-gray-700" strokeWidth={2.5} />
         </button>
-      </div>
-
-      {/* View All Button */}
-      <div className="mt-6 text-center">
-        <a
-          href="#all-blogs"
-          className="inline-block px-6 py-3 rounded-full bg-gray-100 text-gray-900 text-[17px] font-semibold tracking-tight transition-all hover:bg-gray-200"
-          style={{
-            fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
-          }}
-        >
-          View All
-        </a>
       </div>
     </div>
   );

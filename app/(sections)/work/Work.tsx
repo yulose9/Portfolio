@@ -9,10 +9,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/app/components/ui/tooltip";
-import { AnimatePresence, motion, useInView } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Inter } from "next/font/google";
-import { useRef, useState } from "react";
-import { MobileWorkExperiences, WorkExperienceGrid } from "./";
+import { useState } from "react";
+import {
+  CompanyLogo,
+  DraggableCertificateGrid,
+  MobileWorkExperiences,
+  WorkExperienceGrid,
+} from "./";
+import type { Certificate } from "./DraggableCertificateGrid";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -70,38 +76,54 @@ const workExperiences = [
   },
 ];
 
-// Sample certificates data
-const certificates = [
+// Sample certificates data with IDs for drag and drop and enhanced metadata
+const certificates: Certificate[] = [
   {
+    id: "cert-azure",
     title: "Azure Fundamentals",
     issuingOrg: "Microsoft",
     date: "Oct 2024",
     image: "/images/certifications/microsoft-certified-fundamentals-badge.svg",
     credentialUrl:
       "https://learn.microsoft.com/api/credentials/share/en-us/JohnNazareneDelaPisa-8958/D57215FE29EAA434?sharingId",
+    skills: ["Cloud Computing", "Azure Services", "IaaS/PaaS"],
+    level: "Fundamentals",
+    verified: true,
   },
   {
+    id: "cert-gcp",
     title: "Cloud Digital Leader",
     issuingOrg: "Google",
     date: "Jan 2025",
     image: "/images/certifications/googlecloudpractitioner.png",
     credentialUrl:
       "https://www.credly.com/badges/95d75765-13fa-4c81-802c-834c0217da8a/linked_in_profile",
+    skills: ["GCP", "Cloud Strategy", "Digital Transformation"],
+    level: "Fundamentals",
+    verified: true,
   },
   {
+    id: "cert-terraform",
     title: "Terraform Associate",
     issuingOrg: "HashiCorp",
     date: "Feb 2025",
     image: "/images/certifications/TerraformAssociate.png",
     credentialUrl:
       "https://www.credly.com/badges/bebd520f-8e29-4ec4-9f11-22a35b047349/linked_in_profile",
+    skills: ["Infrastructure as Code", "DevOps", "Automation"],
+    level: "Associate",
+    verified: true,
   },
   {
+    id: "cert-copilot",
     title: "GitHub Copilot",
     issuingOrg: "Microsoft",
     date: "Oct 2025",
     image: "/images/certifications/Github_Copilot_badge.png",
     credentialUrl: "",
+    skills: ["AI-Assisted Development", "Productivity", "Code Generation"],
+    level: "Fundamentals",
+    verified: false,
   },
 ];
 
@@ -346,27 +368,11 @@ export default function Work() {
                         </div>
                         <div className="relative z-10 flex items-center justify-start gap-4">
                           {/* Company Logo */}
-                          <a
-                            href={work.linkedinUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-[64px] h-[64px] rounded-[8px] overflow-hidden bg-white/10 flex items-center justify-center flex-shrink-0 hover:bg-white/20 transition-all duration-300 hover:scale-105"
-                          >
-                            <img
-                              src={work.logo}
-                              alt={`${work.companyName} logo`}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                // Fallback to placeholder icon if image fails to load
-                                e.currentTarget.style.display = "none";
-                                e.currentTarget.parentElement!.innerHTML = `
-                            <svg class="w-6 h-6 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                          `;
-                              }}
-                            />
-                          </a>
+                          <CompanyLogo
+                            logo={work.logo}
+                            companyName={work.companyName}
+                            linkedinUrl={work.linkedinUrl}
+                          />
                           {/* Company Name */}
                           <a
                             href={work.companyUrl}
@@ -454,132 +460,15 @@ export default function Work() {
               />
             </div>
 
-            {/* Certificates Grid */}
-            <div className="grid grid-cols-3 gap-[80px] w-full mb-16">
-              {certificates.map((cert, index) => {
-                const ref = useRef(null);
-                const isInView = useInView(ref, {
-                  once: true,
-                  margin: "-50px",
-                });
-
-                return (
-                  <div
-                    key={index}
-                    ref={ref}
-                    onClick={() =>
-                      cert.credentialUrl &&
-                      window.open(
-                        cert.credentialUrl,
-                        "_blank",
-                        "noopener,noreferrer"
-                      )
-                    }
-                    className="group relative w-full h-[495px] rounded-[21px] bg-[rgba(243,243,243,0.5)] backdrop-blur-[36.31px] border-[0.303px] border-[rgba(117,117,117,0.4)] cursor-pointer transition-all duration-300 ease-out hover:scale-[1.03] hover:shadow-[0px_20px_60px_0px_rgba(0,0,0,0.4),0px_8px_30px_0px_rgba(0,0,0,0.3)] hover:bg-[rgba(255,255,255,0.7)] hover:-translate-y-2"
-                  >
-                    {/* Date Badge - Issued Date */}
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={
-                        isInView
-                          ? { opacity: 1, scale: 1 }
-                          : { opacity: 0, scale: 0.8 }
-                      }
-                      transition={{
-                        duration: 0.5,
-                        ease: [0.21, 0.47, 0.32, 0.98],
-                        delay: index * 0.1 + 0.2,
-                      }}
-                      className="absolute top-[19px] right-[20px] bg-[#d9d9d9] rounded-full px-[12px] py-[9px] shadow-sm transition-all duration-300 group-hover:shadow-lg group-hover:scale-105 group-hover:bg-[#e8e8e8]"
-                    >
-                      <p
-                        className="text-[24px] font-normal leading-[12px] tracking-[-1px] text-black"
-                        style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-                      >
-                        {cert.date}
-                      </p>
-                    </motion.div>
-
-                    {/* Certificate Image */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={
-                        isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
-                      }
-                      transition={{
-                        duration: 0.6,
-                        ease: [0.21, 0.47, 0.32, 0.98],
-                        delay: index * 0.1 + 0.3,
-                      }}
-                      className="absolute left-[84px] top-[88px] w-[205px] h-[205px] rounded-[5px] overflow-hidden"
-                    >
-                      {/* Certificate Badge Image */}
-                      <img
-                        src={cert.image}
-                        alt={cert.title}
-                        className="w-full h-full object-contain"
-                        onError={(e) => {
-                          // Fallback to placeholder icon if image fails to load
-                          const target = e.currentTarget;
-                          target.style.display = "none";
-                          if (target.parentElement) {
-                            target.parentElement.innerHTML = `
-                                <div class="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-[#f5f5f5] via-[#e8e8e8] to-[#d9d9d9]">
-                                  <svg class="w-20 h-20 text-gray-400/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                </div>
-                              `;
-                          }
-                        }}
-                      />
-                    </motion.div>
-
-                    {/* Certificate Info */}
-                    <div className="absolute bottom-[80px] left-[42px] right-[42px]">
-                      <motion.p
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={
-                          isInView
-                            ? { opacity: 1, y: 0 }
-                            : { opacity: 0, y: 20 }
-                        }
-                        transition={{
-                          duration: 0.6,
-                          ease: [0.21, 0.47, 0.32, 0.98],
-                          delay: index * 0.1 + 0.4,
-                        }}
-                        className="text-[32px] font-semibold leading-[1.3] tracking-[-0.02em] text-black mb-4 transition-colors duration-300 group-hover:text-[#657a62]"
-                        style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-                      >
-                        {cert.title}
-                      </motion.p>
-                      <motion.p
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={
-                          isInView
-                            ? { opacity: 1, y: 0 }
-                            : { opacity: 0, y: 20 }
-                        }
-                        transition={{
-                          duration: 0.6,
-                          ease: [0.21, 0.47, 0.32, 0.98],
-                          delay: index * 0.1 + 0.5,
-                        }}
-                        className="text-[20px] font-normal leading-[1.3] tracking-normal text-black/80 transition-colors duration-300 group-hover:text-black"
-                        style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-                      >
-                        {cert.issuingOrg}
-                      </motion.p>
-                    </div>
-
-                    {/* Hover Effect - Shine Animation */}
-                    <div className="absolute inset-0 rounded-[21px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none overflow-hidden">
-                      <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-600 ease-in-out bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-20deg]" />
-                    </div>
-                  </div>
-                );
-              })}
+            {/* Draggable Certificates Grid - iOS style drag and drop */}
+            <div className="mb-16">
+              <DraggableCertificateGrid
+                certificates={certificates}
+                variant="desktop"
+                onReorder={(newCerts) => {
+                  console.log("Certificates reordered:", newCerts.map(c => c.title));
+                }}
+              />
             </div>
 
             {/* View All Button */}

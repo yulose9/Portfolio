@@ -73,3 +73,6 @@ Thumbs.db
 # Documentation drafts and issue tracking (keep final docs in docs/)
 docs/issues/
 scripts/check-*.ps1
+
+# Gemini files
+/.gemini/
