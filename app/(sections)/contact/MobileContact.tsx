@@ -1,6 +1,7 @@
 "use client";
 
 import { MagicTextReveal } from "@/app/components/animations";
+import { trackEvent } from "@/app/utils/analytics";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 
@@ -68,7 +69,13 @@ export default function MobileContact() {
               <div className="w-[27.261px] h-[27.261px] flex items-center justify-center">
                 <span className="text-[27px] leading-none">📧</span>
               </div>
-              <a href="#" onClick={(e) => e.preventDefault()}>
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  trackEvent("Clicked Contact Email (Mobile)");
+                }}
+              >
                 <MagicTextReveal
                   text="con***********.dev"
                   hiddenText="contact@nazarene.dev"
