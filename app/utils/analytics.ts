@@ -6,9 +6,9 @@ declare global {
 }
 
 export const trackEvent = (eventName: string) => {
-  if (typeof window !== 'undefined' && window.beacon) {
+  if (typeof window !== "undefined" && window.beacon) {
     window.beacon({
-      type: 'event',
+      type: "event",
       eventName: eventName,
     });
   } else {
