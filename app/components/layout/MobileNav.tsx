@@ -99,34 +99,14 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
     };
   }, []);
 
-  // Prevent body scroll when menu is open
+  // Prevent body scroll when menu is open - simplified for mobile reliability
   useEffect(() => {
     if (isOpen) {
-      // Use centralized scroll lock
+      // Use centralized scroll lock only - remove additional event listeners
+      // that can cause scroll to get stuck on mobile
       lockScroll(SCROLL_LOCK_ID, true);
 
-      // Prevent wheel scrolling
-      const preventWheel = (e: WheelEvent) => {
-        e.preventDefault();
-      };
-
-      // Prevent touch scrolling
-      const preventTouch = (e: TouchEvent) => {
-        // Only prevent if it's not within the menu itself
-        const target = e.target as HTMLElement;
-        if (!target.closest(".mobile-nav-content")) {
-          e.preventDefault();
-        }
-      };
-
-      window.addEventListener("wheel", preventWheel, { passive: false });
-      window.addEventListener("touchmove", preventTouch, { passive: false });
-
       return () => {
-        // Cleanup event listeners
-        window.removeEventListener("wheel", preventWheel);
-        window.removeEventListener("touchmove", preventTouch);
-
         // Use centralized scroll unlock
         unlockScroll(SCROLL_LOCK_ID, true);
       };
@@ -137,12 +117,22 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
     // Immediately update active section for instant feedback
     setActiveSection(sectionId);
 
+    // Explicitly unlock scroll before closing
+    // This ensures scroll is unlocked even if effect cleanup is delayed
+    unlockScroll(SCROLL_LOCK_ID, true);
+
     onClose();
 
     // Smooth scroll to section after menu closes
     setTimeout(() => {
       scrollToSection(sectionId);
     }, 300);
+  };
+
+  // Wrapper for close that explicitly unlocks scroll
+  const handleCloseMenu = () => {
+    unlockScroll(SCROLL_LOCK_ID, true);
+    onClose();
   };
 
   return (
@@ -156,7 +146,7 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[999]"
-            onClick={onClose}
+            onClick={handleCloseMenu}
           />
 
           {/* Slide-in Menu - Simplified animation */}
@@ -187,7 +177,7 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                   </div>
                 </div>
                 <button
-                  onClick={onClose}
+                  onClick={handleCloseMenu}
                   aria-label="Close navigation menu"
                   className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-lg transition-colors border border-white/10 active:scale-95"
                 >

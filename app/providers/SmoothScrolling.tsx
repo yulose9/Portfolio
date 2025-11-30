@@ -16,29 +16,57 @@ export default function SmoothScrolling({ children }: SmoothScrollingProps) {
       "(prefers-reduced-motion: reduce)"
     ).matches;
 
-    // Detect mobile devices
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    // Detect mobile devices - more comprehensive check
+    const isMobile =
+      /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+      window.innerWidth <= 768 ||
+      ("ontouchstart" in window && navigator.maxTouchPoints > 0);
 
-    // Initialize Lenis with optimized, platform-specific configuration
+    // MOBILE: Skip Lenis entirely and use native scroll
+    // This prevents scroll locking bugs on mobile devices
+    if (isMobile || prefersReducedMotion) {
+      // Create a mock lenis object for components that might reference it
+      window.lenis = {
+        start: () => {},
+        stop: () => {},
+        destroy: () => {},
+        raf: () => {},
+        scrollTo: (target: number | string | HTMLElement) => {
+          if (typeof target === "number") {
+            window.scrollTo({ top: target, behavior: "smooth" });
+          } else if (typeof target === "string") {
+            const element = document.querySelector(target);
+            element?.scrollIntoView({ behavior: "smooth" });
+          } else if (target instanceof HTMLElement) {
+            target.scrollIntoView({ behavior: "smooth" });
+          }
+        },
+      } as unknown as Lenis;
+
+      // Dispatch preload complete event immediately for mobile
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("preloadComplete"));
+      }, 5000);
+
+      return () => {
+        delete window.lenis;
+      };
+    }
+
+    // DESKTOP: Use Lenis for smooth scrolling
     const lenis = new Lenis({
-      // Optimized duration: Faster for better responsiveness
-      duration: prefersReducedMotion ? 0 : isMobile ? 0.6 : 0.8,
+      duration: 0.8,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: "vertical",
       gestureOrientation: "vertical",
-      // Disable smooth scrolling if user prefers reduced motion
-      smoothWheel: !prefersReducedMotion && !isMobile,
-      // Slightly increased for desktop, optimized for mobile
-      wheelMultiplier: isMobile ? 1 : 1.1,
-      // Reduced for less aggressive mobile scrolling
-      touchMultiplier: 1.5,
+      smoothWheel: true,
+      wheelMultiplier: 1.1,
+      touchMultiplier: 1,
       infinite: false,
       autoResize: true,
     });
 
     lenisRef.current = lenis;
-
-    // Expose lenis instance globally for smooth scrolling
     window.lenis = lenis;
 
     // Start in stopped state - PreLoadHero will start it when ready
@@ -51,7 +79,7 @@ export default function SmoothScrolling({ children }: SmoothScrollingProps) {
       }
     };
 
-    window.addEventListener('preloadComplete', handlePreloadComplete);
+    window.addEventListener("preloadComplete", handlePreloadComplete);
 
     // Request animation frame loop
     let animationFrameId: number;
@@ -64,7 +92,7 @@ export default function SmoothScrolling({ children }: SmoothScrollingProps) {
 
     // Cleanup
     return () => {
-      window.removeEventListener('preloadComplete', handlePreloadComplete);
+      window.removeEventListener("preloadComplete", handlePreloadComplete);
       cancelAnimationFrame(animationFrameId);
       lenis.destroy();
       delete window.lenis;

@@ -2,14 +2,18 @@
 
 /**
  * Centralized scroll lock manager
- * 
+ *
  * This solves the issue of multiple components trying to lock/unlock scroll
  * independently, which can leave scroll stuck in a locked state.
- * 
+ *
  * Uses a ref-counting approach:
  * - Multiple components can request a lock
  * - Scroll is only restored when ALL locks are released
  * - Provides emergency unlock for stuck states
+ *
+ * MOBILE OPTIMIZATION:
+ * - On mobile, we use a lighter-weight scroll lock that doesn't break native scrolling
+ * - Auto-unlock mechanism prevents scroll from getting stuck
  */
 
 interface ScrollLockState {
@@ -23,6 +27,7 @@ interface ScrollLockState {
     width: string;
     touchAction: string;
   } | null;
+  autoUnlockTimer: NodeJS.Timeout | null;
 }
 
 const state: ScrollLockState = {
@@ -30,7 +35,19 @@ const state: ScrollLockState = {
   lockedBy: new Set(),
   scrollY: 0,
   originalStyles: null,
+  autoUnlockTimer: null,
 };
+
+// Detect mobile - used for lighter scroll lock approach
+const isMobile =
+  typeof window !== "undefined" &&
+  (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+    window.innerWidth <= 768 ||
+    ("ontouchstart" in window && navigator.maxTouchPoints > 0));
+
+// Auto-unlock after this duration to prevent stuck scroll (mobile only)
+// Reduced to 5 seconds for faster recovery on mobile
+const AUTO_UNLOCK_MS = 5000; // 5 seconds
 
 // Debug mode - set to true to log all lock/unlock operations
 const DEBUG = process.env.NODE_ENV === "development";
@@ -53,12 +70,21 @@ export function lockScroll(lockId: string, stopLenis = true): void {
     return;
   }
 
+  // Clear any existing auto-unlock timer
+  if (state.autoUnlockTimer) {
+    clearTimeout(state.autoUnlockTimer);
+    state.autoUnlockTimer = null;
+  }
+
   const isFirstLock = state.lockCount === 0;
 
   state.lockCount++;
   state.lockedBy.add(lockId);
-  
-  log(`Lock acquired by ${lockId}, total locks: ${state.lockCount}, locked by:`, [...state.lockedBy]);
+
+  log(
+    `Lock acquired by ${lockId}, total locks: ${state.lockCount}, locked by:`,
+    [...state.lockedBy]
+  );
 
   if (isFirstLock) {
     // Store scroll position and original styles only on first lock
@@ -71,17 +97,34 @@ export function lockScroll(lockId: string, stopLenis = true): void {
       touchAction: document.body.style.touchAction,
     };
 
-    // Apply scroll lock
-    document.body.style.overflow = "hidden";
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${state.scrollY}px`;
-    document.body.style.width = "100%";
-    document.body.style.touchAction = "none";
+    // On mobile, use a VERY light scroll lock approach
+    // We avoid position:fixed and touch-action:none as they can break native scrolling
+    if (isMobile) {
+      // Only set overflow hidden on body, nothing else
+      // The CSS !important rules in globals.css will override this when needed
+      document.body.style.overflow = "hidden";
+      // DO NOT set touch-action: none on mobile - it breaks scrolling!
+    } else {
+      // Desktop: full scroll lock with position fixed
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${state.scrollY}px`;
+      document.body.style.width = "100%";
+      document.body.style.touchAction = "none";
+    }
 
-    // Stop Lenis if requested and available
+    // Stop Lenis if requested and available (no-op on mobile with mock)
     if (stopLenis && window.lenis) {
       window.lenis.stop();
       log("Lenis stopped");
+    }
+
+    // Set auto-unlock timer on mobile as a safety net (shorter timeout)
+    if (isMobile) {
+      state.autoUnlockTimer = setTimeout(() => {
+        log("Auto-unlock triggered after timeout");
+        forceUnlockScroll();
+      }, AUTO_UNLOCK_MS);
     }
   }
 }
@@ -98,15 +141,24 @@ export function unlockScroll(lockId: string, startLenis = true): void {
     return;
   }
 
+  // Clear auto-unlock timer
+  if (state.autoUnlockTimer) {
+    clearTimeout(state.autoUnlockTimer);
+    state.autoUnlockTimer = null;
+  }
+
   state.lockCount--;
   state.lockedBy.delete(lockId);
-  
-  log(`Lock released by ${lockId}, remaining locks: ${state.lockCount}, locked by:`, [...state.lockedBy]);
+
+  log(
+    `Lock released by ${lockId}, remaining locks: ${state.lockCount}, locked by:`,
+    [...state.lockedBy]
+  );
 
   // Only restore scroll when all locks are released
   if (state.lockCount === 0) {
     const scrollY = state.scrollY;
-    
+
     // Restore original styles
     if (state.originalStyles) {
       document.body.style.overflow = state.originalStyles.overflow;
@@ -123,19 +175,21 @@ export function unlockScroll(lockId: string, startLenis = true): void {
       document.body.style.touchAction = "";
     }
 
-    // Restore scroll position
-    window.scrollTo(0, scrollY);
-    
+    // Only restore scroll position on desktop (mobile doesn't use fixed positioning)
+    if (!isMobile) {
+      window.scrollTo(0, scrollY);
+    }
+
     // Reset state
     state.originalStyles = null;
     state.scrollY = 0;
 
-    // Start Lenis if requested and available
+    // Start Lenis if requested and available (no-op on mobile with mock)
     if (startLenis && window.lenis) {
       window.lenis.start();
       log("Lenis started");
     }
-    
+
     log("Scroll fully unlocked and restored");
   }
 }
@@ -146,11 +200,17 @@ export function unlockScroll(lockId: string, startLenis = true): void {
  */
 export function forceUnlockScroll(): void {
   log("FORCE UNLOCK - clearing all locks:", [...state.lockedBy]);
-  
+
+  // Clear auto-unlock timer
+  if (state.autoUnlockTimer) {
+    clearTimeout(state.autoUnlockTimer);
+    state.autoUnlockTimer = null;
+  }
+
   // Clear all state
   state.lockCount = 0;
   state.lockedBy.clear();
-  
+
   // Force clear all body styles that could block scroll
   document.body.style.overflow = "";
   document.body.style.position = "";
@@ -158,20 +218,20 @@ export function forceUnlockScroll(): void {
   document.body.style.width = "";
   document.body.style.touchAction = "";
   document.body.style.pointerEvents = "";
-  
+
   // Also clear on html element
   document.documentElement.style.overflow = "";
   document.documentElement.style.touchAction = "";
-  
+
   // Start Lenis if available
   if (window.lenis) {
     window.lenis.start();
   }
-  
+
   // Reset state
   state.originalStyles = null;
   state.scrollY = 0;
-  
+
   log("Force unlock complete");
 }
 
@@ -193,19 +253,19 @@ export function getScrollLockState(): Readonly<ScrollLockState> {
 if (typeof window !== "undefined") {
   let escapeCount = 0;
   let escapeTimer: NodeJS.Timeout | null = null;
-  
+
   window.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       escapeCount++;
-      
+
       if (escapeTimer) clearTimeout(escapeTimer);
-      
+
       if (escapeCount >= 3) {
         log("Emergency unlock triggered by triple Escape");
         forceUnlockScroll();
         escapeCount = 0;
       }
-      
+
       escapeTimer = setTimeout(() => {
         escapeCount = 0;
       }, 1000);
@@ -215,23 +275,43 @@ if (typeof window !== "undefined") {
   // Triple tap detection for mobile
   let tapCount = 0;
   let tapTimer: NodeJS.Timeout | null = null;
-  
-  window.addEventListener("touchstart", (e) => {
-    // Only trigger if using 3 fingers
-    if (e.touches.length === 3) {
-      tapCount++;
-      
-      if (tapTimer) clearTimeout(tapTimer);
-      
-      if (tapCount >= 1) { // Just one 3-finger tap
-        log("Emergency unlock triggered by 3-finger tap");
-        forceUnlockScroll();
-        tapCount = 0;
+
+  window.addEventListener(
+    "touchstart",
+    (e) => {
+      // Only trigger if using 3 fingers
+      if (e.touches.length === 3) {
+        tapCount++;
+
+        if (tapTimer) clearTimeout(tapTimer);
+
+        if (tapCount >= 1) {
+          // Just one 3-finger tap
+          log("Emergency unlock triggered by 3-finger tap");
+          forceUnlockScroll();
+          tapCount = 0;
+        }
+
+        tapTimer = setTimeout(() => {
+          tapCount = 0;
+        }, 1000);
       }
-      
-      tapTimer = setTimeout(() => {
-        tapCount = 0;
-      }, 1000);
-    }
-  }, { passive: true });
+    },
+    { passive: true }
+  );
+
+  // MOBILE SAFETY: Periodic check to detect stuck scroll state
+  // If body has overflow:hidden but no locks are registered, force unlock
+  if (isMobile) {
+    setInterval(() => {
+      const bodyOverflow = document.body.style.overflow;
+      const hasLocks = state.lockCount > 0;
+
+      // Detect inconsistent state: body is locked but no components claim the lock
+      if (bodyOverflow === "hidden" && !hasLocks) {
+        log("Detected orphan scroll lock - forcing unlock");
+        forceUnlockScroll();
+      }
+    }, 2000); // Check every 2 seconds
+  }
 }

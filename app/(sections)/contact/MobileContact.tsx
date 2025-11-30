@@ -1,5 +1,6 @@
 "use client";
 
+import { MagicTextReveal } from "@/app/components/animations";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 
@@ -67,14 +68,17 @@ export default function MobileContact() {
               <div className="w-[27.261px] h-[27.261px] flex items-center justify-center">
                 <span className="text-[27px] leading-none">📧</span>
               </div>
-              <a
-                href="mailto:jannazarene09@gmail.com"
-                className="text-base font-medium leading-[1.588] tracking-[-0.52px] text-black hover:text-[#42ad77] transition-colors"
-                style={{
-                  fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
-                }}
-              >
-                jannazarene09@gmail.com
+              <a href="#" onClick={(e) => e.preventDefault()}>
+                <MagicTextReveal
+                  text="jan***********.com"
+                  hiddenText="jannazarene09@gmail.com"
+                  color="#000000"
+                  fontSize={16}
+                  fontWeight={500}
+                  spread={12}
+                  speed={0.5}
+                  density={4}
+                />
               </a>
             </motion.div>
 
@@ -89,14 +93,17 @@ export default function MobileContact() {
               <div className="w-[27.261px] h-[27.261px] flex items-center justify-center">
                 <span className="text-[27px] leading-none">📞</span>
               </div>
-              <a
-                href="tel:+639454178422"
-                className="text-base font-medium leading-[1.588] tracking-[-0.52px] text-black hover:text-[#42ad77] transition-colors"
-                style={{
-                  fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
-                }}
-              >
-                +639 454 178 422
+              <a href="#" onClick={(e) => e.preventDefault()}>
+                <MagicTextReveal
+                  text="+639 *** *** **22"
+                  hiddenText="+639 454 178 422"
+                  color="#000000"
+                  fontSize={16}
+                  fontWeight={500}
+                  spread={12}
+                  speed={0.5}
+                  density={4}
+                />
               </a>
             </motion.div>
           </div>

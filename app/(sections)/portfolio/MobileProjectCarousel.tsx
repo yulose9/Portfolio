@@ -40,7 +40,7 @@ export const CarouselContext = createContext<{
   onCardClose: (index: number) => void;
   currentIndex: number;
 }>({
-  onCardClose: () => { },
+  onCardClose: () => {},
   currentIndex: 0,
 });
 
@@ -57,6 +57,9 @@ export const Card = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const { onCardClose, currentIndex } = useContext(CarouselContext);
 
+  // Generate unique lock ID for this card
+  const lockId = `mobile-project-carousel-${index}`;
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -64,19 +67,16 @@ export const Card = ({
       }
     }
 
-    // Generate unique lock ID for this card
-    const lockId = `mobile-project-carousel-${index}`;
-
     if (open) {
       lockScroll(lockId, true);
       window.addEventListener("keydown", onKeyDown);
-    }
 
-    return () => {
-      unlockScroll(lockId, true);
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open, index]);
+      return () => {
+        unlockScroll(lockId, true);
+        window.removeEventListener("keydown", onKeyDown);
+      };
+    }
+  }, [open, lockId]);
 
   useOutsideClick(containerRef, () => handleClose());
 
@@ -85,6 +85,9 @@ export const Card = ({
   };
 
   const handleClose = () => {
+    // Explicitly unlock scroll before state change
+    // This ensures scroll is unlocked even if effect cleanup is delayed
+    unlockScroll(lockId, true);
     setOpen(false);
     onCardClose(index);
   };
@@ -134,8 +137,9 @@ export const Card = ({
       <motion.button
         layoutId={layout ? `card-${card.title}` : undefined}
         onClick={handleOpen}
-        className={`relative z-10 flex h-80 w-56 flex-col items-start justify-start overflow-hidden rounded-3xl bg-gray-100 md:h-[40rem] md:w-96 dark:bg-neutral-900 ${card.isPlaceholder ? "cursor-default" : ""
-          }`}
+        className={`relative z-10 flex h-80 w-56 flex-col items-start justify-start overflow-hidden rounded-3xl bg-gray-100 md:h-[40rem] md:w-96 dark:bg-neutral-900 ${
+          card.isPlaceholder ? "cursor-default" : ""
+        }`}
         disabled={card.isPlaceholder}
       >
         <div className="pointer-events-none absolute inset-x-0 top-0 z-30 h-full bg-gradient-to-b from-black/50 via-transparent to-transparent" />

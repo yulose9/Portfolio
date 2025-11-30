@@ -1,9 +1,9 @@
 "use client";
 
+import { lockScroll, unlockScroll } from "@/app/utils/scroll-lock";
 import { motion, useInView } from "framer-motion";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { lockScroll, unlockScroll } from "@/app/utils/scroll-lock";
 
 // Unique lock ID for this component
 const SCROLL_LOCK_ID = "mobile-certificates-drag";
@@ -83,14 +83,14 @@ const initialCertificates: Certificate[] = [
 /**
  * iOS-style Drag and Drop implementation
  * Following Apple HIG: https://developer.apple.com/design/human-interface-guidelines/drag-and-drop
- * 
+ *
  * Key behaviors:
  * - Long press (500ms) to lift item
  * - Visual lift with shadow and scale
  * - Smooth spring animations for reordering
  * - Haptic feedback where supported
  * - No visible drag handles
- * 
+ *
  * Bug fixes applied:
  * - Fixed stale closure issues using refs for critical state
  * - Added movement threshold to cancel long press
@@ -112,12 +112,12 @@ export default function MobileCertificates() {
   const dragStateRef = useRef<DragState>(dragState);
   const certificatesRef = useRef<Certificate[]>(certificates);
   const lastMoveTimeRef = useRef<number>(0);
-  
+
   // Keep refs in sync with state
   useEffect(() => {
     dragStateRef.current = dragState;
   }, [dragState]);
-  
+
   useEffect(() => {
     certificatesRef.current = certificates;
   }, [certificates]);
@@ -130,6 +130,18 @@ export default function MobileCertificates() {
     }
     setIsLongPressPending(false);
   }, []);
+
+  // Safety: Clear timer on scroll to prevent accidental locks during scrolling
+  useEffect(() => {
+    const handleScroll = () => {
+      clearLongPressTimer();
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [clearLongPressTimer]);
 
   // Haptic feedback
   const triggerHaptic = useCallback(() => {
@@ -150,86 +162,95 @@ export default function MobileCertificates() {
   }, []);
 
   // Find which card is at position - improved algorithm
-  const findCardAtPosition = useCallback((x: number, y: number): number | null => {
-    const currentCerts = certificatesRef.current;
-    let closestIndex: number | null = null;
-    let closestDistance = Infinity;
-    
-    for (let i = 0; i < currentCerts.length; i++) {
-      const cert = currentCerts[i];
-      const element = itemRefs.current.get(cert.id);
-      if (element) {
-        const rect = element.getBoundingClientRect();
-        
-        // First check if point is within element bounds
-        if (
-          x >= rect.left &&
-          x <= rect.right &&
-          y >= rect.top &&
-          y <= rect.bottom
-        ) {
-          return i;
-        }
-        
-        // Calculate distance to center for fallback
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-        
-        // Only consider if within reasonable range
-        const maxDistance = Math.max(rect.width, rect.height) * 0.8;
-        if (distance < closestDistance && distance < maxDistance) {
-          closestDistance = distance;
-          closestIndex = i;
+  const findCardAtPosition = useCallback(
+    (x: number, y: number): number | null => {
+      const currentCerts = certificatesRef.current;
+      let closestIndex: number | null = null;
+      let closestDistance = Infinity;
+
+      for (let i = 0; i < currentCerts.length; i++) {
+        const cert = currentCerts[i];
+        const element = itemRefs.current.get(cert.id);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+
+          // First check if point is within element bounds
+          if (
+            x >= rect.left &&
+            x <= rect.right &&
+            y >= rect.top &&
+            y <= rect.bottom
+          ) {
+            return i;
+          }
+
+          // Calculate distance to center for fallback
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+
+          // Only consider if within reasonable range
+          const maxDistance = Math.max(rect.width, rect.height) * 0.8;
+          if (distance < closestDistance && distance < maxDistance) {
+            closestDistance = distance;
+            closestIndex = i;
+          }
         }
       }
-    }
-    return closestIndex;
-  }, []);
+      return closestIndex;
+    },
+    []
+  );
 
   // Start drag
-  const startDrag = useCallback((id: string, index: number, clientX: number, clientY: number) => {
-    const element = itemRefs.current.get(id);
-    if (!element) return;
+  const startDrag = useCallback(
+    (id: string, index: number, clientX: number, clientY: number) => {
+      const element = itemRefs.current.get(id);
+      if (!element) return;
 
-    const rect = element.getBoundingClientRect();
-    isDraggingRef.current = true;
-    clearLongPressTimer();
-    triggerHaptic();
+      const rect = element.getBoundingClientRect();
+      isDraggingRef.current = true;
+      clearLongPressTimer();
+      triggerHaptic();
 
-    // Use centralized scroll lock
-    lockScroll(SCROLL_LOCK_ID, true);
+      // Use centralized scroll lock
+      lockScroll(SCROLL_LOCK_ID, true);
 
-    const newState: DragState = {
-      isDragging: true,
-      draggedId: id,
-      draggedIndex: index,
-      currentPosition: { x: clientX, y: clientY },
-      offset: { x: clientX - rect.left, y: clientY - rect.top },
-      targetIndex: index,
-    };
-    
-    dragStateRef.current = newState;
-    setDragState(newState);
-  }, [triggerHaptic, clearLongPressTimer]);
+      const newState: DragState = {
+        isDragging: true,
+        draggedId: id,
+        draggedIndex: index,
+        currentPosition: { x: clientX, y: clientY },
+        offset: { x: clientX - rect.left, y: clientY - rect.top },
+        targetIndex: index,
+      };
+
+      dragStateRef.current = newState;
+      setDragState(newState);
+    },
+    [triggerHaptic, clearLongPressTimer]
+  );
 
   // Handle drag move - with throttling
-  const handleDragMove = useCallback((clientX: number, clientY: number) => {
-    if (!isDraggingRef.current) return;
+  const handleDragMove = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!isDraggingRef.current) return;
 
-    // Throttle updates for performance
-    const now = Date.now();
-    if (now - lastMoveTimeRef.current < THROTTLE_MS) return;
-    lastMoveTimeRef.current = now;
+      // Throttle updates for performance
+      const now = Date.now();
+      if (now - lastMoveTimeRef.current < THROTTLE_MS) return;
+      lastMoveTimeRef.current = now;
 
-    const targetIndex = findCardAtPosition(clientX, clientY);
+      const targetIndex = findCardAtPosition(clientX, clientY);
 
-    setDragState(prev => ({
-      ...prev,
-      currentPosition: { x: clientX, y: clientY },
-      targetIndex: targetIndex !== null ? targetIndex : prev.targetIndex,
-    }));
-  }, [findCardAtPosition]);
+      setDragState((prev) => ({
+        ...prev,
+        currentPosition: { x: clientX, y: clientY },
+        targetIndex: targetIndex !== null ? targetIndex : prev.targetIndex,
+      }));
+    },
+    [findCardAtPosition]
+  );
 
   // End drag - uses refs to avoid stale closures
   const endDrag = useCallback(() => {
@@ -238,7 +259,11 @@ export default function MobileCertificates() {
     // Use refs for current state to avoid stale closures
     const { draggedIndex, targetIndex } = dragStateRef.current;
 
-    if (draggedIndex !== null && targetIndex !== null && draggedIndex !== targetIndex) {
+    if (
+      draggedIndex !== null &&
+      targetIndex !== null &&
+      draggedIndex !== targetIndex
+    ) {
       // Reorder using ref to get current certificates
       const currentCerts = certificatesRef.current;
       const newCerts = [...currentCerts];
@@ -260,12 +285,12 @@ export default function MobileCertificates() {
   // Cancel drag
   const cancelDrag = useCallback(() => {
     clearLongPressTimer();
-    
+
     if (isDraggingRef.current) {
       // Use centralized scroll unlock
       unlockScroll(SCROLL_LOCK_ID, true);
       isDraggingRef.current = false;
-      
+
       const resetState = initialDragState;
       dragStateRef.current = resetState;
       setDragState(resetState);
@@ -273,58 +298,67 @@ export default function MobileCertificates() {
   }, [clearLongPressTimer]);
 
   // Touch handlers
-  const handleTouchStart = useCallback((id: string, index: number, e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    startPosRef.current = { x: touch.clientX, y: touch.clientY };
+  const handleTouchStart = useCallback(
+    (id: string, index: number, e: React.TouchEvent) => {
+      const touch = e.touches[0];
+      startPosRef.current = { x: touch.clientX, y: touch.clientY };
 
-    // Long press timer
-    clearLongPressTimer();
-    setIsLongPressPending(true);
-    longPressTimerRef.current = setTimeout(() => {
-      setIsLongPressPending(false);
-      startDrag(id, index, touch.clientX, touch.clientY);
-    }, LONG_PRESS_DELAY);
-  }, [startDrag, clearLongPressTimer]);
+      // Long press timer
+      clearLongPressTimer();
+      setIsLongPressPending(true);
+      longPressTimerRef.current = setTimeout(() => {
+        setIsLongPressPending(false);
+        startDrag(id, index, touch.clientX, touch.clientY);
+      }, LONG_PRESS_DELAY);
+    },
+    [startDrag, clearLongPressTimer]
+  );
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    const touch = e.touches[0];
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      const touch = e.touches[0];
 
-    // Cancel long press if finger moved too much before drag started
-    if (longPressTimerRef.current && !isDraggingRef.current) {
-      if (hasExceededThreshold(touch.clientX, touch.clientY)) {
-        clearLongPressTimer();
+      // Cancel long press if finger moved too much before drag started
+      if (longPressTimerRef.current && !isDraggingRef.current) {
+        if (hasExceededThreshold(touch.clientX, touch.clientY)) {
+          clearLongPressTimer();
+        }
       }
-    }
 
-    if (isDraggingRef.current) {
-      e.preventDefault();
-      e.stopPropagation();
-      handleDragMove(touch.clientX, touch.clientY);
-    }
-  }, [handleDragMove, clearLongPressTimer, hasExceededThreshold]);
+      if (isDraggingRef.current) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleDragMove(touch.clientX, touch.clientY);
+      }
+    },
+    [handleDragMove, clearLongPressTimer, hasExceededThreshold]
+  );
 
   const handleTouchEnd = useCallback(() => {
     clearLongPressTimer();
     endDrag();
   }, [endDrag, clearLongPressTimer]);
-  
+
   // Handle touch cancel (iOS Safari specific - fires when system takes over)
   const handleTouchCancel = useCallback(() => {
     cancelDrag();
   }, [cancelDrag]);
 
   // Mouse handlers (for desktop testing)
-  const handleMouseDown = useCallback((id: string, index: number, e: React.MouseEvent) => {
-    if (e.button !== 0) return;
-    startPosRef.current = { x: e.clientX, y: e.clientY };
+  const handleMouseDown = useCallback(
+    (id: string, index: number, e: React.MouseEvent) => {
+      if (e.button !== 0) return;
+      startPosRef.current = { x: e.clientX, y: e.clientY };
 
-    clearLongPressTimer();
-    setIsLongPressPending(true);
-    longPressTimerRef.current = setTimeout(() => {
-      setIsLongPressPending(false);
-      startDrag(id, index, e.clientX, e.clientY);
-    }, LONG_PRESS_DELAY);
-  }, [startDrag, clearLongPressTimer]);
+      clearLongPressTimer();
+      setIsLongPressPending(true);
+      longPressTimerRef.current = setTimeout(() => {
+        setIsLongPressPending(false);
+        startDrag(id, index, e.clientX, e.clientY);
+      }, LONG_PRESS_DELAY);
+    },
+    [startDrag, clearLongPressTimer]
+  );
 
   // Global event listeners
   useEffect(() => {
@@ -360,7 +394,7 @@ export default function MobileCertificates() {
       clearLongPressTimer();
       endDrag();
     };
-    
+
     // iOS Safari specific - fires when system gesture takes over
     const handleGlobalTouchCancel = () => {
       cancelDrag();
@@ -369,14 +403,14 @@ export default function MobileCertificates() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") cancelDrag();
     };
-    
+
     // Handle visibility change (tab switch, app switch on mobile)
     const handleVisibilityChange = () => {
       if (document.hidden && isDraggingRef.current) {
         cancelDrag();
       }
     };
-    
+
     // Handle window blur (another app takes focus)
     const handleWindowBlur = () => {
       if (isDraggingRef.current) {
@@ -386,7 +420,9 @@ export default function MobileCertificates() {
 
     window.addEventListener("mousemove", handleGlobalMouseMove);
     window.addEventListener("mouseup", handleGlobalMouseUp);
-    window.addEventListener("touchmove", handleGlobalTouchMove, { passive: false });
+    window.addEventListener("touchmove", handleGlobalTouchMove, {
+      passive: false,
+    });
     window.addEventListener("touchend", handleGlobalTouchEnd);
     window.addEventListener("touchcancel", handleGlobalTouchCancel);
     window.addEventListener("keydown", handleKeyDown);
@@ -402,17 +438,23 @@ export default function MobileCertificates() {
       window.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("blur", handleWindowBlur);
-      
+
       // Cleanup: ensure scroll is unlocked when component unmounts
       if (isDraggingRef.current) {
         unlockScroll(SCROLL_LOCK_ID, true);
         isDraggingRef.current = false;
       }
-      
+
       // Clear any pending timers
       clearLongPressTimer();
     };
-  }, [handleDragMove, endDrag, cancelDrag, clearLongPressTimer, hasExceededThreshold]);
+  }, [
+    handleDragMove,
+    endDrag,
+    cancelDrag,
+    clearLongPressTimer,
+    hasExceededThreshold,
+  ]);
 
   // Handle tap (open credential URL)
   const handleTap = useCallback((cert: Certificate) => {
@@ -433,7 +475,9 @@ export default function MobileCertificates() {
       >
         <h2
           className="text-[32px] font-medium leading-[1.1] tracking-[-1.2px] text-white"
-          style={{ fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif" }}
+          style={{
+            fontFamily: "Inter, SF Pro Display, SF Pro Text, sans-serif",
+          }}
         >
           Certificates & Licenses
         </h2>
@@ -443,7 +487,11 @@ export default function MobileCertificates() {
       <motion.p
         initial={{ opacity: 0, y: 15 }}
         whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.21, 0.47, 0.32, 0.98], delay: 0.1 }}
+        transition={{
+          duration: 0.6,
+          ease: [0.21, 0.47, 0.32, 0.98],
+          delay: 0.1,
+        }}
         viewport={{ once: true, margin: "-50px" }}
         className="text-[14px] font-normal leading-[1.5] tracking-[-0.4px] text-white/80 text-center mb-8 px-2"
         style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
@@ -455,8 +503,9 @@ export default function MobileCertificates() {
       <div ref={containerRef} className="grid grid-cols-2 gap-3 mb-8 relative">
         {certificates.map((cert, index) => {
           const isDragged = dragState.draggedId === cert.id;
-          const isTarget = dragState.isDragging && 
-            dragState.targetIndex === index && 
+          const isTarget =
+            dragState.isDragging &&
+            dragState.targetIndex === index &&
             dragState.draggedIndex !== index;
 
           return (
@@ -485,7 +534,7 @@ export default function MobileCertificates() {
         {/* Dragged card overlay */}
         {dragState.isDragging && dragState.draggedId && (
           <DragOverlay
-            cert={certificates.find(c => c.id === dragState.draggedId)!}
+            cert={certificates.find((c) => c.id === dragState.draggedId)!}
             position={dragState.currentPosition}
             offset={dragState.offset}
           />
@@ -507,7 +556,11 @@ export default function MobileCertificates() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.21, 0.47, 0.32, 0.98], delay: 0.4 }}
+        transition={{
+          duration: 0.6,
+          ease: [0.21, 0.47, 0.32, 0.98],
+          delay: 0.4,
+        }}
         viewport={{ once: true, margin: "-50px" }}
         className="flex justify-center"
       >
@@ -578,16 +631,23 @@ function CertificateCard({
   const handleTouchEndInternal = (e: React.TouchEvent) => {
     const tapDuration = Date.now() - tapStartRef.current;
     const changedTouch = e.changedTouches[0];
-    const dx = changedTouch ? Math.abs(changedTouch.clientX - tapPosRef.current.x) : 0;
-    const dy = changedTouch ? Math.abs(changedTouch.clientY - tapPosRef.current.y) : 0;
+    const dx = changedTouch
+      ? Math.abs(changedTouch.clientX - tapPosRef.current.x)
+      : 0;
+    const dy = changedTouch
+      ? Math.abs(changedTouch.clientY - tapPosRef.current.y)
+      : 0;
     const movedTooMuch = dx > MOVEMENT_THRESHOLD || dy > MOVEMENT_THRESHOLD;
-    
+
     // A tap is when:
     // 1. Long press timer is still pending (hasn't fired yet) OR duration is short
     // 2. Not currently in drag mode
     // 3. Finger didn't move too much
-    const wasTap = (isLongPressPending || tapDuration < TAP_THRESHOLD) && !isDragging && !movedTooMuch;
-    
+    const wasTap =
+      (isLongPressPending || tapDuration < TAP_THRESHOLD) &&
+      !isDragging &&
+      !movedTooMuch;
+
     if (wasTap) {
       onTap();
     }
@@ -616,7 +676,11 @@ function CertificateCard({
         layout: { type: "spring", stiffness: 400, damping: 30 },
         opacity: { duration: 0.2 },
         scale: { type: "spring", stiffness: 400, damping: 25 },
-        y: { duration: 0.5, ease: [0.21, 0.47, 0.32, 0.98], delay: index * 0.1 },
+        y: {
+          duration: 0.5,
+          ease: [0.21, 0.47, 0.32, 0.98],
+          delay: index * 0.1,
+        },
       }}
       className={`
         relative w-full rounded-[16px] 
@@ -713,8 +777,8 @@ function DragOverlay({ cert, position, offset }: DragOverlayProps) {
   return (
     <motion.div
       initial={{ scale: 1, rotate: 0 }}
-      animate={{ 
-        scale: 1.08, 
+      animate={{
+        scale: 1.08,
         rotate: 3,
         boxShadow: "0 25px 50px -12px rgba(0,0,0,0.4)",
       }}

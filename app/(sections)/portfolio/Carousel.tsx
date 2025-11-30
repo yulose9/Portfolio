@@ -214,13 +214,27 @@ export default function Carousel({ projects }: CarouselProps) {
                   <button
                     key={index}
                     onClick={() => goToSlide(index)}
-                    className={`rounded-full transition-all duration-300 ${
+                    className={`relative rounded-full overflow-hidden transition-all duration-300 ${
                       index === actualIndex
-                        ? "w-[60px] h-2 bg-[#ceced0]"
+                        ? "w-[60px] h-2 bg-white/20"
                         : "w-2 h-2 bg-white/60 hover:bg-white/90"
                     }`}
                     aria-label={`Go to slide ${index + 1}`}
-                  />
+                  >
+                    {index === actualIndex && (
+                      <motion.div
+                        className="absolute top-0 left-0 h-full bg-[#ceced0]"
+                        initial={{ width: "0%" }}
+                        animate={{
+                          width: isPlaying && !isTransitioning ? "100%" : "0%",
+                        }}
+                        transition={{
+                          duration: 5,
+                          ease: "linear",
+                        }}
+                      />
+                    )}
+                  </button>
                 ))}
               </div>
 
@@ -246,7 +260,7 @@ export default function Carousel({ projects }: CarouselProps) {
             href={projects[actualIndex].blogUrl || "#"}
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-white rounded-full w-16 h-16 flex items-center justify-center hover:scale-110 transition-transform"
+            className="bg-[#374136]/50 backdrop-blur-lg border border-white/10 shadow-lg rounded-full w-16 h-16 flex items-center justify-center hover:bg-[#374136]/70 hover:scale-110 transition-all duration-300"
             aria-label="View blog post"
           >
             <Image
@@ -254,22 +268,22 @@ export default function Carousel({ projects }: CarouselProps) {
               alt="Blog"
               width={48}
               height={48}
-              className="w-12 h-12"
+              className="w-12 h-12 brightness-0 invert"
             />
           </a>
           <a
             href={projects[actualIndex].githubUrl || "#"}
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-white rounded-full w-16 h-16 flex items-center justify-center hover:scale-110 transition-transform"
+            className="bg-[#374136]/50 backdrop-blur-lg border border-white/10 shadow-lg rounded-full w-16 h-16 flex items-center justify-center hover:bg-[#374136]/70 hover:scale-110 transition-all duration-300"
             aria-label="View on GitHub"
           >
             <Image
-              src="/images/view-github.svg"
+              src="/images/view-github-transparent.svg"
               alt="GitHub"
               width={48}
               height={48}
-              className="w-12 h-12"
+              className="w-12 h-12 brightness-0 invert"
             />
           </a>
         </div>

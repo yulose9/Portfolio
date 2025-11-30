@@ -3,12 +3,13 @@ import { Contact } from "./(sections)/contact";
 import { Hero, PreLoadHero } from "./(sections)/hero";
 import { Portfolio } from "./(sections)/portfolio";
 import { Work } from "./(sections)/work";
-import { Footer } from "./components/layout";
+import { Footer, StickyNav } from "./components/layout";
 
 export default function Page() {
   return (
     <main id="main-content" className="relative overflow-x-hidden w-full">
       <PreLoadHero />
+      <StickyNav />
       <Hero />
       <Portfolio />
       <Work />

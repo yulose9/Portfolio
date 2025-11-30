@@ -1,7 +1,7 @@
 "use client";
 
 import { Highlighter } from "@/app/components/icons";
-import { MobileNav, StickyNav } from "@/app/components/layout";
+import { MobileNav } from "@/app/components/layout";
 import { AnimatePresence } from "framer-motion";
 import { Mail, Menu } from "lucide-react";
 import { Inter } from "next/font/google";
@@ -123,7 +123,17 @@ export default function Hero() {
   };
 
   const handleScrollToContact = () => {
-    const contactSection = document.getElementById("contact");
+    // Find the visible contact section (there are separate mobile and desktop versions)
+    const contactElements = document.querySelectorAll("#contact");
+    const contactSection = Array.from(contactElements).find((el) => {
+      const style = window.getComputedStyle(el);
+      return (
+        style.display !== "none" &&
+        style.visibility !== "hidden" &&
+        (el as HTMLElement).offsetHeight > 0
+      );
+    }) as HTMLElement | null;
+
     if (contactSection && window.lenis) {
       window.lenis.scrollTo(contactSection, {
         offset: 0,
@@ -141,8 +151,12 @@ export default function Hero() {
   return (
     <div
       id="home"
-      className={`relative w-screen h-screen bg-brand-primary text-white ${inter.className} overflow-hidden flex flex-col`}
-      style={{ touchAction: "pan-x pan-y" }}
+      className={`relative w-screen bg-brand-primary text-white ${inter.className} overflow-hidden flex flex-col`}
+      style={{
+        touchAction: "pan-x pan-y",
+        height: "100dvh",
+        minHeight: "-webkit-fill-available",
+      }}
     >
       {/* Top Navigation */}
       <header className="absolute top-0 left-0 right-0 z-20">
@@ -190,11 +204,6 @@ export default function Hero() {
         onClose={() => setIsMobileNavOpen(false)}
       />
 
-      {/* Sticky Floating Navigation - Desktop Only */}
-      <div className="hidden md:block">
-        <StickyNav />
-      </div>
-
       {/* Main Content - Mobile Layout */}
       <main className="flex-1 relative">
         {/* Mobile Layout (base to md) */}
@@ -222,7 +231,7 @@ export default function Hero() {
               className="text-[23px] font-medium leading-[1.068] tracking-normal text-white whitespace-nowrap"
               style={{ fontFamily: "SF Pro Text, Inter, sans-serif" }}
             >
-              <HeroRoles delay={4.5} />
+              <HeroRoles useWelcomeEvent welcomeEventDelay={0.1} />
             </div>
           </div>
 
@@ -235,7 +244,8 @@ export default function Hero() {
               fontFamily: "SF Pro Display, Inter, sans-serif",
             }}
             animationDuration={10}
-            delay={4.8}
+            useWelcomeEvent
+            welcomeEventDelay={0.3}
           />
         </div>
 
@@ -249,7 +259,8 @@ export default function Hero() {
                 as="div"
                 className="text-[26px] font-semibold leading-[107%] tracking-[-0.02em] text-left"
                 style={{ fontFamily: "Inter, SF UI Text, sans-serif" }}
-                delay={4.4}
+                useWelcomeEvent
+                welcomeEventDelay={0}
                 staggerDelay={0.03}
               />
               <PhilippineCulturalRoulette />
@@ -266,7 +277,7 @@ export default function Hero() {
                   className="w-full text-[40px] font-medium leading-[107%] tracking-[-0.08em] text-left flex flex-col gap-2"
                   style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
                 >
-                  <HeroRoles delay={5.1} />
+                  <HeroRoles useWelcomeEvent welcomeEventDelay={0.2} />
                 </div>
               </div>
 
@@ -296,7 +307,8 @@ export default function Hero() {
               textShadow: "0px 0px 12px rgba(0, 0, 0, 0.25)",
             }}
             animationDuration={10}
-            delay={5.3}
+            useWelcomeEvent
+            welcomeEventDelay={0.4}
           />
         </div>
 

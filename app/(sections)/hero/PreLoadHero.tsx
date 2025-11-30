@@ -1,60 +1,121 @@
 "use client";
 
+import {
+  forceUnlockScroll,
+  lockScroll,
+  unlockScroll,
+} from "@/app/utils/scroll-lock";
 import { Inter } from "next/font/google";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
+
+// Unique lock ID for this component
+const SCROLL_LOCK_ID = "preload-hero";
+
+// Event name for when welcome screen starts lifting
+export const WELCOME_LIFTING_EVENT = "welcomeScreenLifting";
 
 export default function PreLoadHero() {
   const [slideUp, setSlideUp] = useState(false);
   const [remove, setRemove] = useState(false);
-  // New state to control when scroll is allowed
-  const [allowScroll, setAllowScroll] = useState(false);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const hasUnlockedRef = useRef(false);
+  const hasDispatchedLiftingRef = useRef(false);
 
+  // Lock scroll on mount, unlock when slide animation starts
   useEffect(() => {
-    // CREATIVE APPROACH: Don't block scroll at all!
-    // Instead, use pointer-events: none on content behind the overlay
-    // This way, when overlay slides up, scroll works INSTANTLY
-    
-    // Stop Lenis during preload if available
-    if (window.lenis) {
-      window.lenis.stop();
-    }
+    // Lock scroll using centralized system
+    lockScroll(SCROLL_LOCK_ID, true);
 
-    // Start slide up animation at 5s
-    const slideTimer = setTimeout(() => {
-      setSlideUp(true);
-      // Allow scroll IMMEDIATELY when slide starts
-      setAllowScroll(true);
-      
-      // Restart Lenis right away
-      if (window.lenis) {
-        window.lenis.start();
+    // Safety timeout - force unlock after 6 seconds no matter what
+    // This prevents scroll from getting stuck if something goes wrong
+    const safetyTimer = setTimeout(() => {
+      if (!hasUnlockedRef.current) {
+        hasUnlockedRef.current = true;
+        unlockScroll(SCROLL_LOCK_ID, true);
+        window.dispatchEvent(new CustomEvent("preloadComplete"));
       }
-    }, 5000);
-
-    // Remove component after animation completes
-    const removeTimer = setTimeout(() => {
-      setRemove(true);
-    }, 6000); // Give full 1s for slide animation
+      // Also dispatch lifting event as safety
+      if (!hasDispatchedLiftingRef.current) {
+        hasDispatchedLiftingRef.current = true;
+        window.dispatchEvent(new CustomEvent(WELCOME_LIFTING_EVENT));
+      }
+    }, 6000);
 
     return () => {
-      clearTimeout(slideTimer);
-      clearTimeout(removeTimer);
-      
-      // Ensure Lenis is running on cleanup
-      if (window.lenis) {
-        window.lenis.start();
+      clearTimeout(safetyTimer);
+      // Ensure scroll is unlocked on cleanup
+      if (!hasUnlockedRef.current) {
+        hasUnlockedRef.current = true;
+        unlockScroll(SCROLL_LOCK_ID, true);
       }
     };
   }, []);
 
-  // Emit a custom event when scroll should be allowed
-  useEffect(() => {
-    if (allowScroll) {
-      window.dispatchEvent(new CustomEvent('preloadComplete'));
+  // Helper to trigger the exit animation and unlock scroll
+  const startExitAnimation = () => {
+    if (slideUp) return; // Already sliding
+
+    setSlideUp(true);
+
+    // Dispatch lifting event IMMEDIATELY when slide starts
+    if (!hasDispatchedLiftingRef.current) {
+      hasDispatchedLiftingRef.current = true;
+      window.dispatchEvent(new CustomEvent(WELCOME_LIFTING_EVENT));
     }
-  }, [allowScroll]);
+
+    // Unlock scroll when slide animation starts
+    if (!hasUnlockedRef.current) {
+      hasUnlockedRef.current = true;
+      unlockScroll(SCROLL_LOCK_ID, true);
+      window.dispatchEvent(new CustomEvent("preloadComplete"));
+    }
+  };
+
+  // Trigger the slide up animation after 2.5 seconds (reduced from 4)
+  useEffect(() => {
+    const slideTimer = setTimeout(startExitAnimation, 2500); // Reduced to 2.5s for faster access
+
+    return () => clearTimeout(slideTimer);
+  }, []);
+
+  // Listen for the slide animation end to trigger removal
+  useEffect(() => {
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+
+    const handleTransitionEnd = (e: TransitionEvent) => {
+      // Only react to the transform transition (the slide up)
+      if (e.propertyName === "transform" && slideUp) {
+        // Ensure scroll is definitely unlocked
+        forceUnlockScroll();
+
+        // Small delay to ensure smooth transition
+        setTimeout(() => {
+          setRemove(true);
+        }, 100);
+      }
+    };
+
+    overlay.addEventListener("transitionend", handleTransitionEnd);
+
+    // Fallback: if transitionend doesn't fire (e.g. tab backgrounded), remove anyway
+    let fallbackTimer: NodeJS.Timeout;
+    if (slideUp) {
+      fallbackTimer = setTimeout(() => {
+        if (!remove) {
+          forceUnlockScroll();
+          setRemove(true);
+        }
+      }, 1200); // 1s transition + 200ms buffer
+    }
+
+    return () => {
+      overlay.removeEventListener("transitionend", handleTransitionEnd);
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+    };
+  }, [slideUp, remove]);
 
   if (remove) {
     return null;
@@ -151,14 +212,19 @@ export default function PreLoadHero() {
 
   return (
     <div
+      ref={overlayRef}
+      onClick={startExitAnimation}
       className={`${
         inter.className
-      } fixed inset-0 z-[9999] w-screen h-screen bg-[#3B5237] overflow-hidden transition-transform duration-1000 ease-out ${
+      } fixed inset-0 z-[9999] w-screen bg-[#3B5237] overflow-hidden transition-transform duration-1000 ease-out ${
         slideUp ? "-translate-y-full" : "translate-y-0"
-      }`}
-      style={{ 
+      } cursor-pointer`}
+      style={{
         // Use pointer-events to block interaction, not scroll blocking
-        pointerEvents: slideUp ? 'none' : 'auto',
+        pointerEvents: slideUp ? "none" : "auto",
+        // Use 100dvh for mobile to account for browser chrome, fallback to 100vh
+        height: "100dvh",
+        minHeight: "-webkit-fill-available",
       }}
     >
       {/* Mobile Background greetings */}

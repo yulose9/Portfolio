@@ -1,7 +1,8 @@
 "use client";
 
 import gsap from "gsap";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { WELCOME_LIFTING_EVENT } from "./PreLoadHero";
 
 type AnimationStyle =
   | "bouncy"
@@ -21,6 +22,10 @@ interface GsapBouncyTextProps {
   animationStyle?: AnimationStyle;
   duration?: number;
   once?: boolean;
+  /** If true, animation waits for welcome screen lift event instead of using hardcoded delay */
+  useWelcomeEvent?: boolean;
+  /** Additional delay after welcome event fires (in seconds) */
+  welcomeEventDelay?: number;
 }
 
 export default function GsapBouncyText({
@@ -33,10 +38,13 @@ export default function GsapBouncyText({
   animationStyle = "bouncy",
   duration = 0.6,
   once = true,
+  useWelcomeEvent = false,
+  welcomeEventDelay = 0,
 }: GsapBouncyTextProps) {
   const containerRef = useRef<HTMLElement>(null);
   const wordsRef = useRef<HTMLSpanElement[]>([]);
   const hasAnimated = useRef(false);
+  const [welcomeReady, setWelcomeReady] = useState(!useWelcomeEvent);
 
   // Animation configurations for different styles
   const animationStyles: Record<AnimationStyle, any> = {
@@ -80,8 +88,45 @@ export default function GsapBouncyText({
 
   const config = animationStyles[animationStyle];
 
+  // Listen for welcome screen lifting event
+  useEffect(() => {
+    if (!useWelcomeEvent) return;
+
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    const handleWelcomeLifting = () => {
+      if (welcomeEventDelay > 0) {
+        timeoutId = setTimeout(() => {
+          setWelcomeReady(true);
+        }, welcomeEventDelay * 1000);
+      } else {
+        setWelcomeReady(true);
+      }
+    };
+
+    window.addEventListener(WELCOME_LIFTING_EVENT, handleWelcomeLifting);
+
+    // Fallback: if event was already fired, trigger after safety delay
+    const fallbackTimer = setTimeout(() => {
+      if (!welcomeReady) {
+        handleWelcomeLifting();
+      }
+    }, 5000);
+
+    return () => {
+      window.removeEventListener(WELCOME_LIFTING_EVENT, handleWelcomeLifting);
+      if (timeoutId) clearTimeout(timeoutId);
+      clearTimeout(fallbackTimer);
+    };
+  }, [useWelcomeEvent, welcomeEventDelay, welcomeReady]);
+
   useEffect(() => {
     if (!containerRef.current) return;
+    // If using welcome event, wait until it's ready
+    if (useWelcomeEvent && !welcomeReady) return;
+
+    // Determine the actual delay to use
+    const actualDelay = useWelcomeEvent ? 0 : delay;
 
     // Create IntersectionObserver for scroll-triggered animation
     const observer = new IntersectionObserver(
@@ -91,7 +136,7 @@ export default function GsapBouncyText({
             if (once && hasAnimated.current) return;
 
             // Create timeline for coordinated animations
-            const tl = gsap.timeline({ delay: delay });
+            const tl = gsap.timeline({ delay: actualDelay });
 
             // Animate words with selected animation style
             tl.fromTo(
@@ -147,7 +192,15 @@ export default function GsapBouncyText({
     return () => {
       observer.disconnect();
     };
-  }, [delay, staggerDelay, animationStyle, duration, once]);
+  }, [
+    delay,
+    staggerDelay,
+    animationStyle,
+    duration,
+    once,
+    useWelcomeEvent,
+    welcomeReady,
+  ]);
 
   const words = text.split(" ");
 

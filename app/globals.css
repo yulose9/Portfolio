@@ -2,13 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Dynamic viewport height for mobile Safari compatibility */
+:root {
+  --vh: 1vh;
+}
+
 html,
 body {
   overflow-x: hidden;
   max-width: 100vw;
   width: 100%;
-  /* Disable pinch-to-zoom on mobile - but allow scroll */
+  /* Allow vertical scrolling and pinch zoom - essential for mobile */
   touch-action: pan-y pinch-zoom;
+  /* Prevent scroll chaining to parent */
+  overscroll-behavior: contain;
+}
+
+/* 
+ * Mobile scroll safety net
+ * This ensures scroll cannot get permanently stuck on mobile.
+ * The JavaScript scroll-lock system sets overflow:hidden inline,
+ * but if something goes wrong, these rules ensure touch scrolling still works.
+ */
+@media (max-width: 768px) {
+  /* Ensure touch-action always allows vertical scroll on mobile */
+  html,
+  body {
+    touch-action: pan-y pinch-zoom !important;
+  }
+
+  /* Ensure the main content is scrollable even if body has overflow issues */
+  #main-content {
+    touch-action: pan-y pinch-zoom;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 * {
@@ -163,7 +190,7 @@ body {
   left: 0;
   z-index: 9999;
   padding: 1rem 1.5rem;
-  background-color: #657A62;
+  background-color: #657a62;
   color: #ffffff;
   text-decoration: none;
   font-weight: 600;

@@ -1,14 +1,20 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CSSProperties } from "react";
+import { CSSProperties, useEffect, useState } from "react";
+import { WELCOME_LIFTING_EVENT } from "./PreLoadHero";
 
 interface GradientTextProps {
   text: string;
   className?: string;
   style?: CSSProperties;
   animationDuration?: number;
+  /** Legacy delay prop - used if useWelcomeEvent is false */
   delay?: number;
+  /** If true, animation waits for welcome screen lift event */
+  useWelcomeEvent?: boolean;
+  /** Additional delay after welcome event fires (in seconds) */
+  welcomeEventDelay?: number;
 }
 
 export default function GradientText({
@@ -17,12 +23,55 @@ export default function GradientText({
   style = {},
   animationDuration = 3,
   delay = 0,
+  useWelcomeEvent = true,
+  welcomeEventDelay = 0.3,
 }: GradientTextProps) {
+  const [shouldAnimate, setShouldAnimate] = useState(!useWelcomeEvent);
+
+  // Listen for welcome screen lifting event
+  useEffect(() => {
+    if (!useWelcomeEvent) return;
+
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    const handleWelcomeLifting = () => {
+      if (welcomeEventDelay > 0) {
+        timeoutId = setTimeout(() => {
+          setShouldAnimate(true);
+        }, welcomeEventDelay * 1000);
+      } else {
+        setShouldAnimate(true);
+      }
+    };
+
+    window.addEventListener(WELCOME_LIFTING_EVENT, handleWelcomeLifting);
+
+    // Fallback: if event was already fired, trigger after safety delay
+    const fallbackTimer = setTimeout(() => {
+      if (!shouldAnimate) {
+        handleWelcomeLifting();
+      }
+    }, 5000);
+
+    return () => {
+      window.removeEventListener(WELCOME_LIFTING_EVENT, handleWelcomeLifting);
+      if (timeoutId) clearTimeout(timeoutId);
+      clearTimeout(fallbackTimer);
+    };
+  }, [useWelcomeEvent, welcomeEventDelay, shouldAnimate]);
+
+  // Determine actual delay
+  const actualDelay = useWelcomeEvent ? 0 : delay;
+
   return (
     <motion.h1
       initial={{ opacity: 0, y: 50 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
+      animate={shouldAnimate ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
+      transition={{
+        duration: 0.5,
+        delay: actualDelay,
+        ease: [0.25, 0.46, 0.45, 0.94],
+      }}
       className={className}
       style={{
         ...style,
