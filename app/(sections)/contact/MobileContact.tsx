@@ -70,8 +70,8 @@ export default function MobileContact() {
               </div>
               <a href="#" onClick={(e) => e.preventDefault()}>
                 <MagicTextReveal
-                  text="jan***********.com"
-                  hiddenText="jannazarene09@gmail.com"
+                  text="con***********.dev"
+                  hiddenText="contact@nazarene.dev"
                   color="#000000"
                   fontSize={16}
                   fontWeight={500}

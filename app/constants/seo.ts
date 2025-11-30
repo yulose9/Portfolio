@@ -31,7 +31,7 @@ export const SITE_INFO = {
 export const SOCIAL_LINKS = {
   linkedin: "https://www.linkedin.com/in/jannazarene", // Update with actual
   github: "https://github.com/yulose9", // Update with actual
-  email: "mailto:jannazarene09@gmail.com", // Update with actual
+  email: "mailto:contact@nazarene.dev", // Update with actual
   twitter: "https://twitter.com/xcszan", // Update with actual (if available)
 };
 
