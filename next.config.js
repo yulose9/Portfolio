@@ -8,19 +8,6 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     qualities: [75, 90, 95, 100],
   },
-  async headers() {
-    return [
-      {
-        source: "/:all*(svg|jpg|jpeg|png|webp|avif|gif|ico)",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
-    ];
-  },
 };
 
 module.exports = nextConfig;
