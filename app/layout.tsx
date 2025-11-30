@@ -73,6 +73,13 @@ export default function RootLayout({
 
         <ImagePreloader />
         <SmoothScrolling>{children}</SmoothScrolling>
+
+        {/* Cloudflare Web Analytics */}
+        <Script
+          defer
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon='{"token": "e48b484435ef4fb0a307689022769282"}'
+        />
       </body>
     </html>
   );
