@@ -95,10 +95,6 @@ export const ENHANCED_METADATA: Metadata = {
       "max-snippet": -1,
     },
   },
-  icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
-  },
 };
 
 // Schema.org Person structured data
