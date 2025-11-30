@@ -3,7 +3,7 @@ User-agent: *
 Allow: /
 
 # Sitemaps
-Sitemap: https://johnnazarene.com/sitemap.xml
+Sitemap: https://nazarene.dev/sitemap.xml
 
 # Disallow admin/development paths (if any exist in production)
 # User-agent: *
