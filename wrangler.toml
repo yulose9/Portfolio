@@ -1,0 +1,5 @@
+name = "portfolio"
+compatibility_date = "2024-12-01"
+
+# This tells Cloudflare where your built static files are located
+pages_build_output_dir = "out"
