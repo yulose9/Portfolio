@@ -148,8 +148,8 @@ export const PROFILE_PAGE_SCHEMA = {
   "@context": "https://schema.org",
   "@type": "ProfilePage",
   mainEntity: PERSON_SCHEMA,
-  dateCreated: "2024-01-01", // Update with actual
-  dateModified: new Date().toISOString().split("T")[0],
+  dateCreated: "2024-01-01T00:00:00+00:00",
+  dateModified: new Date().toISOString(),
   inLanguage: "en-US",
 };
 
