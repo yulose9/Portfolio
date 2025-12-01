@@ -123,8 +123,12 @@ export default function RootLayout({
               e.location.protocol&&"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js".match(/^\/\//)?"https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js":"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js";e=e.getElementsByTagName("script")[0];e.parentNode.insertBefore(k,e)}})(document,window.mixpanel||[])
 
               mixpanel.init('a67416976e3c5fbd3849ab1edcf3ff5b', {
-                autocapture: true,
+                debug: true,
+                track_pageview: true,
+                persistence: 'localStorage',
                 record_sessions_percent: 100,
+                record_mask_text_selector: ".mask-text", // Only mask elements with this class
+                record_block_selector: ".block-recording", // Block recording for elements with this class
               })
             `,
           }}
