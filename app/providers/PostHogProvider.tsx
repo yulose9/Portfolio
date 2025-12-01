@@ -17,6 +17,9 @@ export function CSPostHogProvider({ children }: { children: React.ReactNode }) {
           capture_pageview: false, // Disable automatic pageview capture, as we capture manually
           // @ts-ignore - This property is present in the snippet but might not be in the types yet
           defaults: '2025-05-24',
+          autocapture: {
+            dom_event_allowlist: ['click', 'change', 'submit'], // Track clicks, input changes, and form submissions
+          },
         })
       }
     }, [])
