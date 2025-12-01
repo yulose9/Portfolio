@@ -13,7 +13,9 @@ export function CSPostHogProvider({ children }: { children: React.ReactNode }) {
         posthog.init(key, {
           api_host: host,
           person_profiles: 'identified_only', // or 'always' to create profiles for anonymous users as well
-          capture_pageview: false // Disable automatic pageview capture, as we capture manually
+          capture_pageview: false, // Disable automatic pageview capture, as we capture manually
+          // @ts-ignore - This property is present in the snippet but might not be in the types yet
+          defaults: '2025-05-24',
         })
       }
     }, [])
