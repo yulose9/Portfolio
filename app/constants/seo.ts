@@ -59,8 +59,8 @@ export const OG_METADATA = {
 // Twitter Card metadata
 export const TWITTER_METADATA = {
   card: "summary_large_image" as const,
-  site: "@johnnazarene", // Update with actual handle
-  creator: "@johnnazarene", // Update with actual handle
+  site: "@xcszan", // Update with actual handle
+  creator: "@xcszan", // Update with actual handle
 };
 
 // Enhanced metadata for Next.js
