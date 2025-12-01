@@ -1,12 +1,13 @@
 'use client'
 
 import { usePathname, useSearchParams } from "next/navigation";
-import posthog from "posthog-js";
+import { usePostHog } from "posthog-js/react";
 import { useEffect } from "react";
 
 export default function PostHogPageView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const posthog = usePostHog();
 
   useEffect(() => {
     // Track pageviews
@@ -19,7 +20,7 @@ export default function PostHogPageView() {
         '$current_url': url,
       });
     }
-  }, [pathname, searchParams]);
+  }, [pathname, searchParams, posthog]);
 
   return null;
 }
