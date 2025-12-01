@@ -1,37 +1,37 @@
-'use client'
+"use client";
 
-import { usePostHog } from 'posthog-js/react'
-import { useEffect } from 'react'
+import { GlassStatusState } from "@/app/components/shared/GlassStatusState";
+import { usePostHog } from "posthog-js/react";
+import { useEffect } from "react";
+import "./globals.css";
 
 export default function GlobalError({
   error,
   reset,
 }: {
-  error: Error & { digest?: string }
-  reset: () => void
+  error: Error & { digest?: string };
+  reset: () => void;
 }) {
-  const posthog = usePostHog()
+  const posthog = usePostHog();
 
   useEffect(() => {
     if (posthog) {
-        posthog.captureException(error)
+      posthog.captureException(error);
     }
-    console.error(error)
-  }, [error, posthog])
+    console.error(error);
+  }, [error, posthog]);
 
   return (
-    <html>
+    <html lang="en">
       <body>
-        <div className="flex h-screen w-full flex-col items-center justify-center gap-4">
-          <h2 className="text-2xl font-bold">Something went wrong!</h2>
-          <button
-            onClick={reset}
-            className="rounded-full bg-black px-6 py-2 text-white hover:bg-gray-800"
-          >
-            Try again
-          </button>
-        </div>
+        <GlassStatusState
+          code="500"
+          title="Critical System Error"
+          message="A critical error occurred. We apologize for the inconvenience."
+          onRetry={reset}
+          className="min-h-screen"
+        />
       </body>
     </html>
-  )
+  );
 }
