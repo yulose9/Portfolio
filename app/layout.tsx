@@ -105,6 +105,13 @@ export default function RootLayout({
           data-cf-beacon='{"token": "e48b484435ef4fb0a307689022769282"}'
         />
 
+        {/* Umami Analytics */}
+        <Script
+          src="https://cloud.umami.is/script.js"
+          data-website-id="a0d016ea-6eb5-4de4-b15f-31c99d2d810f"
+          strategy="afterInteractive"
+        />
+
         {/* Google Tag (gtag.js) */}
         <Script
           async
