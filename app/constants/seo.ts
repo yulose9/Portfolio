@@ -85,9 +85,9 @@ export const ENHANCED_METADATA: Metadata = {
     "pinterest-rich-pin": "true",
   },
   icons: {
-    icon: "/snazzy-image.png",
-    shortcut: "/snazzy-image.png",
-    apple: "/snazzy-image.png",
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
   },
   openGraph: {
     ...OG_METADATA,
