@@ -11,7 +11,7 @@ export const SITE_INFO = {
   title: "John Nazarene | Full Stack Developer & Cloud Engineer", // 53 chars (optimal: 50-60)
   description:
     "Full Stack Developer & Cloud Engineer building exceptional digital experiences with AWS, React & Next.js.", // 107 chars (optimal: 110-160)
-  url: "https://nazarene.dev",
+  url: "https://www.nazarene.dev",
   author: "John Nazarene Dela Pisa",
   keywords: [
     "Full Stack Developer",
@@ -78,6 +78,12 @@ export const ENHANCED_METADATA: Metadata = {
   alternates: {
     canonical: "/",
   },
+  other: {
+    "twitter:domain": "nazarene.dev",
+    "article:published_time": "2024-01-01T00:00:00.000Z",
+    "article:modified_time": new Date().toISOString(),
+    "pinterest-rich-pin": "true",
+  },
   icons: {
     icon: "/snazzy-image.png",
     shortcut: "/snazzy-image.png",
@@ -88,6 +94,9 @@ export const ENHANCED_METADATA: Metadata = {
     title: SITE_INFO.title,
     description: SITE_INFO.description,
     url: SITE_INFO.url,
+  },
+  facebook: {
+    appId: "729817763494664", // Get this from https://developers.facebook.com/
   },
   twitter: {
     ...TWITTER_METADATA,
