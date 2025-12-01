@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const SCROLL_LOCK_ID = "mobile-certificates-drag";
 
 // Configuration constants
-const LONG_PRESS_DELAY = 350; // Reduced from 500ms for better responsiveness
+const LONG_PRESS_DELAY = 250; // Increased to 500ms to prevent accidental triggers
 const MOVEMENT_THRESHOLD = 10; // 10px movement cancels long press
 const THROTTLE_MS = 16; // ~60fps for smooth updates
 const TAP_THRESHOLD = 250; // Max duration for a tap (must be < LONG_PRESS_DELAY)

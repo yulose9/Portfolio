@@ -158,7 +158,7 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
               duration: 0.3,
               ease: [0.32, 0.72, 0, 1],
             }}
-            className="mobile-nav-content fixed inset-0 bg-[#374136]/50 backdrop-blur-lg z-[1000] overflow-hidden"
+            className="mobile-nav-content fixed inset-0 bg-[#374136]/50 backdrop-blur-lg z-[1000] overflow-y-auto overscroll-contain"
           >
             <div className="flex flex-col h-full p-6">
               {/* Header - No staggered animations */}

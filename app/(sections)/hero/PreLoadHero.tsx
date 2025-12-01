@@ -68,7 +68,8 @@ export default function PreLoadHero() {
     // Unlock scroll when slide animation starts
     if (!hasUnlockedRef.current) {
       hasUnlockedRef.current = true;
-      unlockScroll(SCROLL_LOCK_ID, true);
+      // Force unlock to ensure no stuck state on mobile
+      forceUnlockScroll();
       window.dispatchEvent(new CustomEvent("preloadComplete"));
     }
   };

@@ -53,7 +53,7 @@ interface UseDragAndDropOptions<T> {
 export function useDragAndDrop<T extends { id?: string; title?: string }>({
   items,
   onReorder,
-  dragDelay = 350, // 350ms long press - reduced for better responsiveness
+  dragDelay = 250, // 250ms long press - reduced for better responsiveness
   hapticFeedback = true,
   lockId: customLockId,
   movementThreshold = 10, // 10px movement cancels long press

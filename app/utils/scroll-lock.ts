@@ -97,19 +97,17 @@ export function lockScroll(lockId: string, stopLenis = true): void {
       touchAction: document.body.style.touchAction,
     };
 
-    // On mobile, use a VERY light scroll lock approach
-    // We avoid position:fixed and touch-action:none as they can break native scrolling
-    if (isMobile) {
-      // Only set overflow hidden on body, nothing else
-      // The CSS !important rules in globals.css will override this when needed
-      document.body.style.overflow = "hidden";
-      // DO NOT set touch-action: none on mobile - it breaks scrolling!
-    } else {
-      // Desktop: full scroll lock with position fixed
-      document.body.style.overflow = "hidden";
-      document.body.style.position = "fixed";
-      document.body.style.top = `-${state.scrollY}px`;
-      document.body.style.width = "100%";
+    // Universal scroll lock approach
+    // We use position: fixed for both mobile and desktop to prevent "stuck" scroll behavior
+    // This is more robust than just overflow: hidden on iOS
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${state.scrollY}px`;
+    document.body.style.width = "100%";
+
+    // Only set touch-action: none on desktop
+    // On mobile, we keep the default (or global) touch-action to allow inner scrolling
+    if (!isMobile) {
       document.body.style.touchAction = "none";
     }
 
@@ -175,9 +173,13 @@ export function unlockScroll(lockId: string, startLenis = true): void {
       document.body.style.touchAction = "";
     }
 
-    // Only restore scroll position on desktop (mobile doesn't use fixed positioning)
-    if (!isMobile) {
-      window.scrollTo(0, scrollY);
+    // Restore scroll position
+    window.scrollTo(0, scrollY);
+
+    // Force reflow to prevent stuck scroll on mobile
+    // This forces the browser to recalculate layout after removing position: fixed
+    if (isMobile) {
+      document.body.offsetHeight;
     }
 
     // Reset state
@@ -222,6 +224,11 @@ export function forceUnlockScroll(): void {
   // Also clear on html element
   document.documentElement.style.overflow = "";
   document.documentElement.style.touchAction = "";
+
+  // Force reflow
+  if (isMobile) {
+    document.body.offsetHeight;
+  }
 
   // Start Lenis if available
   if (window.lenis) {
