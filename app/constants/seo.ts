@@ -8,9 +8,9 @@ import { Metadata } from "next";
 // Basic site information
 export const SITE_INFO = {
   name: "John Nazarene Dela Pisa",
-  title: "John Nazarene Dela Pisa | Full Stack Developer & Cloud Engineer",
+  title: "John Nazarene | Full Stack Developer & Cloud Engineer", // 53 chars (optimal: 50-60)
   description:
-    "Full Stack Developer & Cloud Engineer specializing in building exceptional digital experiences with expertise in AWS, React, Next.js, and modern web technologies.",
+    "Full Stack Developer & Cloud Engineer building exceptional digital experiences with AWS, React & Next.js.", // 107 chars (optimal: 110-160)
   url: "https://nazarene.dev",
   author: "John Nazarene Dela Pisa",
   keywords: [
@@ -36,16 +36,22 @@ export const SOCIAL_LINKS = {
 };
 
 // Open Graph metadata
+// OG Image Best Practices:
+// - Facebook, LinkedIn, Discord: 1200x630px (1.91:1 ratio)
+// - Twitter: 1200x600px or 1200x675px
+// - WhatsApp, Telegram, iMessage, Messenger: Use 1200x630px (works universally)
+// These images are called "Open Graph Images" or "Social Share Images" or "Link Preview Images"
 export const OG_METADATA = {
   type: "website" as const,
   locale: "en_US",
   siteName: SITE_INFO.name,
   images: [
     {
-      url: "/og-image.png", // TODO: Create OG image (1200x630px)
+      url: `${SITE_INFO.url}/images/other/heyyo.png`, // Must be absolute URL for social platforms
       width: 1200,
       height: 630,
-      alt: `${SITE_INFO.name} - Portfolio`,
+      alt: `${SITE_INFO.name} - Full Stack Developer Portfolio`,
+      type: "image/png",
     },
   ],
 };
@@ -71,6 +77,11 @@ export const ENHANCED_METADATA: Metadata = {
   metadataBase: new URL(SITE_INFO.url),
   alternates: {
     canonical: "/",
+  },
+  icons: {
+    icon: "/snazzy-image.png",
+    shortcut: "/snazzy-image.png",
+    apple: "/snazzy-image.png",
   },
   openGraph: {
     ...OG_METADATA,
