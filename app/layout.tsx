@@ -1,7 +1,12 @@
-import { SmoothScrolling } from "@/app/providers";
+import {
+  CSPostHogProvider,
+  PostHogPageView,
+  SmoothScrolling,
+} from "@/app/providers";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
+import { Suspense } from "react";
 import { ImagePreloader } from "./components/shared";
 import {
   ENHANCED_METADATA,
@@ -86,7 +91,12 @@ export default function RootLayout({
         </a>
 
         <ImagePreloader />
-        <SmoothScrolling>{children}</SmoothScrolling>
+        <Suspense fallback={null}>
+          <CSPostHogProvider>
+            <PostHogPageView />
+            <SmoothScrolling>{children}</SmoothScrolling>
+          </CSPostHogProvider>
+        </Suspense>
 
         {/* Cloudflare Web Analytics */}
         <Script
