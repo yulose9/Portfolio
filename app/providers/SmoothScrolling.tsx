@@ -81,16 +81,15 @@ export default function SmoothScrolling({ children }: SmoothScrollingProps) {
 
     window.addEventListener("preloadComplete", handlePreloadComplete);
 
-    // Request animation frame loop
+    // RAF loop — must track the ID so we can cancel it on cleanup (prevents memory leak)
     let animationFrameId: number;
     function raf(time: number) {
       lenis.raf(time);
       animationFrameId = requestAnimationFrame(raf);
     }
-
     animationFrameId = requestAnimationFrame(raf);
 
-    // Cleanup
+    // Cleanup: cancel the RAF loop AND destroy lenis to prevent memory leaks
     return () => {
       window.removeEventListener("preloadComplete", handlePreloadComplete);
       cancelAnimationFrame(animationFrameId);

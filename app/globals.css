@@ -12,8 +12,9 @@ body {
   overflow-x: hidden;
   max-width: 100vw;
   width: 100%;
-  /* Allow vertical scrolling and pinch zoom - essential for mobile */
-  touch-action: pan-y pinch-zoom;
+  /* Allow normal scrolling; 'manipulation' prevents double-tap zoom
+     without blocking iOS momentum scroll (pan-x pan-y was causing freeze) */
+  touch-action: manipulation;
   /* Prevent scroll chaining to parent */
   overscroll-behavior: contain;
 }
@@ -28,19 +29,22 @@ body {
   /* Ensure touch-action always allows vertical scroll on mobile */
   html,
   body {
-    touch-action: pan-y pinch-zoom !important;
+    touch-action: manipulation;
   }
 
   /* Ensure the main content is scrollable even if body has overflow issues */
   #main-content {
-    touch-action: pan-y pinch-zoom;
+    touch-action: pan-y;
     -webkit-overflow-scrolling: touch;
   }
 }
 
 * {
   max-width: 100%;
+  /* Do NOT set touch-action here — it overrides child elements and
+     breaks iOS Safari momentum/inertia scrolling (scroll-stuck bug) */
 }
+
 
 @keyframes move-left {
   0%,
