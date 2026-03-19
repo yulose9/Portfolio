@@ -209,7 +209,9 @@ function DraggableCard({
           ${!isDragging && !isLongPressing ? "hover:scale-[1.02] hover:shadow-xl hover:bg-[rgba(255,255,255,0.7)] hover:-translate-y-1" : ""}
         `}
         style={{
-          touchAction: "none",
+          // Only disable touch-action when actively dragging.
+          // Using "none" unconditionally kills iOS scroll through the card grid.
+          touchAction: isDragging || isLongPressing ? "none" : "pan-y",
           userSelect: "none",
           WebkitUserSelect: "none",
         }}
@@ -329,7 +331,9 @@ function DraggableCard({
         ${isLongPressing ? "ring-2 ring-white/50" : ""}
       `}
       style={{
-        touchAction: "none",
+        // Only disable touch-action when actively dragging.
+        // Using "none" unconditionally kills iOS scroll through the card grid.
+        touchAction: isDragging || isLongPressing ? "none" : "pan-y",
         userSelect: "none",
         WebkitUserSelect: "none",
         background: "linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.15) 100%)",

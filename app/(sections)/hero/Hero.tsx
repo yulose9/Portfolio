@@ -153,7 +153,6 @@ export default function Hero() {
       id="home"
       className={`relative w-screen bg-brand-primary text-white ${inter.className} overflow-hidden flex flex-col`}
       style={{
-        touchAction: "pan-x pan-y",
         height: "100dvh",
         minHeight: "-webkit-fill-available",
       }}

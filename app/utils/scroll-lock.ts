@@ -173,26 +173,32 @@ export function unlockScroll(lockId: string, startLenis = true): void {
       document.body.style.touchAction = "";
     }
 
-    // Restore scroll position
-    window.scrollTo(0, scrollY);
+    // Restore scroll position AFTER a paint frame.
+    // On iOS Safari, calling scrollTo() synchronously after removing
+    // position:fixed doesn't work — the browser hasn't repainted yet.
+    // requestAnimationFrame ensures styles are applied first.
+    const restoreScroll = () => {
+      window.scrollTo(0, scrollY);
 
-    // Force reflow to prevent stuck scroll on mobile
-    // This forces the browser to recalculate layout after removing position: fixed
-    if (isMobile) {
-      document.body.offsetHeight;
-    }
+      // Force reflow to prevent stuck scroll on mobile Safari
+      if (isMobile) {
+        void document.body.offsetHeight;
+      }
 
-    // Reset state
+      // Start Lenis if requested and available (no-op on mobile with mock)
+      if (startLenis && window.lenis) {
+        window.lenis.start();
+        log("Lenis started");
+      }
+
+      log("Scroll fully unlocked and restored");
+    };
+
+    // Reset state immediately (before rAF so any re-lock during the frame works)
     state.originalStyles = null;
     state.scrollY = 0;
 
-    // Start Lenis if requested and available (no-op on mobile with mock)
-    if (startLenis && window.lenis) {
-      window.lenis.start();
-      log("Lenis started");
-    }
-
-    log("Scroll fully unlocked and restored");
+    requestAnimationFrame(restoreScroll);
   }
 }
 
