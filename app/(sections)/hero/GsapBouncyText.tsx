@@ -1,236 +1,31 @@
 "use client";
 
 import gsap from "gsap";
-import { useEffect, useRef, useState } from "react";
-import { WELCOME_LIFTING_EVENT } from "./PreLoadHero";
+import { CSSProperties, useEffect, useRef } from "react";
 
-type AnimationStyle =
-  | "bouncy"
-  | "smooth"
-  | "elastic"
-  | "pop"
-  | "wave"
-  | "smooth-wave";
-
+type AnimationStyle = "bouncy" | "smooth" | "elastic" | "pop" | "wave" | "smooth-wave";
 interface GsapBouncyTextProps {
-  text: string;
-  className?: string;
-  style?: React.CSSProperties;
-  delay?: number;
-  staggerDelay?: number;
-  as?: "p" | "span" | "div" | "h1" | "h2" | "h3";
-  animationStyle?: AnimationStyle;
-  duration?: number;
-  once?: boolean;
-  /** If true, animation waits for welcome screen lift event instead of using hardcoded delay */
-  useWelcomeEvent?: boolean;
-  /** Additional delay after welcome event fires (in seconds) */
-  welcomeEventDelay?: number;
+  text: string; className?: string; style?: CSSProperties; delay?: number;
+  staggerDelay?: number; as?: "p" | "span" | "div" | "h1" | "h2" | "h3";
+  animationStyle?: AnimationStyle; duration?: number; once?: boolean;
+  useWelcomeEvent?: boolean; welcomeEventDelay?: number;
 }
 
-export default function GsapBouncyText({
-  text,
-  className = "",
-  style = {},
-  delay = 0,
-  staggerDelay = 0.08,
-  as = "div",
-  animationStyle = "bouncy",
-  duration = 0.6,
-  once = true,
-  useWelcomeEvent = false,
-  welcomeEventDelay = 0,
-}: GsapBouncyTextProps) {
+export default function GsapBouncyText({ text, className = "", style, delay = 0, staggerDelay = 0.04, as: Component = "div", duration = 0.3, once = true, useWelcomeEvent = false }: GsapBouncyTextProps) {
   const containerRef = useRef<HTMLElement>(null);
-  const wordsRef = useRef<HTMLSpanElement[]>([]);
-  const hasAnimated = useRef(false);
-  const [welcomeReady, setWelcomeReady] = useState(!useWelcomeEvent);
-
-  // Animation configurations for different styles
-  const animationStyles: Record<AnimationStyle, any> = {
-    bouncy: {
-      from: { yPercent: 100, opacity: 0 },
-      to: { yPercent: 0, opacity: 1 },
-      duration,
-      ease: "back.out(1.7)", // Playful bounce effect
-    },
-    smooth: {
-      from: { yPercent: 100, opacity: 0 },
-      to: { yPercent: 0, opacity: 1 },
-      duration,
-      ease: "power2.out", // Professional smooth entrance
-    },
-    elastic: {
-      from: { scale: 0.8, opacity: 0 },
-      to: { scale: 1, opacity: 1 },
-      duration,
-      ease: "elastic.out(1, 0.6)", // Elastic springy effect
-    },
-    pop: {
-      from: { scale: 0, opacity: 0 },
-      to: { scale: 1, opacity: 1 },
-      duration: duration * 0.8,
-      ease: "cubic.out", // Quick pop effect
-    },
-    wave: {
-      from: { yPercent: 100, opacity: 0, rotationZ: -5 },
-      to: { yPercent: 0, opacity: 1, rotationZ: 0 },
-      duration: duration + 0.1,
-      ease: "sine.out", // Wave-like motion
-    },
-    "smooth-wave": {
-      from: { yPercent: 100, opacity: 0, scaleY: 0.8 },
-      to: { yPercent: 0, opacity: 1, scaleY: 1 },
-      duration,
-      ease: "power3.out", // Smooth controlled wave
-    },
-  };
-
-  const config = animationStyles[animationStyle];
-
-  // Listen for welcome screen lifting event
   useEffect(() => {
-    if (!useWelcomeEvent) return;
-
-    let timeoutId: NodeJS.Timeout | null = null;
-
-    const handleWelcomeLifting = () => {
-      if (welcomeEventDelay > 0) {
-        timeoutId = setTimeout(() => {
-          setWelcomeReady(true);
-        }, welcomeEventDelay * 1000);
-      } else {
-        setWelcomeReady(true);
-      }
-    };
-
-    window.addEventListener(WELCOME_LIFTING_EVENT, handleWelcomeLifting);
-
-    // Fallback: if event was already fired, trigger after safety delay
-    const fallbackTimer = setTimeout(() => {
-      if (!welcomeReady) {
-        handleWelcomeLifting();
-      }
-    }, 5000);
-
-    return () => {
-      window.removeEventListener(WELCOME_LIFTING_EVENT, handleWelcomeLifting);
-      if (timeoutId) clearTimeout(timeoutId);
-      clearTimeout(fallbackTimer);
-    };
-  }, [useWelcomeEvent, welcomeEventDelay, welcomeReady]);
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-    // If using welcome event, wait until it's ready
-    if (useWelcomeEvent && !welcomeReady) return;
-
-    // Determine the actual delay to use
-    const actualDelay = useWelcomeEvent ? 0 : delay;
-
-    // Create IntersectionObserver for scroll-triggered animation
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            if (once && hasAnimated.current) return;
-
-            // Create timeline for coordinated animations
-            const tl = gsap.timeline({ delay: actualDelay });
-
-            // Animate words with selected animation style
-            tl.fromTo(
-              wordsRef.current,
-              config.from,
-              {
-                ...config.to,
-                stagger: {
-                  each: staggerDelay,
-                  ease: "power1.inOut", // Smooth stagger distribution
-                },
-              },
-              0
-            );
-
-            // Animate opacity simultaneously with matching cascade
-            tl.fromTo(
-              wordsRef.current,
-              {
-                opacity: config.from.opacity ?? 0,
-              },
-              {
-                opacity: 1,
-                duration: config.duration * 0.85, // Slightly shorter opacity fade
-                ease: "power1.out",
-                stagger: {
-                  each: staggerDelay,
-                  ease: "power1.inOut",
-                },
-              },
-              0
-            );
-
-            hasAnimated.current = true;
-
-            // Unobserve after animation triggers if once is true
-            if (once) {
-              observer.unobserve(entry.target);
-            }
-          }
-        });
-      },
-      {
-        threshold: 0.1,
-        rootMargin: "-50px",
-      }
-    );
-
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
-    }
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [
-    delay,
-    staggerDelay,
-    animationStyle,
-    duration,
-    once,
-    useWelcomeEvent,
-    welcomeReady,
-  ]);
-
-  const words = text.split(" ");
-
-  const Component = as;
-
-  return (
-    <Component ref={containerRef as any} className={className} style={style}>
-      {words.map((word, i) => (
-        <span
-          key={text + i}
-          style={{
-            display: "inline-block",
-            overflow: "hidden",
-            padding: "0 0.1em 0.2em 0.02em",
-            margin: "0 -0.1em -0.1em -0.02em",
-          }}
-        >
-          <span
-            ref={(el) => {
-              if (el) wordsRef.current[i] = el;
-            }}
-            style={{
-              display: "inline-block",
-              willChange: "transform, opacity",
-            }}
-          >
-            {word + (i !== words.length - 1 ? "\u00A0" : "")}
-          </span>
-        </span>
-      ))}
-    </Component>
-  );
+    const element = containerRef.current;
+    // Above-the-fold copy and reduced-motion content remain visible from first paint.
+    if (!element || useWelcomeEvent || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let tween: gsap.core.Tween | undefined;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      tween?.kill();
+      tween = gsap.fromTo(element.querySelectorAll("[data-word]"), { y: 8, opacity: 0.6 }, { y: 0, opacity: 1, duration: Math.min(duration, 0.4), delay: Math.min(delay, 0.15), stagger: Math.min(staggerDelay, 0.05), ease: "power2.out", clearProps: "transform,opacity" });
+      if (once) observer.unobserve(element);
+    }, { threshold: 0.1 });
+    observer.observe(element);
+    return () => { observer.disconnect(); tween?.kill(); };
+  }, [text, useWelcomeEvent, delay, staggerDelay, duration, once]);
+  return <Component ref={containerRef as React.Ref<never>} className={className} style={style}>{text.split(" ").map((word, index) => <span key={index} data-word style={{ display: "inline-block" }}>{word}{index < text.split(" ").length - 1 ? "\u00a0" : ""}</span>)}</Component>;
 }

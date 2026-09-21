@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 
 import { useState } from "react";
 
@@ -24,7 +25,7 @@ export default function CompanyLogo({
       href={linkedinUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="w-[64px] h-[64px] rounded-[8px] overflow-hidden bg-white/10 flex items-center justify-center flex-shrink-0 hover:bg-white/20 transition-all duration-300 hover:scale-105"
+      className="w-[64px] h-[64px] rounded-[8px] overflow-hidden bg-white/10 flex items-center justify-center flex-shrink-0 hover:bg-white/20 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 hover:scale-105"
     >
       {hasError ? (
         <svg
@@ -42,7 +43,7 @@ export default function CompanyLogo({
           />
         </svg>
       ) : (
-        <img
+        <Image width={256} height={256} sizes="256px" loading="lazy"
           src={logo}
           alt={`${companyName} logo`}
           className="w-full h-full object-cover"

@@ -1,11 +1,12 @@
 "use client";
 
-import { MagicTextReveal } from "@/app/components/animations";
+import { useHaptics } from "@/app/hooks/use-haptics";
 import { trackEvent } from "@/app/utils/analytics";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 
 export default function MobileContact() {
+  const haptic = useHaptics();
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
 
@@ -44,7 +45,7 @@ export default function MobileContact() {
             <div className="absolute left-0 right-0 h-[1px] bg-black" />
 
             {/* Button */}
-            <button className="relative z-10 bg-[#42ad77] hover:bg-[#3a9667] active:scale-95 transition-all rounded-full px-6 py-3 flex items-center justify-center shadow-sm">
+            <a href="mailto:contact@nazarene.dev" onClick={() => haptic("medium")} className="relative z-10 bg-[#42ad77] hover:bg-[#3a9667] active:scale-[0.96] transition-[color,background-color,border-color,box-shadow,opacity,transform] rounded-full px-6 py-3 flex items-center justify-center shadow-sm">
               <span
                 className="text-base font-semibold text-white tracking-[-0.1815px] leading-none"
                 style={{
@@ -53,7 +54,7 @@ export default function MobileContact() {
               >
                 Get in touch
               </span>
-            </button>
+            </a>
           </motion.div>
 
           {/* Contact information */}
@@ -70,22 +71,12 @@ export default function MobileContact() {
                 <span className="text-[27px] leading-none">📧</span>
               </div>
               <a
-                href="#"
+                href="mailto:contact@nazarene.dev"
                 onClick={(e) => {
-                  e.preventDefault();
                   trackEvent("Clicked Contact Email (Mobile)");
                 }}
               >
-                <MagicTextReveal
-                  text="con***********.dev"
-                  hiddenText="contact@nazarene.dev"
-                  color="#000000"
-                  fontSize={16}
-                  fontWeight={500}
-                  spread={12}
-                  speed={0.5}
-                  density={4}
-                />
+                <span className="text-base md:text-2xl underline-offset-4 hover:underline">contact@nazarene.dev</span>
               </a>
             </motion.div>
 
@@ -100,17 +91,8 @@ export default function MobileContact() {
               <div className="w-[27.261px] h-[27.261px] flex items-center justify-center">
                 <span className="text-[27px] leading-none">📞</span>
               </div>
-              <a href="#" onClick={(e) => e.preventDefault()}>
-                <MagicTextReveal
-                  text="+639 *** *** **22"
-                  hiddenText="+639 454 178 422"
-                  color="#000000"
-                  fontSize={16}
-                  fontWeight={500}
-                  spread={12}
-                  speed={0.5}
-                  density={4}
-                />
+              <a href="tel:+639454178422">
+                <span className="text-base md:text-2xl underline-offset-4 hover:underline">+639 454 178 422</span>
               </a>
             </motion.div>
           </div>

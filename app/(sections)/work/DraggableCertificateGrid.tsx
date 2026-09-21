@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 
 import { motion, useInView } from "framer-motion";
 import React, { useCallback, useRef, useState } from "react";
@@ -60,7 +61,7 @@ export default function DraggableCertificateGrid({
       <div
         className={
           isDesktop
-            ? "grid grid-cols-3 gap-[80px] w-full"
+            ? "grid grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 w-full"
             : "grid grid-cols-2 gap-3 px-1"
         }
       >
@@ -211,7 +212,7 @@ function DraggableCard({
         style={{
           // Only disable touch-action when actively dragging.
           // Using "none" unconditionally kills iOS scroll through the card grid.
-          touchAction: isDragging || isLongPressing ? "none" : "pan-y",
+          touchAction: "pan-y pinch-zoom",
           userSelect: "none",
           WebkitUserSelect: "none",
         }}
@@ -235,6 +236,10 @@ function DraggableCard({
         onMouseUp={handleInteractionEnd}
         onMouseLeave={handleInteractionEnd}
         onClick={handleClick}
+        role="button"
+        tabIndex={0}
+        aria-label={`View ${cert.title}`}
+        onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); handleClick(); } }}
       >
         {/* Date Badge */}
         <motion.div
@@ -244,7 +249,7 @@ function DraggableCard({
           className="absolute top-[19px] right-[20px] bg-[#d9d9d9] rounded-full px-[12px] py-[9px] shadow-sm"
         >
           <p
-            className="text-[24px] font-normal leading-[12px] tracking-[-1px] text-black"
+            className="text-lg font-normal leading-normal tracking-[-1px] text-black"
             style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
           >
             {cert.date}
@@ -256,7 +261,7 @@ function DraggableCard({
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.6, ease: [0.21, 0.47, 0.32, 0.98], delay: index * 0.1 + 0.3 }}
-          className="absolute left-[84px] top-[88px] w-[205px] h-[205px] rounded-[5px] overflow-hidden pointer-events-none"
+          className="absolute left-1/2 -translate-x-1/2 top-[88px] w-[min(60%,205px)] aspect-square rounded-[5px] overflow-hidden pointer-events-none"
         >
           {imageError ? (
             <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-[#f5f5f5] via-[#e8e8e8] to-[#d9d9d9]">
@@ -265,7 +270,7 @@ function DraggableCard({
               </svg>
             </div>
           ) : (
-            <img
+            <Image width={256} height={256} sizes="256px" loading="lazy"
               src={cert.image}
               alt={`${cert.title} certification badge`}
               className="w-full h-full object-contain"
@@ -276,12 +281,12 @@ function DraggableCard({
         </motion.div>
 
         {/* Certificate Info */}
-        <div className="absolute bottom-[80px] left-[42px] right-[42px] pointer-events-none">
+        <div className="absolute bottom-10 left-6 right-6 pointer-events-none">
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             transition={{ duration: 0.6, ease: [0.21, 0.47, 0.32, 0.98], delay: index * 0.1 + 0.4 }}
-            className="text-[32px] font-semibold leading-[1.3] tracking-[-0.02em] text-black mb-4"
+            className="text-[clamp(22px,2.3vw,32px)] font-semibold leading-[1.3] tracking-[-0.02em] text-black mb-4"
             style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
           >
             {cert.title}
@@ -333,7 +338,7 @@ function DraggableCard({
       style={{
         // Only disable touch-action when actively dragging.
         // Using "none" unconditionally kills iOS scroll through the card grid.
-        touchAction: isDragging || isLongPressing ? "none" : "pan-y",
+        touchAction: "pan-y pinch-zoom",
         userSelect: "none",
         WebkitUserSelect: "none",
         background: "linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.15) 100%)",
@@ -452,7 +457,7 @@ function DraggableCard({
               </svg>
             </div>
           ) : (
-            <img
+            <Image width={256} height={256} sizes="256px" loading="lazy"
               src={cert.image}
               alt={`${cert.title} certification badge`}
               className="w-full h-full object-contain drop-shadow-xl"
@@ -649,7 +654,7 @@ function DragOverlay({ cert, position, offset, isDesktop }: DragOverlayProps) {
         {/* Date Badge */}
         <div className="absolute top-[19px] right-[20px] bg-[#d9d9d9] rounded-full px-[12px] py-[9px] shadow-md">
           <p
-            className="text-[24px] font-normal leading-[12px] tracking-[-1px] text-black"
+            className="text-lg font-normal leading-normal tracking-[-1px] text-black"
             style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
           >
             {cert.date}
@@ -657,7 +662,7 @@ function DragOverlay({ cert, position, offset, isDesktop }: DragOverlayProps) {
         </div>
 
         {/* Certificate Image */}
-        <div className="absolute left-[84px] top-[88px] w-[205px] h-[205px] rounded-[5px] overflow-hidden">
+        <div className="absolute left-1/2 -translate-x-1/2 top-[88px] w-[min(60%,205px)] aspect-square rounded-[5px] overflow-hidden">
           {imageError ? (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#f5f5f5] via-[#e8e8e8] to-[#d9d9d9]">
               <svg className="w-20 h-20 text-gray-400/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -665,7 +670,7 @@ function DragOverlay({ cert, position, offset, isDesktop }: DragOverlayProps) {
               </svg>
             </div>
           ) : (
-            <img
+            <Image width={256} height={256} sizes="256px" loading="lazy"
               src={cert.image}
               alt={cert.title}
               className="w-full h-full object-contain"
@@ -676,9 +681,9 @@ function DragOverlay({ cert, position, offset, isDesktop }: DragOverlayProps) {
         </div>
 
         {/* Certificate Info */}
-        <div className="absolute bottom-[80px] left-[42px] right-[42px]">
+        <div className="absolute bottom-10 left-6 right-6">
           <p
-            className="text-[32px] font-semibold leading-[1.3] tracking-[-0.02em] text-black mb-4"
+            className="text-[clamp(22px,2.3vw,32px)] font-semibold leading-[1.3] tracking-[-0.02em] text-black mb-4"
             style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
           >
             {cert.title}
@@ -780,7 +785,7 @@ function DragOverlay({ cert, position, offset, isDesktop }: DragOverlayProps) {
               </svg>
             </div>
           ) : (
-            <img
+            <Image width={256} height={256} sizes="256px" loading="lazy"
               src={cert.image}
               alt={cert.title}
               className="w-full h-full object-contain"

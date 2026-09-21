@@ -100,7 +100,7 @@ const Card = ({
   return (
     <div
       className={cn(
-        "rounded-2xl h-full w-full p-4 overflow-hidden bg-[rgba(243,243,243,0.5)] backdrop-blur-[36.31px] border border-[rgba(117,117,117,0.4)] relative z-20 shadow-[0px_8px_32px_0px_rgba(0,0,0,0.15)] hover:shadow-[0px_20px_60px_0px_rgba(0,0,0,0.4)] transition-all duration-200 group-hover:border-[#8eb08a]/60 flex flex-col justify-between",
+        "rounded-2xl h-full w-full p-4 overflow-hidden bg-[rgba(243,243,243,0.5)] backdrop-blur-[36.31px] border border-[rgba(117,117,117,0.4)] relative z-20 shadow-[0px_8px_32px_0px_rgba(0,0,0,0.15)] hover:shadow-[0px_20px_60px_0px_rgba(0,0,0,0.4)] transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-200 group-hover:border-[#8eb08a]/60 flex flex-col justify-between",
         className
       )}
     >
@@ -127,9 +127,9 @@ const CardHeader = ({
           href={work.linkedinUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="w-32 h-32 rounded-2xl overflow-hidden bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all duration-300 hover:scale-105 shadow-lg"
+          className="w-32 h-32 rounded-2xl overflow-hidden bg-white/10 flex items-center justify-center hover:bg-white/20 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 hover:scale-105 shadow-lg"
         >
-          <img
+          <Image width={256} height={256} sizes="256px" loading="lazy"
             src={work.logo}
             alt={`${work.companyName} logo`}
             className="w-full h-full object-cover"
@@ -147,7 +147,7 @@ const CardHeader = ({
         {/* Duration Badge with Tooltip */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="bg-[#8eb08a] rounded-full px-4 py-1.5 shadow-sm group-hover:shadow-md transition-all duration-300 cursor-help">
+            <div className="bg-[#8eb08a] rounded-full px-4 py-1.5 shadow-sm group-hover:shadow-md transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 cursor-help">
               <p
                 className="text-xs font-semibold text-white whitespace-nowrap"
                 style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}

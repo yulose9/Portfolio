@@ -190,7 +190,7 @@ export function MagicTextReveal({
   }, [asterisks, prefix, suffix, color, fontSize, fontWeight, spread, density]);
 
   // Animation loop
-  const animate = useCallback(() => {
+  const animate = useCallback(function animateFrame() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -276,7 +276,7 @@ export function MagicTextReveal({
     });
 
     ctx.restore();
-    animationRef.current = requestAnimationFrame(animate);
+    animationRef.current = requestAnimationFrame(animateFrame);
   }, [isHovered, isRevealed, color, speed, spread, hexToRgb]);
 
   // Initialize on mount

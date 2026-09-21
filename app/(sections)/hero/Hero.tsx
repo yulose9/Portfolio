@@ -1,5 +1,7 @@
 "use client";
 
+import { useHaptics } from "@/app/hooks/use-haptics";
+import { scrollToSection } from "@/app/utils/navigation";
 import { Highlighter } from "@/app/components/icons";
 import { MobileNav } from "@/app/components/layout";
 import { AnimatePresence } from "framer-motion";
@@ -18,6 +20,7 @@ import {
 const inter = Inter({ subsets: ["latin"] });
 
 export default function Hero() {
+  const haptic = useHaptics();
   const [isVisible, setIsVisible] = useState(true);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isOnLightSection, setIsOnLightSection] = useState(false);
@@ -106,55 +109,19 @@ export default function Hero() {
   }, [isInHeroSection, isVisible]);
 
   const handleScrollToPortfolio = () => {
-    // Hide the button with fade out
     setIsVisible(false);
-
-    // Smooth scroll to portfolio section using Lenis
-    setTimeout(() => {
-      const portfolioSection = document.getElementById("portfolio");
-      if (portfolioSection && window.lenis) {
-        window.lenis.scrollTo(portfolioSection, {
-          offset: 0,
-          duration: 1.5,
-          easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        });
-      }
-    }, 300);
+    scrollToSection("portfolio");
   };
 
-  const handleScrollToContact = () => {
-    // Find the visible contact section (there are separate mobile and desktop versions)
-    const contactElements = document.querySelectorAll("#contact");
-    const contactSection = Array.from(contactElements).find((el) => {
-      const style = window.getComputedStyle(el);
-      return (
-        style.display !== "none" &&
-        style.visibility !== "hidden" &&
-        (el as HTMLElement).offsetHeight > 0
-      );
-    }) as HTMLElement | null;
-
-    if (contactSection && window.lenis) {
-      window.lenis.scrollTo(contactSection, {
-        offset: 0,
-        duration: 1.5,
-        easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      });
-    } else if (contactSection) {
-      window.scrollTo({
-        top: contactSection.offsetTop,
-        behavior: "smooth",
-      });
-    }
-  };
+  const handleScrollToContact = () => { haptic("light"); scrollToSection("contact"); };
 
   return (
     <div
       id="home"
       className={`relative w-screen bg-brand-primary text-white ${inter.className} overflow-hidden flex flex-col`}
       style={{
-        height: "100dvh",
-        minHeight: "-webkit-fill-available",
+        height: "100svh",
+        minHeight: "640px",
       }}
     >
       {/* Top Navigation */}
@@ -172,7 +139,7 @@ export default function Hero() {
           <div className="flex items-center gap-4 ml-auto">
             <button
               onClick={handleScrollToContact}
-              className="hidden md:flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 bg-brand-secondary/50 backdrop-blur-lg rounded-full text-base lg:text-lg font-semibold hover:bg-brand-secondary/70 hover:scale-105 transition-all duration-300"
+              className="hidden md:flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 bg-brand-secondary/50 backdrop-blur-lg rounded-full text-base lg:text-lg font-semibold hover:bg-brand-secondary/70 hover:scale-105 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300"
             >
               <Mail className="w-5 h-5" />
               Get in touch
@@ -183,8 +150,11 @@ export default function Hero() {
 
       {/* Mobile Hamburger - Fixed/Sticky position (always on screen) */}
       <button
-        onClick={() => setIsMobileNavOpen(true)}
-        className={`md:hidden fixed top-4 right-4 z-[100] flex items-center justify-center w-11 h-11 backdrop-blur-lg rounded-full transition-all duration-300 shadow-lg ${
+        aria-label="Open navigation menu"
+        aria-expanded={isMobileNavOpen}
+        aria-controls="mobile-navigation"
+        onClick={() => { haptic("light"); setIsMobileNavOpen(true); }}
+        className={`md:hidden fixed top-4 right-4 z-[100] flex items-center justify-center w-11 h-11 backdrop-blur-lg rounded-full transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 shadow-lg ${
           isOnLightSection
             ? "bg-black hover:bg-black/80"
             : "bg-white/10 hover:bg-white/20"
@@ -204,25 +174,26 @@ export default function Hero() {
       />
 
       {/* Main Content - Mobile Layout */}
-      <main className="flex-1 relative">
+      <div className="flex-1 relative">
         {/* Mobile Layout (base to md) */}
         <div className="md:hidden absolute inset-0">
           {/* Hero Portrait - Mobile - Bottom Right */}
-          <div className="absolute right-0 bottom-0 w-[687px] h-[639px] overflow-hidden">
+          <div className="absolute right-0 bottom-0 w-full h-[min(78svh,639px)] overflow-hidden">
             <Image
               src="/image 1-final.png"
               alt="John Nazarene Dela Pisa"
               width={687}
               height={639}
-              priority
+              loading="eager"
               fetchPriority="high"
-              quality={90}
+              quality={82}
+              sizes="(max-width: 767px) 100vw, 672px"
               className="w-full h-full object-cover object-left"
             />
           </div>
 
           {/* Hero Text Container - Mobile */}
-          <div className="absolute left-[15px] top-[342px] w-auto max-w-[80vw] flex flex-col gap-[11px]">
+          <div className="absolute left-5 top-[22%] w-auto max-w-[85vw] flex flex-col gap-3 z-10">
             <div className="w-[24px] h-[24px]">
               <Highlighter />
             </div>
@@ -237,7 +208,7 @@ export default function Hero() {
           {/* Hero Title - Mobile */}
           <GradientText
             text="John Nazarene Dela Pisa"
-            className="absolute bottom-[250px] left-[10px] right-[10px] text-[clamp(24px,8vw,35px)] font-bold leading-[1] tracking-[-0.041em] text-center whitespace-nowrap"
+            className="absolute bottom-[26%] left-4 right-4 text-[clamp(22px,7vw,46px)] font-bold leading-[1] tracking-[-0.041em] text-center whitespace-nowrap"
             style={{
               textShadow: "0px 0px 4.35px rgba(0, 0, 0, 0.25)",
               fontFamily: "SF Pro Display, Inter, sans-serif",
@@ -251,7 +222,7 @@ export default function Hero() {
         {/* Desktop Layout (md and up) */}
         <div className="hidden md:flex flex-col items-center justify-center text-center absolute inset-0">
           {/* Location Badge - Desktop Only */}
-          <div className="absolute top-1/2 -translate-y-1/2 left-0 w-[356px] h-[162px] bg-white/10 backdrop-blur-lg rounded-r-3xl flex items-center justify-center z-[150]">
+          <div className="hidden xl:flex absolute top-1/2 -translate-y-1/2 left-0 w-[356px] h-[162px] bg-white/10 backdrop-blur-lg rounded-r-3xl flex items-center justify-center z-[150]">
             <div className="flex items-center gap-[51px] px-[54px]">
               <GsapBouncyText
                 text="Located in the Philippines"
@@ -287,9 +258,10 @@ export default function Hero() {
                   alt="John Nazarene Dela Pisa"
                   width={981}
                   height={913}
-                  priority
+                  loading="eager"
                   fetchPriority="high"
-                  quality={90}
+                  quality={82}
+              sizes="(max-width: 767px) 100vw, 672px"
                   placeholder="blur"
                   blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTgxIiBoZWlnaHQ9IjkxMyIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iOTgxIiBoZWlnaHQ9IjkxMyIgZmlsbD0iIzY1N0E2MiIvPjwvc3ZnPg=="
                   className="w-full h-auto object-contain"
@@ -313,7 +285,7 @@ export default function Hero() {
 
         {/* Shared Scroll Prompt (Handles its own responsive visibility) */}
         <ScrollPrompt isVisible={isVisible} onClick={handleScrollToPortfolio} />
-      </main>
+      </div>
     </div>
   );
 }

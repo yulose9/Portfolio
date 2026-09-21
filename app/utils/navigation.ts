@@ -66,6 +66,11 @@ export function scrollToSection(sectionId: string): void {
         return;
     }
 
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        targetElement.scrollIntoView({ behavior: "instant", block: "start" });
+        return;
+    }
+
     // Check if Lenis is available for smooth scroll
     if (window.lenis) {
         window.lenis.scrollTo(targetElement, {

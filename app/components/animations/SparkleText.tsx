@@ -207,7 +207,7 @@ export function SparkleText({
                       duration: sparkle.duration,
                       delay: sparkle.delay,
                       repeat: Infinity,
-                      repeatDelay: Math.random() * 1,
+                      repeatDelay: sparkle.delay,
                     }}
                   >
                     <SparkleIcon size={sparkle.size} color={sparkleColor} />

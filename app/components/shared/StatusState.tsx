@@ -39,7 +39,7 @@ export function StatusState({
           {onRetry && (
             <button
               onClick={onRetry}
-              className="group flex items-center gap-2 rounded-full bg-primary px-8 py-3 text-sm font-medium text-primary-foreground transition-all hover:opacity-90 hover:shadow-md"
+              className="group flex items-center gap-2 rounded-full bg-primary px-8 py-3 text-sm font-medium text-primary-foreground transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:opacity-90 hover:shadow-md"
             >
               <RefreshCcw className="h-4 w-4 transition-transform group-hover:rotate-180" />
               Try Again

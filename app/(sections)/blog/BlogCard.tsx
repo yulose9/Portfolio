@@ -58,7 +58,7 @@ export default function BlogCard({
 
       {/* Gradient overlay - enhanced on hover */}
       <div
-        className={`absolute inset-0 bg-gradient-to-b from-transparent via-black/30 to-black/90 transition-all duration-300 ${
+        className={`absolute inset-0 bg-gradient-to-b from-transparent via-black/30 to-black/90 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 ${
           !isPlaceholder &&
           "group-hover:from-transparent group-hover:via-black/50 group-hover:to-black"
         }`}
@@ -119,7 +119,7 @@ export default function BlogCard({
 
           {/* Description */}
           <p className="text-white/70 text-center text-sm max-w-[280px]">
-            I'm currently working on new content. Check back soon for insights,
+            I&apos;m currently working on new content. Check back soon for insights,
             tutorials, and stories!
           </p>
 
@@ -129,7 +129,7 @@ export default function BlogCard({
       ) : (
         <>
           {/* Content Container - slides up slightly on hover */}
-          <div className="absolute bottom-0 left-0 right-0 flex items-end pb-[31px] px-[31px] transition-all duration-300 group-hover:pb-[35px]">
+          <div className="absolute bottom-0 left-0 right-0 flex items-end pb-[31px] px-[31px] transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 group-hover:pb-[35px]">
             <div className="w-full space-y-[10px]">
               {/* Tag - glows on hover */}
               <motion.div
@@ -141,7 +141,7 @@ export default function BlogCard({
                 className="mb-[10px]"
               >
                 <span
-                  className="inline-block px-[8px] py-[3px] rounded-[21px] text-white text-[16px] font-bold uppercase tracking-tight transition-all duration-200 group-hover:shadow-lg group-hover:scale-105"
+                  className="inline-block px-[8px] py-[3px] rounded-[21px] text-white text-[16px] font-bold uppercase tracking-tight transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-200 group-hover:shadow-lg group-hover:scale-105"
                   style={{ backgroundColor: tagColor }}
                 >
                   {tag}
@@ -155,7 +155,7 @@ export default function BlogCard({
                   isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
                 }
                 transition={{ duration: 0.3, delay: 0.15 }}
-                className="text-white text-[27px] font-bold leading-[33px] tracking-wide transition-all duration-200 group-hover:text-[28px] group-hover:tracking-wider"
+                className="text-white text-[27px] font-bold leading-[33px] tracking-wide transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-200 group-hover:text-[28px] group-hover:tracking-wider"
               >
                 {title}
               </motion.h3>
@@ -177,7 +177,7 @@ export default function BlogCard({
       )}
 
       {/* Subtle border glow on hover */}
-      <div className="absolute inset-0 rounded-[31px] ring-0 ring-white/0 transition-all duration-300 group-hover:ring-2 group-hover:ring-white/20 pointer-events-none" />
+      <div className="absolute inset-0 rounded-[31px] ring-0 ring-white/0 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 group-hover:ring-2 group-hover:ring-white/20 pointer-events-none" />
     </motion.div>
   );
 }

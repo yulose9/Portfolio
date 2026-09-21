@@ -1,5 +1,12 @@
 # dependencies
 node_modules/
+.tools/
+.audit/
+public/optimized/
+# Keep the installed skill instructions without vendoring its example applications.
+.agents/skills/web-haptics/*
+!.agents/skills/web-haptics/SKILL.md
+!.agents/skills/web-haptics/LICENSE
 /.pnp
 .pnp.js
 .yarn/

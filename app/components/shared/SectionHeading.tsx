@@ -86,7 +86,7 @@ export function SectionHeading({
     leading-[84px]
     tracking-[-1.2px]
     ${textColor}
-    transition-all
+    transition-[color,background-color,border-color,box-shadow,opacity,transform]
     duration-300
   `;
 

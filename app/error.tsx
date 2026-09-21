@@ -1,7 +1,7 @@
 "use client";
 
 import { GlassStatusState } from "@/app/components/shared/GlassStatusState";
-import { usePostHog } from "posthog-js/react";
+
 import { useEffect } from "react";
 
 export default function ErrorBoundary({
@@ -11,15 +11,17 @@ export default function ErrorBoundary({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const posthog = usePostHog();
+
 
   useEffect(() => {
     // Keep your existing PostHog logging
-    if (posthog) {
-      posthog.captureException(error);
+    if (process.env.NEXT_PUBLIC_POSTHOG_KEY) {
+      void import("posthog-js").then(({ default: posthog }) => {
+        if (posthog.__loaded) posthog.captureException(error);
+      }).catch(() => {});
     }
     console.error(error);
-  }, [error, posthog]);
+  }, [error]);
 
   return <GlassStatusState code="500" onRetry={reset} />;
 }

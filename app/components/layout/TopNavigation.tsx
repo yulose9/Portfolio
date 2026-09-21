@@ -82,7 +82,7 @@ export default function TopNavigation() {
     <>
       <header
         className={`${isScrolled ? "fixed md:absolute" : "absolute"
-          } top-0 left-0 right-0 z-20 transition-all duration-300 ${isScrolled ? "bg-[#374136]/80 backdrop-blur-lg md:bg-transparent" : ""
+          } top-0 left-0 right-0 z-20 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 ${isScrolled ? "bg-[#374136]/80 backdrop-blur-lg md:bg-transparent" : ""
           }`}
       >
         <nav className="flex items-center justify-between p-4 md:p-6 lg:p-8">
@@ -98,7 +98,7 @@ export default function TopNavigation() {
           <div className="hidden md:flex items-center gap-2 absolute left-1/2 -translate-x-1/2">
             <button
               onClick={() => scrollToSection("home")}
-              className="flex items-center justify-center w-12 h-12 bg-white/10 backdrop-blur-lg rounded-full hover:bg-white/20 transition-all duration-300"
+              className="flex items-center justify-center w-12 h-12 bg-white/10 backdrop-blur-lg rounded-full hover:bg-white/20 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300"
             >
               <Home className="w-6 h-6 text-white" />
             </button>
@@ -107,7 +107,7 @@ export default function TopNavigation() {
                 <button
                   key={link.label}
                   onClick={() => scrollToSection(link.id)}
-                  className="px-4 py-2 text-base lg:px-6 lg:text-lg font-medium rounded-full hover:bg-white/10 transition-all duration-300"
+                  className="px-4 py-2 text-base lg:px-6 lg:text-lg font-medium rounded-full hover:bg-white/10 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300"
                 >
                   {link.label}
                 </button>
@@ -119,7 +119,7 @@ export default function TopNavigation() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => scrollToSection("contact")}
-              className="hidden md:flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 bg-[#374136]/50 backdrop-blur-lg rounded-full text-base lg:text-lg font-semibold hover:bg-[#374136]/70 hover:scale-105 transition-all duration-300"
+              className="hidden md:flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 bg-[#374136]/50 backdrop-blur-lg rounded-full text-base lg:text-lg font-semibold hover:bg-[#374136]/70 hover:scale-105 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300"
             >
               <Mail className="w-5 h-5" />
               Get in touch
@@ -131,7 +131,7 @@ export default function TopNavigation() {
       {/* Mobile Hamburger - Sticky/Fixed position */}
       <button
         onClick={() => setIsMobileMenuOpen(true)}
-        className={`md:hidden fixed top-4 right-4 z-[100] flex items-center justify-center w-11 h-11 backdrop-blur-lg rounded-full transition-all duration-300 shadow-lg ${isOnLightSection
+        className={`md:hidden fixed top-4 right-4 z-[100] flex items-center justify-center w-11 h-11 backdrop-blur-lg rounded-full transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 shadow-lg ${isOnLightSection
           ? "bg-black/10 hover:bg-black/20"
           : "bg-white/10 hover:bg-white/20"
           }`}

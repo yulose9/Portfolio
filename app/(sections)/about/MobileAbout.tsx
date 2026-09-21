@@ -35,21 +35,7 @@ export default function MobileAbout() {
           >
             About
           </h2>
-          <button className="p-1" aria-label="View more about">
-            <svg
-              className="w-[18.408px] h-[15.082px] text-black"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M14 5l7 7m0 0l-7 7m7-7H3"
-              />
-            </svg>
-          </button>
+
         </motion.div>
 
         {/* Bento Grid - Mobile Scaled Down from Desktop (maintaining exact proportions) */}
@@ -101,6 +87,7 @@ export default function MobileAbout() {
                       src="/new_images/20240505_002215.jpg"
                       alt="About 1"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -137,6 +124,7 @@ export default function MobileAbout() {
                       src="/new_images/20241103_174110.jpg"
                       alt="About 2"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -173,6 +161,7 @@ export default function MobileAbout() {
                       src="/new_images/20241217_214653.jpg"
                       alt="About 3"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -209,6 +198,7 @@ export default function MobileAbout() {
                       src="/new_images/20250122_180802.jpg"
                       alt="About 4"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -245,6 +235,7 @@ export default function MobileAbout() {
                       src="/new_images/20250429_151140.jpg"
                       alt="About 5"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -281,6 +272,7 @@ export default function MobileAbout() {
                       src="/new_images/20250429_152858.jpg"
                       alt="About 6"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -317,6 +309,7 @@ export default function MobileAbout() {
                       src="/new_images/IMG_20230623_134358.jpg"
                       alt="About 7"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -353,6 +346,7 @@ export default function MobileAbout() {
                       src="/new_images/IMG_20210208_172445.jpg"
                       alt="About 8"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -386,6 +380,7 @@ export default function MobileAbout() {
                       src="/new_images/IMG_0142.JPG"
                       alt="About 9"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -422,6 +417,7 @@ export default function MobileAbout() {
                       src="/new_images/IMG_20211209_161208.jpg"
                       alt="About 10"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -458,6 +454,7 @@ export default function MobileAbout() {
                       src="/new_images/IMG_20211216_162442.jpg"
                       alt="About 11"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -494,6 +491,7 @@ export default function MobileAbout() {
                       src="/new_images/IMG_20220724_065655.jpg"
                       alt="About 12"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -530,6 +528,7 @@ export default function MobileAbout() {
                       src="/new_images/IMG_20230209_191600.jpg"
                       alt="About 13"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -566,6 +565,7 @@ export default function MobileAbout() {
                       src="/new_images/IMG_20230313_134905.jpg"
                       alt="About 14"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -602,6 +602,7 @@ export default function MobileAbout() {
                       src="/new_images/IMG_20230316_161832.jpg"
                       alt="About 15"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>

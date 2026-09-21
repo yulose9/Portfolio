@@ -2,10 +2,11 @@
 const nextConfig = {
   output: "export",
   images: {
-    unoptimized: true,
+    loader: "custom",
+    loaderFile: "./app/image-loader.ts",
     formats: ["image/avif", "image/webp"],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    deviceSizes: [480, 768, 1080, 1600],
+    imageSizes: [96, 256],
     qualities: [75, 90, 95, 100],
   },
 };

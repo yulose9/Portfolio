@@ -9,6 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/app/components/ui/tooltip";
+import { useHaptics } from "@/app/hooks/use-haptics";
 import { AnimatePresence, motion } from "framer-motion";
 import { Inter } from "next/font/google";
 import { useState } from "react";
@@ -128,6 +129,7 @@ const certificates: Certificate[] = [
 ];
 
 export default function Work() {
+  const haptic = useHaptics();
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid"); // Default to grid view
   const [hoveredRowIndex, setHoveredRowIndex] = useState<number | null>(null);
 
@@ -157,8 +159,8 @@ export default function Work() {
               <div className="flex gap-4">
                 {/* Grid View Button */}
                 <button
-                  onClick={() => setViewMode("grid")}
-                  className={`w-[60px] h-[60px] rounded-full backdrop-blur-[23.49px] border shadow-[0px_32px_64px_0px_rgba(0,0,0,0.19),0px_2px_21px_0px_rgba(0,0,0,0.15)] hover:scale-110 transition-all flex items-center justify-center ${viewMode === "grid"
+                  aria-pressed={viewMode === "grid"} onClick={() => { if (viewMode !== "grid") haptic("selection"); setViewMode("grid"); }}
+                  className={`w-[60px] h-[60px] rounded-full backdrop-blur-[23.49px] border shadow-[0px_32px_64px_0px_rgba(0,0,0,0.19),0px_2px_21px_0px_rgba(0,0,0,0.15)] hover:scale-110 transition-[color,background-color,border-color,box-shadow,opacity,transform] flex items-center justify-center ${viewMode === "grid"
                     ? "bg-white border-white"
                     : "bg-[#697668]/80 border-[rgba(117,117,117,0.4)]"
                     }`}
@@ -194,8 +196,8 @@ export default function Work() {
                 </button>
                 {/* List View Button */}
                 <button
-                  onClick={() => setViewMode("list")}
-                  className={`w-[60px] h-[60px] rounded-full backdrop-blur-[23.49px] border shadow-[0px_32px_64px_0px_rgba(0,0,0,0.19),0px_2px_21px_0px_rgba(0,0,0,0.15)] hover:scale-110 transition-all flex items-center justify-center ${viewMode === "list"
+                  aria-pressed={viewMode === "list"} onClick={() => { if (viewMode !== "list") haptic("selection"); setViewMode("list"); }}
+                  className={`w-[60px] h-[60px] rounded-full backdrop-blur-[23.49px] border shadow-[0px_32px_64px_0px_rgba(0,0,0,0.19),0px_2px_21px_0px_rgba(0,0,0,0.15)] hover:scale-110 transition-[color,background-color,border-color,box-shadow,opacity,transform] flex items-center justify-center ${viewMode === "list"
                     ? "bg-white border-white"
                     : "bg-[#697668]/80 border-[rgba(117,117,117,0.4)]"
                     }`}
@@ -231,7 +233,7 @@ export default function Work() {
             {/* Conditional Rendering: List View or Grid View */}
             {/* Wrapper with fixed minimum height to prevent layout shift */}
             <div className="flex-1 flex items-start">
-              <AnimatePresence mode="wait">
+              <AnimatePresence initial={false} mode="wait">
                 {viewMode === "list" ? (
                   /* List View - Table Layout */
                   <motion.div
@@ -448,9 +450,6 @@ export default function Work() {
               <SectionHeader
                 title="Certificates & Licenses"
                 textColor="text-white"
-                onArrowClick={() => {
-                  // TODO: Add navigation to dedicated certificates page
-                }}
               />
               <GsapBouncyText
                 text="Professional certifications and credentials that validate my technical expertise and continuous learning journey. These represent formal recognition of skills in cloud computing, system administration, and emerging technologies. Each credential reflects a commitment to staying current and mastering industry standards."
@@ -471,17 +470,7 @@ export default function Work() {
               />
             </div>
 
-            {/* View All Button */}
-            <div className="flex justify-center">
-              <button className="bg-[#8eb08a] rounded-[24px] px-[24px] py-[16px] h-[70px] w-[220px] shadow-md hover:scale-105 transition-transform hover:shadow-lg">
-                <span
-                  className="text-[22px] font-semibold leading-[22px] tracking-[-0.4px] text-white text-center"
-                  style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-                >
-                  View All
-                </span>
-              </button>
-            </div>
+
           </div>
         </section>
       </div>

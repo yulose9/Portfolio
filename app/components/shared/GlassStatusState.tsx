@@ -194,7 +194,7 @@ export function GlassStatusState({
             {onRetry && (
               <button
                 onClick={onRetry}
-                className="group flex items-center justify-center gap-2 px-6 py-3 bg-brand-secondary/50 backdrop-blur-lg rounded-full text-sm font-semibold text-white hover:bg-brand-secondary/70 hover:scale-105 transition-all duration-300 shadow-lg"
+                className="group flex items-center justify-center gap-2 px-6 py-3 bg-brand-secondary/50 backdrop-blur-lg rounded-full text-sm font-semibold text-white hover:bg-brand-secondary/70 hover:scale-105 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 shadow-lg"
               >
                 <RefreshCcw className="h-4 w-4 transition-transform group-hover:rotate-180" />
                 Try Again
@@ -204,7 +204,7 @@ export function GlassStatusState({
             {actionHref && (
               <Link
                 href={actionHref}
-                className="group flex items-center justify-center gap-2 px-6 py-3 bg-brand-secondary/50 backdrop-blur-lg rounded-full text-sm font-semibold text-white hover:bg-brand-secondary/70 hover:scale-105 transition-all duration-300 shadow-lg"
+                className="group flex items-center justify-center gap-2 px-6 py-3 bg-brand-secondary/50 backdrop-blur-lg rounded-full text-sm font-semibold text-white hover:bg-brand-secondary/70 hover:scale-105 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 shadow-lg"
               >
                 <Home className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
                 {actionLabel}

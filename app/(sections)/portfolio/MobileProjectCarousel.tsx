@@ -1,5 +1,6 @@
 "use client";
 
+import { useHaptics } from "@/app/hooks/use-haptics";
 import { useOutsideClick } from "@/app/hooks/use-outside-click";
 import { lockScroll, unlockScroll } from "@/app/utils/scroll-lock";
 import { cn } from "@/lib/utils";
@@ -60,6 +61,14 @@ export const Card = ({
   // Generate unique lock ID for this card
   const lockId = `mobile-project-carousel-${index}`;
 
+  const handleClose = () => {
+    // Explicitly unlock scroll before state change
+    // This ensures scroll is unlocked even if effect cleanup is delayed
+    unlockScroll(lockId, true);
+    setOpen(false);
+    onCardClose(index);
+  };
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -84,13 +93,7 @@ export const Card = ({
     setOpen(true);
   };
 
-  const handleClose = () => {
-    // Explicitly unlock scroll before state change
-    // This ensures scroll is unlocked even if effect cleanup is delayed
-    unlockScroll(lockId, true);
-    setOpen(false);
-    onCardClose(index);
-  };
+
 
   return (
     <>
@@ -120,6 +123,7 @@ export const Card = ({
               <button
                 className="sticky top-4 ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-black dark:bg-white"
                 onClick={handleClose}
+                aria-label="Close project details"
               >
                 <X className="h-6 w-6 text-neutral-100 dark:text-neutral-900" />
               </button>
@@ -204,16 +208,12 @@ export const Card = ({
 export default function MobileProjectCarousel({
   projects,
 }: MobileProjectCarouselProps) {
+  const haptic = useHaptics();
   const carouselRef = React.useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = React.useState(false);
   const [canScrollRight, setCanScrollRight] = React.useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  useEffect(() => {
-    if (carouselRef.current) {
-      checkScrollability();
-    }
-  }, []);
 
   const checkScrollability = () => {
     if (carouselRef.current) {
@@ -223,7 +223,14 @@ export default function MobileProjectCarousel({
     }
   };
 
+  useEffect(() => {
+    if (carouselRef.current) {
+      checkScrollability();
+    }
+  }, []);
+
   const scrollLeft = () => {
+    haptic("selection");
     if (carouselRef.current) {
       const cardWidth = 224; // w-56
       const gap = 16; // gap-4
@@ -237,6 +244,7 @@ export default function MobileProjectCarousel({
   };
 
   const scrollRight = () => {
+    haptic("selection");
     if (carouselRef.current) {
       const cardWidth = 224; // w-56
       const gap = 16; // gap-4
@@ -251,9 +259,9 @@ export default function MobileProjectCarousel({
 
   const handleCardClose = (index: number) => {
     if (carouselRef.current) {
-      const cardWidth = 230; // w-56 = 224px + gap
+      const cardWidth = 224; // w-56 = 224px + gap
       const gap = 16;
-      const scrollPosition = (cardWidth + gap) * (index + 1);
+      const scrollPosition = (cardWidth + gap) * index;
       carouselRef.current.scrollTo({
         left: scrollPosition,
         behavior: "smooth",
@@ -335,7 +343,7 @@ export default function MobileProjectCarousel({
                   },
                 }}
                 key={"card" + index}
-                className="rounded-3xl last:pr-[5%]"
+                className="shrink-0 rounded-3xl last:pr-4"
               >
                 {item}
               </motion.div>
@@ -346,6 +354,7 @@ export default function MobileProjectCarousel({
           <button
             className="relative z-40 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 disabled:opacity-50"
             onClick={scrollLeft}
+            aria-label="Previous project"
             disabled={!canScrollLeft}
           >
             <ChevronLeft className="h-6 w-6 text-gray-500" />
@@ -353,6 +362,7 @@ export default function MobileProjectCarousel({
           <button
             className="relative z-40 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 disabled:opacity-50"
             onClick={scrollRight}
+            aria-label="Next project"
             disabled={!canScrollRight}
           >
             <ChevronRight className="h-6 w-6 text-gray-500" />

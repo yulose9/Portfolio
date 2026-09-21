@@ -25,7 +25,7 @@ export default function SectionHeader({
       <GsapBouncyText
         text={title}
         as="h2"
-        className={`text-[64px] font-medium leading-[0.938] tracking-[-1.28px] ${textColor}`}
+        className={`text-[clamp(36px,5vw,64px)] font-medium leading-[0.938] tracking-[-1.28px] ${textColor}`}
         style={{ fontFamily: "Inter, sans-serif" }}
         delay={delay}
       />

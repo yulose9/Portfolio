@@ -83,9 +83,6 @@ export default function Portfolio() {
         <div className="flex flex-col gap-2 md:gap-4 mb-4 md:mb-6 max-w-[1280px] mx-auto w-full">
           <SectionHeader
             title="Projects"
-            onArrowClick={() => {
-              // TODO: Add navigation to dedicated projects page
-            }}
           />
           <GsapBouncyText
             text="Works I’ve done across different areas, from web and software development to research and hardware builds. Each project represents how I think, solve problems, and turn ideas into something useful. It’s a mix of technical skill and curiosity, showing both the process and the purpose behind what I create."
@@ -105,9 +102,6 @@ export default function Portfolio() {
         <div className="flex flex-col gap-2 md:gap-4 mb-4 md:mb-6 max-w-[1280px] mx-auto w-full">
           <SectionHeader
             title="Blogs"
-            onArrowClick={() => {
-              // TODO: Add navigation to dedicated blogs page
-            }}
           />
           <GsapBouncyText
             text="A space where I share my thoughts, insights, and lessons from the things I learn and experience. Some entries are reflections, others are guides or deep dives into topics that caught my interest. It’s where I explore ideas, connect concepts, and document what I find meaningful or useful along the way."

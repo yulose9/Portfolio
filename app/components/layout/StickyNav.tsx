@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
+import { scrollToSection } from "@/app/utils/navigation";
 import { Home } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -8,8 +9,8 @@ export default function StickyNav() {
   const [activeSection, setActiveSection] = useState("home");
   const [isAtBottom, setIsAtBottom] = useState(false);
   const [shouldHide, setShouldHide] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-  const [welcomeComplete, setWelcomeComplete] = useState(false);
+  const isMounted = true;
+  const welcomeComplete = true;
 
   // Refs for nav item measurements
   const navContainerRef = useRef<HTMLDivElement>(null);
@@ -19,30 +20,6 @@ export default function StickyNav() {
   // Store contact/footer refs
   const contactRef = useRef<HTMLElement | null>(null);
   const footerRef = useRef<HTMLElement | null>(null);
-
-  // Listen for welcome screen completion
-  useEffect(() => {
-    const handlePreloadComplete = () => {
-      // Add a small delay for smooth transition after welcome screen lifts
-      setTimeout(() => {
-        setWelcomeComplete(true);
-      }, 800);
-    };
-
-    // Check if preload already completed (e.g., on fast refresh)
-    // The welcome screen dispatches 'preloadComplete' event
-    window.addEventListener("preloadComplete", handlePreloadComplete);
-
-    // Safety timeout - show nav after 6 seconds regardless
-    const safetyTimer = setTimeout(() => {
-      setWelcomeComplete(true);
-    }, 6000);
-
-    return () => {
-      window.removeEventListener("preloadComplete", handlePreloadComplete);
-      clearTimeout(safetyTimer);
-    };
-  }, []);
 
   const findElements = useCallback(() => {
     // Find the visible contact section (desktop)
@@ -68,10 +45,6 @@ export default function StickyNav() {
     }) as HTMLElement | null;
   }, []);
 
-  useEffect(() => {
-    // Mark as mounted
-    setIsMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!isMounted) return;
@@ -168,24 +141,6 @@ export default function StickyNav() {
     };
   }, [isMounted, findElements]);
 
-  const scrollToSection = useCallback((sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (!element) {
-      console.warn(`Section "${sectionId}" not found`);
-      return;
-    }
-
-    // Use Lenis if available, otherwise fallback
-    if (window.lenis) {
-      window.lenis.scrollTo(element, {
-        offset: 0,
-        duration: 1.5,
-        easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      });
-    } else {
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, []);
 
   const navItems = [
     { id: "portfolio", label: "Portfolio" },

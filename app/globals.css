@@ -9,14 +9,12 @@
 
 html,
 body {
-  overflow-x: hidden;
+  overflow-x: clip;
   max-width: 100vw;
   width: 100%;
   /* Allow normal scrolling; 'manipulation' prevents double-tap zoom
      without blocking iOS momentum scroll (pan-x pan-y was causing freeze) */
   touch-action: manipulation;
-  /* Prevent scroll chaining to parent */
-  overscroll-behavior: contain;
 }
 
 /* 
@@ -34,8 +32,7 @@ body {
 
   /* Ensure the main content is scrollable even if body has overflow issues */
   #main-content {
-    touch-action: pan-y;
-    -webkit-overflow-scrolling: touch;
+    touch-action: manipulation;
   }
 }
 
@@ -200,7 +197,6 @@ body {
   font-weight: 600;
   font-size: 1rem;
   border-radius: 0 0 0.5rem 0;
-  transition: top 0.3s ease;
 }
 
 .skip-link:focus {
@@ -225,7 +221,6 @@ select:focus-visible {
   outline: 2px solid #42ad77;
   outline-offset: 2px;
   box-shadow: 0 0 0 4px rgba(66, 173, 119, 0.2);
-  transition: box-shadow 0.2s ease, outline 0.2s ease;
 }
 
 /* Dark Background Focus (for elements on dark sections) */
@@ -287,7 +282,6 @@ select:focus-visible {
   input[type="reset"] {
     min-width: 44px;
     min-height: 44px;
-    padding: 0.5rem;
   }
 }
 
@@ -300,4 +294,21 @@ select:focus-visible {
 ::-moz-selection {
   background-color: #42ad77;
   color: #ffffff;
+}
+
+/* Fluid layouts preserve the composition on phones and small laptops. */
+:root { --ease-out: cubic-bezier(0.23, 1, 0.32, 1); }
+html { scroll-padding-top: 1rem; }
+button, a { -webkit-tap-highlight-color: transparent; }
+.pressable { transition: transform 150ms var(--ease-out), background-color 150ms ease; }
+.pressable:active:not(:disabled) { transform: scale(0.96); }
+.image-tile { outline: 1px solid oklch(0 0 0 / 0.1); outline-offset: -1px; }
+.image-tile:focus-visible { outline: 3px solid #243621; outline-offset: 3px; }
+.mobile-navigation { padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
+@media (hover: none), (pointer: coarse) {
+  .group:hover .group-hover\:scale-110, .group:hover .group-hover\:scale-105,
+  .hover\:scale-105:hover, .hover\:scale-110:hover { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pressable:active:not(:disabled) { transform: none; }
 }

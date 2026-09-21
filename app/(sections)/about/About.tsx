@@ -26,9 +26,9 @@ export default function About() {
       >
         {/* Animated gradient orbs in background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[20%] left-[10%] w-[500px] h-[500px] bg-[#dfffd9] rounded-full blur-[120px] opacity-30 animate-pulse" />
+          <div className="absolute top-[20%] left-[10%] w-[46.555%] h-[72.886%] bg-[#dfffd9] rounded-full blur-[120px] opacity-30 animate-pulse" />
           <div
-            className="absolute bottom-[10%] right-[15%] w-[600px] h-[600px] bg-[#ffcae7] rounded-full blur-[140px] opacity-25 animate-pulse"
+            className="absolute bottom-[10%] right-[15%] w-[55.866%] h-[87.464%] bg-[#ffcae7] rounded-full blur-[140px] opacity-25 animate-pulse"
             style={{ animationDelay: "1s" }}
           />
         </div>
@@ -39,31 +39,17 @@ export default function About() {
             <GsapBouncyText
               text="About"
               as="h2"
-              className="text-[64px] font-medium leading-[0.938] tracking-[-2.56px] text-black"
+              className="text-[clamp(36px,5vw,64px)] font-medium leading-[0.938] tracking-[-2.56px] text-black"
               style={{ fontFamily: "Inter, sans-serif" }}
             />
-            <button className="p-1 hover:scale-110 transition-transform">
-              <svg
-                className="w-12 h-12 text-black"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M14 5l7 7m0 0l-7 7m7-7H3"
-                />
-              </svg>
-            </button>
+
           </div>
 
           {/* Bento Grid - Exact Figma Layout - Centered */}
           <div className="flex justify-center">
             <div
-              className="relative w-[1074px] h-[686px]"
-              style={{ transform: "scale(0.85)", transformOrigin: "center" }}
+              className="relative w-full max-w-[1074px] aspect-[1074/686] my-8"
+
             >
               {/* Image 1: Top-left small square */}
               <motion.div
@@ -74,11 +60,11 @@ export default function About() {
                     : { opacity: 0, y: 30, scale: 0.9 }
                 }
                 transition={{
-                  duration: 0.6,
+                  duration: 0.3,
                   delay: 0.1,
                   ease: [0.21, 0.47, 0.32, 0.98],
                 }}
-                className="absolute w-[154px] h-[93px] left-0 top-0 rounded-[26px] overflow-hidden group cursor-pointer"
+                className="absolute w-[14.339%] h-[13.557%] left-0 top-0 rounded-[26px] overflow-hidden group cursor-pointer"
               >
                 <BentoImageZoom
                   src="/new_images/20240505_002215.jpg"
@@ -89,6 +75,7 @@ export default function About() {
                       src="/new_images/20240505_002215.jpg"
                       alt="About 1"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -104,11 +91,11 @@ export default function About() {
                     : { opacity: 0, y: 30, scale: 0.9 }
                 }
                 transition={{
-                  duration: 0.6,
+                  duration: 0.3,
                   delay: 0.15,
                   ease: [0.21, 0.47, 0.32, 0.98],
                 }}
-                className="absolute w-[155px] h-[434px] left-[160px] top-0 rounded-[26px] overflow-hidden group cursor-pointer"
+                className="absolute w-[14.432%] h-[63.265%] left-[14.898%] top-0 rounded-[26px] overflow-hidden group cursor-pointer"
               >
                 <BentoImageZoom
                   src="/new_images/20241103_174110.jpg"
@@ -119,6 +106,7 @@ export default function About() {
                       src="/new_images/20241103_174110.jpg"
                       alt="About 2"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -134,11 +122,11 @@ export default function About() {
                     : { opacity: 0, y: 30, scale: 0.9 }
                 }
                 transition={{
-                  duration: 0.6,
-                  delay: 0.2,
+                  duration: 0.3,
+                  delay: 0.15,
                   ease: [0.21, 0.47, 0.32, 0.98],
                 }}
-                className="absolute w-[99px] h-[192px] left-[324px] top-0 rounded-[26px] overflow-hidden group cursor-pointer"
+                className="absolute w-[9.218%] h-[27.988%] left-[30.168%] top-0 rounded-[26px] overflow-hidden group cursor-pointer"
               >
                 <BentoImageZoom
                   src="/new_images/20241217_214653.jpg"
@@ -149,6 +137,7 @@ export default function About() {
                       src="/new_images/20241217_214653.jpg"
                       alt="About 3"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -164,11 +153,11 @@ export default function About() {
                     : { opacity: 0, y: 30, scale: 0.9 }
                 }
                 transition={{
-                  duration: 0.6,
-                  delay: 0.25,
+                  duration: 0.3,
+                  delay: 0.15,
                   ease: [0.21, 0.47, 0.32, 0.98],
                 }}
-                className="absolute w-[480px] h-[192px] left-[433px] top-0 rounded-[26px] overflow-hidden group cursor-pointer"
+                className="absolute w-[44.693%] h-[27.988%] left-[40.317%] top-0 rounded-[26px] overflow-hidden group cursor-pointer"
               >
                 <BentoImageZoom
                   src="/new_images/20250122_180802.jpg"
@@ -179,6 +168,7 @@ export default function About() {
                       src="/new_images/20250122_180802.jpg"
                       alt="About 4"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -194,11 +184,11 @@ export default function About() {
                     : { opacity: 0, y: 30, scale: 0.9 }
                 }
                 transition={{
-                  duration: 0.6,
-                  delay: 0.3,
+                  duration: 0.3,
+                  delay: 0.15,
                   ease: [0.21, 0.47, 0.32, 0.98],
                 }}
-                className="absolute w-[153px] h-[92px] left-[921px] top-0 rounded-[26px] overflow-hidden group cursor-pointer"
+                className="absolute w-[14.246%] h-[13.411%] left-[85.754%] top-0 rounded-[26px] overflow-hidden group cursor-pointer"
               >
                 <BentoImageZoom
                   src="/new_images/20250429_151140.jpg"
@@ -209,6 +199,7 @@ export default function About() {
                       src="/new_images/20250429_151140.jpg"
                       alt="About 5"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -224,11 +215,11 @@ export default function About() {
                     : { opacity: 0, y: 30, scale: 0.9 }
                 }
                 transition={{
-                  duration: 0.6,
-                  delay: 0.35,
+                  duration: 0.3,
+                  delay: 0.15,
                   ease: [0.21, 0.47, 0.32, 0.98],
                 }}
-                className="absolute w-[153px] h-[389px] left-[921px] top-[99px] rounded-[26px] overflow-hidden group cursor-pointer"
+                className="absolute w-[14.246%] h-[56.706%] left-[85.754%] top-[14.431%] rounded-[26px] overflow-hidden group cursor-pointer"
               >
                 <BentoImageZoom
                   src="/new_images/20250429_152858.jpg"
@@ -239,6 +230,7 @@ export default function About() {
                       src="/new_images/20250429_152858.jpg"
                       alt="About 6"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -254,11 +246,11 @@ export default function About() {
                     : { opacity: 0, y: 30, scale: 0.9 }
                 }
                 transition={{
-                  duration: 0.6,
-                  delay: 0.4,
+                  duration: 0.3,
+                  delay: 0.15,
                   ease: [0.21, 0.47, 0.32, 0.98],
                 }}
-                className="absolute w-[154px] h-[142px] left-0 top-[104px] rounded-[26px] overflow-hidden group cursor-pointer"
+                className="absolute w-[14.339%] h-[20.700%] left-0 top-[15.160%] rounded-[26px] overflow-hidden group cursor-pointer"
               >
                 <BentoImageZoom
                   src="/new_images/IMG_20230623_134358.jpg"
@@ -269,6 +261,7 @@ export default function About() {
                       src="/new_images/IMG_20230623_134358.jpg"
                       alt="About 7"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -284,11 +277,11 @@ export default function About() {
                     : { opacity: 0, y: 30, scale: 0.9 }
                 }
                 transition={{
-                  duration: 0.6,
-                  delay: 0.45,
+                  duration: 0.3,
+                  delay: 0.15,
                   ease: [0.21, 0.47, 0.32, 0.98],
                 }}
-                className="absolute w-[154px] h-[170px] left-0 top-[257px] rounded-[26px] overflow-hidden group cursor-pointer"
+                className="absolute w-[14.339%] h-[24.781%] left-0 top-[37.464%] rounded-[26px] overflow-hidden group cursor-pointer"
               >
                 <BentoImageZoom
                   src="/new_images/IMG_20210208_172445.jpg"
@@ -299,6 +292,7 @@ export default function About() {
                       src="/new_images/IMG_20210208_172445.jpg"
                       alt="About 8"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -314,11 +308,11 @@ export default function About() {
                     : { opacity: 0, y: 30, scale: 0.9 }
                 }
                 transition={{
-                  duration: 0.6,
-                  delay: 0.5,
+                  duration: 0.3,
+                  delay: 0.15,
                   ease: [0.21, 0.47, 0.32, 0.98],
                 }}
-                className="absolute w-[425px] h-[287px] left-[324px] top-[201px] rounded-[26px] overflow-hidden group cursor-pointer"
+                className="absolute w-[39.572%] h-[41.837%] left-[30.168%] top-[29.300%] rounded-[26px] overflow-hidden group cursor-pointer"
               >
                 <BentoImageZoom src="/new_images/IMG_0142.JPG" alt="About 9">
                   <div className="relative w-full h-full">
@@ -326,6 +320,7 @@ export default function About() {
                       src="/new_images/IMG_0142.JPG"
                       alt="About 9"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -341,11 +336,11 @@ export default function About() {
                     : { opacity: 0, y: 30, scale: 0.9 }
                 }
                 transition={{
-                  duration: 0.6,
-                  delay: 0.55,
+                  duration: 0.3,
+                  delay: 0.15,
                   ease: [0.21, 0.47, 0.32, 0.98],
                 }}
-                className="absolute w-[9.5983rem] h-[287px] left-[758px] top-[201px] rounded-[26px] overflow-hidden group cursor-pointer"
+                className="absolute w-[9.5983rem] h-[41.837%] left-[70.577%] top-[29.300%] rounded-[26px] overflow-hidden group cursor-pointer"
               >
                 <BentoImageZoom
                   src="/new_images/IMG_20211209_161208.jpg"
@@ -356,6 +351,7 @@ export default function About() {
                       src="/new_images/IMG_20211209_161208.jpg"
                       alt="About 10"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -371,11 +367,11 @@ export default function About() {
                     : { opacity: 0, y: 30, scale: 0.9 }
                 }
                 transition={{
-                  duration: 0.6,
-                  delay: 0.6,
+                  duration: 0.3,
+                  delay: 0.15,
                   ease: [0.21, 0.47, 0.32, 0.98],
                 }}
-                className="absolute w-[314px] h-[240px] left-0 top-[446px] rounded-[26px] overflow-hidden group cursor-pointer"
+                className="absolute w-[29.236%] h-[34.985%] left-0 top-[65.015%] rounded-[26px] overflow-hidden group cursor-pointer"
               >
                 <BentoImageZoom
                   src="/new_images/IMG_20211216_162442.jpg"
@@ -386,6 +382,7 @@ export default function About() {
                       src="/new_images/IMG_20211216_162442.jpg"
                       alt="About 11"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -401,11 +398,11 @@ export default function About() {
                     : { opacity: 0, y: 30, scale: 0.9 }
                 }
                 transition={{
-                  duration: 0.6,
-                  delay: 0.65,
+                  duration: 0.3,
+                  delay: 0.15,
                   ease: [0.21, 0.47, 0.32, 0.98],
                 }}
-                className="absolute w-[209px] h-[190px] left-[324px] top-[499px] rounded-[26px] overflow-hidden group cursor-pointer"
+                className="absolute w-[19.460%] h-[27.697%] left-[30.168%] top-[72.741%] rounded-[26px] overflow-hidden group cursor-pointer"
               >
                 <BentoImageZoom
                   src="/new_images/IMG_20220724_065655.jpg"
@@ -416,6 +413,7 @@ export default function About() {
                       src="/new_images/IMG_20220724_065655.jpg"
                       alt="About 12"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -431,11 +429,11 @@ export default function About() {
                     : { opacity: 0, y: 30, scale: 0.9 }
                 }
                 transition={{
-                  duration: 0.6,
-                  delay: 0.7,
+                  duration: 0.3,
+                  delay: 0.15,
                   ease: [0.21, 0.47, 0.32, 0.98],
                 }}
-                className="absolute w-[532px] h-[90px] left-[542px] top-[499px] rounded-[26px] overflow-hidden group cursor-pointer"
+                className="absolute w-[49.534%] h-[13.120%] left-[50.466%] top-[72.741%] rounded-[26px] overflow-hidden group cursor-pointer"
               >
                 <BentoImageZoom
                   src="/new_images/IMG_20230209_191600.jpg"
@@ -446,6 +444,7 @@ export default function About() {
                       src="/new_images/IMG_20230209_191600.jpg"
                       alt="About 13"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -461,11 +460,11 @@ export default function About() {
                     : { opacity: 0, y: 30, scale: 0.9 }
                 }
                 transition={{
-                  duration: 0.6,
-                  delay: 0.75,
+                  duration: 0.3,
+                  delay: 0.15,
                   ease: [0.21, 0.47, 0.32, 0.98],
                 }}
-                className="absolute w-[262px] h-[90px] left-[542px] top-[596px] rounded-[26px] overflow-hidden group cursor-pointer"
+                className="absolute w-[24.395%] h-[13.120%] left-[50.466%] top-[86.880%] rounded-[26px] overflow-hidden group cursor-pointer"
               >
                 <BentoImageZoom
                   src="/new_images/IMG_20230313_134905.jpg"
@@ -476,6 +475,7 @@ export default function About() {
                       src="/new_images/IMG_20230313_134905.jpg"
                       alt="About 14"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -491,11 +491,11 @@ export default function About() {
                     : { opacity: 0, y: 30, scale: 0.9 }
                 }
                 transition={{
-                  duration: 0.6,
-                  delay: 0.8,
+                  duration: 0.3,
+                  delay: 0.15,
                   ease: [0.21, 0.47, 0.32, 0.98],
                 }}
-                className="absolute w-[263px] h-[90px] left-[812px] top-[596px] rounded-[26px] overflow-hidden group cursor-pointer"
+                className="absolute w-[24.488%] h-[13.120%] left-[75.605%] top-[86.880%] rounded-[26px] overflow-hidden group cursor-pointer"
               >
                 <BentoImageZoom
                   src="/new_images/IMG_20230316_161832.jpg"
@@ -506,6 +506,7 @@ export default function About() {
                       src="/new_images/IMG_20230316_161832.jpg"
                       alt="About 15"
                       fill
+                      sizes="(max-width: 767px) 35vw, 320px"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -518,7 +519,7 @@ export default function About() {
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-            transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
+            transition={{ duration: 0.3, delay: 0.15, ease: "easeOut" }}
             className="text-center"
           >
             <h2
@@ -541,12 +542,12 @@ export default function About() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
+            transition={{ duration: 0.3, delay: 0.15, ease: "easeOut" }}
             className="flex items-center justify-center gap-3"
           >
             <div className="flex items-center gap-2">
               <svg
-                className="w-[28px] h-[28px]"
+                className="w-[2.607%] h-[4.082%]"
                 viewBox="0 0 36 37"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -569,7 +570,7 @@ export default function About() {
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
+            transition={{ duration: 0.3, delay: 0.15, ease: "easeOut" }}
             className="text-[24px] font-normal leading-[1.588] tracking-[-0.96px] text-black text-center max-w-[900px] mx-auto"
             style={{ fontFamily: "Inter, SF Pro Display, sans-serif" }}
           >

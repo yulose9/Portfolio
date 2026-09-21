@@ -1,102 +1,42 @@
 "use client";
 
-import Lenis from "lenis";
-import { ReactNode, useEffect, useRef } from "react";
+import type Lenis from "lenis";
+import { ReactNode, useEffect } from "react";
+import { isScrollLocked } from "@/app/utils/scroll-lock";
 
-interface SmoothScrollingProps {
-  children: ReactNode;
-}
-
-export default function SmoothScrolling({ children }: SmoothScrollingProps) {
-  const lenisRef = useRef<Lenis | null>(null);
-
+export default function SmoothScrolling({ children }: { children: ReactNode }) {
   useEffect(() => {
-    // Check for reduced motion preference
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
-
-    // Detect mobile devices - more comprehensive check
-    const isMobile =
-      /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
-      window.innerWidth <= 768 ||
-      ("ontouchstart" in window && navigator.maxTouchPoints > 0);
-
-    // MOBILE: Skip Lenis entirely and use native scroll
-    // This prevents scroll locking bugs on mobile devices
-    if (isMobile || prefersReducedMotion) {
-      // Create a mock lenis object for components that might reference it
-      window.lenis = {
-        start: () => {},
-        stop: () => {},
-        destroy: () => {},
-        raf: () => {},
-        scrollTo: (target: number | string | HTMLElement) => {
-          if (typeof target === "number") {
-            window.scrollTo({ top: target, behavior: "smooth" });
-          } else if (typeof target === "string") {
-            const element = document.querySelector(target);
-            element?.scrollIntoView({ behavior: "smooth" });
-          } else if (target instanceof HTMLElement) {
-            target.scrollIntoView({ behavior: "smooth" });
-          }
-        },
-      } as unknown as Lenis;
-
-      // Dispatch preload complete event immediately for mobile
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent("preloadComplete"));
-      }, 5000);
-
-      return () => {
-        delete window.lenis;
+    const media = window.matchMedia("(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)");
+    let lenis: Lenis | undefined;
+    let frame = 0;
+    let generation = 0;
+    const reset = async () => {
+      const current = ++generation;
+      cancelAnimationFrame(frame);
+      lenis?.destroy();
+      lenis = undefined;
+      delete window.lenis;
+      if (!media.matches || navigator.maxTouchPoints > 0) return;
+      const { default: Lenis } = await import("lenis");
+      if (current !== generation) return;
+      lenis = new Lenis({ duration: 0.8, smoothWheel: true, syncTouch: false });
+      window.lenis = lenis;
+      if (isScrollLocked()) lenis.stop();
+      const tick = (time: number) => {
+        lenis?.raf(time);
+        frame = requestAnimationFrame(tick);
       };
-    }
-
-    // DESKTOP: Use Lenis for smooth scrolling
-    const lenis = new Lenis({
-      duration: 0.8,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      orientation: "vertical",
-      gestureOrientation: "vertical",
-      smoothWheel: true,
-      wheelMultiplier: 1.1,
-      touchMultiplier: 1,
-      infinite: false,
-      autoResize: true,
-    });
-
-    lenisRef.current = lenis;
-    window.lenis = lenis;
-
-    // Start in stopped state - PreLoadHero will start it when ready
-    lenis.stop();
-
-    // Listen for preload complete event
-    const handlePreloadComplete = () => {
-      if (lenisRef.current) {
-        lenisRef.current.start();
-      }
+      frame = requestAnimationFrame(tick);
     };
-
-    window.addEventListener("preloadComplete", handlePreloadComplete);
-
-    // RAF loop — must track the ID so we can cancel it on cleanup (prevents memory leak)
-    let animationFrameId: number;
-    function raf(time: number) {
-      lenis.raf(time);
-      animationFrameId = requestAnimationFrame(raf);
-    }
-    animationFrameId = requestAnimationFrame(raf);
-
-    // Cleanup: cancel the RAF loop AND destroy lenis to prevent memory leaks
+    void reset();
+    media.addEventListener("change", reset);
     return () => {
-      window.removeEventListener("preloadComplete", handlePreloadComplete);
-      cancelAnimationFrame(animationFrameId);
-      lenis.destroy();
+      generation++;
+      media.removeEventListener("change", reset);
+      cancelAnimationFrame(frame);
+      lenis?.destroy();
       delete window.lenis;
     };
   }, []);
-
-  return <>{children}</>;
+  return children;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useHaptics } from "@/app/hooks/use-haptics";
 import { lockScroll, unlockScroll } from "@/app/utils/scroll-lock";
 import { motion, useInView } from "framer-motion";
 import Image from "next/image";
@@ -9,7 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const SCROLL_LOCK_ID = "mobile-certificates-drag";
 
 // Configuration constants
-const LONG_PRESS_DELAY = 250; // Increased to 500ms to prevent accidental triggers
+const LONG_PRESS_DELAY = 450; // Leave time for a normal scroll gesture.
 const MOVEMENT_THRESHOLD = 10; // 10px movement cancels long press
 const THROTTLE_MS = 16; // ~60fps for smooth updates
 const TAP_THRESHOLD = 250; // Max duration for a tap (must be < LONG_PRESS_DELAY)
@@ -143,16 +144,7 @@ export default function MobileCertificates() {
     };
   }, [clearLongPressTimer]);
 
-  // Haptic feedback
-  const triggerHaptic = useCallback(() => {
-    if ("vibrate" in navigator) {
-      try {
-        navigator.vibrate(15);
-      } catch {
-        // Vibration API may throw on some browsers
-      }
-    }
-  }, []);
+  const triggerHaptic = useHaptics();
 
   // Check if movement exceeds threshold
   const hasExceededThreshold = useCallback((x: number, y: number): boolean => {
@@ -211,7 +203,7 @@ export default function MobileCertificates() {
       const rect = element.getBoundingClientRect();
       isDraggingRef.current = true;
       clearLongPressTimer();
-      triggerHaptic();
+      triggerHaptic("medium");
 
       // Use centralized scroll lock
       lockScroll(SCROLL_LOCK_ID, true);
@@ -270,7 +262,7 @@ export default function MobileCertificates() {
       const [removed] = newCerts.splice(draggedIndex, 1);
       newCerts.splice(targetIndex, 0, removed);
       setCertificates(newCerts);
-      triggerHaptic();
+      triggerHaptic("medium");
     }
 
     // Use centralized scroll unlock
@@ -300,6 +292,7 @@ export default function MobileCertificates() {
   // Touch handlers
   const handleTouchStart = useCallback(
     (id: string, index: number, e: React.TouchEvent) => {
+      if (e.touches.length !== 1 || isDraggingRef.current) { clearLongPressTimer(); return; }
       const touch = e.touches[0];
       startPosRef.current = { x: touch.clientX, y: touch.clientY };
 
@@ -326,7 +319,7 @@ export default function MobileCertificates() {
       }
 
       if (isDraggingRef.current) {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         e.stopPropagation();
         handleDragMove(touch.clientX, touch.clientY);
       }
@@ -546,33 +539,13 @@ export default function MobileCertificates() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5, duration: 0.5 }}
-        className="text-[12px] text-white/40 text-center mb-6"
+        className="text-[12px] text-white text-center mb-6"
         style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
       >
         Hold to drag & reorder
       </motion.p>
 
-      {/* View All Button */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{
-          duration: 0.6,
-          ease: [0.21, 0.47, 0.32, 0.98],
-          delay: 0.4,
-        }}
-        viewport={{ once: true, margin: "-50px" }}
-        className="flex justify-center"
-      >
-        <button className="bg-[#8eb08a] rounded-[12px] px-5 py-3 shadow-md active:scale-95 transition-transform">
-          <span
-            className="text-[14px] font-semibold text-white"
-            style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
-          >
-            View All
-          </span>
-        </button>
-      </motion.div>
+
     </div>
   );
 }
@@ -691,8 +664,9 @@ function CertificateCard({
         ${isTarget ? "ring-2 ring-white/50" : ""}
       `}
       style={{
-        aspectRatio: "0.85",
-        touchAction: "none",
+        aspectRatio: "0.72",
+        minHeight: 250,
+        touchAction: "pan-y pinch-zoom",
         WebkitUserSelect: "none",
         userSelect: "none",
         WebkitTouchCallout: "none",
@@ -702,7 +676,11 @@ function CertificateCard({
       onTouchEnd={handleTouchEndInternal}
       onTouchCancel={onTouchCancel}
       onMouseDown={onMouseDown}
-      onClick={handleClick}
+      onClick={(e) => { if (Date.now() - tapStartRef.current > 600) handleClick(e); }}
+      role="button"
+      tabIndex={0}
+      aria-label={`View ${cert.title}`}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onTap(); } }}
     >
       {/* Date Badge */}
       <div className="absolute top-3 right-3 bg-[#d9d9d9] rounded-full px-2.5 py-1.5 shadow-sm">
@@ -788,7 +766,8 @@ function DragOverlay({ cert, position, offset }: DragOverlayProps) {
         left: position.x - offset.x,
         top: position.y - offset.y,
         width: "calc(50vw - 14px)",
-        aspectRatio: "0.85",
+        aspectRatio: "0.72",
+        minHeight: 250,
       }}
     >
       {/* Date Badge */}

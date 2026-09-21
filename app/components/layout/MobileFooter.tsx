@@ -28,7 +28,7 @@ export default function MobileFooter() {
             href="https://nazarene-resume-bucket.s3.us-east-1.amazonaws.com/DelaPisa_Resume_v1.pdf"
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-[#8eb08a] hover:bg-[#7a9d76] active:scale-95 transition-all rounded-[10.237px] px-[7.312px] py-[5.118px] h-[34px] w-[96.15px] flex items-center justify-center shrink-0"
+            className="bg-[#8eb08a] hover:bg-[#7a9d76] active:scale-[0.96] transition-[color,background-color,border-color,box-shadow,opacity,transform] rounded-[10.237px] px-[7.312px] py-[5.118px] h-[34px] w-[96.15px] flex items-center justify-center shrink-0"
           >
             <span
               className="text-[9.323px] font-semibold text-white tracking-[-0.1492px] leading-[8.043px] text-center whitespace-nowrap"
@@ -47,7 +47,7 @@ export default function MobileFooter() {
               href="https://www.facebook.com/xcszan"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-[#8eb08a] hover:bg-[#7a9d76] active:scale-95 transition-all rounded-full w-[34px] h-[34px] flex items-center justify-center"
+              className="bg-[#8eb08a] hover:bg-[#7a9d76] active:scale-[0.96] transition-[color,background-color,border-color,box-shadow,opacity,transform] rounded-full w-[34px] h-[34px] flex items-center justify-center"
               aria-label="Facebook"
             >
               <FaFacebookF className="w-[14px] h-[14px] text-white" />
@@ -58,7 +58,7 @@ export default function MobileFooter() {
               href="https://x.com/xcszan"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-[#8eb08a] hover:bg-[#7a9d76] active:scale-95 transition-all rounded-full w-[34px] h-[34px] flex items-center justify-center"
+              className="bg-[#8eb08a] hover:bg-[#7a9d76] active:scale-[0.96] transition-[color,background-color,border-color,box-shadow,opacity,transform] rounded-full w-[34px] h-[34px] flex items-center justify-center"
               aria-label="Twitter"
             >
               <FaTwitter className="w-[14px] h-[14px] text-white" />
@@ -69,7 +69,7 @@ export default function MobileFooter() {
               href="https://www.instagram.com/nazarenexcsz/"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-[#8eb08a] hover:bg-[#7a9d76] active:scale-95 transition-all rounded-full w-[34px] h-[34px] flex items-center justify-center"
+              className="bg-[#8eb08a] hover:bg-[#7a9d76] active:scale-[0.96] transition-[color,background-color,border-color,box-shadow,opacity,transform] rounded-full w-[34px] h-[34px] flex items-center justify-center"
               aria-label="Instagram"
             >
               <FaInstagram className="w-[16px] h-[16px] text-white" />
@@ -80,7 +80,7 @@ export default function MobileFooter() {
               href="https://www.linkedin.com/in/jannazarene/"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-[#8eb08a] hover:bg-[#7a9d76] active:scale-95 transition-all rounded-full w-[34px] h-[34px] flex items-center justify-center"
+              className="bg-[#8eb08a] hover:bg-[#7a9d76] active:scale-[0.96] transition-[color,background-color,border-color,box-shadow,opacity,transform] rounded-full w-[34px] h-[34px] flex items-center justify-center"
               aria-label="LinkedIn"
             >
               <FaLinkedinIn className="w-[14px] h-[14px] text-white" />

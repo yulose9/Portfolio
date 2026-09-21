@@ -11,7 +11,14 @@
     "build": "next build",
     "start": "next start",
     "start:public": "next start --hostname 0.0.0.0 --port 3000",
-    "lint": "next lint"
+    "lint": "eslint app lib --quiet",
+    "images:optimize": "node scripts/optimize-images.mjs",
+    "prebuild": "npm run images:optimize",
+    "predev": "npm run images:optimize",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test",
+    "predev:public": "npm run images:optimize",
+    "preview": "node scripts/serve-static.mjs out 3000"
   },
   "keywords": [
     "portfolio",
@@ -39,15 +46,19 @@
     "react-dom": "^19.1.1",
     "react-icons": "^5.5.0",
     "tailwind-merge": "^3.3.1",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "web-haptics": "^0.0.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^24.6.1",
     "@types/react": "^19.1.16",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.0.6",
+    "lighthouse": "^12.8.2",
     "postcss": "^8.5.6",
+    "sharp": "^0.35.4",
     "tailwindcss": "^3.4.18",
     "typescript": "^5.9.3",
     "webpack-cli": "^6.0.1",

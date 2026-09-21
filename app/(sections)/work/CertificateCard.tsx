@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 
 import { motion, useInView } from "framer-motion";
 import { useRef, useState } from "react";
@@ -36,7 +37,7 @@ export default function CertificateCard({ cert, index }: CertificateCardProps) {
         cert.credentialUrl &&
         window.open(cert.credentialUrl, "_blank", "noopener,noreferrer")
       }
-      className="group relative w-full h-[495px] rounded-[21px] bg-[rgba(243,243,243,0.5)] backdrop-blur-[36.31px] border-[0.303px] border-[rgba(117,117,117,0.4)] cursor-pointer transition-all duration-300 ease-out hover:scale-[1.03] hover:shadow-[0px_20px_60px_0px_rgba(0,0,0,0.4),0px_8px_30px_0px_rgba(0,0,0,0.3)] hover:bg-[rgba(255,255,255,0.7)] hover:-translate-y-2"
+      className="group relative w-full h-[495px] rounded-[21px] bg-[rgba(243,243,243,0.5)] backdrop-blur-[36.31px] border-[0.303px] border-[rgba(117,117,117,0.4)] cursor-pointer transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 ease-out hover:scale-[1.03] hover:shadow-[0px_20px_60px_0px_rgba(0,0,0,0.4),0px_8px_30px_0px_rgba(0,0,0,0.3)] hover:bg-[rgba(255,255,255,0.7)] hover:-translate-y-2"
     >
       {/* Date Badge - Issued Date */}
       <motion.div
@@ -49,7 +50,7 @@ export default function CertificateCard({ cert, index }: CertificateCardProps) {
           ease: [0.21, 0.47, 0.32, 0.98],
           delay: index * 0.1 + 0.2,
         }}
-        className="absolute top-[19px] right-[20px] bg-[#d9d9d9] rounded-full px-[12px] py-[9px] shadow-sm transition-all duration-300 group-hover:shadow-lg group-hover:scale-105 group-hover:bg-[#e8e8e8]"
+        className="absolute top-[19px] right-[20px] bg-[#d9d9d9] rounded-full px-[12px] py-[9px] shadow-sm transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 group-hover:shadow-lg group-hover:scale-105 group-hover:bg-[#e8e8e8]"
       >
         <p
           className="text-[24px] font-normal leading-[12px] tracking-[-1px] text-black"
@@ -88,7 +89,7 @@ export default function CertificateCard({ cert, index }: CertificateCardProps) {
             </svg>
           </div>
         ) : (
-          <img
+          <Image width={256} height={256} sizes="256px" loading="lazy"
             src={cert.image}
             alt={`${cert.title} certification badge from ${cert.issuingOrg}`}
             className="w-full h-full object-contain"

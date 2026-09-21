@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 
 import {
   Tooltip,
@@ -52,8 +53,10 @@ export default function PhilippineCulturalRoulette() {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     // Auto-rotate through images every 4.5 seconds (optimal for engagement)
     const interval = setInterval(() => {
+      if (document.hidden) return;
       setCurrentIndex((prev) => (prev + 1) % culturalImages.length);
     }, 4500); // 4.5 seconds - sweet spot between appreciation and dynamism
 
@@ -78,19 +81,19 @@ export default function PhilippineCulturalRoulette() {
             style={{ backgroundColor: "#a2daf2" }}
           >
             <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
-              <AnimatePresence mode="wait">
+              <AnimatePresence initial={false} mode="wait">
                 <motion.div
                   key={currentIndex}
                   initial={{ y: 100, opacity: 0, scale: 0.8 }}
                   animate={{ y: 0, opacity: 1, scale: 1 }}
                   exit={{ y: -100, opacity: 0, scale: 0.8 }}
                   transition={{
-                    duration: 0.6,
+                    duration: 0.25,
                     ease: [0.25, 0.46, 0.45, 0.94], // GSAP-like "power2.out" easing
                   }}
                   className="w-full h-full flex items-center justify-center pointer-events-none"
                 >
-                  <img
+                  <Image width={256} height={256} sizes="50px" loading="lazy"
                     src={culturalImages[currentIndex].src}
                     alt={culturalImages[currentIndex].alt}
                     style={{

@@ -1,5 +1,6 @@
 "use client";
 
+import { useHaptics } from "@/app/hooks/use-haptics";
 import { lockScroll, unlockScroll } from "@/app/utils/scroll-lock";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
@@ -53,7 +54,7 @@ interface UseDragAndDropOptions<T> {
 export function useDragAndDrop<T extends { id?: string; title?: string }>({
   items,
   onReorder,
-  dragDelay = 250, // 250ms long press - reduced for better responsiveness
+  dragDelay = 450, // 250ms long press - reduced for better responsiveness
   hapticFeedback = true,
   lockId: customLockId,
   movementThreshold = 10, // 10px movement cancels long press
@@ -113,23 +114,10 @@ export function useDragAndDrop<T extends { id?: string; title?: string }>({
     };
   }, [clearLongPressTimer]);
 
-  // Trigger haptic feedback if available
-  const triggerHaptic = useCallback(
-    (type: "light" | "medium" | "heavy" = "medium") => {
-      if (!hapticFeedback) return;
-
-      // Try Vibration API (works on Android and some iOS browsers)
-      if ("vibrate" in navigator) {
-        const duration = type === "light" ? 10 : type === "medium" ? 20 : 30;
-        try {
-          navigator.vibrate(duration);
-        } catch {
-          // Vibration API may throw on some browsers
-        }
-      }
-    },
-    [hapticFeedback]
-  );
+  const haptic = useHaptics();
+  const triggerHaptic = useCallback((type: "light" | "medium" | "heavy" = "medium") => {
+    if (hapticFeedback) haptic(type);
+  }, [hapticFeedback, haptic]);
 
   // Get element center position
   const getElementCenter = useCallback((element: HTMLElement): Position => {
@@ -308,6 +296,7 @@ export function useDragAndDrop<T extends { id?: string; title?: string }>({
   // Touch event handlers
   const handleTouchStart = useCallback(
     (index: number, e: React.TouchEvent) => {
+      if (e.touches.length !== 1 || isDraggingRef.current) { clearLongPressTimer(); return; }
       const touch = e.touches[0];
       const startX = touch.clientX;
       const startY = touch.clientY;
@@ -336,7 +325,7 @@ export function useDragAndDrop<T extends { id?: string; title?: string }>({
       }
 
       if (isDraggingRef.current) {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         e.stopPropagation();
         handleDragMove(touch.clientX, touch.clientY);
       }

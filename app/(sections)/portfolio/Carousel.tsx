@@ -1,5 +1,6 @@
 "use client";
 
+import { useHaptics } from "@/app/hooks/use-haptics";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import Image from "next/image";
@@ -18,8 +19,9 @@ interface CarouselProps {
 }
 
 export default function Carousel({ projects }: CarouselProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const haptic = useHaptics();
+  const [currentIndex, setCurrentIndex] = useState(1);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const mouseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -38,7 +40,8 @@ export default function Carousel({ projects }: CarouselProps) {
     if (!isPlaying || isTransitioning) return;
 
     const interval = setInterval(() => {
-      handleNext();
+      setCurrentIndex(prev => prev + 1);
+      setIsTransitioning(true);
     }, 5000);
 
     return () => clearInterval(interval);
@@ -59,7 +62,7 @@ export default function Carousel({ projects }: CarouselProps) {
         // We're at the clone of first slide, jump to real first slide
         setCurrentIndex(1);
       }
-    }, 500); // Match transition duration
+    }, 250); // Match transition duration
 
     return () => clearTimeout(timer);
   }, [currentIndex, isTransitioning, projects.length]);
@@ -104,6 +107,7 @@ export default function Carousel({ projects }: CarouselProps) {
 
   const goToSlide = (index: number) => {
     if (isTransitioning) return;
+    haptic("selection");
     // Add 1 to account for the cloned last slide at the beginning
     setCurrentIndex(index + 1);
     setIsTransitioning(true);
@@ -111,17 +115,20 @@ export default function Carousel({ projects }: CarouselProps) {
 
   const handlePrevious = () => {
     if (isTransitioning) return;
+    haptic("selection");
     setCurrentIndex((prev) => prev - 1);
     setIsTransitioning(true);
   };
 
   const handleNext = () => {
     if (isTransitioning) return;
+    haptic("selection");
     setCurrentIndex((prev) => prev + 1);
     setIsTransitioning(true);
   };
 
   const togglePlayPause = () => {
+    haptic("light");
     setIsPlaying(!isPlaying);
   };
 
@@ -166,7 +173,7 @@ export default function Carousel({ projects }: CarouselProps) {
         {/* Carousel Track */}
         <div
           className={`flex h-full ${
-            isTransitioning ? "transition-transform duration-500 ease-out" : ""
+            isTransitioning ? "transition-transform duration-250 ease-out" : ""
           }`}
           style={{
             transform: `translateX(-${currentIndex * 100}%)`,
@@ -184,7 +191,7 @@ export default function Carousel({ projects }: CarouselProps) {
                 quality={95} // High quality for carousel images
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
                 className="object-cover"
-                priority={index === 1} // Prioritize first real slide
+                loading="lazy"
               />
               {/* Placeholder Overlay */}
               {project.isPlaceholder && (
@@ -214,7 +221,7 @@ export default function Carousel({ projects }: CarouselProps) {
                   <button
                     key={index}
                     onClick={() => goToSlide(index)}
-                    className={`relative rounded-full overflow-hidden transition-all duration-300 ${
+                    className={`relative rounded-full overflow-hidden transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 ${
                       index === actualIndex
                         ? "w-[60px] h-2 bg-white/20"
                         : "w-2 h-2 bg-white/60 hover:bg-white/90"
@@ -241,7 +248,7 @@ export default function Carousel({ projects }: CarouselProps) {
               {/* Play/Pause Button - StickyNav Styling */}
               <button
                 onClick={togglePlayPause}
-                className="relative w-14 h-14 bg-[#374136]/50 backdrop-blur-lg rounded-full flex items-center justify-center hover:bg-[#374136]/70 hover:scale-110 transition-all duration-300 shadow-lg border border-white/10"
+                className="relative w-14 h-14 bg-[#374136]/50 backdrop-blur-lg rounded-full flex items-center justify-center hover:bg-[#374136]/70 hover:scale-110 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 shadow-lg border border-white/10"
                 aria-label={isPlaying ? "Pause" : "Play"}
               >
                 {isPlaying ? (
@@ -255,12 +262,12 @@ export default function Carousel({ projects }: CarouselProps) {
         </AnimatePresence>
 
         {/* Action Icons (Bottom Right) - Always Visible */}
-        <div className="absolute bottom-[52px] right-[14px] flex items-center gap-2">
+        {!projects[actualIndex].isPlaceholder && <div className="absolute bottom-[52px] right-[14px] flex items-center gap-2">
           <a
-            href={projects[actualIndex].blogUrl || "#"}
+            href={projects[actualIndex].blogUrl || undefined}
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-[#374136]/50 backdrop-blur-lg border border-white/10 shadow-lg rounded-full w-16 h-16 flex items-center justify-center hover:bg-[#374136]/70 hover:scale-110 transition-all duration-300"
+            className="bg-[#374136]/50 backdrop-blur-lg border border-white/10 shadow-lg rounded-full w-16 h-16 flex items-center justify-center hover:bg-[#374136]/70 hover:scale-110 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300"
             aria-label="View blog post"
           >
             <Image
@@ -272,10 +279,10 @@ export default function Carousel({ projects }: CarouselProps) {
             />
           </a>
           <a
-            href={projects[actualIndex].githubUrl || "#"}
+            href={projects[actualIndex].githubUrl || undefined}
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-[#374136]/50 backdrop-blur-lg border border-white/10 shadow-lg rounded-full w-16 h-16 flex items-center justify-center hover:bg-[#374136]/70 hover:scale-110 transition-all duration-300"
+            className="bg-[#374136]/50 backdrop-blur-lg border border-white/10 shadow-lg rounded-full w-16 h-16 flex items-center justify-center hover:bg-[#374136]/70 hover:scale-110 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300"
             aria-label="View on GitHub"
           >
             <Image
@@ -286,7 +293,7 @@ export default function Carousel({ projects }: CarouselProps) {
               className="w-12 h-12 brightness-0 invert"
             />
           </a>
-        </div>
+        </div>}
       </div>
 
       {/* Navigation Arrows (Bottom Right) - StickyNav Styling */}
@@ -294,7 +301,7 @@ export default function Carousel({ projects }: CarouselProps) {
         <button
           onClick={handlePrevious}
           disabled={isTransitioning}
-          className="w-10 h-10 bg-[#374136]/50 backdrop-blur-lg rounded-full flex items-center justify-center hover:bg-[#374136]/70 hover:scale-110 transition-all duration-300 shadow-lg border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-10 h-10 bg-[#374136]/50 backdrop-blur-lg rounded-full flex items-center justify-center hover:bg-[#374136]/70 hover:scale-110 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 shadow-lg border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Previous slide"
         >
           <ChevronLeft className="w-5 h-5 text-white" />
@@ -302,7 +309,7 @@ export default function Carousel({ projects }: CarouselProps) {
         <button
           onClick={handleNext}
           disabled={isTransitioning}
-          className="w-10 h-10 bg-[#374136]/50 backdrop-blur-lg rounded-full flex items-center justify-center hover:bg-[#374136]/70 hover:scale-110 transition-all duration-300 shadow-lg border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-10 h-10 bg-[#374136]/50 backdrop-blur-lg rounded-full flex items-center justify-center hover:bg-[#374136]/70 hover:scale-110 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 shadow-lg border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Next slide"
         >
           <ChevronRight className="w-5 h-5 text-white" />

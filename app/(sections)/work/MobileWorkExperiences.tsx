@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 
 import {
   Table,
@@ -14,6 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/app/components/ui/tooltip";
+import { useHaptics } from "@/app/hooks/use-haptics";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 
@@ -72,6 +74,7 @@ const workExperiences = [
 ];
 
 export default function MobileWorkExperiences() {
+  const haptic = useHaptics();
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
   const [hoveredCardIndex, setHoveredCardIndex] = useState<number | null>(null);
 
@@ -117,8 +120,8 @@ export default function MobileWorkExperiences() {
         >
           {/* List View Button */}
           <button
-            onClick={() => setViewMode("list")}
-            className={`w-[50px] h-[50px] rounded-full backdrop-blur-[20px] border shadow-[0px_16px_32px_0px_rgba(0,0,0,0.2)] transition-all duration-300 flex items-center justify-center ${
+            aria-pressed={viewMode === "list"} onClick={() => { if (viewMode !== "list") haptic("selection"); setViewMode("list"); }}
+            className={`w-[50px] h-[50px] rounded-full backdrop-blur-[20px] border shadow-[0px_16px_32px_0px_rgba(0,0,0,0.2)] transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 flex items-center justify-center ${
               viewMode === "list"
                 ? "bg-white border-white scale-105"
                 : "bg-white/10 border-white/20"
@@ -152,8 +155,8 @@ export default function MobileWorkExperiences() {
 
           {/* Grid View Button */}
           <button
-            onClick={() => setViewMode("grid")}
-            className={`w-[50px] h-[50px] rounded-full backdrop-blur-[20px] border shadow-[0px_16px_32px_0px_rgba(0,0,0,0.2)] transition-all duration-300 flex items-center justify-center ${
+            aria-pressed={viewMode === "grid"} onClick={() => { if (viewMode !== "grid") haptic("selection"); setViewMode("grid"); }}
+            className={`w-[50px] h-[50px] rounded-full backdrop-blur-[20px] border shadow-[0px_16px_32px_0px_rgba(0,0,0,0.2)] transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 flex items-center justify-center ${
               viewMode === "grid"
                 ? "bg-white border-white scale-105"
                 : "bg-white/10 border-white/20"
@@ -191,7 +194,7 @@ export default function MobileWorkExperiences() {
         </motion.div>
 
         {/* Conditional Rendering: List or Grid View */}
-        <AnimatePresence mode="wait">
+        <AnimatePresence initial={false} mode="wait">
           {viewMode === "list" ? (
             /* List View - Clean Row Layout */
             <motion.div
@@ -208,11 +211,11 @@ export default function MobileWorkExperiences() {
               {workExperiences.map((work, index) => (
                 <div
                   key={index}
-                  className="group relative flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300"
+                  className="group relative flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300"
                 >
                   {/* Logo */}
                   <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
-                    <img
+                    <Image width={256} height={256} sizes="256px" loading="lazy"
                       src={work.logo}
                       alt={work.companyName}
                       className="w-full h-full object-cover"
@@ -253,7 +256,7 @@ export default function MobileWorkExperiences() {
               {workExperiences.map((work, idx) => (
                 <motion.div
                   key={idx}
-                  className="relative group aspect-square"
+                  className="relative group min-h-[220px]"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{
@@ -263,9 +266,10 @@ export default function MobileWorkExperiences() {
                   }}
                   onTouchStart={() => setHoveredCardIndex(idx)}
                   onTouchEnd={() => setHoveredCardIndex(null)}
+                  onTouchCancel={() => setHoveredCardIndex(null)}
                 >
                   {/* Card Container with Glassmorphism - Improved */}
-                  <div className="relative w-full h-full rounded-[24px] overflow-hidden bg-gradient-to-b from-white/10 to-white/5 backdrop-blur-xl border border-white/10 shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col p-4">
+                  <div className="relative w-full h-full rounded-[24px] overflow-hidden bg-gradient-to-b from-white/10 to-white/5 backdrop-blur-xl border border-white/10 shadow-lg hover:shadow-xl transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 flex flex-col p-4">
                     {/* Hover Gradient Background */}
                     <AnimatePresence>
                       {hoveredCardIndex === idx && (
@@ -285,7 +289,7 @@ export default function MobileWorkExperiences() {
                       {/* Header: Logo */}
                       <div className="w-12 h-12 rounded-xl bg-white/10 p-1 shadow-inner">
                         <div className="w-full h-full rounded-lg overflow-hidden relative">
-                          <img
+                          <Image width={256} height={256} sizes="256px" loading="lazy"
                             src={work.logo}
                             alt={work.companyName}
                             className="w-full h-full object-cover"
@@ -298,7 +302,7 @@ export default function MobileWorkExperiences() {
                         <h3 className="text-sm font-bold text-white leading-tight line-clamp-2">
                           {work.companyName}
                         </h3>
-                        <p className="text-xs text-white/60 font-medium line-clamp-1">
+                        <p className="text-xs text-white/85 font-medium leading-relaxed">
                           {work.position}
                         </p>
                       </div>
@@ -310,24 +314,7 @@ export default function MobileWorkExperiences() {
           )}
         </AnimatePresence>
 
-        {/* View All Button */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{
-            duration: 0.6,
-            ease: [0.21, 0.47, 0.32, 0.98],
-            delay: 0.4,
-          }}
-          viewport={{ once: true, margin: "-50px" }}
-          className="flex justify-center"
-        >
-          <button className="bg-[#8eb08a] rounded-full px-6 py-3 shadow-md hover:scale-105 transition-transform flex items-center justify-center">
-            <span className="text-base font-semibold leading-none tracking-[-0.182px] text-white text-center">
-              View All
-            </span>
-          </button>
-        </motion.div>
+
       </div>
     </TooltipProvider>
   );

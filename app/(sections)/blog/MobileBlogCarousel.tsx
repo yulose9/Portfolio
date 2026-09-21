@@ -21,6 +21,7 @@ interface MobileBlogCarouselProps {
 
 export default function MobileBlogCarousel({ blogs }: MobileBlogCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const CardTag = blogs[currentIndex]?.isPlaceholder || !blogs[currentIndex]?.url ? "div" : "a";
   const [direction, setDirection] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -116,8 +117,8 @@ export default function MobileBlogCarousel({ blogs }: MobileBlogCarouselProps) {
             }}
             className="absolute inset-0 w-full h-full"
           >
-            <a
-              href={blogs[currentIndex].url || "#"}
+            <CardTag
+              href={blogs[currentIndex].isPlaceholder ? undefined : blogs[currentIndex].url}
               className={`block relative w-full h-full rounded-3xl overflow-hidden bg-white ${
                 blogs[currentIndex].isPlaceholder
                   ? "cursor-default"
@@ -233,7 +234,7 @@ export default function MobileBlogCarousel({ blogs }: MobileBlogCarouselProps) {
                   </div>
                 </div>
               )}
-            </a>
+            </CardTag>
           </motion.div>
         </AnimatePresence>
       </div>
@@ -244,7 +245,7 @@ export default function MobileBlogCarousel({ blogs }: MobileBlogCarouselProps) {
           <button
             key={index}
             onClick={() => handleDotClick(index)}
-            className={`rounded-full transition-all duration-300 ${
+            className={`rounded-full transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 ${
               index === currentIndex
                 ? "bg-gray-800 w-2 h-2"
                 : "bg-gray-400/50 w-1.5 h-1.5"
@@ -258,14 +259,14 @@ export default function MobileBlogCarousel({ blogs }: MobileBlogCarouselProps) {
       <div className="flex justify-center gap-2">
         <button
           onClick={handlePrev}
-          className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center transition-all hover:bg-gray-200 active:scale-95"
+          className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:bg-gray-200 active:scale-[0.96]"
           aria-label="Previous blog"
         >
           <ChevronLeft className="w-7 h-7 text-gray-700" strokeWidth={2.5} />
         </button>
         <button
           onClick={handleNext}
-          className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center transition-all hover:bg-gray-200 active:scale-95"
+          className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:bg-gray-200 active:scale-[0.96]"
           aria-label="Next blog"
         >
           <ChevronRight className="w-7 h-7 text-gray-700" strokeWidth={2.5} />

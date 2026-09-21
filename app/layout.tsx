@@ -1,13 +1,9 @@
-import {
-  CSPostHogProvider,
-  PostHogPageView,
-  SmoothScrolling,
-} from "@/app/providers";
+import SmoothScrolling from "./providers/SmoothScrolling";
+import DeferredAnalytics from "./providers/DeferredAnalytics";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
-import { Suspense } from "react";
-import { ImagePreloader } from "./components/shared";
+import InteractionProvider from "./providers/InteractionProvider";
 import {
   ENHANCED_METADATA,
   PERSON_SCHEMA,
@@ -65,7 +61,7 @@ export default function RootLayout({
         {/* Microsoft Clarity */}
         <Script
           id="microsoft-clarity"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{
             __html: `
               (function(c,l,a,r,i,t,y){
@@ -84,23 +80,18 @@ export default function RootLayout({
         {/* Android Chrome specific */}
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body>
+      <body className={inter.className}>
         {/* Skip to Main Content - Accessibility */}
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
 
-        <ImagePreloader />
-        <Suspense fallback={null}>
-          <CSPostHogProvider>
-            <PostHogPageView />
-            <SmoothScrolling>{children}</SmoothScrolling>
-          </CSPostHogProvider>
-        </Suspense>
+        <InteractionProvider><SmoothScrolling>{children}</SmoothScrolling></InteractionProvider>
+        <DeferredAnalytics />
 
         {/* Cloudflare Web Analytics */}
         <Script
-          defer
+          strategy="lazyOnload"
           src="https://static.cloudflareinsights.com/beacon.min.js"
           data-cf-beacon='{"token": "e48b484435ef4fb0a307689022769282"}'
         />
@@ -109,23 +100,23 @@ export default function RootLayout({
         <Script
           src="https://cloud.umami.is/script.js"
           data-website-id="a0d016ea-6eb5-4de4-b15f-31c99d2d810f"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
 
         {/* Mixpanel Analytics */}
         <Script
           id="mixpanel-init"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{
             __html: `
               (function(e,c){if(!c.__SV){var l,h;window.mixpanel=c;c._i=[];c.init=function(q,r,f){function t(d,a){var g=a.split(".");2==g.length&&(d=d[g[0]],a=g[1]);d[a]=function(){d.push([a].concat(Array.prototype.slice.call(arguments,0)))}}var b=c;"undefined"!==typeof f?b=c[f]=[]:f="mixpanel";b.people=b.people||[];b.toString=function(d){var a="mixpanel";"mixpanel"!==f&&(a+="."+f);d||(a+=" (stub)");return a};b.people.toString=function(){return b.toString(1)+".people (stub)"};l="disable time_event track track_pageview track_links track_forms track_with_groups add_group set_group remove_group register register_once alias unregister identify name_tag set_config reset opt_in_tracking opt_out_tracking has_opted_in_tracking has_opted_out_tracking clear_opt_in_out_tracking start_batch_senders start_session_recording stop_session_recording people.set people.set_once people.unset people.increment people.append people.union people.track_charge people.clear_charges people.delete_user people.remove".split(" ");
               for(h=0;h<l.length;h++)t(b,l[h]);var n="set set_once union unset remove delete".split(" ");b.get_group=function(){function d(p){a[p]=function(){b.push([g,[p].concat(Array.prototype.slice.call(arguments,0))])}}for(var a={},g=["get_group"].concat(Array.prototype.slice.call(arguments,0)),m=0;m<n.length;m++)d(n[m]);return a};c._i.push([q,r,f])};c.__SV=1.2;var k=e.createElement("script");k.type="text/javascript";k.async=!0;k.src="undefined"!==typeof MIXPANEL_CUSTOM_LIB_URL?MIXPANEL_CUSTOM_LIB_URL:"file:"===e.location.protocol&&"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js".match(/^\/\//)?"https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js":"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js";e=e.getElementsByTagName("script")[0];e.parentNode.insertBefore(k,e)}})(document,window.mixpanel||[])
 
               mixpanel.init('a67416976e3c5fbd3849ab1edcf3ff5b', {
-                debug: true,
+                debug: false,
                 track_pageview: true,
                 persistence: 'localStorage',
-                record_sessions_percent: 100,
+                record_sessions_percent: 0,
                 record_mask_text_selector: ".mask-text",
                 record_block_selector: ".block-recording"
               })
@@ -135,10 +126,10 @@ export default function RootLayout({
 
         {/* Google Tag (gtag.js) */}
         <Script
-          async
+          strategy="lazyOnload"
           src="https://www.googletagmanager.com/gtag/js?id=G-8SLDNR1QTT"
         />
-        <Script id="google-analytics">
+        <Script id="google-analytics" strategy="lazyOnload">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}

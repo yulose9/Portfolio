@@ -87,7 +87,7 @@ export const ENHANCED_METADATA: Metadata = {
   icons: {
     icon: "/icon.svg",
     shortcut: "/icon.svg",
-    apple: "/icon.svg",
+    apple: "/apple-icon.png",
   },
   openGraph: {
     ...OG_METADATA,
