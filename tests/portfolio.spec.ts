@@ -41,7 +41,7 @@ test("photo dialog returns focus and scroll position after closing", async ({ pa
 
 test("swiping certificates scrolls the page and does not leave a lock", async ({ page, context }) => {
   await page.goto("/");
-  const card = page.getByRole("button", { name: "View Azure Fundamentals" });
+  const card = page.getByRole("link", { name: "View Azure Fundamentals" }).filter({ visible: true });
   await card.scrollIntoViewIfNeeded();
   const box = (await card.boundingBox())!;
   const start = await page.evaluate(() => scrollY);
@@ -49,6 +49,9 @@ test("swiping certificates scrolls the page and does not leave a lock", async ({
   const x = box.x + box.width / 2;
   const y = box.y + Math.min(box.height - 20, 150);
   await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+  // A long hold must not activate the removed drag behavior or lock scrolling.
+  await page.waitForTimeout(600);
+  expect(await page.evaluate(() => document.body.style.position)).not.toBe("fixed");
   for (let i = 1; i <= 6; i++) {
     await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x, y: y - i * 20 }] });
   }
@@ -71,7 +74,7 @@ test("layout fits narrow phones, tablets and laptops", async ({ page }) => {
 test("contact links are actionable and reduced-motion navigation works", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  await expect(page.locator('a[href="mailto:contact@nazarene.dev"]:visible').first()).toHaveAttribute("href", "mailto:contact@nazarene.dev");
+  await expect(page.locator('a[href="mailto:jannazarene09@gmail.com"]:visible').first()).toHaveAttribute("href", "mailto:jannazarene09@gmail.com");
   await expect(page.locator('a[href="tel:+639454178422"]:visible')).toHaveCount(1);
   await page.getByRole("button", { name: "Scroll to portfolio" }).click();
   await expect.poll(() => page.evaluate(() => Math.abs(document.getElementById("portfolio")!.getBoundingClientRect().top))).toBeLessThan(30);

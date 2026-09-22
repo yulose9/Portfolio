@@ -61,7 +61,7 @@ export default function Contact() {
               <div className="w-[300px] md:w-[400px] h-[2px] bg-black" />
 
               {/* Button */}
-              <a href="mailto:contact@nazarene.dev" onClick={() => haptic("medium")} className="bg-brand-accent hover:bg-brand-accent-hover transition-colors rounded-[20px] px-[16px] py-[10px] h-[80px] w-[280px] flex items-center justify-center">
+              <a href="mailto:jannazarene09@gmail.com" onClick={() => haptic("medium")} className="bg-brand-accent hover:bg-brand-accent-hover transition-colors rounded-[20px] px-[16px] py-[10px] h-[80px] w-[280px] flex items-center justify-center">
                 <span
                   className="text-[28px] font-semibold text-white tracking-[-0.408px] leading-tight"
                   style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
@@ -90,12 +90,12 @@ export default function Contact() {
                   <span className="text-[48px] leading-none">📧</span>
                 </div>
                 <a
-                  href="mailto:contact@nazarene.dev"
+                  href="mailto:jannazarene09@gmail.com"
                   onClick={(e) => {
                     trackEvent("Clicked Contact Email (Desktop)");
                   }}
                 >
-                  <span className="text-base md:text-2xl underline-offset-4 hover:underline">contact@nazarene.dev</span>
+                  <span className="text-base md:text-2xl underline-offset-4 hover:underline">jannazarene09@gmail.com</span>
                 </a>
               </motion.div>
 

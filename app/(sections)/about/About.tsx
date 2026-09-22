@@ -545,9 +545,9 @@ export default function About() {
             transition={{ duration: 0.3, delay: 0.15, ease: "easeOut" }}
             className="flex items-center justify-center gap-3"
           >
-            <div className="flex items-center gap-2">
+            <div className="inline-flex items-center justify-center gap-2">
               <svg
-                className="w-[2.607%] h-[4.082%]"
+                className="w-6 h-6 shrink-0"
                 viewBox="0 0 36 37"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"

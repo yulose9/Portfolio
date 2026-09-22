@@ -166,8 +166,8 @@ export default function StickyNav() {
             damping: 30,
             opacity: { duration: 0.2 },
           }}
-          className={`fixed z-[9999] hidden md:flex items-center justify-center gap-[18px] inset-x-0 mx-auto w-fit ${
-            isAtBottom ? "bottom-8" : "top-8"
+          className={`fixed z-[9999] hidden md:flex items-center justify-center gap-2 lg:gap-3 inset-x-0 mx-auto w-fit ${
+            isAtBottom ? "bottom-6" : "top-20 lg:top-6"
           }`}
         >
           <LayoutGroup id="sticky-nav">
@@ -205,7 +205,7 @@ export default function StickyNav() {
                     if (el) navItemRefs.current.set(item.id, el);
                   }}
                   onClick={() => scrollToSection(item.id)}
-                  className="relative px-4 py-2 text-base lg:px-6 lg:text-lg font-medium rounded-full text-white z-10"
+                  className="relative min-h-11 px-4 py-2 text-sm xl:px-5 xl:text-base font-medium rounded-full text-white z-10"
                 >
                   {/* Active indicator */}
                   {activeSection === item.id && (

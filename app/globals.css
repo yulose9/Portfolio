@@ -312,3 +312,18 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   .pressable:active:not(:disabled) { transform: none; }
 }
+/* Keep the hero composition proportional across phones, tablets and laptops. */
+.hero-header { padding: 20px clamp(20px, 3vw, 48px); min-height: 84px; }
+.hero-brand { font-size: clamp(18px, 1.6vw, 25px); line-height: 1.2; }
+.hero-contact { min-height: 44px; }
+.hero-portrait-mobile { inset-inline: -10%; bottom: -4%; height: 80%; }
+.hero-roles-mobile { left: 6%; top: 17%; max-width: 88%; }
+.hero-name-mobile { bottom: 20%; z-index: 20; }
+.hero-composition { max-width: 1440px; margin-inline: auto; }
+.hero-portrait-desktop { bottom: 0; left: 32%; width: 60%; height: 85%; max-height: 850px; }
+.hero-roles-desktop { left: 9%; top: 35%; width: 40%; }
+.hero-roles-desktop > svg { width: 36px; height: 36px; }
+.hero-name-desktop { bottom: 14%; line-height: 1.05; letter-spacing: -0.045em; }
+@media (min-width: 1536px) {
+  .hero-roles-desktop { left: 23%; }
+}

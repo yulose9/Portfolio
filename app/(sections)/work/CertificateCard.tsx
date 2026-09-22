@@ -69,7 +69,7 @@ export default function CertificateCard({ cert, index }: CertificateCardProps) {
           ease: [0.21, 0.47, 0.32, 0.98],
           delay: index * 0.1 + 0.3,
         }}
-        className="absolute left-[84px] top-[88px] w-[205px] h-[205px] rounded-[5px] overflow-hidden"
+        className="absolute inset-x-0 mx-auto top-[88px] w-[min(60%,205px)] aspect-square rounded-[5px] overflow-hidden"
       >
         {imageError ? (
           <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-[#f5f5f5] via-[#e8e8e8] to-[#d9d9d9]">

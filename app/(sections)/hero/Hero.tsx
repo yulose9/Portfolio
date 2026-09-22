@@ -118,7 +118,7 @@ export default function Hero() {
   return (
     <div
       id="home"
-      className={`relative w-screen bg-brand-primary text-white ${inter.className} overflow-hidden flex flex-col`}
+      className={`hero-section relative w-full bg-brand-primary text-white ${inter.className} overflow-hidden flex flex-col`}
       style={{
         height: "100svh",
         minHeight: "640px",
@@ -126,10 +126,10 @@ export default function Hero() {
     >
       {/* Top Navigation */}
       <header className="absolute top-0 left-0 right-0 z-20">
-        <nav className="flex items-center justify-between p-4 md:p-6 lg:p-8">
+        <nav className="hero-header flex items-center justify-between">
           {/* Left: made by nazarene */}
           <div
-            className="text-base md:text-xl lg:text-2xl font-semibold tracking-[-0.08em]"
+            className="hero-brand font-semibold tracking-[-0.045em]"
             style={{ fontFamily: "SF Pro Text, Inter, sans-serif" }}
           >
             made by nazarene
@@ -139,7 +139,7 @@ export default function Hero() {
           <div className="flex items-center gap-4 ml-auto">
             <button
               onClick={handleScrollToContact}
-              className="hidden md:flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 bg-brand-secondary/50 backdrop-blur-lg rounded-full text-base lg:text-lg font-semibold hover:bg-brand-secondary/70 hover:scale-105 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300"
+              className="hero-contact hidden md:flex items-center gap-2 px-4 py-2 bg-brand-secondary/50 backdrop-blur-lg rounded-full text-sm lg:text-base font-semibold hover:bg-brand-secondary/70 hover:scale-105 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300"
             >
               <Mail className="w-5 h-5" />
               Get in touch
@@ -178,7 +178,7 @@ export default function Hero() {
         {/* Mobile Layout (base to md) */}
         <div className="md:hidden absolute inset-0">
           {/* Hero Portrait - Mobile - Bottom Right */}
-          <div className="absolute right-0 bottom-0 w-full h-[min(78svh,639px)] overflow-hidden">
+          <div className="hero-portrait-mobile absolute overflow-hidden">
             <Image
               src="/image 1-final.png"
               alt="John Nazarene Dela Pisa"
@@ -188,17 +188,17 @@ export default function Hero() {
               fetchPriority="high"
               quality={82}
               sizes="(max-width: 767px) 100vw, 672px"
-              className="w-full h-full object-cover object-left"
+              className="w-full h-full object-contain object-bottom"
             />
           </div>
 
           {/* Hero Text Container - Mobile */}
-          <div className="absolute left-5 top-[22%] w-auto max-w-[85vw] flex flex-col gap-3 z-10">
+          <div className="hero-roles-mobile absolute flex flex-col gap-3 z-10">
             <div className="w-[24px] h-[24px]">
               <Highlighter />
             </div>
             <div
-              className="text-[23px] font-medium leading-[1.068] tracking-normal text-white whitespace-nowrap"
+              className="text-[clamp(20px,5.2vw,30px)] font-medium leading-[1.068] tracking-normal text-white whitespace-nowrap"
               style={{ fontFamily: "SF Pro Text, Inter, sans-serif" }}
             >
               <HeroRoles useWelcomeEvent welcomeEventDelay={0.1} />
@@ -208,7 +208,7 @@ export default function Hero() {
           {/* Hero Title - Mobile */}
           <GradientText
             text="John Nazarene Dela Pisa"
-            className="absolute bottom-[26%] left-4 right-4 text-[clamp(22px,7vw,46px)] font-bold leading-[1] tracking-[-0.041em] text-center whitespace-nowrap"
+            className="hero-name-mobile absolute left-4 right-4 text-[clamp(22px,6.4vw,46px)] font-bold leading-[1] tracking-[-0.041em] text-center whitespace-nowrap"
             style={{
               textShadow: "0px 0px 4.35px rgba(0, 0, 0, 0.25)",
               fontFamily: "SF Pro Display, Inter, sans-serif",
@@ -222,12 +222,12 @@ export default function Hero() {
         {/* Desktop Layout (md and up) */}
         <div className="hidden md:flex flex-col items-center justify-center text-center absolute inset-0">
           {/* Location Badge - Desktop Only */}
-          <div className="hidden xl:flex absolute top-1/2 -translate-y-1/2 left-0 w-[356px] h-[162px] bg-white/10 backdrop-blur-lg rounded-r-3xl flex items-center justify-center z-[150]">
-            <div className="flex items-center gap-[51px] px-[54px]">
+          <div className="hero-location hidden 2xl:flex absolute top-1/2 -translate-y-1/2 left-0 w-[250px] h-[120px] bg-white/10 backdrop-blur-lg rounded-r-3xl flex items-center justify-center z-[150]">
+            <div className="flex items-center gap-5 px-6">
               <GsapBouncyText
                 text="Located in the Philippines"
                 as="div"
-                className="text-[26px] font-semibold leading-[107%] tracking-[-0.02em] text-left"
+                className="text-xl font-semibold leading-[107%] tracking-[-0.02em] text-left"
                 style={{ fontFamily: "Inter, SF UI Text, sans-serif" }}
                 useWelcomeEvent
                 welcomeEventDelay={0}
@@ -239,12 +239,12 @@ export default function Hero() {
 
           {/* Grouped Hero Content - Desktop */}
           <div className="absolute inset-0 flex items-center justify-center z-10">
-            <div className="flex flex-row items-center justify-center">
+            <div className="hero-composition relative w-full h-full">
               {/* Hero Text Container - Desktop */}
-              <div className="flex flex-col items-start gap-[23px] w-[411px] z-10">
+              <div className="hero-roles-desktop absolute flex flex-col items-start gap-5 z-10">
                 <Highlighter />
                 <div
-                  className="w-full text-[40px] font-medium leading-[107%] tracking-[-0.08em] text-left flex flex-col gap-2"
+                  className="w-full text-[clamp(24px,2.6vw,40px)] font-medium leading-[1.15] tracking-[-0.045em] text-left flex flex-col gap-2"
                   style={{ fontFamily: "Inter, SF Pro Text, sans-serif" }}
                 >
                   <HeroRoles useWelcomeEvent welcomeEventDelay={0.2} />
@@ -252,7 +252,7 @@ export default function Hero() {
               </div>
 
               {/* Main Image - Desktop */}
-              <div className="w-full max-w-2xl -ml-72 transform translate-y-32">
+              <div className="hero-portrait-desktop absolute">
                 <Image
                   src="/image 1-final.png"
                   alt="John Nazarene Dela Pisa"
@@ -264,7 +264,7 @@ export default function Hero() {
               sizes="(max-width: 767px) 100vw, 672px"
                   placeholder="blur"
                   blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTgxIiBoZWlnaHQ9IjkxMyIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iOTgxIiBoZWlnaHQ9IjkxMyIgZmlsbD0iIzY1N0E2MiIvPjwvc3ZnPg=="
-                  className="w-full h-auto object-contain"
+                  className="w-full h-full object-contain object-bottom"
                 />
               </div>
             </div>
@@ -273,7 +273,7 @@ export default function Hero() {
           {/* Main Title - Desktop */}
           <GradientText
             text="John Nazarene Dela Pisa"
-            className="absolute bottom-20 inset-x-0 text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-[110px] font-bold z-[100] whitespace-nowrap text-center"
+            className="hero-name-desktop absolute inset-x-0 text-[clamp(44px,6.2vw,100px)] font-bold z-[100] whitespace-nowrap text-center"
             style={{
               textShadow: "0px 0px 12px rgba(0, 0, 0, 0.25)",
             }}

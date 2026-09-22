@@ -1,5 +1,16 @@
 # Portfolio audit
 
+## September 22 follow-up
+
+| Before | After | Why |
+| --- | --- | --- |
+| Fixed hero offsets and abrupt text sizes | Proportional portrait placement, fluid text sizes, and tablet navigation spacing | Keep the brand, name, portrait, and controls balanced across screen sizes |
+| Certificate centering used animation-sensitive transforms | Static flex cards with centered image slots | Keep badges centered and remove the requested drag, reorder, and long-press behavior |
+| Location icon used percentage dimensions | Fixed-size icon and centered icon/text group | Center Cavite, Philippines consistently |
+| Placeholder contact email | jannazarene09@gmail.com in both layouts and SEO data | Use the owner's correct contact address |
+
+The historical drag-related implementation and testing notes below describe the earlier audit. Certificate dragging has now been removed entirely.
+
 Completed September 22, 2026. Applied the Emil design engineering, Better UI, and official web-haptics skills.
 
 ## Changes

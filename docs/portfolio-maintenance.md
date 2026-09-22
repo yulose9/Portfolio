@@ -22,7 +22,8 @@ Cloudflare's `public/_headers` gives hashed images and Next static chunks immuta
 Run `npm run lint`, `npm run typecheck`, and `npm run test:e2e` after a production build.
 The browser suite uses installed Chrome with phone emulation. It checks native touch scrolling,
 menu/dialog focus restoration, responsive widths, navigation, and contact links.
-Physical iPhone Safari testing is still needed for haptic feel, browser toolbar changes, and long-press dragging.
+Physical iPhone Safari testing is still needed for haptic feel and browser toolbar changes.
+Certificates are static cards with credential links. They have no drag, reorder, or long-press handlers.
 
 Use `useHaptics` for deliberate taps and discrete selections. Avoid feedback during passive scrolling.
 Reduced-motion preference disables haptics and limits animation. Touch devices use native scrolling;

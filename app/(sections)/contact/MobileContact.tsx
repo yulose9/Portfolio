@@ -45,7 +45,7 @@ export default function MobileContact() {
             <div className="absolute left-0 right-0 h-[1px] bg-black" />
 
             {/* Button */}
-            <a href="mailto:contact@nazarene.dev" onClick={() => haptic("medium")} className="relative z-10 bg-[#42ad77] hover:bg-[#3a9667] active:scale-[0.96] transition-[color,background-color,border-color,box-shadow,opacity,transform] rounded-full px-6 py-3 flex items-center justify-center shadow-sm">
+            <a href="mailto:jannazarene09@gmail.com" onClick={() => haptic("medium")} className="relative z-10 bg-[#42ad77] hover:bg-[#3a9667] active:scale-[0.96] transition-[color,background-color,border-color,box-shadow,opacity,transform] rounded-full px-6 py-3 flex items-center justify-center shadow-sm">
               <span
                 className="text-base font-semibold text-white tracking-[-0.1815px] leading-none"
                 style={{
@@ -71,12 +71,12 @@ export default function MobileContact() {
                 <span className="text-[27px] leading-none">📧</span>
               </div>
               <a
-                href="mailto:contact@nazarene.dev"
+                href="mailto:jannazarene09@gmail.com"
                 onClick={(e) => {
                   trackEvent("Clicked Contact Email (Mobile)");
                 }}
               >
-                <span className="text-base md:text-2xl underline-offset-4 hover:underline">contact@nazarene.dev</span>
+                <span className="text-base md:text-2xl underline-offset-4 hover:underline">jannazarene09@gmail.com</span>
               </a>
             </motion.div>
 

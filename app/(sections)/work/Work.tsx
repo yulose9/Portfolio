@@ -15,11 +15,11 @@ import { Inter } from "next/font/google";
 import { useState } from "react";
 import {
   CompanyLogo,
-  DraggableCertificateGrid,
+  CertificateGrid,
   MobileWorkExperiences,
   WorkExperienceGrid,
 } from "./";
-import type { Certificate } from "./DraggableCertificateGrid";
+import type { Certificate } from "./CertificateGrid";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -77,7 +77,7 @@ const workExperiences = [
   },
 ];
 
-// Sample certificates data with IDs for drag and drop and enhanced metadata
+// Certificate details and credential links.
 const certificates: Certificate[] = [
   {
     id: "cert-azure",
@@ -459,14 +459,11 @@ export default function Work() {
               />
             </div>
 
-            {/* Draggable Certificates Grid - iOS style drag and drop */}
+            {/* Certificate links keep their original order. */}
             <div className="mb-16">
-              <DraggableCertificateGrid
+              <CertificateGrid
                 certificates={certificates}
                 variant="desktop"
-                onReorder={(newCerts) => {
-                  console.log("Certificates reordered:", newCerts.map(c => c.title));
-                }}
               />
             </div>
 

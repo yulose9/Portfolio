@@ -641,9 +641,9 @@ export default function MobileAbout() {
           </h2>
 
           {/* Location Badge */}
-          <div className="flex items-center gap-1 mb-2">
+          <div className="flex w-full items-center justify-center gap-2 mb-2">
             <svg
-              className="w-3 h-3"
+              className="w-4 h-4 shrink-0"
               viewBox="0 0 36 37"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
