@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { haptic } from "../lib/haptics";
 import type { Entry, Post, Tab } from "../site-content";
 
 /**
@@ -52,7 +53,7 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
   }, [active.id, tabs]);
 
   return (
-    <div className="flex w-full flex-col items-start gap-12">
+    <div className="rhythm-12 flex w-full flex-col items-start gap-12">
       <nav aria-label="Sections">
         <ul className="relative flex list-none items-center gap-6 p-0 pb-1">
           {tabs.map((tab, index) => {
@@ -66,7 +67,10 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
               >
                 <button
                   type="button"
-                  onClick={() => setActiveId(tab.id)}
+                  onClick={() => {
+                    haptic();
+                    setActiveId(tab.id);
+                  }}
                   aria-current={isActive ? "page" : undefined}
                   // No hover colour shift: the labels hold one tone in every
                   // state, and the rail below is the active cue.
@@ -98,7 +102,7 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
         the writing section carried pt-12, and the two stacked into a 96px
         trench between the bio and the list. One gap, one value, set once.
       */}
-      <div key={active.id} className="flex min-h-[23rem] w-full flex-col gap-12">
+      <div key={active.id} className="panel-floor rhythm-12 flex min-h-[23rem] w-full flex-col gap-12">
         {active.items?.length ? <EntryList items={active.items} /> : null}
         {active.items && !active.items.length && active.empty ? (
           <p className="panel-chunk m-0 text-base leading-6 text-zinc-400">
@@ -281,7 +285,7 @@ function Row({ title, year, href }: Entry) {
 
   // inline-block, so the row box ends at the text rather than at the column
   // edge — the highlight measures this box.
-  const shell = "inline-block rounded-[14px] px-10 py-4 no-underline";
+  const shell = "row-pad inline-block rounded-[14px] px-10 py-4 no-underline";
 
   // Entries without a destination stay inert rather than becoming dead links.
   return href ? (
@@ -290,6 +294,7 @@ function Row({ title, year, href }: Entry) {
       target={external ? "_blank" : undefined}
       rel={external ? "noreferrer" : undefined}
       className={shell}
+      onClick={haptic}
     >
       {content}
     </a>
@@ -467,7 +472,8 @@ function LinkList({
             href={link.href}
             target={link.href.startsWith("http") ? "_blank" : undefined}
             rel={link.href.startsWith("http") ? "noreferrer" : undefined}
-            className="inline-flex w-fit items-baseline gap-2 rounded-[14px] px-10 py-4 no-underline transition-colors duration-150 ease-out hover:bg-neutral-100"
+            onClick={haptic}
+            className="row-pad inline-flex w-fit items-baseline gap-2 rounded-[14px] px-10 py-4 no-underline transition-colors duration-150 ease-out hover:bg-neutral-100"
           >
             <span className="text-base leading-6 text-zinc-400">{link.label}</span>
             <span className="text-base leading-6 text-black underline">

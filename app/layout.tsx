@@ -30,7 +30,11 @@ const inter = Inter({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  // Match the page background so mobile browser chrome blends into the page.
+  // Paint under the notch and the home indicator. This is what lets Safari and
+  // Chrome collapse their chrome; .page-shell insets the content back out via
+  // env(safe-area-inset-*) so nothing lands underneath them.
+  viewportFit: "cover",
+  // Matching the page background removes the seam between chrome and content.
   themeColor: "#ffffff",
   // No maximumScale / userScalable lock — user zoom stays available (WCAG 1.4.4).
 };

@@ -39,7 +39,7 @@ export default function LocalTime() {
   const time = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   return (
-    <p className="m-0 text-base leading-6 text-zinc-400">
+    <p className="font-paper-mono m-0 text-base leading-6 text-zinc-400">
       {/*
         tabular-nums stops the line reflowing each time the minute ticks over.
         The non-breaking space holds the row's height before the clock reads.

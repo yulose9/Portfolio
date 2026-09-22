@@ -12,15 +12,22 @@ export default function Page() {
         off deliberately — the Figma frame is desktop-only, and a 512px floor
         would force a horizontal scrollbar on every phone.
       */}
-      <main className="w-full max-w-[672px] px-12 py-16 sm:py-24">
+      <main className="page-shell page-enter w-full max-w-[672px] py-16 sm:py-24">
         <div className="pb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
+          {/*
+            48px on phones, 32px from 640px up. The portrait has to hold its own
+            against a full-width column on a small screen, where 32px reads as an
+            afterthought; on desktop the same 32px sits correctly against the
+            16px name beside it. The source is 128px, so 48px still has nearly
+            3x the pixels it needs on a retina display.
+          */}
           <img
             src={PROFILE.avatar}
             alt={PROFILE.name}
-            width={32}
-            height={32}
-            className="h-8 w-8 rounded-full object-cover"
+            width={48}
+            height={48}
+            className="h-12 w-12 rounded-full object-cover sm:h-8 sm:w-8"
           />
         </div>
 
@@ -50,7 +57,7 @@ export default function Page() {
           where I am. flex-wrap lets them stack rather than collide once the
           column gets narrow.
         */}
-        <footer className="mt-24 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+        <footer className="footer-gap mt-24 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
           <LocalTime />
           {/* Read during the build; refreshed from GitHub on the client. */}
           <LastUpdated initial={buildTimeCommit()} />

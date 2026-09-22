@@ -141,10 +141,70 @@ body {
   text-wrap: pretty;
 }
 
+/*
+ * Paper Mono, self-hosted from the project's GitHub release (SIL OFL 1.1 —
+ * the licence text ships beside the font at /fonts/PaperMono-OFL.txt).
+ *
+ * The variable cut carries the whole Thin-to-ExtraBold axis in one 52 KB file,
+ * so there is nothing to gain from shipping the static weights.
+ */
+@font-face {
+  font-family: "Paper Mono";
+  src: url("/fonts/PaperMono-Variable.woff2") format("woff2-variations");
+  font-weight: 100 800;
+  font-style: normal;
+  /* The footer is below the fold; let the fallback show rather than block. */
+  font-display: swap;
+}
+
+.font-paper-mono {
+  font-family: "Paper Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Monospace is already even-width; the body's negative tracking fights it. */
+  letter-spacing: 0;
+}
+
 /* Underlines in the design sit close to the text and stay thin. */
 a {
   text-underline-offset: 2px;
   text-decoration-thickness: 1px;
+}
+
+/*
+ * Long-press selection on the tab labels.
+ *
+ * iOS suppresses text selection inside a <button> and shows the callout menu
+ * for links instead, so by default the words cannot be selected at all. These
+ * opt both back in without giving up the button semantics that keyboard and
+ * screen-reader users rely on.
+ */
+.tab-hit {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/*
+ * Page entrance.
+ *
+ * The whole column resolves out of a blur once per load. It is a one-shot
+ * mount animation rather than an interaction, so a keyframe is right here —
+ * there is nothing to interrupt or retarget.
+ */
+.page-enter {
+  animation: page-in 720ms var(--ease-soft) both;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.994);
+    filter: blur(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
 }
 
 /*
@@ -448,6 +508,60 @@ a {
 }
 
 /*
+ * Edge-to-edge on phones.
+ *
+ * With viewport-fit=cover the page paints under the notch and the home
+ * indicator, which is what makes Safari and Chrome collapse their chrome and
+ * feel full-screen. That only works if the content then insets itself back out
+ * of those regions, which is what the safe-area values do. max() keeps the
+ * design's own gutter wherever the inset is zero.
+ */
+.page-shell {
+  padding-left: max(3rem, env(safe-area-inset-left));
+  padding-right: max(3rem, env(safe-area-inset-right));
+  padding-bottom: max(4rem, env(safe-area-inset-bottom));
+}
+
+/*
+ * Phone density.
+ *
+ * The desktop rhythm is built for a 672px column with room to breathe. On a
+ * phone the same values push Work, Projects and Certificates past the fold for
+ * no reason — the content is short, the spacing is just generous. Tightening
+ * it lets those three tabs land inside one screen without touching scrolling,
+ * which stays enabled throughout.
+ */
+@media (max-width: 639px) {
+  .page-shell {
+    padding-top: 2.5rem;
+    padding-bottom: max(2.5rem, env(safe-area-inset-bottom));
+    padding-left: max(1.5rem, env(safe-area-inset-left));
+    padding-right: max(1.5rem, env(safe-area-inset-right));
+  }
+
+  /* 48px between blocks is a desktop measure; 32px reads the same on a phone. */
+  .rhythm-12 {
+    gap: 2rem;
+  }
+
+  /* The tallest-list floor exists to stop desktop tab changes deflating the
+     page. On a phone it only adds dead space below the last row. */
+  .panel-floor {
+    min-height: 0;
+  }
+
+  /* 84px rows become 76px: the text is untouched, only the padding gives. */
+  .row-pad {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .footer-gap {
+    margin-top: 3rem;
+  }
+}
+
+/*
  * Reduced motion means fewer and gentler animations, not none. Opacity and
  * colour still carry state changes — the sibling dim above is kept for that
  * reason. Every translate, scale and blur is dropped.
@@ -474,6 +588,11 @@ a {
   .panel-chunk {
     animation: fade-in 160ms ease both;
     animation-delay: 0ms;
+  }
+
+  /* The entrance keeps its fade; the blur and the drift are dropped. */
+  .page-enter {
+    animation: fade-in 240ms ease both;
   }
 
   /*
