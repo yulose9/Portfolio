@@ -80,7 +80,7 @@ export default function MobileWorkExperiences() {
 
   return (
     <TooltipProvider>
-      <div className="relative w-full px-[15px] py-[113px]">
+      <div className="relative w-full px-5 pt-20 pb-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

@@ -38,4 +38,9 @@ const initialCertificates: Certificate[] = [
   },
 ];
 
-export default function MobileCertificates() { return <CertificateGrid certificates={initialCertificates} variant="mobile" />; }
+export default function MobileCertificates() {
+  return <section aria-labelledby="mobile-certificates-heading" className="mx-auto max-w-lg px-5 pb-12">
+    <h2 id="mobile-certificates-heading" className="mb-5 text-xl font-semibold tracking-tight text-white">Certificates &amp; licenses</h2>
+    <CertificateGrid certificates={initialCertificates} variant="mobile" />
+  </section>;
+}

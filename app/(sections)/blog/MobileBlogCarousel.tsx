@@ -239,37 +239,36 @@ export default function MobileBlogCarousel({ blogs }: MobileBlogCarouselProps) {
         </AnimatePresence>
       </div>
 
-      {/* Pagination Dots - Small and subtle */}
-      <div className="flex justify-center items-center gap-2 mb-6">
+      {/* Small visual markers inside full-sized touch targets. */}
+      <div className="flex justify-center items-center" aria-label="Blog pagination">
         {blogs.map((_, index) => (
           <button
             key={index}
             onClick={() => handleDotClick(index)}
-            className={`rounded-full transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 ${
-              index === currentIndex
-                ? "bg-gray-800 w-2 h-2"
-                : "bg-gray-400/50 w-1.5 h-1.5"
-            }`}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-transparent focus-visible:outline-offset-0"
+            aria-current={index === currentIndex ? "true" : undefined}
             aria-label={`Go to blog ${index + 1}`}
-          />
+          >
+            <span aria-hidden="true" className={`block h-1.5 rounded-full transition-colors duration-150 ${index === currentIndex ? "w-5 bg-[#374136]" : "w-1.5 bg-black/25"}`} />
+          </button>
         ))}
       </div>
 
       {/* Navigation Arrows */}
-      <div className="flex justify-center gap-2">
+      <div className="flex justify-center gap-3 mt-1">
         <button
           onClick={handlePrev}
-          className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:bg-gray-200 active:scale-[0.96]"
+          className="pressable w-11 h-11 rounded-full bg-black/5 flex items-center justify-center hover:bg-black/10"
           aria-label="Previous blog"
         >
-          <ChevronLeft className="w-7 h-7 text-gray-700" strokeWidth={2.5} />
+          <ChevronLeft className="w-5 h-5 text-[#374136]" strokeWidth={2} />
         </button>
         <button
           onClick={handleNext}
-          className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:bg-gray-200 active:scale-[0.96]"
+          className="pressable w-11 h-11 rounded-full bg-black/5 flex items-center justify-center hover:bg-black/10"
           aria-label="Next blog"
         >
-          <ChevronRight className="w-7 h-7 text-gray-700" strokeWidth={2.5} />
+          <ChevronRight className="w-5 h-5 text-[#374136]" strokeWidth={2} />
         </button>
       </div>
     </div>
