@@ -115,6 +115,9 @@ export const TABS: Tab[] = [
         title: "GitHub Copilot",
         company: "Microsoft",
         year: "2025",
+        // ?ref=...linkedin.com stripped: it only tells Microsoft where the
+        // click came from and is not part of addressing the credential.
+        href: "https://learn.microsoft.com/en-us/users/jrdelapisa/credentials/63eb1c0444a4c682",
         logo: "github",
         image: "/images/certifications/Github_Copilot_badge.png",
         fit: "contain",

@@ -27,6 +27,44 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
   const railPlaced = useRef(false);
 
   /*
+   * The hover surface travels to whichever tab the pointer is over.
+   *
+   * It moves onto the active tab as well, and is simply hidden there — rather
+   * than being parked. Stopping it would break the journey into two, which is
+   * the fade-per-tab behaviour this replaces.
+   */
+  const [hoveredTab, setHoveredTab] = useState<number | null>(null);
+  const hoverRailRef = useRef<HTMLSpanElement>(null);
+  const hoverIdle = useRef(true);
+
+  const enterTab = useCallback((index: number) => {
+    const label = tabRefs.current[index];
+    const rail = hoverRailRef.current;
+    if (!label || !rail) return;
+
+    // Arriving from idle it should appear under the cursor, not slide in from
+    // wherever it was last left. Suppress, set, flush a reflow, restore.
+    if (hoverIdle.current) rail.style.transition = "none";
+
+    rail.style.transform = `translate(${label.offsetLeft}px, ${label.offsetTop}px)`;
+    rail.style.width = `${label.offsetWidth}px`;
+    rail.style.height = `${label.offsetHeight}px`;
+
+    if (hoverIdle.current) {
+      void rail.offsetWidth;
+      rail.style.transition = "";
+    }
+
+    hoverIdle.current = false;
+    setHoveredTab(index);
+  }, []);
+
+  const leaveTabs = useCallback(() => {
+    hoverIdle.current = true;
+    setHoveredTab(null);
+  }, []);
+
+  /*
    * Publish the live panel's height so the footer can glide to it rather than
    * teleport. A callback ref rather than an effect, because the panel remounts
    * on every tab change and the observer has to follow the new node.
@@ -82,7 +120,10 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
           the gap used to, and 24px between pills would read as four buttons
           rather than one control.
         */}
-        <ul className="relative flex list-none items-center gap-1 p-0">
+        <ul
+          className="relative flex list-none items-center gap-1 p-0"
+          onPointerLeave={leaveTabs}
+        >
           {tabs.map((tab, index) => {
             const isActive = tab.id === active.id;
             return (
@@ -91,6 +132,7 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
                 ref={(node) => {
                   tabRefs.current[index] = node;
                 }}
+                onPointerEnter={() => enterTab(index)}
               >
                 <button
                   type="button"
@@ -111,6 +153,22 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
               </li>
             );
           })}
+
+          {/*
+            Rendered before the active pill so it paints underneath, and both
+            sit under the labels, which carry z-10.
+          */}
+          <span
+            ref={hoverRailRef}
+            aria-hidden="true"
+            className={`tab-hover-rail absolute left-0 top-0 rounded-[99px] ${
+              hoveredTab === null ? "is-idle opacity-0" : ""
+            } ${
+              hoveredTab !== null && tabs[hoveredTab]?.id !== active.id
+                ? "opacity-100"
+                : "opacity-0"
+            }`}
+          />
 
           {/*
             One glass pill that travels, instead of a rule under each tab. Its
