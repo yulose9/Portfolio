@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { SiGithub, SiGoogle, SiHashicorp } from "@icons-pack/react-simple-icons";
+import { Cloud, HardHat, Palette, Robot } from "@phosphor-icons/react";
 import { haptic } from "../lib/haptics";
 import type { Entry, Post, Tab } from "../site-content";
 
@@ -25,6 +27,25 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
   const railPlaced = useRef(false);
 
   /*
+   * Publish the live panel's height so the footer can glide to it rather than
+   * teleport. A callback ref rather than an effect, because the panel remounts
+   * on every tab change and the observer has to follow the new node.
+   *
+   * setState only ever runs from the observer callback, which is async, so this
+   * never cascades a render.
+   */
+  const [panelHeight, setPanelHeight] = useState<number | null>(null);
+  const observer = useRef<ResizeObserver | null>(null);
+
+  const measurePanel = useCallback((node: HTMLDivElement | null) => {
+    observer.current?.disconnect();
+    if (!node) return;
+    const ro = new ResizeObserver(() => setPanelHeight(node.offsetHeight));
+    ro.observe(node);
+    observer.current = ro;
+  }, []);
+
+  /*
    * One rail that travels, rather than a rule per tab crossfading in and out.
    *
    * A crossfade gives you two separate events — one rule leaving, another
@@ -42,8 +63,9 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
     // set without a transition instead of sliding in from the left edge.
     if (!railPlaced.current) rail.style.transition = "none";
 
-    rail.style.transform = `translateX(${label.offsetLeft}px)`;
+    rail.style.transform = `translate(${label.offsetLeft}px, ${label.offsetTop}px)`;
     rail.style.width = `${label.offsetWidth}px`;
+    rail.style.height = `${label.offsetHeight}px`;
 
     if (!railPlaced.current) {
       void rail.offsetWidth;
@@ -55,7 +77,12 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
   return (
     <div className="rhythm-12 flex w-full flex-col items-start gap-12">
       <nav aria-label="Sections">
-        <ul className="relative flex list-none items-center gap-6 p-0 pb-1">
+        {/*
+          gap drops from 24px to 4px: the pill now supplies the separation that
+          the gap used to, and 24px between pills would read as four buttons
+          rather than one control.
+        */}
+        <ul className="relative flex list-none items-center gap-1 p-0">
           {tabs.map((tab, index) => {
             const isActive = tab.id === active.id;
             return (
@@ -74,7 +101,10 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
                   aria-current={isActive ? "page" : undefined}
                   // No hover colour shift: the labels hold one tone in every
                   // state, and the rail below is the active cue.
-                  className="tab-hit relative cursor-pointer whitespace-nowrap border-0 bg-transparent text-base leading-6 text-zinc-400 outline-offset-4 transition-transform duration-150 ease-out active:scale-[0.96]"
+                  // The label sits above the pill, so it needs its own padding
+                  // to give the pill something to wrap. relative + z-10 keeps
+                  // the text painting over the glass rather than under it.
+                  className="tab-hit relative z-10 cursor-pointer whitespace-nowrap rounded-[99px] border-0 bg-transparent px-3 py-1.5 text-base leading-6 text-zinc-400 outline-offset-4 transition-transform duration-150 ease-out active:scale-[0.96]"
                 >
                   {tab.label}
                 </button>
@@ -82,10 +112,15 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
             );
           })}
 
+          {/*
+            One glass pill that travels, instead of a rule under each tab. Its
+            position, width and height are measured from the active label and
+            set imperatively; only the timing and material live in CSS.
+          */}
           <span
             ref={railRef}
             aria-hidden="true"
-            className="tab-rail absolute bottom-0 left-0 h-0.5 rounded-full bg-gray-100"
+            className="tab-rail absolute left-0 top-0 rounded-[99px]"
           />
         </ul>
       </nav>
@@ -102,7 +137,19 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
         the writing section carried pt-12, and the two stacked into a 96px
         trench between the bio and the list. One gap, one value, set once.
       */}
-      <div key={active.id} className="panel-floor rhythm-12 flex min-h-[23rem] w-full flex-col gap-12">
+      <div
+        className="panel-anim w-full"
+        style={
+          panelHeight
+            ? ({ "--panel-h": `${panelHeight}px` } as React.CSSProperties)
+            : undefined
+        }
+      >
+        <div
+          key={active.id}
+          ref={measurePanel}
+          className="panel-floor rhythm-12 flex min-h-[23rem] w-full flex-col gap-12"
+        >
         {active.items?.length ? <EntryList items={active.items} /> : null}
         {active.items && !active.items.length && active.empty ? (
           <p className="panel-chunk m-0 text-base leading-6 text-zinc-400">
@@ -126,7 +173,8 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
               (active.posts?.length ? active.posts.length + 1 : 0)
             }
           />
-        ) : null}
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -274,12 +322,62 @@ function EntryList({ items }: { items: Entry[] }) {
   );
 }
 
-function Row({ title, year, href }: Entry) {
+/*
+ * Phosphor at `light` weight. Its hairline stroke is the reason for choosing it
+ * over Lucide's 2px default — on a page built from 0.8px rules and 14px type, a
+ * heavier icon would be the loudest thing on screen.
+ */
+const ICONS = {
+  robot: Robot,
+  hardhat: HardHat,
+  palette: Palette,
+} as const;
+
+/*
+ * Issuer marks, from Simple Icons — real trademarks, used to identify the body
+ * that actually issued each credential.
+ *
+ * AWS, Azure and Microsoft are deliberately absent: Simple Icons carries none
+ * of them any more, having removed those marks on request, and a trademark is
+ * not something to redraw by hand from memory. Both of those certificates are
+ * cloud credentials, so they take a neutral cloud glyph instead.
+ */
+const LOGOS = {
+  github: SiGithub,
+  hashicorp: SiHashicorp,
+  google: SiGoogle,
+  cloud: Cloud,
+} as const;
+
+function Row({ title, company, year, href, icon, logo }: Entry) {
   const external = href?.startsWith("http");
+  const Icon = icon ? ICONS[icon] : null;
+  const Logo = logo ? LOGOS[logo] : null;
+
   const content = (
-    <span className="flex flex-col gap-1">
-      <span className="text-base leading-6 text-black underline">{title}</span>
-      <span className="text-base leading-6 text-zinc-400">{year}</span>
+    <span className="flex items-start gap-4">
+      {Icon ? (
+        // Nudged down to sit optically on the title's cap height rather than
+        // its line box, and aria-hidden since the title already says this.
+        <span className="mt-[3px] shrink-0 text-zinc-400">
+          <Icon size={20} weight="light" aria-hidden="true" />
+        </span>
+      ) : null}
+      {Logo ? (
+        // currentColor, not the brand colour: a row of vendor colours would
+        // pull every eye to the logos on an otherwise monochrome page. 16px so
+        // a solid mark reads no heavier than the 20px hairline icons above.
+        <span className="mt-[4px] shrink-0 text-zinc-500">
+          <Logo size={16} color="currentColor" aria-hidden="true" />
+        </span>
+      ) : null}
+      <span className="flex flex-col gap-0.5">
+        <span className="text-base leading-6 text-black underline">{title}</span>
+        {company ? (
+          <span className="text-base leading-6 text-zinc-500">{company}</span>
+        ) : null}
+        <span className="text-sm leading-5 text-zinc-400">{year}</span>
+      </span>
     </span>
   );
 

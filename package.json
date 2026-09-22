@@ -21,6 +21,8 @@
     "tailwindcss"
   ],
   "dependencies": {
+    "@icons-pack/react-simple-icons": "^13.15.1",
+    "@phosphor-icons/react": "^2.1.10",
     "next": "^15.5.4",
     "posthog-js": "^1.434.7",
     "react": "^19.1.1",

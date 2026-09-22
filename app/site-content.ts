@@ -4,8 +4,18 @@
  */
 
 export type Entry = {
+  /** The role, or the certificate name. */
   title: string;
+  /** The employer, or the issuing body. Rendered on its own line. */
+  company?: string;
   year: string;
+  /** Keyed rather than a component, so site-content stays free of imports. */
+  icon?: "robot" | "hardhat" | "palette";
+  /**
+   * Issuer mark. github/hashicorp/google are the real brand marks; "cloud" is a
+   * neutral stand-in for AWS and Azure, whose marks are not in Simple Icons.
+   */
+  logo?: "github" | "hashicorp" | "google" | "cloud";
   /** Omit to render the row as plain text instead of a link. */
   href?: string;
   /** Shown in the hover preview panel. Omit and the row just highlights. */
@@ -54,20 +64,26 @@ export const TABS: Tab[] = [
     label: "Work",
     items: [
       {
-        title: "AI Specialist, FEAREX Technologies",
+        title: "AI Specialist",
+        company: "FEAREX Technologies",
         year: "2026 — Present",
+        icon: "robot",
         href: "https://fearextechnologies.com",
       },
       {
-        title: "Solutions Architect (AWS & RHEL), Trends and Technologies",
+        title: "Solutions Architect (AWS & RHEL)",
+        company: "Trends and Technologies",
         year: "2024 — 2026",
+        icon: "hardhat",
         href: "https://www.trends.com.ph/",
         image: "/images/company-logos/trends-and-technologies.png",
         fit: "contain",
       },
       {
-        title: "Design Intern (UI/UX), Archicoders",
+        title: "Design Intern (UI/UX)",
+        company: "Archicoders",
         year: "2023 — 2024",
+        icon: "palette",
         href: "https://archicoders.com/",
         image: "/images/company-logos/archicoders.jpg",
         fit: "contain",
@@ -89,28 +105,43 @@ export const TABS: Tab[] = [
     label: "Certificates",
     items: [
       {
-        title: "GitHub Copilot, Microsoft",
+        title: "AWS Certified Cloud Practitioner",
+        company: "Amazon Web Services",
+        year: "2026",
+        href: "https://www.credly.com/badges/158758df-43b4-49ea-bd59-034f673aa62f/linked_in_profile",
+        logo: "cloud",
+      },
+      {
+        title: "GitHub Copilot",
+        company: "Microsoft",
         year: "2025",
+        logo: "github",
         image: "/images/certifications/Github_Copilot_badge.png",
         fit: "contain",
       },
       {
-        title: "Terraform Associate, HashiCorp",
+        title: "Terraform Associate",
+        company: "HashiCorp",
         year: "2025",
+        logo: "hashicorp",
         href: "https://www.credly.com/badges/bebd520f-8e29-4ec4-9f11-22a35b047349/linked_in_profile",
         image: "/images/certifications/TerraformAssociate.png",
         fit: "contain",
       },
       {
-        title: "Cloud Digital Leader, Google",
+        title: "Cloud Digital Leader",
+        company: "Google",
         year: "2025",
+        logo: "google",
         href: "https://www.credly.com/badges/95d75765-13fa-4c81-802c-834c0217da8a/linked_in_profile",
         image: "/images/certifications/googlecloudpractitioner.png",
         fit: "contain",
       },
       {
-        title: "Azure Fundamentals, Microsoft",
+        title: "Azure Fundamentals",
+        company: "Microsoft",
         year: "2024",
+        logo: "cloud",
         href: "https://learn.microsoft.com/api/credentials/share/en-us/JohnNazareneDelaPisa-8958/D57215FE29EAA434",
         image: "/images/certifications/microsoft-certified-fundamentals-badge.svg",
         fit: "contain",

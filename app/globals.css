@@ -242,13 +242,25 @@ a {
 }
 
 /*
- * The travelling tab rule. Position and width are set imperatively when the
- * active tab changes; only the timing lives here. Slightly quicker than the
- * row highlight because it covers far less ground.
+ * The travelling tab pill.
+ *
+ * Same glass material as the row highlight, so the two selected states on the
+ * page read as one system. Geometry is set imperatively when the active tab
+ * changes; only the timing and the surface live here.
+ *
+ * 99px rather than a percentage: a fixed radius that large always resolves to
+ * a true half-capsule at this height, and stays one if the tabs ever grow.
  */
 .tab-rail {
   width: 0;
-  transition: transform 300ms var(--ease-morph), width 300ms var(--ease-morph);
+  height: 0;
+
+  background-color: var(--surface-fill);
+  background-image: var(--surface-bg);
+  box-shadow: var(--surface-ring), var(--surface-lift);
+
+  transition: transform 320ms var(--ease-morph), width 320ms var(--ease-morph),
+    height 320ms var(--ease-morph);
 }
 
 /*
@@ -323,6 +335,7 @@ a {
  * The sheen. A separate layer so it sits over the lit face but under whatever
  * the surface contains, and inherits the corner radius of either host.
  */
+.tab-rail::before,
 .list-highlight::before,
 .preview-frame::before {
   content: "";
@@ -558,6 +571,41 @@ a {
 
   .footer-gap {
     margin-top: 3rem;
+  }
+
+  /*
+   * Smooth the footer instead of letting it jump.
+   *
+   * Each tab's panel is a different height, so on a phone — where there is no
+   * min-height floor holding them level — switching tabs teleports the footer.
+   * The measured height of the live panel is published as --panel-h by a
+   * ResizeObserver, and animating to it turns that jump into a glide.
+   *
+   * Only on phones. On desktop the floor already keeps the three list tabs the
+   * same height, and animating there would add motion with nothing to fix.
+   */
+  .panel-anim {
+    height: var(--panel-h, auto);
+    overflow: hidden;
+    transition: height 420ms var(--ease-morph);
+  }
+
+  /*
+   * No sideways movement on phones.
+   *
+   * overflow-x alone still lets the rubber-band drag the page horizontally on
+   * iOS, so the overscroll chain is closed on that axis too, and the shell is
+   * capped so nothing inside it can widen the document in the first place.
+   */
+  html,
+  body {
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+    max-width: 100%;
+  }
+
+  .page-shell {
+    max-width: 100vw;
   }
 }
 
