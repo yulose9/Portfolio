@@ -1,35 +1,48 @@
-import SmoothScrolling from "./providers/SmoothScrolling";
-import DeferredAnalytics from "./providers/DeferredAnalytics";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
-import InteractionProvider from "./providers/InteractionProvider";
+import VendorScripts from "./analytics/VendorScripts";
 import {
   ENHANCED_METADATA,
   PERSON_SCHEMA,
   PROFILE_PAGE_SCHEMA,
   WEBSITE_SCHEMA,
 } from "./constants/seo";
+import DeferredAnalytics from "./providers/DeferredAnalytics";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+/*
+ * Inter, self-hosted by next/font at build time — no runtime request to
+ * Google, no layout shift, and no new dependency.
+ *
+ * It replaces the SF Pro system stack for a practical reason: SF Pro only
+ * ever appeared on Apple devices. Everywhere else the stack fell through to
+ * Segoe UI or Helvetica, which carry different proportions and metrics from
+ * the ones the design was drawn against. Inter renders the same everywhere,
+ * and it is what the Figma frame specifies.
+ */
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sans",
+});
 
-// Viewport configuration (separate from metadata in Next.js 14+)
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  // Allow user scaling for accessibility (WCAG 1.4.4)
+  // Match the page background so mobile browser chrome blends into the page.
+  themeColor: "#ffffff",
+  // No maximumScale / userScalable lock — user zoom stays available (WCAG 1.4.4).
 };
 
-// Enhanced SEO metadata
+/*
+ * The full metadata set — Open Graph, Twitter cards, canonical, robots and
+ * icons — lives in app/constants/seo.ts so the schemas below and the tags here
+ * cannot drift apart.
+ */
 export const metadata: Metadata = {
   ...ENHANCED_METADATA,
   manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "John Nazarene",
-  },
 };
 
 export default function RootLayout({
@@ -38,9 +51,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
       <head>
-        {/* Structured Data - JSON-LD */}
+        {/*
+          JSON-LD. Search engines read these for the knowledge panel; they are
+          inert markup, so they sit in the head with no loading strategy.
+        */}
         <Script
           id="schema-person"
           type="application/ld+json"
@@ -58,86 +74,19 @@ export default function RootLayout({
             __html: JSON.stringify(PROFILE_PAGE_SCHEMA),
           }}
         />
-        {/* Microsoft Clarity */}
-        <Script
-          id="microsoft-clarity"
-          strategy="lazyOnload"
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function(c,l,a,r,i,t,y){
-                  c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-                  t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-                  y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-              })(window, document, "clarity", "script", "uehtex8zqz");
-            `,
-          }}
-        />
-
-        {/* Apple iOS Safari specific */}
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-
-        {/* Android Chrome specific */}
-        <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className={inter.className}>
-        {/* Skip to Main Content - Accessibility */}
-        <a href="#main-content" className="skip-link">
-          Skip to main content
-        </a>
+      <body>
+        {children}
 
-        <InteractionProvider><SmoothScrolling>{children}</SmoothScrolling></InteractionProvider>
+        {/*
+          Analytics load after the content, and every vendor script is
+          lazyOnload, so none of this competes with first paint.
+
+          PostHog comes in separately and later still: DeferredAnalytics waits
+          1.5s and does nothing at all unless NEXT_PUBLIC_POSTHOG_KEY is set.
+        */}
+        <VendorScripts />
         <DeferredAnalytics />
-
-        {/* Cloudflare Web Analytics */}
-        <Script
-          strategy="lazyOnload"
-          src="https://static.cloudflareinsights.com/beacon.min.js"
-          data-cf-beacon='{"token": "e48b484435ef4fb0a307689022769282"}'
-        />
-
-        {/* Umami Analytics */}
-        <Script
-          src="https://cloud.umami.is/script.js"
-          data-website-id="a0d016ea-6eb5-4de4-b15f-31c99d2d810f"
-          strategy="lazyOnload"
-        />
-
-        {/* Mixpanel Analytics */}
-        <Script
-          id="mixpanel-init"
-          strategy="lazyOnload"
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function(e,c){if(!c.__SV){var l,h;window.mixpanel=c;c._i=[];c.init=function(q,r,f){function t(d,a){var g=a.split(".");2==g.length&&(d=d[g[0]],a=g[1]);d[a]=function(){d.push([a].concat(Array.prototype.slice.call(arguments,0)))}}var b=c;"undefined"!==typeof f?b=c[f]=[]:f="mixpanel";b.people=b.people||[];b.toString=function(d){var a="mixpanel";"mixpanel"!==f&&(a+="."+f);d||(a+=" (stub)");return a};b.people.toString=function(){return b.toString(1)+".people (stub)"};l="disable time_event track track_pageview track_links track_forms track_with_groups add_group set_group remove_group register register_once alias unregister identify name_tag set_config reset opt_in_tracking opt_out_tracking has_opted_in_tracking has_opted_out_tracking clear_opt_in_out_tracking start_batch_senders start_session_recording stop_session_recording people.set people.set_once people.unset people.increment people.append people.union people.track_charge people.clear_charges people.delete_user people.remove".split(" ");
-              for(h=0;h<l.length;h++)t(b,l[h]);var n="set set_once union unset remove delete".split(" ");b.get_group=function(){function d(p){a[p]=function(){b.push([g,[p].concat(Array.prototype.slice.call(arguments,0))])}}for(var a={},g=["get_group"].concat(Array.prototype.slice.call(arguments,0)),m=0;m<n.length;m++)d(n[m]);return a};c._i.push([q,r,f])};c.__SV=1.2;var k=e.createElement("script");k.type="text/javascript";k.async=!0;k.src="undefined"!==typeof MIXPANEL_CUSTOM_LIB_URL?MIXPANEL_CUSTOM_LIB_URL:"file:"===e.location.protocol&&"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js".match(/^\/\//)?"https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js":"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js";e=e.getElementsByTagName("script")[0];e.parentNode.insertBefore(k,e)}})(document,window.mixpanel||[])
-
-              mixpanel.init('a67416976e3c5fbd3849ab1edcf3ff5b', {
-                debug: false,
-                track_pageview: true,
-                persistence: 'localStorage',
-                record_sessions_percent: 0,
-                record_mask_text_selector: ".mask-text",
-                record_block_selector: ".block-recording"
-              })
-            `,
-          }}
-        />
-
-        {/* Google Tag (gtag.js) */}
-        <Script
-          strategy="lazyOnload"
-          src="https://www.googletagmanager.com/gtag/js?id=G-8SLDNR1QTT"
-        />
-        <Script id="google-analytics" strategy="lazyOnload">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-
-            gtag('config', 'G-8SLDNR1QTT');
-          `}
-        </Script>
       </body>
     </html>
   );

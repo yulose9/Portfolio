@@ -1,22 +1,16 @@
 {
-    "name": "John Nazarene - Portfolio",
-    "short_name": "JN Portfolio",
-    "description": "Developer, Cloud Engineer, AI Specialist",
-    "start_url": "/",
-    "display": "standalone",
-    "background_color": "#F5EBE0",
-    "theme_color": "#F5EBE0",
-    "orientation": "portrait-primary",
-    "icons": [
-        {
-            "src": "/icon.svg",
-            "sizes": "any",
-            "type": "image/svg+xml"
-        },
-        {
-            "src": "/apple-icon.png",
-            "sizes": "180x180",
-            "type": "image/png"
-        }
-    ]
+  "name": "John Nazarene Dela Pisa",
+  "short_name": "Nazarene",
+  "description": "Solutions Architect and Computer Engineer based in the Philippines.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
 }

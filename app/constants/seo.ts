@@ -8,9 +8,9 @@ import { Metadata } from "next";
 // Basic site information
 export const SITE_INFO = {
   name: "John Nazarene Dela Pisa",
-  title: "John Nazarene | Full Stack Developer & Cloud Engineer", // 53 chars (optimal: 50-60)
+  title: "John Nazarene | AI Specialist & Computer Engineer", // 49 chars (optimal: 50-60)
   description:
-    "Full Stack Developer & Cloud Engineer building exceptional digital experiences with AWS, React & Next.js.", // 107 chars (optimal: 110-160)
+    "AI Specialist and Computer Engineer in the Philippines, building products where AI meets infrastructure: agentic systems and the platforms they run on.", // 151 chars (optimal: 110-160)
   url: "https://www.nazarene.dev",
   author: "John Nazarene Dela Pisa",
   keywords: [
@@ -87,7 +87,6 @@ export const ENHANCED_METADATA: Metadata = {
   icons: {
     icon: "/icon.svg",
     shortcut: "/icon.svg",
-    apple: "/apple-icon.png",
   },
   openGraph: {
     ...OG_METADATA,
@@ -123,7 +122,7 @@ export const PERSON_SCHEMA = {
   "@type": "Person",
   name: SITE_INFO.name,
   url: SITE_INFO.url,
-  jobTitle: "Full Stack Developer & Cloud Engineer",
+  jobTitle: "AI Specialist",
   description: SITE_INFO.description,
   sameAs: [
     SOCIAL_LINKS.linkedin,
@@ -132,7 +131,7 @@ export const PERSON_SCHEMA = {
   ],
   worksFor: {
     "@type": "Organization",
-    name: "Trends and Technologies Inc.",
+    name: "FEAREX Technologies",
   },
   alumniOf: {
     "@type": "EducationalOrganization",

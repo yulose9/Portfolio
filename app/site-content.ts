@@ -1,0 +1,162 @@
+/**
+ * All page copy lives here so the layout components stay presentational.
+ * Swap these values and the page follows — no component edits needed.
+ */
+
+export type Entry = {
+  title: string;
+  year: string;
+  /** Omit to render the row as plain text instead of a link. */
+  href?: string;
+  /** Shown in the hover preview panel. Omit and the row just highlights. */
+  image?: string;
+  /** How the preview frames the image: logos need padding, screenshots fill. */
+  fit?: "cover" | "contain";
+};
+
+export type Link = {
+  label: string;
+  href: string;
+  /** Overrides the derived URL text — for links whose URL is not readable. */
+  display?: string;
+};
+
+export type Post = {
+  title: string;
+  /** ISO date. The year groups the list; the rest renders as DD/MM. */
+  date: string;
+  href?: string;
+};
+
+export type Tab = {
+  id: string;
+  label: string;
+  /** A tab renders a list of entries, or prose, or both. */
+  items?: Entry[];
+  body?: string[];
+  links?: Link[];
+  posts?: Post[];
+  /** Shown in place of an empty list. */
+  empty?: string;
+};
+
+export const PROFILE = {
+  name: "John Nazarene Dela Pisa",
+  rolePrefix: "AI Specialist at",
+  employer: "FEAREX Technologies",
+  employerUrl: "https://fearextechnologies.com",
+  avatar: "/avatar.webp",
+};
+
+export const TABS: Tab[] = [
+  {
+    id: "work",
+    label: "Work",
+    items: [
+      {
+        title: "AI Specialist, FEAREX Technologies",
+        year: "2026 — Present",
+        href: "https://fearextechnologies.com",
+      },
+      {
+        title: "Solutions Architect (AWS & RHEL), Trends and Technologies",
+        year: "2024 — 2026",
+        href: "https://www.trends.com.ph/",
+        image: "/images/company-logos/trends-and-technologies.png",
+        fit: "contain",
+      },
+      {
+        title: "Design Intern (UI/UX), Archicoders",
+        year: "2023 — 2024",
+        href: "https://archicoders.com/",
+        image: "/images/company-logos/archicoders.jpg",
+        fit: "contain",
+      },
+    ],
+  },
+  {
+    id: "projects",
+    label: "Projects",
+    items: [
+      {
+        title: "This portfolio, redesigned",
+        year: "2026",
+      },
+    ],
+  },
+  {
+    id: "certificates",
+    label: "Certificates",
+    items: [
+      {
+        title: "GitHub Copilot, Microsoft",
+        year: "2025",
+        image: "/images/certifications/Github_Copilot_badge.png",
+        fit: "contain",
+      },
+      {
+        title: "Terraform Associate, HashiCorp",
+        year: "2025",
+        href: "https://www.credly.com/badges/bebd520f-8e29-4ec4-9f11-22a35b047349/linked_in_profile",
+        image: "/images/certifications/TerraformAssociate.png",
+        fit: "contain",
+      },
+      {
+        title: "Cloud Digital Leader, Google",
+        year: "2025",
+        href: "https://www.credly.com/badges/95d75765-13fa-4c81-802c-834c0217da8a/linked_in_profile",
+        image: "/images/certifications/googlecloudpractitioner.png",
+        fit: "contain",
+      },
+      {
+        title: "Azure Fundamentals, Microsoft",
+        year: "2024",
+        href: "https://learn.microsoft.com/api/credentials/share/en-us/JohnNazareneDelaPisa-8958/D57215FE29EAA434",
+        image: "/images/certifications/microsoft-certified-fundamentals-badge.svg",
+        fit: "contain",
+      },
+    ],
+  },
+  {
+    id: "about",
+    label: "About",
+    body: [
+      "I am a Computer Engineer based in Cavite, Philippines, working as an AI Specialist at FEAREX Technologies.",
+      "Most of what I build sits where AI meets infrastructure — agentic systems, the platforms they run on, and the tooling that keeps them dependable once they are in production. I care about the unglamorous half: evaluation, orchestration, and the plumbing that decides whether any of it survives contact with real use.",
+      "Before this I spent two years as a Solutions Architect across AWS and RHEL, which is where the infrastructure instincts come from.",
+    ],
+    posts: [
+      {
+        title: "Your agent eval suite is measuring the wrong thing",
+        date: "2026-06-18",
+      },
+      {
+        title: "Terraform state is a coordination problem, not a file",
+        date: "2026-02-04",
+      },
+      {
+        title: "Checkpointing inference jobs on spot instances",
+        date: "2025-11-12",
+      },
+      {
+        title: "Retrieval was never the hard part",
+        date: "2025-07-30",
+      },
+      {
+        title: "Notes on tuning RHEL for latency-sensitive workloads",
+        date: "2024-09-09",
+      },
+    ],
+    links: [
+      { label: "Email", href: "mailto:jannazarene09@gmail.com" },
+      { label: "GitHub", href: "https://github.com/yulose9" },
+      { label: "LinkedIn", href: "https://www.linkedin.com/in/jannazarene" },
+      { label: "X", href: "https://x.com/xcszan" },
+      {
+        label: "Resume",
+        href: "https://nazarene-resume-bucket.s3.us-east-1.amazonaws.com/DelaPisa_Resume_v1.pdf",
+        display: "Download PDF",
+      },
+    ],
+  },
+];

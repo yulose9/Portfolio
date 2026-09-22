@@ -2,328 +2,495 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Dynamic viewport height for mobile Safari compatibility */
 :root {
-  --vh: 1vh;
+  /* Entrances and reveals: a strong ease-out, fast off the mark. */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /*
+   * The travelling highlight is not entering or exiting — it is one object
+   * already on screen moving from A to B, so it wants a curve with weight at
+   * both ends. This one leaves quickly and takes its time settling, which is
+   * what makes the morph legible instead of a snap.
+   */
+  --ease-morph: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /*
+   * A gentle curve for the blur reveals.
+   *
+   * --ease leaves hard and fast, which is right for something acknowledging a
+   * pointer but wrong for a blur: the sharp start makes the focus snap in and
+   * then crawl. This one accelerates and decelerates evenly, so the image
+   * resolves at a steady rate and reads as smooth rather than as a jolt
+   * followed by a settle.
+   */
+  --ease-soft: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  /*
+   * 340ms, past the 300ms ceiling that UI motion normally respects.
+   *
+   * That ceiling exists for entrances and exits, where any delay before the
+   * element appears reads as lag. This is neither: the surface is already on
+   * screen and is communicating three simultaneous geometry changes — travel,
+   * a width change and a height change. Three channels need longer to be read
+   * than one, and the element is never in the way while it moves. Its fade-in
+   * stays fast, so feedback is still immediate; only the travel is slow.
+   */
+  --dur-morph: 340ms;
+
+  /* The text column, and the gap between it and the pinned preview. */
+  --column: 672px;
+  --preview-gutter: 32px;
+
+  /*
+   * Hover surface — a raised slab, built the way a classic button is.
+   *
+   * Depth on a flat page comes from one consistent light source, and that
+   * needs four separate things agreeing about where the light is:
+   *
+   *  1. a vertical gradient, lighter at the top, so the face itself is lit
+   *     from above rather than being one flat tone;
+   *  2. a bright 1px inset along the top edge — the lip catching that light;
+   *  3. a darker inset along the BOTTOM edge, which is the actual tell. A far
+   *     edge turning away from the light is what separates a raised object
+   *     from a rectangle with a border on it;
+   *  4. a drop-shadow ramp underneath, dense at the contact point and
+   *     diffuse away from it, the way real occlusion falls off.
+   *
+   * The edges are transparent black and white rather than solid greys, so
+   * they darken and lighten whatever is underneath instead of painting
+   * competing tones. All of it is drawn with box-shadow rather than a real
+   * border, because this element is sized from measured row geometry and a
+   * border would add 2px to every measurement.
+   */
+  --surface-fill: #f7f7f8;
+  --surface-bg: linear-gradient(180deg, #fdfdfd 0%, #f2f2f3 100%);
+  --surface-ring:
+    /* top lip, lit */ inset 0 1px 0 0 rgb(255 255 255 / 0.95),
+    /* structural hairline */ inset 0 0 0 1px rgb(0 0 0 / 0.07),
+    /* bottom edge, turning away — the 3D cue */
+      inset 0 -1.5px 0 0 rgb(0 0 0 / 0.06);
+  --surface-lift: 0 1px 1px -0.5px rgb(0 0 0 / 0.06),
+    0 2px 4px -1px rgb(0 0 0 / 0.06), 0 6px 12px -3px rgb(0 0 0 / 0.08),
+    0 14px 28px -8px rgb(0 0 0 / 0.08);
+
+  /* The diagonal specular sweep that reads as glass. */
+  --surface-sheen: linear-gradient(
+    105deg,
+    rgb(255 255 255 / 0.7) 0%,
+    rgb(255 255 255 / 0.2) 32%,
+    rgb(255 255 255 / 0) 58%
+  );
 }
 
-html,
+html {
+  background-color: #ffffff;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: none;
+
+  /*
+   * Reserve the scrollbar track at all times.
+   *
+   * Short tabs fit the viewport and need no scrollbar; tall ones do. Without
+   * this, switching between them adds or removes the scrollbar, the viewport
+   * width changes by its width, and the centred column jumps sideways — which
+   * reads as the whole page resizing.
+   */
+  scrollbar-gutter: stable;
+}
+
 body {
-  overflow-x: clip;
-  max-width: 100vw;
-  width: 100%;
-  /* Allow normal scrolling; 'manipulation' prevents double-tap zoom
-     without blocking iOS momentum scroll (pan-x pan-y was causing freeze) */
-  touch-action: manipulation;
+  margin: 0;
+  background-color: #ffffff;
+  overflow-x: hidden;
+
+  /*
+   * Inter, self-hosted via next/font (see layout.tsx). The system names are
+   * only a fallback for the moment before the font decodes.
+   */
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+
+  /*
+   * Inter ships generously spaced so it holds up at small sizes, which leaves
+   * it slightly loose in running text at 16px. -0.011em closes that without
+   * the letters touching.
+   */
+  letter-spacing: -0.011em;
+
+  /* Inter is variable; let it pick the right optical size for the used size. */
+  font-optical-sizing: auto;
+
+  color: #000000;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* 
- * Mobile scroll safety net
- * This ensures scroll cannot get permanently stuck on mobile.
- * The JavaScript scroll-lock system sets overflow:hidden inline,
- * but if something goes wrong, these rules ensure touch scrolling still works.
+/*
+ * Reading text gets more leading than interface text.
+ *
+ * 1.5 is right for the list rows, where each line is a discrete label and
+ * tight leading keeps the pair bound together. Prose is scanned differently —
+ * the eye has to find the next line's start across a longer measure — so it
+ * gets 1.65 and a shorter measure to land on.
  */
-@media (max-width: 768px) {
-  /* Ensure touch-action always allows vertical scroll on mobile */
-  html,
-  body {
-    touch-action: manipulation;
-  }
+.prose-line {
+  line-height: 1.65;
+  letter-spacing: -0.006em;
+  text-wrap: pretty;
+}
 
-  /* Ensure the main content is scrollable even if body has overflow issues */
-  #main-content {
-    touch-action: manipulation;
+/* Underlines in the design sit close to the text and stay thin. */
+a {
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+
+/*
+ * Text selection.
+ *
+ * The browser default is a saturated system blue, which is the only colour
+ * on an otherwise neutral page — it announces itself every time someone drags
+ * across a line. This drops it to the same grey family as the row highlight,
+ * so selecting text reads as part of the page rather than as the OS breaking
+ * through it.
+ *
+ * Transparent black rather than a solid grey: it darkens whatever is beneath
+ * it, so the wash is consistent over white and over an already-highlighted
+ * row. Kept light enough that the black text on top stays at full contrast —
+ * a selection should mark text, not obscure it.
+ */
+::selection {
+  background-color: rgb(0 0 0 / 0.1);
+  /* Explicit, because some engines otherwise force their own foreground. */
+  color: #000000;
+}
+
+/*
+ * Tab hit area.
+ *
+ * The labels are 16px text roughly 28px tall, well under the 44px a thumb
+ * expects. A pseudo-element grows the target without moving the label or the
+ * active rule. The 8px horizontal bleed stays inside the 24px gap between
+ * tabs, so neighbouring targets never overlap.
+ */
+.tab-hit::after {
+  content: "";
+  position: absolute;
+  inset: -10px -8px;
+}
+
+/*
+ * The travelling tab rule. Position and width are set imperatively when the
+ * active tab changes; only the timing lives here. Slightly quicker than the
+ * row highlight because it covers far less ground.
+ */
+.tab-rail {
+  width: 0;
+  transition: transform 300ms var(--ease-morph), width 300ms var(--ease-morph);
+}
+
+/*
+ * Shared row highlight.
+ *
+ * transform, width and height are set imperatively on hover; only the timing
+ * and the material live here.
+ */
+.list-highlight {
+  height: 0;
+  width: 0;
+
+  background-color: var(--surface-fill);
+  background-image: var(--surface-bg);
+  box-shadow: var(--surface-ring), var(--surface-lift);
+
+  /*
+   * Asymmetric on purpose. The travel is slow, but the fade-in is fast: the
+   * surface must acknowledge the pointer immediately, then take its time
+   * getting there. Tying the two together would make the whole thing feel
+   * like lag rather than weight.
+   *
+   * width and height are layout properties and not GPU-composited. That is
+   * acceptable here and nowhere else on the page: this element is absolutely
+   * positioned and empty, so resizing it reflows nothing but itself.
+   */
+  transition: transform var(--dur-morph) var(--ease-morph),
+    width var(--dur-morph) var(--ease-morph),
+    height var(--dur-morph) var(--ease-morph), opacity 140ms ease-out;
+}
+
+/*
+ * Leaving the list.
+ *
+ * Geometry is deliberately not transitioned here, so the surface fades out
+ * where it stands rather than drifting somewhere on its way out. The fade is
+ * slower than the fade-in, because a withdrawal that lingers reads calmer
+ * than one that snaps — and nothing is waiting on it.
+ */
+.list-highlight.is-idle {
+  transition: opacity 220ms ease;
+}
+
+/*
+ * Hover preview, pinned to the viewport rather than to the row.
+ *
+ * Fixed at the vertical centre and just outside the right edge of the text
+ * column, so it holds its place while the page scrolls instead of chasing
+ * whichever row the pointer is on. Only the reveal animates; the panel itself
+ * never moves, which is what makes it feel anchored.
+ *
+ * Hidden unless there is a real pointer to drive it and room beside the
+ * column to put it. Touch devices fire hover on tap, which would flash the
+ * panel on every press.
+ */
+.preview-panel {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: calc(50% + var(--column) / 2 + var(--preview-gutter));
+  transform: translateY(-50%);
+}
+
+@media (hover: hover) and (pointer: fine) and (min-width: 1280px) {
+  .preview-panel {
+    display: block;
   }
 }
 
-* {
-  max-width: 100%;
-  /* Do NOT set touch-action here — it overrides child elements and
-     breaks iOS Safari momentum/inertia scrolling (scroll-stuck bug) */
+/* Same material as the row highlight, lifted a little further off the page. */
+/*
+ * The sheen. A separate layer so it sits over the lit face but under whatever
+ * the surface contains, and inherits the corner radius of either host.
+ */
+.list-highlight::before,
+.preview-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--surface-sheen);
 }
 
+.preview-frame {
+  background-color: var(--surface-fill);
+  background-image: var(--surface-bg);
+  /* Same material, lifted further since it floats free of the column. */
+  box-shadow: var(--surface-ring), 0 4px 12px -4px rgb(0 0 0 / 0.1),
+    0 12px 32px -12px rgb(0 0 0 / 0.12), 0 28px 56px -20px rgb(0 0 0 / 0.1);
 
-@keyframes move-left {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  50% {
-    transform: translateX(-10px);
-  }
+  opacity: 0;
+  /* Never from scale(0) — nothing in the real world appears from nothing. */
+  transform: scale(0.96);
+  filter: blur(4px);
+  /*
+   * Slower, and on --ease-soft: the blur resolves at an even rate instead of
+   * snapping sharp and then crawling the last of the way in.
+   */
+  transition: opacity 400ms var(--ease-soft), transform 400ms var(--ease-soft),
+    filter 400ms var(--ease-soft);
 }
 
-@keyframes move-right {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  50% {
-    transform: translateX(10px);
-  }
+.preview-frame.is-shown {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0);
 }
 
-@keyframes fadeIn {
+/*
+ * A 1px pure-black outline at low opacity. A tinted neutral here would pick
+ * up the surface beneath and read as dirt on the image edge.
+ */
+/*
+ * Stacked preview images: one crossfade, driven by .is-active.
+ *
+ * A transition rather than a keyframe animation, because this is triggered as
+ * fast as a pointer can sweep a list. Keyframes restart from their first frame
+ * when re-triggered, so a quick pass down four rows would replay four
+ * half-finished fades. A transition retargets from wherever the value
+ * currently is, so the images hand off mid-flight.
+ *
+ * The scale is tiny and the blur is gone. The frame behind these is already
+ * carrying a scale and blur on its own reveal, and doubling that up on the
+ * swap is what made row-to-row changes feel heavier than the first reveal.
+ */
+.preview-img {
+  outline: 1px solid oklch(0 0 0 / 0.1);
+  outline-offset: -1px;
+
+  opacity: 0;
+  transform: scale(1.015);
+  transition: opacity 260ms var(--ease-soft), transform 260ms var(--ease-soft);
+}
+
+.preview-img.is-active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@keyframes fade-in {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(-10px);
   }
   to {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
   }
 }
 
-.animate-move-left {
-  animation: move-left 5s ease-in-out infinite;
+/*
+ * Panel entrance.
+ *
+ * Switching tabs is occasional, so the rows are staggered to let the sequence
+ * read. 40ms apart keeps the whole cascade under a quarter second.
+ */
+.panel-chunk {
+  animation: chunk-in 520ms var(--ease-soft) both;
+
+  /*
+   * The index runs continuously across a panel's blocks, so About reaches 13.
+   * Uncapped that would hold the last row back 650ms before it even starts
+   * animating. min() caps the delay at 6 steps — 300ms — which is enough to
+   * read as a cascade while keeping the whole entrance under a second. Later
+   * items then arrive together, which is the right trade: nobody counts the
+   * eleventh item in, they just notice waiting for it.
+   */
+  animation-delay: calc(min(var(--i, 0), 6) * 50ms);
 }
 
-.animate-move-right {
-  animation: move-right 5s ease-in-out infinite;
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.5s ease-out forwards;
-}
-
-/* Hero title gradient */
-.bg-hero-title-gradient {
-  background: radial-gradient(
-    13731.17% 574.54% at 98.77% -239.38%,
-    #1173fc 0%,
-    #9db1d3 12.31%,
-    #cdc6c6 27.35%,
-    #f9dab9 49.66%,
-    #f9dab8 67.51%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
+@keyframes chunk-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(5px);
   }
-  .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
+/*
+ * Writing index: dim the siblings.
+ *
+ * With the pointer anywhere in the list, every row drops to a muted tone; the
+ * row actually under it stays at full strength. The effect is in the contrast
+ * between the two, so both halves transition on the same clock.
+ *
+ * Done with two rules of increasing specificity rather than JS: the container
+ * :hover dims everything, then the row :hover wins back its own colour. No
+ * state, no listeners, and a fast sweep down the list costs nothing.
+ *
+ * 180ms is slower than the 150ms that high-frequency hovers normally get,
+ * because this is a contextual change across the whole list rather than one
+ * element acknowledging the pointer — several rows shifting at once needs a
+ * beat longer to read as deliberate instead of as a flicker.
+ */
+/*
+ * The writing index sets at 14px against the page's 16px, so it needs its own
+ * tracking. Optical spacing is not a constant: the body's -0.011em is tuned
+ * for 16px, and carrying it down to 14px would over-tighten text that is
+ * already harder to resolve. -0.006em gives the smaller size back some air.
+ */
+.post-list {
+  letter-spacing: -0.006em;
+}
+
+/*
+ * Titles and metadata sit at the same size and weight, so the column has to
+ * be separated by colour alone. Tabular figures keep the dates and the year
+ * gutter in true vertical columns rather than ragging by digit width.
+ */
+.post-title,
+.post-date,
+.post-year {
+  transition: color 180ms ease;
+}
+
+.post-title {
+  color: #171717;
+}
+
+/*
+ * Dates and the year gutter share one tone. They are both metadata, and
+ * giving them the same value is what lets the year column read as part of the
+ * same system as the dates rather than as a heading.
+ */
+.post-date,
+.post-year {
+  color: rgb(0 0 0 / 0.4);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .post-list:hover .post-title {
+    color: rgb(0 0 0 / 0.4);
   }
-  body {
-    @apply bg-background text-foreground;
+
+  .post-list:hover .post-date {
+    color: rgb(0 0 0 / 0.18);
+  }
+
+  /*
+   * The year gutter is deliberately left out of the dim. It labels the whole
+   * group rather than any one row, so dimming it would imply it belongs to
+   * the row being hovered.
+   */
+
+  /* Higher specificity, so the hovered row keeps its own colours. */
+  .post-list .post-row:hover .post-title {
+    color: #171717;
+  }
+
+  .post-list .post-row:hover .post-date {
+    color: rgb(0 0 0 / 0.4);
   }
 }
 
-/* ========================================
-   ACCESSIBILITY ENHANCEMENTS
-   WCAG 2.1 Level AA Compliance
-   ======================================== */
-
-/* Screen Reader Only Content */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-/* Skip to Main Content Link */
-.skip-link {
-  position: absolute;
-  top: -9999px;
-  left: 0;
-  z-index: 9999;
-  padding: 1rem 1.5rem;
-  background-color: #657a62;
-  color: #ffffff;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 1rem;
-  border-radius: 0 0 0.5rem 0;
-}
-
-.skip-link:focus {
-  top: 0;
-  outline: 2px solid #42ad77;
-  outline-offset: 2px;
-}
-
-/* Enhanced Focus Indicators (WCAG 2.4.7) */
-*:focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-/* Button Focus States */
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
-  outline: 2px solid #42ad77;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(66, 173, 119, 0.2);
-}
-
-/* Dark Background Focus (for elements on dark sections) */
-.focus-light:focus-visible {
-  outline: 2px solid #ffffff;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2);
-}
-
-/* Light Background Focus */
-.focus-dark:focus-visible {
-  outline: 2px solid #000000;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1);
-}
-
-/* Remove Focus for Mouse Users (but keep for keyboard) */
-*:focus:not(:focus-visible) {
-  outline: none;
-  box-shadow: none;
-}
-
-/* Reduced Motion Support (WCAG 2.3.3) */
+/*
+ * Reduced motion means fewer and gentler animations, not none. Opacity and
+ * colour still carry state changes — the sibling dim above is kept for that
+ * reason. Every translate, scale and blur is dropped.
+ */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+  .list-highlight {
+    transition: opacity 120ms ease;
   }
 
-  /* Keep essential transitions for usability */
-  *:focus-visible {
-    transition: outline 0.15s ease, box-shadow 0.15s ease !important;
-  }
-}
-
-/* High Contrast Mode Support */
-@media (prefers-contrast: high) {
-  *:focus-visible {
-    outline-width: 3px;
-    outline-offset: 3px;
+  .preview-panel {
+    transition: none;
   }
 
-  button,
-  a {
-    border: 2px solid currentColor;
+  .preview-frame {
+    transition: opacity 160ms ease;
   }
-}
 
-/* Touch Target Size Enforcement (WCAG 2.5.5) */
-@media (pointer: coarse) {
-  button,
-  a,
-  input[type="button"],
-  input[type="submit"],
-  input[type="reset"] {
-    min-width: 44px;
-    min-height: 44px;
+  .preview-frame,
+  .preview-frame.is-shown {
+    transform: none;
+    filter: none;
   }
-}
 
-/* Improved Text Selection */
-::selection {
-  background-color: #42ad77;
-  color: #ffffff;
-}
+  .panel-chunk {
+    animation: fade-in 160ms ease both;
+    animation-delay: 0ms;
+  }
 
-::-moz-selection {
-  background-color: #42ad77;
-  color: #ffffff;
-}
+  /*
+   * The stacked previews are opacity-driven, so the crossfade is kept — only
+   * the scale is dropped. An `animation` here would override .is-active and
+   * force every image in the stack visible at once.
+   */
+  .preview-img,
+  .preview-img.is-active {
+    transform: none;
+  }
 
-/* Fluid layouts preserve the composition on phones and small laptops. */
-:root { --ease-out: cubic-bezier(0.23, 1, 0.32, 1); }
-html { scroll-padding-top: 1rem; }
-button, a { -webkit-tap-highlight-color: transparent; }
-.pressable { transition: transform 150ms var(--ease-out), background-color 150ms ease; }
-.pressable:active:not(:disabled) { transform: scale(0.96); }
-.image-tile { outline: 1px solid oklch(0 0 0 / 0.1); outline-offset: -1px; }
-.image-tile:focus-visible { outline: 3px solid #243621; outline-offset: 3px; }
-.mobile-navigation { padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
-@media (hover: none), (pointer: coarse) {
-  .group:hover .group-hover\:scale-110, .group:hover .group-hover\:scale-105,
-  .hover\:scale-105:hover, .hover\:scale-110:hover { transform: none; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .pressable:active:not(:disabled) { transform: none; }
-}
-/* Keep the hero composition proportional across phones, tablets and laptops. */
-.hero-header { padding: 20px clamp(20px, 3vw, 48px); min-height: 84px; }
-.hero-brand { font-size: clamp(18px, 1.6vw, 25px); line-height: 1.2; }
-.hero-contact { min-height: 44px; }
-.hero-portrait-mobile { inset-inline: -10%; bottom: -4%; height: 80%; }
-.hero-roles-mobile { left: 6%; top: 17%; max-width: 88%; }
-.hero-name-mobile { bottom: 20%; z-index: 20; }
-.hero-composition { max-width: 1440px; margin-inline: auto; }
-.hero-portrait-desktop { bottom: 0; left: 32%; width: 60%; height: 85%; max-height: 850px; }
-.hero-roles-desktop { left: 9%; top: 35%; width: 40%; }
-.hero-roles-desktop > svg { width: 36px; height: 36px; }
-.hero-name-desktop { bottom: 14%; line-height: 1.05; letter-spacing: -0.045em; }
-@media (min-width: 1536px) {
-  .hero-roles-desktop { left: 23%; }
+  .preview-img {
+    transition: opacity 160ms ease;
+  }
+
+  .tab-hit:active {
+    transform: none;
+  }
 }
