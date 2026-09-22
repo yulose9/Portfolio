@@ -1,5 +1,7 @@
 import { execSync } from "node:child_process";
 
+const REPO = "yulose9/Portfolio";
+
 export type Commit = {
   /** Short SHA, for linking to the commit. */
   sha: string;
@@ -8,17 +10,25 @@ export type Commit = {
 };
 
 /**
- * The commit this build was produced from, read at build time.
+ * The commit this build was produced from.
  *
- * Server-only: it runs during `next build` (or during a dev render), never in
- * the browser. Its value is what lets the footer render a real date on first
- * paint instead of a placeholder that fills in after a fetch.
+ * Server-only: it runs during `next build`, never in the browser.
  *
- * Returns null rather than throwing when git is unavailable — a deploy from a
- * tarball or a shallow checkout without history should degrade to hiding the
- * stamp, not fail the build.
+ * Two sources, tried in order, because the first one has a real failure mode.
+ * Reading local git assumes the build container has `git` on PATH and a `.git`
+ * directory to read — true for a Cloudflare Pages clone, but not for a build
+ * from a tarball, a Docker context that excluded `.git`, or a CI step that
+ * copies the tree rather than cloning it. In any of those the stamp would have
+ * silently disappeared, so the GitHub API backs it up.
+ *
+ * Returning null is the last resort, and the component renders nothing rather
+ * than showing a wrong date.
  */
-export function buildTimeCommit(): Commit | null {
+export async function buildTimeCommit(): Promise<Commit | null> {
+  return fromLocalGit() ?? (await fromGitHub());
+}
+
+function fromLocalGit(): Commit | null {
   try {
     const raw = execSync("git log -1 --format=%h%n%cI", {
       encoding: "utf8",
@@ -29,6 +39,33 @@ export function buildTimeCommit(): Commit | null {
     const [sha, date] = raw.split("\n");
     return sha && date ? { sha, date } : null;
   } catch {
+    return null;
+  }
+}
+
+async function fromGitHub(): Promise<Commit | null> {
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${REPO}/commits?per_page=1`,
+      {
+        headers: { Accept: "application/vnd.github+json" },
+        // Build-time only, so there is nothing to revalidate against.
+        cache: "no-store",
+      }
+    );
+    if (!res.ok) return null;
+
+    const data: unknown = await res.json();
+    const head = Array.isArray(data) ? data[0] : null;
+    const sha: unknown = head?.sha;
+    const date: unknown = head?.commit?.committer?.date;
+
+    return typeof sha === "string" && typeof date === "string"
+      ? { sha: sha.slice(0, 7), date }
+      : null;
+  } catch {
+    // Offline or rate-limited at build time. The client-side refresh in
+    // LastUpdated still has a chance to fill this in for real visitors.
     return null;
   }
 }

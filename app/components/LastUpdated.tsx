@@ -6,15 +6,19 @@ import type { Commit } from "../last-commit";
 const REPO = "yulose9/Portfolio";
 
 /*
- * Formatted in UTC on purpose.
+ * Formatted in Manila, and pinned rather than local.
  *
- * The build-time value is rendered on the server and again on the client for
- * hydration. Formatting in the local zone would let those two disagree
- * whenever the commit falls near midnight, so the zone is pinned and both
- * sides produce the same string.
+ * Pinned because the build-time value renders on the server and again on the
+ * client for hydration: a floating local zone would let those two disagree
+ * whenever a commit falls near midnight.
+ *
+ * Manila rather than UTC because this stamp reports when *I* last touched the
+ * site. Commits made in a Manila evening are already the previous day in UTC,
+ * so formatting there showed a date a day behind the one on my own clock — the
+ * bug this replaces. It also matches the clock beside it in the footer.
  */
 const formatter = new Intl.DateTimeFormat("en-US", {
-  timeZone: "UTC",
+  timeZone: "Asia/Manila",
   month: "short",
   day: "numeric",
   year: "numeric",

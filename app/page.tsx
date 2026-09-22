@@ -4,7 +4,7 @@ import TabbedIndex from "./components/TabbedIndex";
 import { buildTimeCommit } from "./last-commit";
 import { PROFILE, TABS } from "./site-content";
 
-export default function Page() {
+export default async function Page() {
   return (
     <div className="flex w-full justify-center bg-white">
       {/*
@@ -60,7 +60,7 @@ export default function Page() {
         <footer className="footer-gap mt-24 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
           <LocalTime />
           {/* Read during the build; refreshed from GitHub on the client. */}
-          <LastUpdated initial={buildTimeCommit()} />
+          <LastUpdated initial={await buildTimeCommit()} />
         </footer>
       </main>
     </div>
