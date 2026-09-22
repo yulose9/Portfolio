@@ -242,6 +242,51 @@ a {
 }
 
 /*
+ * Tab hover surface.
+ *
+ * The same glass as the active pill, pitched well below it: a barely-there
+ * fill and a hairline edge, with none of the elevation ramp. The two states
+ * have to stay legible against each other — if hover looked as solid as the
+ * selection, pointing at a tab would read as having already chosen it.
+ *
+ * z-index keeps it behind the label. An absolutely positioned pseudo-element
+ * paints after inline content by default, so without this the surface would
+ * sit on top of the word.
+ *
+ * Only where there is a real pointer: on touch, :hover sticks after a tap and
+ * would leave a tab looking half-selected.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .tab-hit::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+
+    background-color: rgb(0 0 0 / 0.028);
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.045),
+      inset 0 1px 0 0 rgb(255 255 255 / 0.7);
+
+    opacity: 0;
+    transition: opacity 200ms var(--ease-soft);
+  }
+
+  .tab-hit:hover::before {
+    opacity: 1;
+  }
+
+  /*
+   * The active tab already wears the full pill, and stacking the hover surface
+   * under it would only muddy its edge.
+   */
+  .tab-hit[aria-current="page"]::before {
+    opacity: 0;
+  }
+}
+
+/*
  * The travelling tab pill.
  *
  * Same glass material as the row highlight, so the two selected states on the

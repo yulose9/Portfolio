@@ -9,6 +9,7 @@ import {
   WEBSITE_SCHEMA,
 } from "./constants/seo";
 import DeferredAnalytics from "./providers/DeferredAnalytics";
+import SmoothScroll from "./providers/SmoothScroll";
 import "./globals.css";
 
 /*
@@ -89,6 +90,9 @@ export default function RootLayout({
           PostHog comes in separately and later still: DeferredAnalytics waits
           1.5s and does nothing at all unless NEXT_PUBLIC_POSTHOG_KEY is set.
         */}
+        {/* Desktop pointers only; see the file for why. Renders nothing. */}
+        <SmoothScroll />
+
         <VendorScripts />
         <DeferredAnalytics />
       </body>
