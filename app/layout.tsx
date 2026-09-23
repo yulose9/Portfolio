@@ -9,6 +9,7 @@ import {
   WEBSITE_SCHEMA,
 } from "./constants/seo";
 import DeferredAnalytics from "./providers/DeferredAnalytics";
+import PeerCursors from "./components/PeerCursors";
 import SmoothCursor from "./components/SmoothCursor";
 import SmoothScroll from "./providers/SmoothScroll";
 import "./globals.css";
@@ -94,6 +95,7 @@ export default function RootLayout({
         {/* Both desktop-pointer only, and both no-ops under reduced motion. */}
         <SmoothScroll />
         <SmoothCursor />
+        <PeerCursors />
 
         <VendorScripts />
         <DeferredAnalytics />

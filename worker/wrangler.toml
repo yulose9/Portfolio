@@ -1,0 +1,34 @@
+name = "portfolio-cursors"
+main = "src/index.ts"
+
+# Past 2026-04-07, so the runtime auto-replies to Close frames and
+# webSocketClose does not have to echo them back by hand.
+compatibility_date = "2026-09-01"
+
+# Deliberately separate from the Pages project at the repository root. That one
+# only publishes the static `out` directory and has no server; this is its own
+# Worker with its own lifecycle, so deploying one never risks the other.
+
+[[durable_objects.bindings]]
+name = "CURSOR_ROOM"
+class_name = "CursorRoom"
+
+[[migrations]]
+tag = "v1"
+# SQLite-backed, not the older key-value storage class. This is the backend the
+# free plan supports, and it is also the one Cloudflare is building on going
+# forward. The room holds no persistent state either way — the class needs a
+# storage backend declared regardless.
+new_sqlite_classes = ["CursorRoom"]
+
+[vars]
+# Checked on upgrade. Origin is forgeable outside a browser, so this is not a
+# security boundary by itself — it stops the socket being embedded by other
+# sites, which is the realistic abuse. Add a preview domain here if you use one.
+ALLOWED_ORIGINS = "https://nazarene.dev,https://www.nazarene.dev,http://localhost:3000,http://localhost:3001,http://localhost:3002"
+
+[observability]
+enabled = true
+# Sampled rather than complete: logs are billed, and a cursor firehose is the
+# last thing worth paying to record in full.
+head_sampling_rate = 0.01

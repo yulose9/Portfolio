@@ -263,20 +263,68 @@ a {
   will-change: transform;
 }
 
-.has-smooth-cursor,
-.has-smooth-cursor * {
+/*
+ * Qualified with html, and deliberately so.
+ *
+ * `.has-smooth-cursor *` scores (0,1,0) — the universal selector adds nothing —
+ * which only ties with any ordinary class that sets a cursor, so the later rule
+ * in the file wins. That is how the native arrow came back over .menu-item and
+ * the zoomed portrait: both set a cursor and both sit further down. Adding the
+ * element name makes this (0,1,1), so it wins on specificity rather than on
+ * source order, and a cursor rule added later cannot quietly undo it.
+ */
+html.has-smooth-cursor,
+html.has-smooth-cursor * {
   cursor: none;
 }
 
 /*
  * Text entry keeps its caret. A custom arrow floating over a field gives no
- * hint about where the insertion point is.
+ * hint about where the insertion point is. (0,1,2), so these still win.
  */
-.has-smooth-cursor input,
-.has-smooth-cursor textarea,
-.has-smooth-cursor select,
-.has-smooth-cursor [contenteditable] {
+html.has-smooth-cursor input,
+html.has-smooth-cursor textarea,
+html.has-smooth-cursor select,
+html.has-smooth-cursor [contenteditable] {
   cursor: auto;
+}
+
+/*
+ * Other people's cursors.
+ *
+ * One layer below the local one, so your own pointer is never occluded by a
+ * stranger's. Nothing here reacts to input: the layer is inert, and a peer
+ * cursor can neither be hovered nor block a click on the link underneath it.
+ *
+ * The component only mounts on a fine pointer with motion allowed, so there is
+ * no coarse-pointer or reduced-motion case for this CSS to answer.
+ */
+.peer-cursor-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  pointer-events: none;
+  /* Contain paint so a cursor near the edge cannot extend the scroll area. */
+  overflow: hidden;
+}
+
+.peer-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* Faded in once the first position lands, so nobody appears mid-page first. */
+  opacity: 0;
+  transition: opacity 260ms var(--ease-soft);
+  /* Transform is written every frame from the RAF loop; keep it composited. */
+  will-change: transform;
+}
+
+.peer-cursor svg {
+  display: block;
+  /* Enough separation to stay legible over the portrait and the glass rows,
+     without the heavy shadow that would make a remote cursor louder than
+     yours. */
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.18));
 }
 
 /*
@@ -330,6 +378,7 @@ a {
   padding: 0.4375rem 0.625rem;
   border-radius: 9px;
   outline: 0;
+  /* For the native pointer. The smooth cursor overrides this on specificity. */
   cursor: default;
   user-select: none;
   transition: background-color 120ms ease, color 120ms ease;

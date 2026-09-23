@@ -15,7 +15,12 @@ export default async function Page() {
         off deliberately — the Figma frame is desktop-only, and a 512px floor
         would force a horizontal scrollbar on every phone.
       */}
-      <main className="page-shell page-enter w-full max-w-[672px] py-16 sm:py-24">
+      <main
+        // Cursor positions are normalised against this element, so a peer
+        // lands on the same word regardless of their viewport width.
+        data-cursor-frame
+        className="page-shell page-enter w-full max-w-[672px] py-16 sm:py-24"
+      >
         <div className="pb-8">
           <AvatarZoom alt={PROFILE.name} />
         </div>

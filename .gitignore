@@ -83,3 +83,8 @@ scripts/check-*.ps1
 
 # Gemini files
 /.gemini/
+
+# cloudflare worker (worker/)
+# Local miniflare state: sqlite files rewritten on every `wrangler dev`.
+.wrangler/
+.dev.vars
