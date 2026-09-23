@@ -388,6 +388,106 @@ html.has-smooth-cursor [contenteditable] {
 }
 
 /*
+ * Tools row: small glass badges under the role line.
+ *
+ * The same surface tokens as the tab pill and the row highlight, so the
+ * badges read as the page's own material rather than a sticker sheet.
+ * 28px tiles, 16px marks: present, but a step quieter than the text above.
+ */
+.tool-row {
+  display: flex;
+  flex-wrap: wrap; /* a narrow phone takes a second line, never a scrollbar */
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tool-badge {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background-color: var(--surface-fill);
+  background-image: var(--surface-bg);
+  box-shadow: var(--surface-ring), var(--surface-lift);
+  transition:
+    transform 180ms var(--ease),
+    opacity 180ms var(--ease);
+}
+
+.tool-badge img {
+  display: block;
+  width: 16px;
+  height: 16px;
+  /* Wide marks (AWS) and tall ones (Figma) fit the square without distortion. */
+  object-fit: contain;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* The name, on hover. Mouse and trackpad only: a touch tap should not leave a
+   label stranded on screen. */
+.tool-badge::after {
+  content: attr(data-label);
+  position: absolute;
+  left: 50%;
+  /* Below, into the empty gap before the tabs, so it never covers the role
+     line above. */
+  top: calc(100% + 6px);
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: #111;
+  color: #fff;
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -3px);
+  transition:
+    opacity 140ms var(--ease),
+    transform 180ms var(--ease);
+}
+
+/* All ten on one line at phone width: 10 x 28px + 9 x 4px = 316px, inside the
+   327px column. At 6px the last badge wrapped onto a line of its own. */
+@media (max-width: 639px) {
+  .tool-row {
+    gap: 4px;
+  }
+}
+
+@media (any-hover: hover) and (any-pointer: fine) {
+  .tool-badge:hover {
+    transform: translateY(-2px);
+  }
+
+  .tool-badge:hover::after {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  /* The lists' sibling dim: point at one and the rest step back. */
+  .tool-row:hover .tool-badge:not(:hover) {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool-badge,
+  .tool-badge::after {
+    transition: opacity 140ms linear;
+  }
+
+  .tool-badge:hover {
+    transform: none;
+  }
+}
+
+/*
  * Context menu.
  *
  * Same glass as the row highlight and the tab pill, so a right-click surfaces

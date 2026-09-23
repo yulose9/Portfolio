@@ -63,6 +63,26 @@ export const PROFILE = {
   employerUrl: "https://fearextechnologies.com",
 };
 
+/**
+ * The tools row under the role line. Files live in public/tools; `label` is
+ * both the hover label and the alt text. Order is the order shown.
+ */
+export type Tool = { label: string; src: string };
+
+export const TOOLS: Tool[] = [
+  { label: "Claude", src: "/tools/claude.svg" },
+  { label: "Claude Code", src: "/tools/claude-code.svg" },
+  { label: "Codex", src: "/tools/codex.svg" },
+  { label: "Gemini", src: "/tools/gemini.svg" },
+  // A raster inside an SVG wrapper at 2.4 MB; a 64px PNG is identical at 16px.
+  { label: "Google Antigravity", src: "/tools/antigravity.png" },
+  { label: "GitHub Copilot", src: "/tools/github-copilot.svg" },
+  { label: "GitHub", src: "/tools/github.svg" },
+  { label: "VS Code", src: "/tools/vscode.svg" },
+  { label: "Figma", src: "/tools/figma.svg" },
+  { label: "AWS", src: "/tools/aws.svg" },
+];
+
 export const TABS: Tab[] = [
   {
     id: "work",

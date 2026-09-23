@@ -4,7 +4,8 @@ import LastUpdated from "./components/LastUpdated";
 import LocalTime from "./components/LocalTime";
 import TabbedIndex from "./components/TabbedIndex";
 import { buildTimeCommit } from "./last-commit";
-import { PROFILE, TABS } from "./site-content";
+import ToolRow from "./components/ToolRow";
+import { PROFILE, TABS, TOOLS } from "./site-content";
 
 export default async function Page() {
   return (
@@ -41,6 +42,7 @@ export default async function Page() {
                 {PROFILE.employer}
               </a>
             </p>
+            <ToolRow tools={TOOLS} />
           </header>
 
           <TabbedIndex tabs={TABS} />
