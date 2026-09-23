@@ -1,4 +1,5 @@
 import AvatarZoom from "./components/AvatarZoom";
+import PageMenu from "./components/menu/PageMenu";
 import LastUpdated from "./components/LastUpdated";
 import LocalTime from "./components/LocalTime";
 import TabbedIndex from "./components/TabbedIndex";
@@ -7,7 +8,8 @@ import { PROFILE, TABS } from "./site-content";
 
 export default async function Page() {
   return (
-    <div className="flex w-full justify-center bg-white">
+    <PageMenu>
+      <div className="flex w-full justify-center bg-white">
       {/*
         The design pins the text column to 672px and centres it. min-w is left
         off deliberately — the Figma frame is desktop-only, and a 512px floor
@@ -50,6 +52,7 @@ export default async function Page() {
           <LastUpdated initial={await buildTimeCommit()} />
         </footer>
       </main>
-    </div>
+      </div>
+    </PageMenu>
   );
 }

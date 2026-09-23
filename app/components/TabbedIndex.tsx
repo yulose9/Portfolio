@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { SiGithub, SiGoogle, SiHashicorp } from "@icons-pack/react-simple-icons";
 import { Cloud, HardHat, Palette, Robot } from "@phosphor-icons/react";
 import { haptic } from "../lib/haptics";
+import AboutMenu from "./menu/AboutMenu";
+import RowMenu from "./menu/RowMenu";
 import type { Entry, Post, Tab } from "../site-content";
 
 /**
@@ -208,7 +210,9 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
           ref={measurePanel}
           className="panel-floor rhythm-12 flex min-h-[23rem] w-full flex-col gap-12"
         >
-        {active.items?.length ? <EntryList items={active.items} /> : null}
+        {active.items?.length ? (
+          <EntryList items={active.items} kind={active.id} />
+        ) : null}
         {active.items && !active.items.length && active.empty ? (
           <p className="panel-chunk m-0 text-base leading-6 text-zinc-400">
             {active.empty}
@@ -219,7 +223,16 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
           cascades bio -> writing -> links instead of all three counting from
           zero and arriving on top of each other. The delay is capped in CSS.
         */}
-        {active.body?.length ? <Prose body={active.body} start={0} /> : null}
+        {active.body?.length ? (
+          <AboutMenu
+            bio={active.body.join(PARAGRAPH_BREAK)}
+            resumeHref={
+              active.links?.find((link) => link.label === "Resume")?.href
+            }
+          >
+            <Prose body={active.body} start={0} />
+          </AboutMenu>
+        ) : null}
         {active.posts?.length ? (
           <PostList posts={active.posts} start={active.body?.length ?? 0} />
         ) : null}
@@ -287,7 +300,10 @@ function useTravellingHighlight() {
   return { hovered, rowRefs, highlightRef, enter, leave };
 }
 
-function EntryList({ items }: { items: Entry[] }) {
+/** Blank line between paragraphs when the bio is copied as one block. */
+const PARAGRAPH_BREAK = "\n\n";
+
+function EntryList({ items, kind }: { items: Entry[]; kind: string }) {
   const { hovered, rowRefs, highlightRef, enter, leave } =
     useTravellingHighlight();
 
@@ -336,7 +352,9 @@ function EntryList({ items }: { items: Entry[] }) {
               onPointerEnter={() => enter(index)}
               onFocus={() => enter(index)}
             >
-              <Row {...item} />
+              <RowMenu entry={item} kind={kind}>
+                <Row {...item} />
+              </RowMenu>
             </li>
           ))}
         </ul>

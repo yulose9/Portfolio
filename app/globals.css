@@ -242,6 +242,105 @@ a {
 }
 
 /*
+ * Context menu.
+ *
+ * Same glass as the row highlight and the tab pill, so a right-click surfaces
+ * the page's own material rather than a component library's. Base UI supplies
+ * the positioning and focus behaviour and no appearance at all, which is the
+ * reason for choosing it.
+ */
+.menu-positioner {
+  outline: 0;
+  z-index: 50;
+}
+
+.menu-popup {
+  min-width: 12rem;
+  padding: 0.25rem;
+  border-radius: 14px;
+
+  background-color: var(--surface-fill);
+  background-image: var(--surface-bg);
+  box-shadow: var(--surface-ring), var(--surface-lift);
+
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  letter-spacing: -0.006em;
+  color: #171717;
+
+  /*
+   * Base UI hands us the pointer's corner as --transform-origin, so the menu
+   * grows out of the click rather than from its own middle. That is the
+   * difference between a menu that belongs to the thing you right-clicked and
+   * one that merely appeared nearby.
+   */
+  transform-origin: var(--transform-origin);
+  transition: opacity 160ms var(--ease), transform 160ms var(--ease);
+}
+
+/* Never from scale(0) — nothing in the real world appears from nothing. */
+.menu-popup[data-starting-style],
+.menu-popup[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.96);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.4375rem 0.625rem;
+  border-radius: 9px;
+  outline: 0;
+  cursor: default;
+  user-select: none;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+/*
+ * data-highlighted covers hover and keyboard focus together, so arrowing
+ * through the menu looks identical to pointing at it.
+ */
+.menu-item[data-highlighted] {
+  background-color: rgb(0 0 0 / 0.045);
+}
+
+.menu-item[data-disabled] {
+  color: rgb(0 0 0 / 0.35);
+}
+
+.menu-item-icon {
+  display: grid;
+  place-items: center;
+  color: rgb(113 113 122);
+  flex: none;
+}
+
+.menu-separator {
+  height: 0.8px;
+  margin: 0.25rem 0.375rem;
+  background-color: rgb(244 244 245);
+}
+
+.menu-label {
+  padding: 0.375rem 0.625rem 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: rgb(0 0 0 / 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-popup {
+    transition: opacity 120ms ease;
+  }
+
+  .menu-popup[data-starting-style],
+  .menu-popup[data-ending-style] {
+    transform: none;
+  }
+}
+
+/*
  * Avatar zoom.
  *
  * The timing is lifted from the dialog this replaces: shadcn's zoom-in-95 plus
@@ -252,21 +351,44 @@ a {
  * A real dialog also brings the top layer, a true ::backdrop, focus trapping
  * and Esc handling — all of which an overlay div would have to reimplement.
  */
+/*
+ * The dialog fills the viewport and centres the image inside itself, rather
+ * than being image-sized and relying on the backdrop for outside clicks.
+ * Anywhere that is not the photo is then a real click on the dialog, which is
+ * what makes dismissal dependable instead of depending on how a given engine
+ * hit-tests ::backdrop.
+ */
 .avatar-dialog {
-  margin: auto;
-  max-width: min(90vw, 560px);
-  max-height: 90svh;
-  padding: 0;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 6vmin;
   border: 0;
   background: transparent;
-  overflow: visible;
 
-  opacity: 0;
-  transform: scale(0.95);
-  transition: opacity 200ms var(--ease), transform 200ms var(--ease);
+  display: grid;
+  place-items: center;
 }
 
-.avatar-dialog[data-open="true"] {
+/*
+ * The photo carries the motion, not the dialog box.
+ *
+ * 420ms from 0.92 rather than 200ms from 0.95: more distance over more time is
+ * what reads as a zoom rather than a pop. The curve leaves quickly and spends
+ * its back half settling, which is the weight that makes a GSAP zoom feel
+ * expensive — an even ease-out arrives and simply stops.
+ */
+.avatar-dialog-img {
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 420ms var(--ease-morph), transform 420ms var(--ease-morph);
+}
+
+.avatar-dialog[data-open="true"] .avatar-dialog-img {
   opacity: 1;
   transform: scale(1);
 }
@@ -276,7 +398,7 @@ a {
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   opacity: 0;
-  transition: opacity 200ms var(--ease);
+  transition: opacity 420ms var(--ease-morph);
 }
 
 .avatar-dialog[data-open="true"]::backdrop {
@@ -285,8 +407,10 @@ a {
 
 .avatar-dialog-img {
   display: block;
-  width: 100%;
+  width: auto;
   height: auto;
+  max-width: min(100%, 560px);
+  max-height: 100%;
   border-radius: 50%;
   /* Same hairline as the preview frame, for one edge treatment on images. */
   outline: 1px solid oklch(1 1 1 / 0.12);
@@ -306,13 +430,13 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .avatar-dialog {
+  .avatar-dialog-img,
+  .avatar-dialog[data-open="true"] .avatar-dialog-img {
     transform: none;
-    transition: opacity 160ms ease;
   }
 
-  .avatar-dialog[data-open="true"] {
-    transform: none;
+  .avatar-dialog-img {
+    transition: opacity 200ms ease;
   }
 
   .avatar-button:active {
