@@ -22,8 +22,8 @@ export default function ToolRow({ tools }: { tools: Tool[] }) {
           <img
             src={tool.src}
             alt={tool.label}
-            width={16}
-            height={16}
+            width={32}
+            height={32}
             // Below the fold of attention, and tiny: never compete with the
             // portrait or the text for the first paint.
             loading="lazy"

@@ -392,11 +392,13 @@ html.has-smooth-cursor [contenteditable] {
  *
  * The same surface tokens as the tab pill and the row highlight, so the
  * badges read as the page's own material rather than a sticker sheet.
- * 28px tiles, 16px marks: present, but a step quieter than the text above.
+ * 52px tiles, 32px marks.
  */
 .tool-row {
   display: flex;
   flex-wrap: wrap; /* a narrow phone takes a second line, never a scrollbar */
+  /* 10 x 52px + 9 x 6px = 574px: one line inside the 576px text column
+     (672px wide, less 48px padding each side). */
   gap: 6px;
   margin: 12px 0 0;
   padding: 0;
@@ -407,9 +409,9 @@ html.has-smooth-cursor [contenteditable] {
   position: relative;
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 52px;
+  height: 52px;
+  border-radius: 13px;
   background-color: var(--surface-fill);
   background-image: var(--surface-bg);
   box-shadow: var(--surface-ring), var(--surface-lift);
@@ -420,8 +422,8 @@ html.has-smooth-cursor [contenteditable] {
 
 .tool-badge img {
   display: block;
-  width: 16px;
-  height: 16px;
+  width: 32px;
+  height: 32px;
   /* Wide marks (AWS) and tall ones (Figma) fit the square without distortion. */
   object-fit: contain;
   -webkit-user-select: none;
@@ -452,11 +454,12 @@ html.has-smooth-cursor [contenteditable] {
     transform 180ms var(--ease);
 }
 
-/* All ten on one line at phone width: 10 x 28px + 9 x 4px = 316px, inside the
-   327px column. At 6px the last badge wrapped onto a line of its own. */
+/* At phone width ten won't fit on one line, so cap each line at five:
+   5 x 52px + 4 x 6px = 284px. Two even rows, rather than a long one with a
+   straggler. */
 @media (max-width: 639px) {
   .tool-row {
-    gap: 4px;
+    max-width: 284px;
   }
 }
 

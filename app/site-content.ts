@@ -74,7 +74,7 @@ export const TOOLS: Tool[] = [
   { label: "Claude Code", src: "/tools/claude-code.svg" },
   { label: "Codex", src: "/tools/codex.svg" },
   { label: "Gemini", src: "/tools/gemini.svg" },
-  // A raster inside an SVG wrapper at 2.4 MB; a 64px PNG is identical at 16px.
+  // A raster inside an SVG wrapper at 2.4 MB; a 96px PNG (3x) is identical at 32px.
   { label: "Google Antigravity", src: "/tools/antigravity.png" },
   { label: "GitHub Copilot", src: "/tools/github-copilot.svg" },
   { label: "GitHub", src: "/tools/github.svg" },
