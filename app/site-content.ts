@@ -201,7 +201,7 @@ export const TABS: Tab[] = [
       { label: "X", href: "https://x.com/xcszan", icon: "x" },
       {
         label: "Resume",
-        href: "https://nazarene-resume-bucket.s3.us-east-1.amazonaws.com/DelaPisa_Resume_v1.pdf",
+        href: "https://johnnazarene-resume.s3.ap-southeast-1.amazonaws.com/John_Nazarene_Resume_Latest_Cert.pdf",
         display: "Download PDF",
         icon: "resume",
       },
