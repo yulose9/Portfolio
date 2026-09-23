@@ -7,8 +7,8 @@ import { haptic } from "../lib/haptics";
  * A 20px WebP of the same portrait, inlined.
  *
  * It costs no request and paints on the first frame, so the circle is never an
- * empty hole while the real file arrives. At 48-72px the blur is invisible —
- * it just looks like the image loaded instantly.
+ * empty hole while the real file arrives. It shows only for the moment
+ * before the real file lands, so at 96-144px it reads as a soft fade-in.
  */
 const LQIP =
   "data:image/webp;base64,UklGRsQAAABXRUJQVlA4ILgAAACwBQCdASoUABQAPt1mq1EopSOiqAgBEBuJagCdMzE";
@@ -221,17 +221,19 @@ export default function AvatarZoom({ alt }: { alt: string }) {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/avatar-144.webp"
-          srcSet="/avatar-96.webp 96w, /avatar-144.webp 144w, /avatar-216.webp 216w, /avatar-288.webp 288w"
+          src="/avatar-288.webp"
+          // 1x-3x of both rendered sizes (96px desktop, 144px phone). 432 is the
+          // 3x phone file; the 1024 original stays reserved for the zoom.
+          srcSet="/avatar-96.webp 96w, /avatar-144.webp 144w, /avatar-216.webp 216w, /avatar-288.webp 288w, /avatar-432.webp 432w"
           // The rendered size at each breakpoint, so the browser picks the file
           // it actually needs rather than the largest one offered.
-          sizes="(max-width: 639px) 72px, 48px"
+          sizes="(max-width: 639px) 144px, 96px"
           alt={alt}
-          width={72}
-          height={72}
+          width={144}
+          height={144}
           decoding="async"
           style={{ backgroundImage: `url(${LQIP})` }}
-          className="h-[72px] w-[72px] rounded-full bg-cover object-cover sm:h-12 sm:w-12"
+          className="h-[144px] w-[144px] rounded-full bg-cover object-cover sm:h-24 sm:w-24"
         />
       </button>
 
