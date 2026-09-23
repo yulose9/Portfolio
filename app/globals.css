@@ -242,6 +242,44 @@ a {
 }
 
 /*
+ * Smooth cursor.
+ *
+ * The native pointer is hidden only while .has-smooth-cursor is on <html>, and
+ * the component only adds that class once it is genuinely running — fine
+ * pointer, no reduced-motion preference, listeners attached. If any of that
+ * fails, or the component never mounts, the real cursor is simply still there.
+ * Hiding it unconditionally in a stylesheet would risk leaving someone with no
+ * pointer at all.
+ */
+.smooth-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  /* Only ever transform and opacity, so this stays on the compositor. */
+  will-change: transform;
+}
+
+.has-smooth-cursor,
+.has-smooth-cursor * {
+  cursor: none;
+}
+
+/*
+ * Text entry keeps its caret. A custom arrow floating over a field gives no
+ * hint about where the insertion point is.
+ */
+.has-smooth-cursor input,
+.has-smooth-cursor textarea,
+.has-smooth-cursor select,
+.has-smooth-cursor [contenteditable] {
+  cursor: auto;
+}
+
+/*
  * Context menu.
  *
  * Same glass as the row highlight and the tab pill, so a right-click surfaces
@@ -375,30 +413,28 @@ a {
 }
 
 /*
- * The photo carries the motion, not the dialog box.
- *
- * 420ms from 0.92 rather than 200ms from 0.95: more distance over more time is
- * what reads as a zoom rather than a pop. The curve leaves quickly and spends
- * its back half settling, which is the weight that makes a GSAP zoom feel
- * expensive — an even ease-out arrives and simply stops.
+ * The photo's motion is driven by the Web Animations API in AvatarZoom, not
+ * here: it is a FLIP, so the keyframes depend on where the thumbnail happens
+ * to be sitting and cannot be written as static CSS. Anything transform- or
+ * opacity-related declared here would fight that animation for the same
+ * properties.
  */
 .avatar-dialog-img {
-  opacity: 0;
-  transform: scale(0.92);
-  transition: opacity 420ms var(--ease-morph), transform 420ms var(--ease-morph);
+  cursor: zoom-out;
 }
 
-.avatar-dialog[data-open="true"] .avatar-dialog-img {
-  opacity: 1;
-  transform: scale(1);
-}
-
+/*
+ * 400ms on a power2.inOut equivalent, matching the overlay in the GSAP
+ * original. Deliberately shorter than the photo's 600ms flight: the room
+ * darkens first and the photo arrives into it, rather than the two landing
+ * together.
+ */
 .avatar-dialog::backdrop {
-  background: rgb(0 0 0 / 0.55);
+  background: rgb(0 0 0 / 0.85);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   opacity: 0;
-  transition: opacity 420ms var(--ease-morph);
+  transition: opacity 400ms cubic-bezier(0.455, 0.03, 0.515, 0.955);
 }
 
 .avatar-dialog[data-open="true"]::backdrop {
