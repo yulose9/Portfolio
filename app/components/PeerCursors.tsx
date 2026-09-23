@@ -3,7 +3,19 @@
 import { useEffect } from "react";
 // Type-only, so it is erased at build and the library stays a lazy chunk.
 import type ReconnectingWebSocket from "partysocket/ws";
-import { PEER_SPRING, advance, makeSpring, type Spring } from "../lib/spring";
+import {
+  HOVER_SCALE,
+  INTERACTIVE,
+  PEER_SPRING,
+  advance,
+  approach,
+  cursorTransform,
+  makeHeading,
+  makeSpring,
+  steer,
+  type Heading,
+  type Spring,
+} from "../lib/spring";
 
 /** Set to the deployed Worker, e.g. wss://portfolio-cursors.<name>.workers.dev/cursors */
 const ENDPOINT = process.env.NEXT_PUBLIC_CURSORS_URL;
@@ -34,6 +46,9 @@ type Peer = {
   y: Spring;
   targetX: number;
   targetY: number;
+  heading: Heading;
+  scale: number;
+  targetScale: number;
   seen: number;
   node: HTMLDivElement;
 };
@@ -118,10 +133,10 @@ export default function PeerCursors() {
       const node = document.createElement("div");
       node.className = "peer-cursor";
       node.style.color = `hsl(${hue} 65% 45%)`;
-      // An original mark, matching the local cursor's silhouette so remote
-      // pointers read as the same kind of object.
+      // The local cursor's mark at the local cursor's size, so a remote pointer
+      // reads as the same kind of object — only the colour says whose it is.
       node.innerHTML =
-        '<svg width="20" height="24" viewBox="0 0 22 26" fill="none">' +
+        '<svg width="22" height="26" viewBox="0 0 22 26" fill="none">' +
         '<path d="M11 1.5 20 23.2a1.1 1.1 0 0 1-1.45 1.4L11.4 21.3a1.1 1.1 0 0 0-.8 0l-7.15 3.3A1.1 1.1 0 0 1 2 23.2Z"' +
         ' fill="currentColor" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>';
       layer.appendChild(node);
@@ -132,6 +147,9 @@ export default function PeerCursors() {
         y: makeSpring(0),
         targetX: 0,
         targetY: 0,
+        heading: makeHeading(),
+        scale: 1,
+        targetScale: 1,
         seen: performance.now(),
         node,
       };
@@ -173,6 +191,14 @@ export default function PeerCursors() {
       peer.targetX = px;
       peer.targetY = py;
       peer.seen = performance.now();
+
+      // Grow over whatever is clickable *here*, under their pointer on this
+      // page. Nothing about hover is sent, so it costs no bandwidth, and it
+      // stays right even if their layout differs. Hit-tested per update
+      // (≤20Hz), not per frame. The cursor layers are pointer-events: none,
+      // so they are never what gets hit.
+      const under = document.elementFromPoint(px, py);
+      peer.targetScale = under?.closest(INTERACTIVE) ? HOVER_SCALE : 1;
       peer.node.style.opacity = "1";
     };
 
@@ -193,7 +219,16 @@ export default function PeerCursors() {
         }
         advance(peer.x, peer.targetX, dt, PEER_SPRING.stiffness, PEER_SPRING.damping);
         advance(peer.y, peer.targetY, dt, PEER_SPRING.stiffness, PEER_SPRING.damping);
-        peer.node.style.transform = `translate3d(${peer.x.value}px, ${peer.y.value}px, 0)`;
+        // Heading comes from the spring's velocity, not the network samples, so
+        // it turns smoothly along the path instead of jumping at each update.
+        steer(peer.heading, peer.x.velocity, peer.y.velocity, dt);
+        peer.scale = approach(peer.scale, peer.targetScale, dt);
+        peer.node.style.transform = cursorTransform(
+          peer.x.value,
+          peer.y.value,
+          peer.heading.spring.value,
+          peer.scale
+        );
       }
 
       frame = requestAnimationFrame(tick);

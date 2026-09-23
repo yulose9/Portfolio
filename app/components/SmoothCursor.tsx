@@ -1,43 +1,27 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-
-/*
- * Spring constants, in the same units the reference implementation uses.
- * Critically damped enough to settle without wobble, loose enough that the
- * cursor visibly trails the pointer rather than being glued to it.
- */
-const STIFFNESS = 400;
-const DAMPING = 45;
-const MASS = 1;
-
-/* The rotation spring is softer, so direction changes sweep rather than snap. */
-const ROT_STIFFNESS = 300;
-const ROT_DAMPING = 60;
-
-/** Below this speed the heading is noise, so the arrow holds its last angle. */
-const MIN_SPEED = 0.08;
+import {
+  HOVER_SCALE,
+  INTERACTIVE,
+  POINTER_SPRING,
+  advance,
+  approach,
+  cursorTransform,
+  makeHeading,
+  makeSpring,
+  steer,
+} from "../lib/spring";
 
 const POINTER_QUERY = "(any-hover: hover) and (any-pointer: fine)";
-const INTERACTIVE = "a, button, [role='button'], input, textarea, select, summary";
-
-type Spring = { value: number; velocity: number };
-
-/** One step of a damped harmonic oscillator. dt is seconds. */
-function advance(s: Spring, target: number, dt: number, k: number, c: number) {
-  const force = -k * (s.value - target);
-  const damper = -c * s.velocity;
-  s.velocity += ((force + damper) / MASS) * dt;
-  s.value += s.velocity * dt;
-}
 
 /**
  * A cursor that lags behind the pointer on a spring and turns to face its
  * direction of travel.
  *
  * Written against requestAnimationFrame directly rather than pulling in a
- * motion library for four springs. The whole physics model is the `advance`
- * function above.
+ * motion library for four springs. The physics lives in lib/spring, shared
+ * with PeerCursors, so other people's cursors move exactly like this one.
  *
  * Deliberately narrow about when it runs:
  *  - fine pointers only, so it never appears after a tap on a touchscreen;
@@ -57,11 +41,9 @@ export default function SmoothCursor() {
     let listening = false;
 
     const pointer = { x: 0, y: 0, seen: false };
-    const x: Spring = { value: 0, velocity: 0 };
-    const y: Spring = { value: 0, velocity: 0 };
-    const rot: Spring = { value: 0, velocity: 0 };
-    let targetRot = 0;
-    let turns = 0;
+    const x = makeSpring(0);
+    const y = makeSpring(0);
+    const heading = makeHeading();
     let targetScale = 1;
     let scale = 1;
     let last = performance.now();
@@ -85,7 +67,7 @@ export default function SmoothCursor() {
       // Grow over anything clickable. With the native cursor hidden, this is
       // what replaces the pointer/hand change as the affordance.
       const el = event.target as Element | null;
-      targetScale = el?.closest?.(INTERACTIVE) ? 1.6 : 1;
+      targetScale = el?.closest?.(INTERACTIVE) ? HOVER_SCALE : 1;
     };
 
     /*
@@ -107,26 +89,14 @@ export default function SmoothCursor() {
       const dt = Math.min((now - last) / 1000, 1 / 30);
       last = now;
 
-      advance(x, pointer.x, dt, STIFFNESS, DAMPING);
-      advance(y, pointer.y, dt, STIFFNESS, DAMPING);
-
-      const speed = Math.hypot(x.velocity, y.velocity) / 1000;
-      if (speed > MIN_SPEED) {
-        const heading = Math.atan2(y.velocity, x.velocity) * (180 / Math.PI) + 90;
-        // Unwrap, so crossing 180deg sweeps the short way instead of spinning.
-        const delta = ((heading - (targetRot - turns * 360) + 540) % 360) - 180;
-        targetRot += delta;
-        turns = Math.round((targetRot - heading) / 360);
-      }
-      advance(rot, targetRot, dt, ROT_STIFFNESS, ROT_DAMPING);
-
-      scale += (targetScale - scale) * Math.min(dt * 12, 1);
+      advance(x, pointer.x, dt, POINTER_SPRING.stiffness, POINTER_SPRING.damping);
+      advance(y, pointer.y, dt, POINTER_SPRING.stiffness, POINTER_SPRING.damping);
+      steer(heading, x.velocity, y.velocity, dt);
+      scale = approach(scale, targetScale, dt);
 
       const node = nodeRef.current;
       if (node) {
-        node.style.transform =
-          `translate3d(${x.value}px, ${y.value}px, 0) ` +
-          `translate(-50%, -50%) rotate(${rot.value}deg) scale(${scale})`;
+        node.style.transform = cursorTransform(x.value, y.value, heading.spring.value, scale);
       }
 
       frame = requestAnimationFrame(tick);
