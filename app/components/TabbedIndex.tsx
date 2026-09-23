@@ -1,8 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { SiGithub, SiGoogle, SiHashicorp } from "@icons-pack/react-simple-icons";
-import { Cloud, HardHat, Palette, Robot } from "@phosphor-icons/react";
+import { SiGithub, SiGoogle, SiHashicorp, SiX } from "@icons-pack/react-simple-icons";
+import {
+  Briefcase,
+  Cloud,
+  EnvelopeSimple,
+  HardHat,
+  Palette,
+  ReadCvLogo,
+  Robot,
+} from "@phosphor-icons/react";
 import { haptic } from "../lib/haptics";
 import AboutMenu from "./menu/AboutMenu";
 import RowMenu from "./menu/RowMenu";
@@ -430,6 +438,20 @@ const LOGOS = {
   cloud: Cloud,
 } as const;
 
+/*
+ * Contact link marks. GitHub and X are the real trademarks, used to identify
+ * the accounts they belong to. Simple Icons carries no LinkedIn mark, so that
+ * one takes a neutral glyph rather than a hand-drawn imitation — as do email
+ * and the CV, which are not brands at all.
+ */
+const LINK_ICONS = {
+  email: EnvelopeSimple,
+  github: SiGithub,
+  linkedin: Briefcase,
+  x: SiX,
+  resume: ReadCvLogo,
+} as const;
+
 function Row({ title, company, year, href, icon, logo }: Entry) {
   const external = href?.startsWith("http");
   const Icon = icon ? ICONS[icon] : null;
@@ -677,8 +699,16 @@ function LinkList({
               target={link.href.startsWith("http") ? "_blank" : undefined}
               rel={link.href.startsWith("http") ? "noreferrer" : undefined}
               onClick={haptic}
-              className="row-pad inline-flex w-fit items-baseline gap-2 rounded-[14px] px-10 py-4 no-underline"
+              className="row-pad inline-flex w-fit items-center gap-2.5 rounded-[14px] px-10 py-4 no-underline"
             >
+              {(() => {
+                const Glyph = link.icon ? LINK_ICONS[link.icon] : null;
+                return Glyph ? (
+                  <span className="shrink-0 text-zinc-500" aria-hidden="true">
+                    <Glyph size={16} />
+                  </span>
+                ) : null;
+              })()}
               <span className="text-base leading-6 text-zinc-400">{link.label}</span>
               <span className="text-base leading-6 text-black underline">
                 {link.display ??

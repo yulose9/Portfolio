@@ -404,7 +404,7 @@ a {
   height: 100%;
   max-height: none;
   margin: 0;
-  padding: 6vmin;
+  padding: 0;
   border: 0;
   background: transparent;
 
@@ -419,9 +419,6 @@ a {
  * opacity-related declared here would fight that animation for the same
  * properties.
  */
-.avatar-dialog-img {
-  cursor: zoom-out;
-}
 
 /*
  * 400ms on a power2.inOut equivalent, matching the overlay in the GSAP
@@ -445,9 +442,14 @@ a {
   display: block;
   width: auto;
   height: auto;
-  max-width: min(100%, 560px);
-  max-height: 100%;
+  /*
+   * The ceiling the GSAP original used. The previous 560px cap is why the
+   * photo never filled the browser — no easing curve fixes a max-width.
+   */
+  max-width: min(90vw, 1200px);
+  max-height: 90vh;
   border-radius: 50%;
+  cursor: zoom-out;
   /* Same hairline as the preview frame, for one edge treatment on images. */
   outline: 1px solid oklch(1 1 1 / 0.12);
   outline-offset: -1px;
@@ -466,15 +468,6 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .avatar-dialog-img,
-  .avatar-dialog[data-open="true"] .avatar-dialog-img {
-    transform: none;
-  }
-
-  .avatar-dialog-img {
-    transition: opacity 200ms ease;
-  }
-
   .avatar-button:active {
     transform: none;
   }

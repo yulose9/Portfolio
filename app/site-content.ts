@@ -29,6 +29,12 @@ export type Link = {
   href: string;
   /** Overrides the derived URL text — for links whose URL is not readable. */
   display?: string;
+  /**
+   * github and x are the real brand marks. email, linkedin and resume are
+   * neutral glyphs: Simple Icons carries no LinkedIn mark, and a trademark is
+   * not something to redraw by hand.
+   */
+  icon?: "email" | "github" | "linkedin" | "x" | "resume";
 };
 
 export type Post = {
@@ -181,14 +187,23 @@ export const TABS: Tab[] = [
       },
     ],
     links: [
-      { label: "Email", href: "mailto:jannazarene09@gmail.com" },
-      { label: "GitHub", href: "https://github.com/yulose9" },
-      { label: "LinkedIn", href: "https://www.linkedin.com/in/jannazarene" },
-      { label: "X", href: "https://x.com/xcszan" },
+      {
+        label: "Email",
+        href: "mailto:jannazarene09@gmail.com",
+        icon: "email",
+      },
+      { label: "GitHub", href: "https://github.com/yulose9", icon: "github" },
+      {
+        label: "LinkedIn",
+        href: "https://www.linkedin.com/in/jannazarene",
+        icon: "linkedin",
+      },
+      { label: "X", href: "https://x.com/xcszan", icon: "x" },
       {
         label: "Resume",
         href: "https://nazarene-resume-bucket.s3.us-east-1.amazonaws.com/DelaPisa_Resume_v1.pdf",
         display: "Download PDF",
+        icon: "resume",
       },
     ],
   },

@@ -14,17 +14,13 @@ const LQIP =
   "data:image/webp;base64,UklGRsQAAABXRUJQVlA4ILgAAACwBQCdASoUABQAPt1mq1EopSOiqAgBEBuJagCdMzE";
 
 /*
- * Timings and curves carried over from the GSAP version in 5576b0b, which is
- * the motion this is meant to feel like:
- *   clone   0.6s  power3.inOut
- *   overlay 0.4s  power2.inOut
- * GSAP's power curves are just cubic-beziers underneath; these are the
- * equivalents, so the feel survives dropping the dependency.
+ * Carried over from the GSAP version in 5576b0b, which is the motion this is
+ * meant to feel like: the clone travelled over 0.6s on power3.inOut. GSAP's
+ * power curves are cubic-beziers underneath, so the feel survives dropping the
+ * dependency. The backdrop's own 0.4s power2.inOut lives in CSS beside it.
  */
 const TRAVEL_MS = 600;
-const FADE_MS = 400;
 const EASE_TRAVEL = "cubic-bezier(0.645, 0.045, 0.355, 1)";
-const EASE_FADE = "cubic-bezier(0.455, 0.03, 0.515, 0.955)";
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
@@ -95,18 +91,30 @@ export default function AvatarZoom({ alt }: { alt: string }) {
   }, [flip]);
 
   const hide = useCallback(() => {
-    const finish = () => {
-      setOpen(false);
-      dialogRef.current?.close();
-    };
+    // Drops data-open, which starts the backdrop fading on its own shorter
+    // clock. The photo flies home over the longer one.
+    setOpen(false);
 
     if (prefersReducedMotion()) {
-      finish();
+      dialogRef.current?.close();
       return;
     }
 
-    // The backdrop fades on its own, shorter clock; the photo flies home.
-    setOpen(false);
+    const running = animation.current;
+    if (running && running.playState === "running") {
+      /*
+       * Still opening. Reverse from wherever it currently is rather than
+       * starting a fresh trip home: flip() measures getBoundingClientRect,
+       * which during a running animation returns the half-applied transformed
+       * box, so a new animation would compute its start from the wrong place
+       * and visibly jump. reverse() just runs the same curve backwards from
+       * the current time.
+       */
+      running.onfinish = () => dialogRef.current?.close();
+      running.reverse();
+      return;
+    }
+
     flip("out", () => dialogRef.current?.close());
   }, [flip]);
 
