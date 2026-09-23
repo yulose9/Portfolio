@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { haptic } from "../lib/haptics";
 
 /**
@@ -13,117 +13,209 @@ import { haptic } from "../lib/haptics";
 const LQIP =
   "data:image/webp;base64,UklGRsQAAABXRUJQVlA4ILgAAACwBQCdASoUABQAPt1mq1EopSOiqAgBEBuJagCdMzE";
 
+const LARGE_SRC = "/avatar-1024.webp";
+
 /*
- * Carried over from the GSAP version in 5576b0b, which is the motion this is
- * meant to feel like: the clone travelled over 0.6s on power3.inOut. GSAP's
- * power curves are cubic-beziers underneath, so the feel survives dropping the
- * dependency. The backdrop's own 0.4s power2.inOut lives in CSS beside it.
+ * One clock for the photo and the backdrop (the CSS reads the same values
+ * through --zoom-dur and --zoom-ease). They used to run on separate curves and
+ * lengths, and drifting apart is a large part of what read as chaotic.
+ *
+ * Fast out of the gate, long soft landing: the zoom answers the click on the
+ * very next frame instead of easing in first, then settles without a bump.
  */
-const TRAVEL_MS = 600;
-const EASE_TRAVEL = "cubic-bezier(0.645, 0.045, 0.355, 1)";
+const ZOOM_MS = 520;
+const ZOOM_EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
+
+/** How long a click waits for a photo that has not finished decoding. */
+const DECODE_WAIT_MS = 1200;
+
+type Phase = "closed" | "opening" | "open" | "closing";
 
 const prefersReducedMotion = () =>
-  typeof window !== "undefined" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * The portrait, which zooms to fill the screen on click and flies home on a
+ * click outside it (or Esc).
+ *
+ * What made the old version jumpy, and what replaced each part:
+ *
+ *  - The large photo only started downloading on click, so the zoom flew an
+ *    empty frame and the photo popped in mid-flight. It is now fetched and
+ *    decoded ahead of time — on idle after load, sooner on hover or focus —
+ *    and a click waits for decode before anything moves.
+ *  - The trip home used fill: "both", which left the shrunk transform on the
+ *    photo after closing. The next open measured that transformed box, worked
+ *    out a near-zero zoom, and the photo simply appeared. Every animation is
+ *    now cancelled before measuring, and removed once the dialog closes.
+ *  - The photo faded 60%→100% over a still-visible thumbnail, so both showed
+ *    at once at each end. It stays opaque and lands exactly on the thumbnail.
+ *  - A second click during the trip home reversed it back out again. A phase
+ *    ref now makes every interruption do the one sensible thing.
+ */
 export default function AvatarZoom({ alt }: { alt: string }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const figureRef = useRef<HTMLImageElement>(null);
   const thumbRef = useRef<HTMLButtonElement>(null);
   const animation = useRef<Animation | null>(null);
-  const [open, setOpen] = useState(false);
-  // Gates the large file: nothing is fetched until the first open.
-  const [everOpened, setEverOpened] = useState(false);
+  const phase = useRef<Phase>("closed");
+  const ready = useRef<Promise<void> | null>(null);
 
-  /**
-   * FLIP.
-   *
-   * The large photo is already laid out where it belongs, so rather than
-   * animating its box — which would relayout every frame — we measure where the
-   * thumbnail sits, work out the transform that would put the photo exactly
-   * there, and animate from that back to nothing. All of it is transform and
-   * opacity, so it runs on the compositor.
-   */
-  const flip = useCallback((direction: "in" | "out", done?: () => void) => {
+  /** Starts the large photo loading and decoding, once. */
+  const prime = useCallback((): Promise<void> => {
+    const figure = figureRef.current;
+    if (!figure) return Promise.resolve();
+    if (!ready.current) {
+      // Set imperatively: React never renders a src for this <img>, so it
+      // never resets it. decode() resolves once the pixels are ready to paint,
+      // and works while the dialog is still display: none.
+      figure.src = LARGE_SRC;
+      ready.current = figure.decode().catch(() => {
+        /* a failed decode still lets the zoom run; the box has its size */
+      });
+    }
+    return ready.current;
+  }, []);
+
+  // Prefetch after the page has settled, so a first click is already smooth.
+  // 86 kB, after everything that matters for first paint.
+  useEffect(() => {
+    const idle =
+      window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 2000));
+    const cancel = window.cancelIdleCallback ?? window.clearTimeout;
+    const handle = idle(() => void prime(), { timeout: 4000 } as never);
+    return () => cancel(handle);
+  }, [prime]);
+
+  // Scrolling the page behind the open photo moves the spot it flies home to.
+  // Blocked at the dialog, rather than with overflow: hidden on the page,
+  // which would drop the scrollbar and shift the whole layout sideways.
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const block = (event: Event) => event.preventDefault();
+    dialog.addEventListener("wheel", block, { passive: false });
+    dialog.addEventListener("touchmove", block, { passive: false });
+    return () => {
+      dialog.removeEventListener("wheel", block);
+      dialog.removeEventListener("touchmove", block);
+    };
+  }, []);
+
+  /** FLIP between the thumbnail and the photo's real box. Transform only. */
+  const fly = useCallback((direction: "in" | "out", done: () => void) => {
     const thumb = thumbRef.current;
     const figure = figureRef.current;
-    if (!thumb || !figure) {
-      done?.();
-      return;
-    }
+    if (!thumb || !figure) return done();
 
+    // Cancel first, measure second. Measuring with an old animation still
+    // applied is what used to turn a zoom into a jump.
+    animation.current?.cancel();
     const from = thumb.getBoundingClientRect();
     const to = figure.getBoundingClientRect();
-    if (!to.width || !to.height) {
-      done?.();
-      return;
-    }
+    if (!to.width || !to.height) return done();
 
     const scale = from.width / to.width;
     const dx = from.left + from.width / 2 - (to.left + to.width / 2);
     const dy = from.top + from.height / 2 - (to.top + to.height / 2);
     const collapsed = `translate(${dx}px, ${dy}px) scale(${scale})`;
 
-    const frames: Keyframe[] = [
-      { transform: collapsed, opacity: 0.6 },
-      { transform: "none", opacity: 1 },
-    ];
+    figure.style.visibility = "";
+    const frames: Keyframe[] =
+      direction === "in"
+        ? [{ transform: collapsed }, { transform: "none" }]
+        : [{ transform: "none" }, { transform: collapsed }];
 
-    animation.current?.cancel();
-    animation.current = figure.animate(
-      direction === "in" ? frames : [...frames].reverse(),
-      { duration: TRAVEL_MS, easing: EASE_TRAVEL, fill: "both" }
-    );
-    animation.current.onfinish = () => done?.();
+    const run = figure.animate(frames, { duration: ZOOM_MS, easing: ZOOM_EASE, fill: "both" });
+    animation.current = run;
+    run.onfinish = done;
   }, []);
 
-  const show = useCallback(() => {
+  const finishClose = useCallback(() => {
+    dialogRef.current?.close();
+    // Nothing left behind for the next open to measure through.
+    animation.current?.cancel();
+    animation.current = null;
+    phase.current = "closed";
+  }, []);
+
+  const show = useCallback(async () => {
+    const dialog = dialogRef.current;
+    const figure = figureRef.current;
+    if (!dialog || !figure || phase.current !== "closed") return;
+    phase.current = "opening";
     haptic();
-    setEverOpened(true);
-    // showModal, not an overlay div: it brings the top layer, a real backdrop,
-    // focus trapping and Esc handling with it.
-    dialogRef.current?.showModal();
-    setOpen(true);
 
-    if (prefersReducedMotion()) return;
-    // Wait a frame so the photo has been laid out and can be measured.
-    requestAnimationFrame(() => flip("in"));
-  }, [flip]);
-
-  const hide = useCallback(() => {
-    // Drops data-open, which starts the backdrop fading on its own shorter
-    // clock. The photo flies home over the longer one.
-    setOpen(false);
+    const decoded = prime();
+    // Laid out (so it can be measured) but not painted until it can fly:
+    // no frame ever shows an empty box or the full-size photo pre-zoom.
+    figure.style.visibility = "hidden";
+    // showModal, not an overlay div: the top layer, a real backdrop, focus
+    // trapping and Esc handling all come with it.
+    dialog.showModal();
 
     if (prefersReducedMotion()) {
-      dialogRef.current?.close();
+      figure.style.visibility = "";
+      dialog.dataset.open = "true";
+      phase.current = "open";
       return;
     }
 
+    // The backdrop starts on the next frame, so the click is acknowledged at
+    // once even on the rare occasion the photo is still decoding.
+    requestAnimationFrame(() => {
+      if (phase.current === "opening") dialog.dataset.open = "true";
+    });
+    await Promise.race([decoded, wait(DECODE_WAIT_MS)]);
+    // Dismissed while waiting: hide() has already dealt with it.
+    if (phase.current !== "opening") return;
+
+    fly("in", () => {
+      if (phase.current === "opening") phase.current = "open";
+    });
+  }, [fly, prime]);
+
+  const hide = useCallback(() => {
+    const dialog = dialogRef.current;
+    const figure = figureRef.current;
+    if (!dialog || !figure) return;
+    if (phase.current === "closed" || phase.current === "closing") return;
+
+    const wasOpening = phase.current === "opening";
+    phase.current = "closing";
+    delete dialog.dataset.open; // the backdrop fades on the same clock
+
+    if (prefersReducedMotion()) return finishClose();
+
     const running = animation.current;
-    if (running && running.playState === "running") {
-      /*
-       * Still opening. Reverse from wherever it currently is rather than
-       * starting a fresh trip home: flip() measures getBoundingClientRect,
-       * which during a running animation returns the half-applied transformed
-       * box, so a new animation would compute its start from the wrong place
-       * and visibly jump. reverse() just runs the same curve backwards from
-       * the current time.
-       */
-      running.onfinish = () => dialogRef.current?.close();
+    if (wasOpening && running && running.playState === "running") {
+      // Mid-zoom: run the same curve backwards from wherever it is, rather
+      // than re-measuring a half-transformed box and jumping.
+      running.onfinish = finishClose;
       running.reverse();
       return;
     }
+    if (wasOpening) {
+      // Still waiting on decode, so nothing has moved: let the backdrop go.
+      figure.style.visibility = "hidden";
+      window.setTimeout(finishClose, ZOOM_MS);
+      return;
+    }
 
-    flip("out", () => dialogRef.current?.close());
-  }, [flip]);
+    fly("out", finishClose);
+  }, [fly, finishClose]);
 
   return (
     <>
       <button
         ref={thumbRef}
         type="button"
-        onClick={show}
+        onClick={() => void show()}
+        // Intent: someone about to click gets the photo warmed first.
+        onPointerEnter={() => void prime()}
+        onFocus={() => void prime()}
         aria-label={`View ${alt} larger`}
         className="avatar-button block cursor-zoom-in rounded-full"
       >
@@ -145,7 +237,6 @@ export default function AvatarZoom({ alt }: { alt: string }) {
 
       <dialog
         ref={dialogRef}
-        data-open={open}
         // Esc fires `cancel`; intercepting it routes the close through the
         // same flight home as a click rather than snapping shut.
         onCancel={(event) => {
@@ -157,21 +248,27 @@ export default function AvatarZoom({ alt }: { alt: string }) {
         onClick={(event) => {
           if (event.target === dialogRef.current) hide();
         }}
+        // Lenis must not smooth-scroll the page underneath the open photo.
+        data-lenis-prevent=""
         className="avatar-dialog"
         aria-label={alt}
+        style={{ "--zoom-dur": `${ZOOM_MS}ms`, "--zoom-ease": ZOOM_EASE } as React.CSSProperties}
       >
-        {everOpened ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            ref={figureRef}
-            src="/avatar-1024.webp"
-            alt={alt}
-            width={1024}
-            height={1024}
-            className="avatar-dialog-img"
-            onClick={hide}
-          />
-        ) : null}
+        {/*
+          Always mounted, with its src set by prime(), so it can be fetched and
+          decoded before the first click. width/height give it a box to
+          measure before the pixels arrive.
+        */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          ref={figureRef}
+          alt={alt}
+          width={1024}
+          height={1024}
+          decoding="async"
+          className="avatar-dialog-img"
+          onClick={hide}
+        />
       </dialog>
     </>
   );
