@@ -3,6 +3,7 @@
 import { ContextMenu as Base } from "@base-ui/react/context-menu";
 import type { ReactNode } from "react";
 import { haptic } from "../../lib/haptics";
+import { useFinePointer } from "./useFinePointer";
 
 /**
  * The portfolio's context menu.
@@ -24,8 +25,17 @@ export function Menu({
   /** Fired as the menu opens, so callers can read the selection first. */
   onOpenChange?: (open: boolean) => void;
 }) {
+  /*
+   * Off on touch. Base UI opens a context menu on long-press, which collides
+   * with the gesture people already use to select text and position a caret —
+   * holding a word should give you the OS text controls, not a custom menu.
+   * Right-click has no such conflict, so this stays on wherever there is a
+   * real pointer.
+   */
+  const fine = useFinePointer();
+
   return (
-    <Base.Root onOpenChange={onOpenChange}>
+    <Base.Root disabled={!fine} onOpenChange={onOpenChange}>
       {/*
         render={...} composes onto the caller's element instead of wrapping it
         in another div, which would break the row layouts this sits inside.

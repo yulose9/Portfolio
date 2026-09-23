@@ -76,8 +76,11 @@ export default function SmoothCursor() {
         pointer.seen = true;
         x.value = pointer.x;
         y.value = pointer.y;
-        nodeRef.current?.style.setProperty("opacity", "1");
       }
+
+      // Set on every move, not just the first. Gating this behind `seen` meant
+      // that once anything hid the cursor it could never come back.
+      nodeRef.current?.style.setProperty("opacity", "1");
 
       // Grow over anything clickable. With the native cursor hidden, this is
       // what replaces the pointer/hand change as the affordance.
@@ -85,7 +88,18 @@ export default function SmoothCursor() {
       targetScale = el?.closest?.(INTERACTIVE) ? 1.6 : 1;
     };
 
-    const onLeave = () => nodeRef.current?.style.setProperty("opacity", "0");
+    /*
+     * pointerout bubbles and fires on every element-to-element transition, so
+     * hiding on it unconditionally hid the cursor the moment it crossed onto
+     * the main column. relatedTarget names the element being entered, and is
+     * only null when the pointer genuinely leaves the window.
+     */
+    const onOut = (event: PointerEvent) => {
+      if (event.pointerType === "touch") return;
+      if (event.relatedTarget === null) {
+        nodeRef.current?.style.setProperty("opacity", "0");
+      }
+    };
 
     const tick = (now: number) => {
       // Clamped so a backgrounded tab does not resume with a huge dt and
@@ -123,7 +137,7 @@ export default function SmoothCursor() {
       listening = true;
       document.documentElement.classList.add("has-smooth-cursor");
       window.addEventListener("pointermove", onMove, { passive: true });
-      window.addEventListener("pointerout", onLeave, { passive: true });
+      window.addEventListener("pointerout", onOut, { passive: true });
       last = performance.now();
       frame = requestAnimationFrame(tick);
     };
@@ -133,7 +147,7 @@ export default function SmoothCursor() {
       listening = false;
       document.documentElement.classList.remove("has-smooth-cursor");
       window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerout", onLeave);
+      window.removeEventListener("pointerout", onOut);
       cancelAnimationFrame(frame);
       pointer.seen = false;
       nodeRef.current?.style.setProperty("opacity", "0");
