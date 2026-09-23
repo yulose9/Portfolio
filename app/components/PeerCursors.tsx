@@ -3,13 +3,10 @@
 import { useEffect } from "react";
 // Type-only, so it is erased at build and the library stays a lazy chunk.
 import type ReconnectingWebSocket from "partysocket/ws";
+import { cursorMarkup, cursorTransform, shapeAt, type CursorShape } from "../lib/cursor";
 import {
-  HOVER_SCALE,
-  INTERACTIVE,
   PEER_SPRING,
   advance,
-  approach,
-  cursorTransform,
   makeHeading,
   makeSpring,
   steer,
@@ -47,10 +44,11 @@ type Peer = {
   targetX: number;
   targetY: number;
   heading: Heading;
-  scale: number;
-  targetScale: number;
+  shape: CursorShape;
   seen: number;
   node: HTMLDivElement;
+  /** The arrow's wrapper: the only part that turns with the heading. */
+  spin: HTMLElement | null;
 };
 
 /**
@@ -133,12 +131,11 @@ export default function PeerCursors() {
       const node = document.createElement("div");
       node.className = "peer-cursor";
       node.style.color = `hsl(${hue} 65% 45%)`;
-      // The local cursor's mark at the local cursor's size, so a remote pointer
-      // reads as the same kind of object — only the colour says whose it is.
-      node.innerHTML =
-        '<svg width="22" height="26" viewBox="0 0 22 26" fill="none">' +
-        '<path d="M11 1.5 20 23.2a1.1 1.1 0 0 1-1.45 1.4L11.4 21.3a1.1 1.1 0 0 0-.8 0l-7.15 3.3A1.1 1.1 0 0 1 2 23.2Z"' +
-        ' fill="currentColor" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+      node.dataset.shape = "arrow";
+      // The local cursor's own glyphs, so a remote pointer reads as the same
+      // kind of object — only the colour says whose it is. Static markup;
+      // the hue is a server-assigned number, never text from a peer.
+      node.innerHTML = cursorMarkup("currentColor");
       layer.appendChild(node);
 
       const peer: Peer = {
@@ -148,10 +145,10 @@ export default function PeerCursors() {
         targetX: 0,
         targetY: 0,
         heading: makeHeading(),
-        scale: 1,
-        targetScale: 1,
+        shape: "arrow",
         seen: performance.now(),
         node,
+        spin: node.querySelector<HTMLElement>(".cursor-spin"),
       };
       peers.set(id, peer);
       return peer;
@@ -192,13 +189,15 @@ export default function PeerCursors() {
       peer.targetY = py;
       peer.seen = performance.now();
 
-      // Grow over whatever is clickable *here*, under their pointer on this
-      // page. Nothing about hover is sent, so it costs no bandwidth, and it
+      // Hand, I-beam or arrow for whatever is under their pointer *here*, on
+      // this page. Nothing about it is sent, so it costs no bandwidth, and it
       // stays right even if their layout differs. Hit-tested per update
-      // (≤20Hz), not per frame. The cursor layers are pointer-events: none,
-      // so they are never what gets hit.
-      const under = document.elementFromPoint(px, py);
-      peer.targetScale = under?.closest(INTERACTIVE) ? HOVER_SCALE : 1;
+      // (≤20Hz), not per frame.
+      const next = shapeAt(px, py);
+      if (next !== peer.shape) {
+        peer.shape = next;
+        peer.node.dataset.shape = next;
+      }
       peer.node.style.opacity = "1";
     };
 
@@ -222,13 +221,8 @@ export default function PeerCursors() {
         // Heading comes from the spring's velocity, not the network samples, so
         // it turns smoothly along the path instead of jumping at each update.
         steer(peer.heading, peer.x.velocity, peer.y.velocity, dt);
-        peer.scale = approach(peer.scale, peer.targetScale, dt);
-        peer.node.style.transform = cursorTransform(
-          peer.x.value,
-          peer.y.value,
-          peer.heading.spring.value,
-          peer.scale
-        );
+        peer.node.style.transform = cursorTransform(peer.x.value, peer.y.value);
+        if (peer.spin) peer.spin.style.transform = `rotate(${peer.heading.spring.value}deg)`;
       }
 
       frame = requestAnimationFrame(tick);

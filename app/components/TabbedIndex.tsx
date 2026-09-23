@@ -512,7 +512,9 @@ function Prose({
   start: number;
 }) {
   return (
-    <div className="flex max-w-[32rem] flex-col gap-6">
+    // data-cursor="text": reading material, so the custom cursor becomes an
+    // I-beam over the words themselves (see lib/cursor).
+    <div className="flex max-w-[32rem] flex-col gap-6" data-cursor="text">
       {body.map((paragraph, index) => (
         <p
           key={paragraph.slice(0, 32)}

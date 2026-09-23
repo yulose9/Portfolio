@@ -1,23 +1,15 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import {
-  HOVER_SCALE,
-  INTERACTIVE,
-  POINTER_SPRING,
-  advance,
-  approach,
-  cursorTransform,
-  makeHeading,
-  makeSpring,
-  steer,
-} from "../lib/spring";
+import { cursorMarkup, cursorTransform, shapeAt, type CursorShape } from "../lib/cursor";
+import { POINTER_SPRING, advance, makeHeading, makeSpring, steer } from "../lib/spring";
 
 const POINTER_QUERY = "(any-hover: hover) and (any-pointer: fine)";
 
 /**
- * A cursor that lags behind the pointer on a spring and turns to face its
- * direction of travel.
+ * A cursor that lags behind the pointer on a spring, turns to face its
+ * direction of travel, and becomes a hand over anything clickable or an
+ * I-beam over prose.
  *
  * Written against requestAnimationFrame directly rather than pulling in a
  * motion library for four springs. The physics lives in lib/spring, shared
@@ -44,8 +36,12 @@ export default function SmoothCursor() {
     const x = makeSpring(0);
     const y = makeSpring(0);
     const heading = makeHeading();
-    let targetScale = 1;
-    let scale = 1;
+    let shape: CursorShape = "arrow";
+    // Set when the pointer moves or the page scrolls, cleared once the shape
+    // has been re-checked: the hit-test runs at most once a frame, and not at
+    // all while nothing changes.
+    let dirty = false;
+    let spin: HTMLElement | null = null;
     let last = performance.now();
 
     const onMove = (event: PointerEvent) => {
@@ -63,11 +59,12 @@ export default function SmoothCursor() {
       // Set on every move, not just the first. Gating this behind `seen` meant
       // that once anything hid the cursor it could never come back.
       nodeRef.current?.style.setProperty("opacity", "1");
+      dirty = true;
+    };
 
-      // Grow over anything clickable. With the native cursor hidden, this is
-      // what replaces the pointer/hand change as the affordance.
-      const el = event.target as Element | null;
-      targetScale = el?.closest?.(INTERACTIVE) ? HOVER_SCALE : 1;
+    // Content scrolling under a still pointer changes what it is over.
+    const onScroll = () => {
+      dirty = true;
     };
 
     /*
@@ -92,11 +89,22 @@ export default function SmoothCursor() {
       advance(x, pointer.x, dt, POINTER_SPRING.stiffness, POINTER_SPRING.damping);
       advance(y, pointer.y, dt, POINTER_SPRING.stiffness, POINTER_SPRING.damping);
       steer(heading, x.velocity, y.velocity, dt);
-      scale = approach(scale, targetScale, dt);
 
       const node = nodeRef.current;
       if (node) {
-        node.style.transform = cursorTransform(x.value, y.value, heading.spring.value, scale);
+        if (dirty && pointer.seen) {
+          dirty = false;
+          // Tested at the real pointer, not the lagging cursor, so the shape
+          // answers to what you are actually pointing at.
+          const next = shapeAt(pointer.x, pointer.y);
+          if (next !== shape) {
+            shape = next;
+            node.dataset.shape = next;
+          }
+        }
+        node.style.transform = cursorTransform(x.value, y.value);
+        spin ??= node.querySelector<HTMLElement>(".cursor-spin");
+        if (spin) spin.style.transform = `rotate(${heading.spring.value}deg)`;
       }
 
       frame = requestAnimationFrame(tick);
@@ -108,6 +116,7 @@ export default function SmoothCursor() {
       document.documentElement.classList.add("has-smooth-cursor");
       window.addEventListener("pointermove", onMove, { passive: true });
       window.addEventListener("pointerout", onOut, { passive: true });
+      window.addEventListener("scroll", onScroll, { passive: true, capture: true });
       last = performance.now();
       frame = requestAnimationFrame(tick);
     };
@@ -118,6 +127,7 @@ export default function SmoothCursor() {
       document.documentElement.classList.remove("has-smooth-cursor");
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerout", onOut);
+      window.removeEventListener("scroll", onScroll, { capture: true });
       cancelAnimationFrame(frame);
       pointer.seen = false;
       nodeRef.current?.style.setProperty("opacity", "0");
@@ -137,21 +147,14 @@ export default function SmoothCursor() {
   }, []);
 
   return (
-    <div ref={nodeRef} className="smooth-cursor" aria-hidden="true">
-      {/*
-        An original mark rather than the demo's: a narrow arrowhead with a
-        white keyline, so it stays readable over the page's white surfaces and
-        over the zoom dialog's dark backdrop alike.
-      */}
-      <svg width="22" height="26" viewBox="0 0 22 26" fill="none">
-        <path
-          d="M11 1.5 20 23.2a1.1 1.1 0 0 1-1.45 1.4L11.4 21.3a1.1 1.1 0 0 0-.8 0l-7.15 3.3A1.1 1.1 0 0 1 2 23.2Z"
-          fill="#111"
-          stroke="#fff"
-          strokeWidth="1.6"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </div>
+    <div
+      ref={nodeRef}
+      className="smooth-cursor"
+      data-shape="arrow"
+      aria-hidden="true"
+      // Static markup from lib/cursor with a fixed colour — nothing from input
+      // reaches it. Shared with PeerCursors so both cursors are identical.
+      dangerouslySetInnerHTML={{ __html: cursorMarkup("#111") }}
+    />
   );
 }

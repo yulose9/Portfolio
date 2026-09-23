@@ -319,12 +319,72 @@ html.has-smooth-cursor [contenteditable] {
   will-change: transform;
 }
 
-.peer-cursor svg {
-  display: block;
+.peer-cursor .cursor-shape {
   /* Enough separation to stay legible over the portrait and the glass rows,
      without the heavy shadow that would make a remote cursor louder than
-     yours. */
+     yours. On the wrapper, so the three glyphs share one shadow pass. */
   filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.18));
+}
+
+/*
+ * Cursor shapes: arrow, I-beam, hand — one set of rules for both cursors.
+ *
+ * All three glyphs are always in the DOM, stacked; [data-shape] on the cursor
+ * picks which one is showing. The change is a cross-fade plus a small scale
+ * with a slight overshoot, so one shape visibly *becomes* the next instead of
+ * swapping in place. Opacity and transform only, so it stays composited.
+ *
+ * Fade-in is quicker than the scale: the incoming glyph is legible almost at
+ * once and then settles, which reads as responsive rather than laggy.
+ */
+.cursor-shape {
+  position: relative;
+  display: block;
+}
+
+.cursor-glyph {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transform: scale(0.55);
+  transition:
+    opacity 110ms var(--ease-soft),
+    transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cursor-glyph svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* The keylines sit on the viewBox edge; let them render instead of clip. */
+  overflow: visible;
+}
+
+/*
+ * The cursor is centred on the pointer, which suits the arrow and the I-beam.
+ * A hand is aimed with its fingertip, though: centred, the tip sat ~8px above
+ * the point that actually receives the click. The fingertip is at (44%, 6%)
+ * of Phosphor's artwork, so shifting by (6%, 44%) lands it on the hotspot.
+ */
+[data-glyph="hand"] svg {
+  transform: translate(6%, 44%);
+}
+
+.cursor-spin {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* Turned every frame from the RAF loop. */
+  will-change: transform;
+}
+
+[data-shape="arrow"] > .cursor-shape > [data-glyph="arrow"],
+[data-shape="text"] > .cursor-shape > [data-glyph="text"],
+[data-shape="hand"] > .cursor-shape > [data-glyph="hand"] {
+  opacity: 1;
+  transform: scale(1);
 }
 
 /*
@@ -456,7 +516,17 @@ html.has-smooth-cursor [contenteditable] {
   padding: 0;
   border: 0;
   background: transparent;
+}
 
+/*
+ * Laid out only while open. An unconditional `display: grid` here beats the
+ * browser's own `dialog:not([open]) { display: none }`, which left the closed
+ * dialog on the page as an invisible full-viewport layer: anything
+ * unpositioned beneath it — the bio's company link, for one — could not be
+ * clicked, because the click landed on the dialog. Safe for the zoom, which
+ * only measures after showModal() and only closes once the flight home ends.
+ */
+.avatar-dialog[open] {
   display: grid;
   place-items: center;
 }

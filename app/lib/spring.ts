@@ -77,23 +77,3 @@ export function steer(heading: Heading, vx: number, vy: number, dt: number): voi
     ROTATION_SPRING.damping
   );
 }
-
-/* ----------------------------------------------------------- hover grow -- */
-
-/** Anything the cursor grows over, standing in for the native hand. */
-export const INTERACTIVE = "a, button, [role='button'], input, textarea, select, summary";
-
-export const HOVER_SCALE = 1.6;
-
-/** Exponential approach, for scale: a spring's overshoot would read as a wobble. */
-export function approach(current: number, target: number, dt: number): number {
-  return current + (target - current) * Math.min(dt * 12, 1);
-}
-
-/** The one transform both cursors use, so they pivot and scale identically. */
-export function cursorTransform(x: number, y: number, rotation: number, scale: number): string {
-  return (
-    `translate3d(${x}px, ${y}px, 0) ` +
-    `translate(-50%, -50%) rotate(${rotation}deg) scale(${scale})`
-  );
-}
