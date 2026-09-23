@@ -7,7 +7,9 @@ export function CSPostHogProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
       // Check if environment variables are defined before initializing
       const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
-      const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com'
+      // Same-origin by default, through the Pages Function in functions/ingest,
+      // so ad blockers that list *.posthog.com do not drop the events.
+      const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || '/ingest'
 
       if (key) {
         posthog.init(key, {
