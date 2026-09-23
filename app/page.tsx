@@ -1,3 +1,4 @@
+import AvatarZoom from "./components/AvatarZoom";
 import LastUpdated from "./components/LastUpdated";
 import LocalTime from "./components/LocalTime";
 import TabbedIndex from "./components/TabbedIndex";
@@ -14,21 +15,7 @@ export default async function Page() {
       */}
       <main className="page-shell page-enter w-full max-w-[672px] py-16 sm:py-24">
         <div className="pb-8">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          {/*
-            48px on phones, 32px from 640px up. The portrait has to hold its own
-            against a full-width column on a small screen, where 32px reads as an
-            afterthought; on desktop the same 32px sits correctly against the
-            16px name beside it. The source is 128px, so 48px still has nearly
-            3x the pixels it needs on a retina display.
-          */}
-          <img
-            src={PROFILE.avatar}
-            alt={PROFILE.name}
-            width={48}
-            height={48}
-            className="h-12 w-12 rounded-full object-cover sm:h-8 sm:w-8"
-          />
+          <AvatarZoom alt={PROFILE.name} />
         </div>
 
         <div className="flex flex-col items-start gap-12">

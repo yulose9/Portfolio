@@ -242,6 +242,85 @@ a {
 }
 
 /*
+ * Avatar zoom.
+ *
+ * The timing is lifted from the dialog this replaces: shadcn's zoom-in-95 plus
+ * fade-in-0 at duration-200, i.e. scale from 0.95 with an opacity fade over
+ * 200ms. That is the motion the old site had, rebuilt on a native <dialog>
+ * rather than pulling Radix and tailwindcss-animate back in for one modal.
+ *
+ * A real dialog also brings the top layer, a true ::backdrop, focus trapping
+ * and Esc handling — all of which an overlay div would have to reimplement.
+ */
+.avatar-dialog {
+  margin: auto;
+  max-width: min(90vw, 560px);
+  max-height: 90svh;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 200ms var(--ease), transform 200ms var(--ease);
+}
+
+.avatar-dialog[data-open="true"] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.avatar-dialog::backdrop {
+  background: rgb(0 0 0 / 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity 200ms var(--ease);
+}
+
+.avatar-dialog[data-open="true"]::backdrop {
+  opacity: 1;
+}
+
+.avatar-dialog-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 50%;
+  /* Same hairline as the preview frame, for one edge treatment on images. */
+  outline: 1px solid oklch(1 1 1 / 0.12);
+  outline-offset: -1px;
+}
+
+/* The circle presses like every other control on the page. */
+.avatar-button {
+  border: 0;
+  padding: 0;
+  background: none;
+  transition: transform 160ms var(--ease);
+}
+
+.avatar-button:active {
+  transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-dialog {
+    transform: none;
+    transition: opacity 160ms ease;
+  }
+
+  .avatar-dialog[data-open="true"] {
+    transform: none;
+  }
+
+  .avatar-button:active {
+    transform: none;
+  }
+}
+
+/*
  * Tab hover surface — one element that travels, not a fade per tab.
  *
  * A per-tab fade makes moving between tabs two separate events, one surface

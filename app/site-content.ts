@@ -55,7 +55,6 @@ export const PROFILE = {
   rolePrefix: "AI Specialist at",
   employer: "FEAREX Technologies",
   employerUrl: "https://fearextechnologies.com",
-  avatar: "/avatar.webp",
 };
 
 export const TABS: Tab[] = [

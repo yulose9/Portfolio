@@ -238,11 +238,22 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
   );
 }
 
-function EntryList({ items }: { items: Entry[] }) {
+/**
+ * One highlight surface that travels to whichever row the pointer is over.
+ *
+ * Shared by the entry lists and the links list, which were doing this
+ * identically. A background that fades in per row makes moving between rows
+ * two events — one surface leaving, another arriving — and the eye reads that
+ * as a blink. A single element moving is one continuous event.
+ *
+ * Geometry is driven imperatively so React never fights the inline transform,
+ * and all four values come from the same offsetParent that positions the
+ * highlight, so no correction is needed.
+ */
+function useTravellingHighlight() {
   const [hovered, setHovered] = useState<number | null>(null);
   const rowRefs = useRef<Array<HTMLLIElement | null>>([]);
   const highlightRef = useRef<HTMLDivElement>(null);
-  // Position is driven imperatively so React never fights the inline transform.
   const idle = useRef(true);
 
   const enter = useCallback((index: number) => {
@@ -250,27 +261,14 @@ function EntryList({ items }: { items: Entry[] }) {
     const highlight = highlightRef.current;
     if (!row || !highlight) return;
 
-    // Rows shrink to their own text, so the highlight takes each row's exact
-    // box: it travels vertically and resizes to the new width at the same time.
-    // The preview panel is pinned to the viewport and deliberately not moved.
-    //
-    // Both offsets are read against the wrapper that also positions the
-    // highlight, so they need no correction. offsetLeft is 0 today because
-    // every row starts at the wrapper's left edge; it is read rather than
-    // assumed so an indented row would still be tracked correctly.
-    const left = row.offsetLeft;
-    const top = row.offsetTop;
-    const height = row.offsetHeight;
-    const width = row.offsetWidth;
-
-    // Arriving from idle, the highlight should fade in under the cursor rather
-    // than slide across from whichever row the pointer left last time.
-    // Suppress the transition, set the geometry, flush a reflow, restore it.
+    // Arriving from idle it should fade in under the cursor rather than slide
+    // across from whichever row the pointer left last. Suppress the
+    // transition, set the geometry, flush a reflow, restore it.
     if (idle.current) highlight.style.transition = "none";
 
-    highlight.style.transform = `translate(${left}px, ${top}px)`;
-    highlight.style.height = `${height}px`;
-    highlight.style.width = `${width}px`;
+    highlight.style.transform = `translate(${row.offsetLeft}px, ${row.offsetTop}px)`;
+    highlight.style.width = `${row.offsetWidth}px`;
+    highlight.style.height = `${row.offsetHeight}px`;
 
     if (idle.current) {
       void highlight.offsetHeight;
@@ -285,6 +283,13 @@ function EntryList({ items }: { items: Entry[] }) {
     idle.current = true;
     setHovered(null);
   }, []);
+
+  return { hovered, rowRefs, highlightRef, enter, leave };
+}
+
+function EntryList({ items }: { items: Entry[] }) {
+  const { hovered, rowRefs, highlightRef, enter, leave } =
+    useTravellingHighlight();
 
   const previewSrc = hovered === null ? undefined : items[hovered]?.image;
 
@@ -616,29 +621,55 @@ function LinkList({
   links: NonNullable<Tab["links"]>;
   start: number;
 }) {
+  const { hovered, rowRefs, highlightRef, enter, leave } =
+    useTravellingHighlight();
+
   return (
-    <ul className="-mx-10 flex list-none flex-col gap-2 p-0">
-      {links.map((link, index) => (
-        <li
-          key={link.label}
-          className="panel-chunk"
-          style={{ "--i": start + index } as React.CSSProperties}
-        >
-          <a
-            href={link.href}
-            target={link.href.startsWith("http") ? "_blank" : undefined}
-            rel={link.href.startsWith("http") ? "noreferrer" : undefined}
-            onClick={haptic}
-            className="row-pad inline-flex w-fit items-baseline gap-2 rounded-[14px] px-10 py-4 no-underline transition-colors duration-150 ease-out hover:bg-neutral-100"
+    /*
+      The wrapper owns both the negative margin and the positioning, so the
+      highlight and the rows share one origin. The list itself must stay
+      unpositioned: if it were the rows' offsetParent, their offsets would be
+      measured against it while the highlight sat 40px away.
+    */
+    <div className="relative -mx-10" onPointerLeave={leave}>
+      <div
+        ref={highlightRef}
+        aria-hidden="true"
+        className={`list-highlight pointer-events-none absolute left-0 top-0 rounded-[14px] ${
+          hovered === null ? "is-idle opacity-0" : "opacity-100"
+        }`}
+      />
+
+      <ul className="flex list-none flex-col gap-2 p-0">
+        {links.map((link, index) => (
+          <li
+            key={link.label}
+            ref={(node) => {
+              rowRefs.current[index] = node;
+            }}
+            // w-fit is what makes the travel legible: each row is only as wide
+            // as its own text, so the surface visibly resizes between rows.
+            className="panel-chunk relative w-fit"
+            style={{ "--i": start + index } as React.CSSProperties}
+            onPointerEnter={() => enter(index)}
+            onFocus={() => enter(index)}
           >
-            <span className="text-base leading-6 text-zinc-400">{link.label}</span>
-            <span className="text-base leading-6 text-black underline">
-              {link.display ??
-                link.href.replace(/^mailto:/, "").replace(/^https?:\/\/(www\.)?/, "")}
-            </span>
-          </a>
-        </li>
-      ))}
-    </ul>
+            <a
+              href={link.href}
+              target={link.href.startsWith("http") ? "_blank" : undefined}
+              rel={link.href.startsWith("http") ? "noreferrer" : undefined}
+              onClick={haptic}
+              className="row-pad inline-flex w-fit items-baseline gap-2 rounded-[14px] px-10 py-4 no-underline"
+            >
+              <span className="text-base leading-6 text-zinc-400">{link.label}</span>
+              <span className="text-base leading-6 text-black underline">
+                {link.display ??
+                  link.href.replace(/^mailto:/, "").replace(/^https?:\/\/(www\.)?/, "")}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
