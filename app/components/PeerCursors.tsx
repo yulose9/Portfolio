@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
+// Type-only, so it is erased at build and the library stays a lazy chunk.
+import type ReconnectingWebSocket from "partysocket/ws";
 import { PEER_SPRING, advance, makeSpring, type Spring } from "../lib/spring";
 
 /** Set to the deployed Worker, e.g. wss://portfolio-cursors.<name>.workers.dev/cursors */
@@ -68,7 +70,7 @@ export default function PeerCursors() {
     document.body.appendChild(layer);
 
     const peers = new Map<string, Peer>();
-    let socket: { close: () => void; send: (d: string) => void } | null = null;
+    let socket: ReconnectingWebSocket | null = null;
     let frame = 0;
     let idleHandle = 0;
     let disposed = false;
@@ -205,10 +207,10 @@ export default function PeerCursors() {
       // Durable Object at a path I chose, not a PartyKit room, so what is
       // wanted is just the reconnecting-WebSocket half of the library.
       // Imported here rather than at module scope so it stays a lazy chunk.
-      const { default: ReconnectingWebSocket } = await import("partysocket/ws");
+      const { default: Socket } = await import("partysocket/ws");
       if (disposed) return;
 
-      const ws = new ReconnectingWebSocket(ENDPOINT!, [], {
+      const ws = new Socket(ENDPOINT!, [], {
         // Positions are worthless the moment a newer one exists, so nothing is
         // held while offline to be flushed on reconnect.
         maxEnqueuedMessages: 0,
@@ -221,7 +223,7 @@ export default function PeerCursors() {
         shouldReconnectOnClose: (event) => !PERMANENT_CLOSE.has(event.code),
       });
       ws.addEventListener("message", (event) => onMessage(String(event.data)));
-      socket = ws as unknown as { close: () => void; send: (d: string) => void };
+      socket = ws;
 
       window.addEventListener("pointermove", onPointerMove, { passive: true });
       last = performance.now();

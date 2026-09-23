@@ -2,8 +2,9 @@ name = "portfolio-cursors"
 main = "src/index.ts"
 
 # Past 2026-04-07, so the runtime auto-replies to Close frames and
-# webSocketClose does not have to echo them back by hand.
-compatibility_date = "2026-09-01"
+# webSocketClose does not have to echo them back by hand. Set to the newest
+# date the installed workerd supports; move it forward with the dependency.
+compatibility_date = "2026-09-21"
 
 # Deliberately separate from the Pages project at the repository root. That one
 # only publishes the static `out` directory and has no server; this is its own
@@ -29,6 +30,15 @@ ALLOWED_ORIGINS = "https://nazarene.dev,https://www.nazarene.dev,http://localhos
 
 [observability]
 enabled = true
-# Sampled rather than complete: logs are billed, and a cursor firehose is the
-# last thing worth paying to record in full.
+
+# Sampled rather than complete: a cursor firehose is the last thing worth
+# paying to record in full. Rejections are logged as structured JSON, so even
+# at 1% a sustained attack shows up clearly in the dashboard.
+[observability.logs]
+enabled = true
+head_sampling_rate = 0.01
+
+# The top-level switch alone does not turn traces on.
+[observability.traces]
+enabled = true
 head_sampling_rate = 0.01

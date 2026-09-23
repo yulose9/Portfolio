@@ -1,10 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 
-export interface Env {
-  CURSOR_ROOM: DurableObjectNamespace<CursorRoom>;
-  /** Comma-separated origins allowed to open a socket. */
-  ALLOWED_ORIGINS: string;
-}
+// `Env` is generated from wrangler.toml by `wrangler types` (see
+// worker-configuration.d.ts), so bindings cannot drift from the config.
 
 /* ---------------------------------------------------------------- limits -- */
 
@@ -33,12 +30,21 @@ const CLOSE = {
   BAD_PAYLOAD: 4003,
 } as const;
 
+/**
+ * Rejections only, as structured JSON. Normal traffic is never logged: at 20
+ * messages a second per visitor that would be the whole bill. A refusal is
+ * rare enough to be worth recording, and is what an attack looks like.
+ */
+function reject(reason: string, detail: Record<string, unknown> = {}) {
+  console.warn(JSON.stringify({ message: "cursor socket rejected", reason, ...detail }));
+}
+
 /* ------------------------------------------------------------- the room -- */
 
 type Identity = { id: string; hue: number };
 
 /** Per-socket counters. In memory on purpose — see the note in the class. */
-type Meter = { tokens: number; last: number; violations: number };
+type Meter = { tokens: number; last: number; violations: number; closed: boolean };
 
 export class CursorRoom extends DurableObject<Env> {
   /*
@@ -63,10 +69,12 @@ export class CursorRoom extends DurableObject<Env> {
     const origin = request.headers.get("Origin") ?? "";
     const allowed = this.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim());
     if (!allowed.includes(origin)) {
+      reject("origin", { origin: origin.slice(0, 100) });
       return new Response("Forbidden origin", { status: 403 });
     }
 
     if (this.ctx.getWebSockets().length >= LIMITS.MAX_CONNECTIONS) {
+      reject("room_full", { limit: LIMITS.MAX_CONNECTIONS });
       return new Response("Room full", { status: 503 });
     }
 
@@ -96,6 +104,11 @@ export class CursorRoom extends DurableObject<Env> {
   }
 
   async webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer) {
+    // A socket already told to leave can still have a backlog in flight.
+    // Without this, each queued message re-ran the checks, re-logged the
+    // rejection and re-called close() — hundreds of times for one flood.
+    if (this.meter(ws).closed) return;
+
     if (typeof raw !== "string" || raw.length > LIMITS.MAX_MESSAGE_BYTES) {
       this.strike(ws, CLOSE.BAD_PAYLOAD);
       return;
@@ -155,14 +168,32 @@ export class CursorRoom extends DurableObject<Env> {
     }
   }
 
+  private meter(ws: WebSocket): Meter {
+    let meter = this.meters.get(ws);
+    if (!meter) {
+      meter = { tokens: LIMITS.RATE_BURST, last: Date.now(), violations: 0, closed: false };
+      this.meters.set(ws, meter);
+    }
+    return meter;
+  }
+
+  /** Closes once, logs once, and ignores everything the socket sends after. */
+  private kick(ws: WebSocket, code: number, reason: string, detail: Record<string, unknown>) {
+    const meter = this.meter(ws);
+    if (meter.closed) return;
+    meter.closed = true;
+    reject(reason, detail);
+    try {
+      ws.close(code, reason);
+    } catch {
+      /* already closing */
+    }
+  }
+
   /** Token bucket. Returns false when the message should be dropped. */
   private allow(ws: WebSocket): boolean {
     const now = Date.now();
-    let meter = this.meters.get(ws);
-    if (!meter) {
-      meter = { tokens: LIMITS.RATE_BURST, last: now, violations: 0 };
-      this.meters.set(ws, meter);
-    }
+    const meter = this.meter(ws);
 
     meter.tokens = Math.min(
       LIMITS.RATE_BURST,
@@ -175,7 +206,7 @@ export class CursorRoom extends DurableObject<Env> {
       // a slow frame; a sustained one is a script.
       meter.violations += 1;
       if (meter.violations > LIMITS.MAX_VIOLATIONS) {
-        ws.close(CLOSE.RATE_LIMITED, "rate limited");
+        this.kick(ws, CLOSE.RATE_LIMITED, "rate_limited", { violations: meter.violations });
       }
       return false;
     }
@@ -185,11 +216,11 @@ export class CursorRoom extends DurableObject<Env> {
   }
 
   private strike(ws: WebSocket, code: number) {
-    const meter = this.meters.get(ws);
-    if (meter) meter.violations += 1;
+    const meter = this.meter(ws);
+    meter.violations += 1;
     // Malformed input is never accidental in a browser client, so it is
     // treated less patiently than a rate overrun.
-    if (!meter || meter.violations > 3) ws.close(code, "invalid payload");
+    if (meter.violations > 3) this.kick(ws, code, "bad_payload", { code });
   }
 }
 
@@ -228,9 +259,17 @@ export default {
       return new Response("Not found", { status: 404 });
     }
 
-    // One room for the whole site. idFromName is deterministic, so every
-    // visitor reaches the same object without any coordination.
-    const id = env.CURSOR_ROOM.idFromName("portfolio");
-    return env.CURSOR_ROOM.get(id).fetch(request);
+    /*
+     * One room for the whole site, on purpose.
+     *
+     * "One global object" is the usual Durable Objects anti-pattern, but the
+     * unit of coordination here genuinely is the site: everyone on the page
+     * must see everyone else. Sharding would split visitors who should meet.
+     * The 64-socket cap keeps this one object far inside its throughput.
+     *
+     * fetch() rather than RPC because a WebSocket upgrade has to be an HTTP
+     * request; getByName is deterministic, so every visitor lands here.
+     */
+    return env.CURSOR_ROOM.getByName("portfolio").fetch(request);
   },
 };
