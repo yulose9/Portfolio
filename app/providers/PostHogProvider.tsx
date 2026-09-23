@@ -22,8 +22,8 @@ export function CSPostHogProvider({ children }: { children: React.ReactNode }) {
           // single init: deferred, and guarded on the key being present.
           capture_exceptions: true,
           debug: process.env.NODE_ENV === 'development',
-          // @ts-ignore - This property is present in the snippet but might not be in the types yet
-          defaults: '2025-05-24',
+          // Matches the snippet PostHog's project settings currently generate.
+          defaults: '2026-05-30',
           autocapture: {
             dom_event_allowlist: ['click', 'change', 'submit'], // Track clicks, input changes, and form submissions
           },
