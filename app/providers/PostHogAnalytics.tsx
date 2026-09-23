@@ -1,9 +1,8 @@
 "use client";
 
-import { Suspense } from "react";
 import { CSPostHogProvider } from "./PostHogProvider";
-import PostHogPageView from "./PostHogPageView";
 
+/* Nothing to render yet; the provider exists so hooks like usePostHog work. */
 export default function PostHogAnalytics() {
-  return <CSPostHogProvider><Suspense fallback={null}><PostHogPageView /></Suspense></CSPostHogProvider>;
+  return <CSPostHogProvider>{null}</CSPostHogProvider>;
 }
