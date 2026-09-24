@@ -2,14 +2,22 @@
 
 import { useEffect, useRef } from "react";
 import { cursorMarkup, cursorTransform, shapeAt, type CursorShape } from "../lib/cursor";
-import { POINTER_SPRING, advance, makeHeading, makeSpring, steer } from "../lib/spring";
+import {
+  HEADING_SPRING,
+  POINTER_SPRING,
+  advance,
+  advanceStable,
+  makeHeading,
+  makeSpring,
+  steer,
+} from "../lib/spring";
 
 const POINTER_QUERY = "(any-hover: hover) and (any-pointer: fine)";
 
 /**
- * A cursor that lags behind the pointer on a spring, turns to face its
- * direction of travel, and becomes a hand over anything clickable or an
- * I-beam over prose.
+ * A cursor that follows the pointer on a tight, critically damped spring,
+ * turns to face its direction of travel, and becomes a hand over anything
+ * clickable or an I-beam over prose.
  *
  * Written against requestAnimationFrame directly rather than pulling in a
  * motion library for four springs. The physics lives in lib/spring, shared
@@ -35,6 +43,11 @@ export default function SmoothCursor() {
     const pointer = { x: 0, y: 0, seen: false };
     const x = makeSpring(0);
     const y = makeSpring(0);
+    // An unseen, softer twin of the position, only for steering the arrow
+    // (see HEADING_SPRING): the drawn cursor tracks tightly, the turn stays
+    // smooth.
+    const gx = makeSpring(0);
+    const gy = makeSpring(0);
     const heading = makeHeading();
     let shape: CursorShape = "arrow";
     // Set when the pointer moves or the page scrolls, cleared once the shape
@@ -79,8 +92,8 @@ export default function SmoothCursor() {
       if (!pointer.seen) {
         // Start where the pointer already is, so it does not fly in from 0,0.
         pointer.seen = true;
-        x.value = pointer.x;
-        y.value = pointer.y;
+        x.value = gx.value = pointer.x;
+        y.value = gy.value = pointer.y;
       }
 
       // Set on every move, not just the first. Gating this behind `seen` meant
@@ -113,9 +126,12 @@ export default function SmoothCursor() {
       const dt = Math.min((now - last) / 1000, 1 / 30);
       last = now;
 
-      advance(x, pointer.x, dt, POINTER_SPRING.stiffness, POINTER_SPRING.damping);
-      advance(y, pointer.y, dt, POINTER_SPRING.stiffness, POINTER_SPRING.damping);
-      steer(heading, x.velocity, y.velocity, dt);
+      // Sub-stepped: at this stiffness a single per-frame step diverges.
+      advanceStable(x, pointer.x, dt, POINTER_SPRING.stiffness, POINTER_SPRING.damping);
+      advanceStable(y, pointer.y, dt, POINTER_SPRING.stiffness, POINTER_SPRING.damping);
+      advance(gx, pointer.x, dt, HEADING_SPRING.stiffness, HEADING_SPRING.damping);
+      advance(gy, pointer.y, dt, HEADING_SPRING.stiffness, HEADING_SPRING.damping);
+      steer(heading, gx.velocity, gy.velocity, dt);
 
       const node = nodeRef.current;
       if (node) {
