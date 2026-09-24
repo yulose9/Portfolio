@@ -694,17 +694,6 @@ html.has-smooth-cursor [contenteditable] {
   border: 0;
   padding: 0;
   background: none;
-  transition: transform 160ms var(--ease);
-}
-
-.avatar-button:active {
-  transform: scale(0.96);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .avatar-button:active {
-    transform: none;
-  }
 }
 
 /*
@@ -1173,6 +1162,52 @@ html.has-smooth-cursor [contenteditable] {
   }
 
   .tab-hit:active {
+    transform: none;
+  }
+}
+
+/*
+ * Keycap press, for everything marked data-keycap (tool badges, tabs, the
+ * portrait) — paired with the click sound in KeycapSounds.
+ *
+ * Asymmetric on purpose: the press is fast (70ms) so the key tracks the
+ * finger, the release slow (220ms) so it rises back like a sprung switch
+ * instead of snapping. Both on the same ease-out, with no overshoot — a key
+ * that bounces reads as a toy. Transform only, and a transition rather than
+ * keyframes, so a quick double-press retargets smoothly mid-travel.
+ *
+ * Down 2px and to 0.96: enough travel to read as a key going down, not so
+ * much that it looks like the element is falling off the page.
+ */
+.avatar-button,
+.tab-hit {
+  transition: transform 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.tool-badge {
+  /* Opacity kept: it carries the row's sibling dim. */
+  transition:
+    transform 220ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 180ms var(--ease);
+}
+
+[data-keycap]:active {
+  transform: translateY(2px) scale(0.96);
+  transition-duration: 70ms;
+}
+
+/*
+ * A badge travels from its hover lift (-2px) down to +2px, so it has the
+ * longest throw of the three. The opacity duration is restated because
+ * transition-duration above is a single value for every property.
+ */
+.tool-badge:active {
+  transition-duration: 70ms, 180ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No travel; the sound still confirms the press. */
+  [data-keycap]:active {
     transform: none;
   }
 }

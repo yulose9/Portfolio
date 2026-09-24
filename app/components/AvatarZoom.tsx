@@ -217,6 +217,7 @@ export default function AvatarZoom({ alt }: { alt: string }) {
         onPointerEnter={() => void prime()}
         onFocus={() => void prime()}
         aria-label={`View ${alt} larger`}
+        data-keycap=""
         className="avatar-button block cursor-zoom-in rounded-full"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}

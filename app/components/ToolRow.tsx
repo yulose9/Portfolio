@@ -17,7 +17,7 @@ export default function ToolRow({ tools }: { tools: Tool[] }) {
   return (
     <ul className="tool-row" aria-label="Tools I work with">
       {tools.map((tool) => (
-        <li key={tool.src} className="tool-badge" data-label={tool.label}>
+        <li key={tool.src} className="tool-badge" data-label={tool.label} data-keycap="">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={tool.src}

@@ -156,7 +156,9 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
                   // The label sits above the pill, so it needs its own padding
                   // to give the pill something to wrap. relative + z-10 keeps
                   // the text painting over the glass rather than under it.
-                  className="tab-hit relative z-10 cursor-pointer whitespace-nowrap rounded-[99px] border-0 bg-transparent px-3 py-1.5 text-base leading-6 text-zinc-400 outline-offset-4 transition-transform duration-150 ease-out active:scale-[0.96]"
+                  // Keycap press and click (see [data-keycap] in globals.css).
+                  data-keycap=""
+                  className="tab-hit relative z-10 cursor-pointer whitespace-nowrap rounded-[99px] border-0 bg-transparent px-3 py-1.5 text-base leading-6 text-zinc-400 outline-offset-4"
                 >
                   {tab.label}
                 </button>
