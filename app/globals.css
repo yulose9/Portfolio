@@ -1269,8 +1269,13 @@ html.has-smooth-cursor [contenteditable] {
  * it. The mask fades the right edge — the hint that there is more — and the
  * matching left fade only ever covers the empty gutter at rest.
  *
- * Vertical padding, offset by negative margin, keeps the glass pill's shadow
- * and the keycap press from being clipped by the scroll container.
+ * A scroll container always clips its contents, so the glass pill's shadow
+ * needs room *inside* it: its deepest layer (0 14px 28px -8px) reaches ~34px
+ * below the pill and ~6px above. 8px here once cut it off in a hard line.
+ * The padding is cancelled by an equal negative margin, so the layout does
+ * not move — but that padding now overlaps the top of the list below, so the
+ * scroller ignores the pointer and only the rail itself takes it (hover,
+ * taps and swipes all land on the <ul>, and a swipe still scrolls the rail).
  */
 @media (max-width: 639px) {
   .tab-scroller {
@@ -1278,8 +1283,9 @@ html.has-smooth-cursor [contenteditable] {
        not underneath them. */
     scroll-padding-inline: 1.5rem 2.5rem;
     width: calc(100% + 3rem);
-    margin: -8px -1.5rem;
-    padding: 8px 1.5rem;
+    margin: -8px -1.5rem -36px;
+    padding: 8px 1.5rem 36px;
+    pointer-events: none;
     overflow-x: auto;
     overflow-y: hidden;
     overscroll-behavior-x: contain;
@@ -1297,6 +1303,7 @@ html.has-smooth-cursor [contenteditable] {
   .tab-scroller > ul {
     width: max-content;
     margin-right: 1.5rem;
+    pointer-events: auto;
   }
 }
 
