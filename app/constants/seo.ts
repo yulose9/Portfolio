@@ -84,10 +84,9 @@ export const ENHANCED_METADATA: Metadata = {
     "article:modified_time": new Date().toISOString(),
     "pinterest-rich-pin": "true",
   },
-  icons: {
-    icon: "/icon.svg",
-    shortcut: "/icon.svg",
-  },
+  // No `icons` here: Next.js emits the tags from the files themselves —
+  // app/favicon.ico (16/32/48 in one file) and app/apple-icon.png (180px).
+  // A hand-written list duplicated them and pointed at a file that is gone.
   openGraph: {
     ...OG_METADATA,
     title: SITE_INFO.title,
