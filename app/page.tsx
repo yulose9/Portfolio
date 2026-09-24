@@ -28,10 +28,15 @@ export default async function Page() {
 
         <div className="flex flex-col items-start gap-12">
           <header className="flex flex-col items-start gap-1">
-            <h1 className="m-0 text-balance text-base font-medium leading-6 text-black">
+            {/* data-cursor="text": the I-beam over the name and role line. The
+                company link inside still gets the hand; links are checked first. */}
+            <h1
+              data-cursor="text"
+              className="m-0 text-balance text-base font-medium leading-6 text-black"
+            >
               {PROFILE.name}
             </h1>
-            <p className="m-0 text-base font-normal leading-6 text-black">
+            <p data-cursor="text" className="m-0 text-base font-normal leading-6 text-black">
               {PROFILE.rolePrefix}{" "}
               <a
                 href={PROFILE.employerUrl}

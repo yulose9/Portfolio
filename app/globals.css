@@ -170,17 +170,19 @@ a {
 }
 
 /*
- * Long-press selection on the tab labels.
+ * Tab labels are never selectable.
  *
- * iOS suppresses text selection inside a <button> and shows the callout menu
- * for links instead, so by default the words cannot be selected at all. These
- * opt both back in without giving up the button semantics that keyboard and
- * screen-reader users rely on.
+ * They are controls: a drag across the rail, a double-click, or a long-press
+ * on a phone should switch or do nothing — never paint a selection highlight
+ * over the labels. (This rule used to opt them *in* to selection; it now sits
+ * here, rather than relying on the select-none utility, because this later
+ * rule would otherwise outrank it.) The callout is suppressed for the same
+ * reason: a long-press on iOS would otherwise offer Copy / Look Up.
  */
 .tab-hit {
-  -webkit-user-select: text;
-  user-select: text;
-  -webkit-touch-callout: default;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /*
@@ -407,6 +409,8 @@ html.has-smooth-cursor [contenteditable] {
 
 .tool-badge {
   position: relative;
+  /* Native hand, matching the smooth cursor's hand over the badges. */
+  cursor: pointer;
   display: grid;
   place-items: center;
   width: 52px;
@@ -541,8 +545,9 @@ html.has-smooth-cursor [contenteditable] {
   padding: 0.4375rem 0.625rem;
   border-radius: 9px;
   outline: 0;
-  /* For the native pointer. The smooth cursor overrides this on specificity. */
-  cursor: default;
+  /* The native pointer, for anyone without the smooth cursor (touch screens,
+     reduced motion). The smooth cursor overrides it and shows its own hand. */
+  cursor: pointer;
   user-select: none;
   transition: background-color 120ms ease, color 120ms ease;
 }
@@ -661,15 +666,16 @@ html.has-smooth-cursor [contenteditable] {
   backdrop-filter: blur(6px);
   opacity: 0;
   /*
-   * The photo's own clock (ZOOM_MS / ZOOM_EASE in AvatarZoom.tsx), so the two
-   * move as one. Written out rather than read from --zoom-*: older engines do
-   * not let ::backdrop inherit custom properties from its dialog.
+   * Matched to the photo's springs in AvatarZoom.tsx: this base value is the
+   * fade *out* (quick, like the close), the [data-open] rule below sets the
+   * fade in. A transition takes the duration of the state it is moving to.
    */
-  transition: opacity 520ms cubic-bezier(0.32, 0.72, 0, 1);
+  transition: opacity 220ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .avatar-dialog[data-open="true"]::backdrop {
   opacity: 1;
+  transition-duration: 300ms;
 }
 
 .avatar-dialog-img {
@@ -1168,7 +1174,7 @@ html.has-smooth-cursor [contenteditable] {
 
 /*
  * Keycap press, for everything marked data-keycap (tool badges, tabs, the
- * portrait) — paired with the click sound in KeycapSounds.
+ * portrait) — paired with the click sound in UiSounds.
  *
  * Asymmetric on purpose: the press is fast (70ms) so the key tracks the
  * finger, the release slow (220ms) so it rises back like a sprung switch
@@ -1209,5 +1215,46 @@ html.has-smooth-cursor [contenteditable] {
   /* No travel; the sound still confirms the press. */
   [data-keycap]:active {
     transform: none;
+  }
+}
+
+/*
+ * Tabs on phones: a sideways-scrolling rail.
+ *
+ * Five labels need ~420px and a phone column has ~327, and shrinking type and
+ * padding enough to fit made them cramped. So the rail scrolls instead, run
+ * out to the screen edges (negative margins undo the page gutter, padding
+ * restores it) so labels slide under the edge rather than stopping short of
+ * it. The mask fades the right edge — the hint that there is more — and the
+ * matching left fade only ever covers the empty gutter at rest.
+ *
+ * Vertical padding, offset by negative margin, keeps the glass pill's shadow
+ * and the keycap press from being clipped by the scroll container.
+ */
+@media (max-width: 639px) {
+  .tab-scroller {
+    /* scrollIntoView honours this: a tapped tab stops clear of the fades,
+       not underneath them. */
+    scroll-padding-inline: 1.5rem 2.5rem;
+    width: calc(100% + 3rem);
+    margin: -8px -1.5rem;
+    padding: 8px 1.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 1.5rem, #000 calc(100% - 2.5rem), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 1.5rem, #000 calc(100% - 2.5rem), transparent 100%);
+  }
+
+  .tab-scroller::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Its natural width, so it overflows the scroller instead of squeezing. The
+     trailing margin keeps the last tab clear of the right-hand fade. */
+  .tab-scroller > ul {
+    width: max-content;
+    margin-right: 1.5rem;
   }
 }

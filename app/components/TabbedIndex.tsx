@@ -124,7 +124,9 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
 
   return (
     <div className="rhythm-12 flex w-full flex-col items-start gap-12">
-      <nav aria-label="Sections">
+      {/* tab-scroller: on phones five tabs outrun the column, so the rail
+          scrolls sideways there (see globals.css). Desktop is unaffected. */}
+      <nav aria-label="Sections" className="tab-scroller">
         {/*
           gap drops from 24px to 4px: the pill now supplies the separation that
           the gap used to, and 24px between pills would read as four buttons
@@ -146,9 +148,19 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
               >
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(event) => {
                     haptic();
                     setActiveId(tab.id);
+                    // On a phone a tab can sit half off the edge of the
+                    // scrolling rail; tapping it brings it fully into view.
+                    // "nearest" on both axes: never scrolls the page itself.
+                    event.currentTarget.scrollIntoView({
+                      block: "nearest",
+                      inline: "nearest",
+                      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+                        ? "auto"
+                        : "smooth",
+                    });
                   }}
                   aria-current={isActive ? "page" : undefined}
                   // No hover colour shift: the labels hold one tone in every
@@ -158,7 +170,9 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
                   // the text painting over the glass rather than under it.
                   // Keycap press and click (see [data-keycap] in globals.css).
                   data-keycap=""
-                  className="tab-hit relative z-10 cursor-pointer whitespace-nowrap rounded-[99px] border-0 bg-transparent px-3 py-1.5 text-base leading-6 text-zinc-400 outline-offset-4"
+                  // select-none: a tab is a control, and a drag or double-click
+                  // across the rail should never highlight its labels.
+                  className="tab-hit relative z-10 cursor-pointer select-none whitespace-nowrap rounded-[99px] border-0 bg-transparent px-3 py-1.5 text-base leading-6 text-zinc-400 outline-offset-4"
                 >
                   {tab.label}
                 </button>
@@ -251,7 +265,7 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
             links={active.links}
             start={
               (active.body?.length ?? 0) +
-              (active.posts?.length ? active.posts.length + 1 : 0)
+              (active.posts?.length ?? 0)
             }
           />
           ) : null}
@@ -562,20 +576,8 @@ function PostList({ posts, start }: { posts: Post[]; start: number }) {
     "grid grid-cols-[3rem_1fr] items-baseline sm:grid-cols-[7rem_1fr]";
 
   return (
-    <section className="post-list">
-      {/*
-        A quiet label rather than a headline — it names the list without
-        competing with it. Still an h2 semantically, under the page h1.
-      */}
-      <div
-        className="panel-chunk border-b-[0.8px] border-zinc-100 pb-2"
-        style={{ "--i": start } as React.CSSProperties}
-      >
-        <h2 className="m-0 text-sm font-normal leading-5 text-black/40">
-          Writing
-        </h2>
-      </div>
-
+    // No "Writing" heading: this is its own tab now, and the tab names it.
+    <section className="post-list" aria-label="Writing">
       <ul className="flex list-none flex-col p-0">
         {years.map(([year, group], groupIndex) => (
           <li
@@ -594,7 +596,7 @@ function PostList({ posts, start }: { posts: Post[]; start: number }) {
                   className={`panel-chunk ${grid}`}
                   style={
                     {
-                      "--i": start + 1 + order.indexOf(post),
+                      "--i": start + order.indexOf(post),
                     } as React.CSSProperties
                   }
                 >
@@ -643,7 +645,9 @@ function PostRow({ title, date, href, ruled }: Post & { ruled: boolean }) {
   );
 
   // Nothing is published yet, so rows without a destination stay inert rather
-  // than becoming href="#" links that go nowhere.
+  // than becoming href="#" links that go nowhere. They still take the hand
+  // (data-clickable, for the custom cursor; cursor-pointer for the native
+  // one) so the list reads as the index of articles it is about to be.
   return href ? (
     <a
       href={href}
@@ -654,7 +658,9 @@ function PostRow({ title, date, href, ruled }: Post & { ruled: boolean }) {
       {content}
     </a>
   ) : (
-    <span className={`${shell} cursor-default`}>{content}</span>
+    <span data-clickable="" className={`${shell} cursor-pointer`}>
+      {content}
+    </span>
   );
 }
 

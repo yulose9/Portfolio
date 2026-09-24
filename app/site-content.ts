@@ -177,13 +177,10 @@ export const TABS: Tab[] = [
     ],
   },
   {
-    id: "about",
-    label: "About",
-    body: [
-      "I am a Computer Engineer based in Cavite, Philippines, working as an AI Specialist at FEAREX Technologies.",
-      "Most of what I build sits where AI meets infrastructure — agentic systems, the platforms they run on, and the tooling that keeps them dependable once they are in production. I care about the unglamorous half: evaluation, orchestration, and the plumbing that decides whether any of it survives contact with real use.",
-      "Before this I spent two years as a Solutions Architect across AWS and RHEL, which is where the infrastructure instincts come from.",
-    ],
+    // Its own tab now, rather than a section under the bio. Placeholders for
+    // the moment: rows have no href, so they show the hand but go nowhere.
+    id: "writing",
+    label: "Writing",
     posts: [
       {
         title: "Your agent eval suite is measuring the wrong thing",
@@ -205,6 +202,15 @@ export const TABS: Tab[] = [
         title: "Notes on tuning RHEL for latency-sensitive workloads",
         date: "2024-09-09",
       },
+    ],
+  },
+  {
+    id: "about",
+    label: "About",
+    body: [
+      "I am a Computer Engineer based in Cavite, Philippines, working as an AI Specialist at FEAREX Technologies.",
+      "Most of what I build sits where AI meets infrastructure — agentic systems, the platforms they run on, and the tooling that keeps them dependable once they are in production. I care about the unglamorous half: evaluation, orchestration, and the plumbing that decides whether any of it survives contact with real use.",
+      "Before this I spent two years as a Solutions Architect across AWS and RHEL, which is where the infrastructure instincts come from.",
     ],
     links: [
       {

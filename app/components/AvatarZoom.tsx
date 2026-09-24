@@ -15,16 +15,55 @@ const LQIP =
 
 const LARGE_SRC = "/avatar-1024.webp";
 
-/*
- * One clock for the photo and the backdrop (the CSS reads the same values
- * through --zoom-dur and --zoom-ease). They used to run on separate curves and
- * lengths, and drifting apart is a large part of what read as chaotic.
+/**
+ * A damped spring from 0 to 1, baked into a CSS linear() easing.
  *
- * Fast out of the gate, long soft landing: the zoom answers the click on the
- * very next frame instead of easing in first, then settles without a bump.
+ * A real spring gives the zoom its momentum, and baking it into linear()
+ * keeps it a Web Animation — composited, off the main thread — instead of a
+ * per-frame JS loop. Sampled until it has settled; the settle time is the
+ * animation's duration.
  */
-const ZOOM_MS = 520;
-const ZOOM_EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
+function springEasing(stiffness: number, damping: number) {
+  const dt = 1 / 1000;
+  let x = 0;
+  let v = 0;
+  let t = 0;
+  let still = 0;
+  const samples: number[] = [];
+  while (t < 1.5) {
+    v += (-stiffness * (x - 1) - damping * v) * dt;
+    x += v * dt;
+    t += dt;
+    if (Math.round(t * 1000) % 8 === 0) samples.push(x);
+    still = Math.abs(x - 1) < 0.002 && Math.abs(v) < 0.02 ? still + dt : 0;
+    if (still > 0.03) break;
+  }
+  const points = [0, ...samples.slice(0, -1), 1].map((n) => +n.toFixed(4));
+  return { easing: `linear(${points.join(", ")})`, duration: Math.round(t * 1000) };
+}
+
+/*
+ * Asymmetric, as an entrance and an exit should be.
+ *
+ * Open: 90% of the way there in ~120ms, then a settle with the faintest
+ * overshoot (under 1% of the travel — a few pixels) so the photo lands with
+ * some life instead of stopping dead.
+ * Close: critically damped — the same snap, no overshoot at all, a little
+ * quicker to finish. An exit should get out of the way, not perform.
+ *
+ * The backdrop fades on its own matching clock in globals.css.
+ */
+const OPEN = springEasing(700, 44);
+const CLOSE = springEasing(1000, 63);
+
+/* For engines without linear() easing: the nearest cubic, a touch longer. */
+const FALLBACK = {
+  open: { easing: "cubic-bezier(0.23, 1, 0.32, 1)", duration: 360 },
+  close: { easing: "cubic-bezier(0.23, 1, 0.32, 1)", duration: 280 },
+};
+
+const supportsLinearEasing = () =>
+  typeof CSS !== "undefined" && CSS.supports("transition-timing-function", "linear(0, 1)");
 
 /** How long a click waits for a photo that has not finished decoding. */
 const DECODE_WAIT_MS = 1200;
@@ -128,7 +167,12 @@ export default function AvatarZoom({ alt }: { alt: string }) {
         ? [{ transform: collapsed }, { transform: "none" }]
         : [{ transform: "none" }, { transform: collapsed }];
 
-    const run = figure.animate(frames, { duration: ZOOM_MS, easing: ZOOM_EASE, fill: "both" });
+    const timing = supportsLinearEasing()
+      ? direction === "in"
+        ? OPEN
+        : CLOSE
+      : FALLBACK[direction === "in" ? "open" : "close"];
+    const run = figure.animate(frames, { ...timing, fill: "both" });
     animation.current = run;
     run.onfinish = done;
   }, []);
@@ -200,7 +244,7 @@ export default function AvatarZoom({ alt }: { alt: string }) {
     if (wasOpening) {
       // Still waiting on decode, so nothing has moved: let the backdrop go.
       figure.style.visibility = "hidden";
-      window.setTimeout(finishClose, ZOOM_MS);
+      window.setTimeout(finishClose, CLOSE.duration);
       return;
     }
 
@@ -255,7 +299,6 @@ export default function AvatarZoom({ alt }: { alt: string }) {
         data-lenis-prevent=""
         className="avatar-dialog"
         aria-label={alt}
-        style={{ "--zoom-dur": `${ZOOM_MS}ms`, "--zoom-ease": ZOOM_EASE } as React.CSSProperties}
       >
         {/*
           Always mounted, with its src set by prime(), so it can be fetched and

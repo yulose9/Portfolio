@@ -10,8 +10,25 @@ export type CursorShape = "arrow" | "text" | "hand";
 /** Rendered size of every glyph, in px. Close to a native arrow (~12x19). */
 export const CURSOR_SIZE = { width: 16, height: 19 } as const;
 
-/** Anything clickable: the hand. */
-const INTERACTIVE = "a, button, [role='button'], summary, label, select";
+/**
+ * Anything clickable: the hand. Includes the keycap badges (list items, not
+ * buttons, but built to be pressed) and context-menu items, which Base UI
+ * renders as role="menuitem" rather than buttons.
+ */
+const INTERACTIVE = [
+  "a",
+  "button",
+  "[role='button']",
+  "[role='menuitem']",
+  "[role='menuitemcheckbox']",
+  "[role='menuitemradio']",
+  "[data-keycap]",
+  // Pointer affordance without link semantics, e.g. the placeholder articles.
+  "[data-clickable]",
+  "summary",
+  "label",
+  "select",
+].join(", ");
 
 /**
  * Where the I-beam is allowed. Opt-in rather than every <p>: the I-beam says

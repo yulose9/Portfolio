@@ -9,7 +9,7 @@ import {
   WEBSITE_SCHEMA,
 } from "./constants/seo";
 import DeferredAnalytics from "./providers/DeferredAnalytics";
-import KeycapSounds from "./components/KeycapSounds";
+import UiSounds from "./components/UiSounds";
 import PeerCursors from "./components/PeerCursors";
 import SmoothCursor from "./components/SmoothCursor";
 import SmoothScroll from "./providers/SmoothScroll";
@@ -97,7 +97,7 @@ export default function RootLayout({
         <SmoothScroll />
         <SmoothCursor />
         <PeerCursors />
-        <KeycapSounds />
+        <UiSounds />
 
         <VendorScripts />
         <DeferredAnalytics />
