@@ -344,6 +344,28 @@ html.has-smooth-cursor [contenteditable] {
   display: block;
 }
 
+/*
+ * Click: while any mouse button is held (SmoothCursor sets data-pressed),
+ * the whole cursor dips, whatever shape it is in — arrow, hand or I-beam.
+ *
+ * On .cursor-shape, the one layer nothing else transforms: the outer node's
+ * transform is rewritten every frame for position, the arrow turns on
+ * .cursor-spin, and the shape cross-fade scales the glyphs. Scaled from the
+ * centre, which is the hotspot for all three (the hand is offset so its
+ * fingertip sits there), so a click never shifts where it lands.
+ *
+ * 0.82 rather than the keycaps' 0.96: at 16px a 4% change is invisible.
+ * The keycaps' clock — 70ms down, 200ms back, one curve, no overshoot.
+ */
+.smooth-cursor .cursor-shape {
+  transition: transform 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.smooth-cursor[data-pressed] .cursor-shape {
+  transform: scale(0.82);
+  transition-duration: 70ms;
+}
+
 .cursor-glyph {
   position: absolute;
   inset: 0;

@@ -44,8 +44,35 @@ export default function SmoothCursor() {
     let spin: HTMLElement | null = null;
     let last = performance.now();
 
+    /*
+     * Click feedback: the cursor dips (see [data-pressed] in globals.css) while
+     * any mouse button — left, right or middle — is held, in every shape.
+     *
+     * Driven by `buttons`, the live set of held buttons, rather than by
+     * pairing pointerdown with pointerup: a second button pressed mid-hold
+     * arrives as a pointermove, and a release that happens outside the window
+     * or during Windows' middle-click autoscroll can skip pointerup entirely.
+     * Reading `buttons` on every event means the next movement always tells
+     * the truth, so the cursor can never be left stuck down.
+     */
+    let pressed = false;
+    const setPressed = (next: boolean) => {
+      if (next === pressed) return;
+      pressed = next;
+      const node = nodeRef.current;
+      if (!node) return;
+      if (next) node.dataset.pressed = "";
+      else delete node.dataset.pressed;
+    };
+    const onButtons = (event: PointerEvent) => {
+      if (event.pointerType === "mouse") setPressed(event.buttons !== 0);
+    };
+    // Alt-tab mid-press: the release never reaches this window.
+    const onBlur = () => setPressed(false);
+
     const onMove = (event: PointerEvent) => {
       if (event.pointerType === "touch") return;
+      onButtons(event);
       pointer.x = event.clientX;
       pointer.y = event.clientY;
 
@@ -117,6 +144,9 @@ export default function SmoothCursor() {
       window.addEventListener("pointermove", onMove, { passive: true });
       window.addEventListener("pointerout", onOut, { passive: true });
       window.addEventListener("scroll", onScroll, { passive: true, capture: true });
+      window.addEventListener("pointerdown", onButtons, { passive: true, capture: true });
+      window.addEventListener("pointerup", onButtons, { passive: true, capture: true });
+      window.addEventListener("blur", onBlur);
       last = performance.now();
       frame = requestAnimationFrame(tick);
     };
@@ -128,6 +158,10 @@ export default function SmoothCursor() {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerout", onOut);
       window.removeEventListener("scroll", onScroll, { capture: true });
+      window.removeEventListener("pointerdown", onButtons, { capture: true });
+      window.removeEventListener("pointerup", onButtons, { capture: true });
+      window.removeEventListener("blur", onBlur);
+      setPressed(false);
       cancelAnimationFrame(frame);
       pointer.seen = false;
       nodeRef.current?.style.setProperty("opacity", "0");
