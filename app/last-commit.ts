@@ -7,6 +7,8 @@ export type Commit = {
   sha: string;
   /** ISO 8601 commit date. */
   date: string;
+  /** First line of the commit message, for the hover card. */
+  subject?: string;
 };
 
 /**
@@ -30,14 +32,14 @@ export async function buildTimeCommit(): Promise<Commit | null> {
 
 function fromLocalGit(): Commit | null {
   try {
-    const raw = execSync("git log -1 --format=%h%n%cI", {
+    const raw = execSync("git log -1 --format=%h%n%cI%n%s", {
       encoding: "utf8",
       // Swallow git's stderr; a missing repo is an expected outcome here.
       stdio: ["ignore", "pipe", "ignore"],
     }).trim();
 
-    const [sha, date] = raw.split("\n");
-    return sha && date ? { sha, date } : null;
+    const [sha, date, subject] = raw.split("\n");
+    return sha && date ? { sha, date, subject } : null;
   } catch {
     return null;
   }
@@ -59,9 +61,14 @@ async function fromGitHub(): Promise<Commit | null> {
     const head = Array.isArray(data) ? data[0] : null;
     const sha: unknown = head?.sha;
     const date: unknown = head?.commit?.committer?.date;
+    const message: unknown = head?.commit?.message;
 
     return typeof sha === "string" && typeof date === "string"
-      ? { sha: sha.slice(0, 7), date }
+      ? {
+          sha: sha.slice(0, 7),
+          date,
+          subject: typeof message === "string" ? message.split("\n")[0] : undefined,
+        }
       : null;
   } catch {
     // Offline or rate-limited at build time. The client-side refresh in

@@ -991,6 +991,47 @@ html.has-smooth-cursor [contenteditable] {
   transition: color 180ms ease;
 }
 
+/*
+ * Pressing an article row.
+ *
+ * The keycap press, scaled to a row: a full-width row at the keycaps' 0.96
+ * would lose ~23px and read as collapsing, so it is 1px and 0.985. It moves
+ * the row's contents rather than the row, because the row draws its own
+ * divider as a bottom border and scaling it would visibly shorten the rule
+ * mid-press. Title anchored left and date anchored right, so both sink and
+ * draw in slightly toward the middle while the line stays put.
+ *
+ * Same clock as the keycaps: 70ms down, 220ms back, one curve, no overshoot.
+ * Color keeps its own slower transition for the hover dim.
+ */
+.post-row .post-title,
+.post-row .post-date {
+  transition:
+    color 180ms ease,
+    transform 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.post-row .post-title {
+  transform-origin: left center;
+}
+
+.post-row .post-date {
+  transform-origin: right center;
+}
+
+.post-row:active .post-title,
+.post-row:active .post-date {
+  transform: translateY(1px) scale(0.985);
+  transition-duration: 180ms, 70ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .post-row:active .post-title,
+  .post-row:active .post-date {
+    transform: none;
+  }
+}
+
 .post-title {
   color: #171717;
 }
@@ -1256,5 +1297,91 @@ html.has-smooth-cursor [contenteditable] {
   .tab-scroller > ul {
     width: max-content;
     margin-right: 1.5rem;
+  }
+}
+
+/*
+ * "Updated …" hover card.
+ *
+ * The context menu's glass, so the two read as one family, and no arrow —
+ * a soft card that belongs to the link, not a speech bubble pointing at it.
+ * Grows out of the link via Base UI's --transform-origin, from 0.97 rather
+ * than nothing, over 150ms: fast enough to feel like an answer.
+ */
+.tip-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: min(22rem, calc(100vw - 24px));
+  padding: 10px 12px;
+  border-radius: 12px;
+  background-color: var(--surface-fill);
+  background-image: var(--surface-bg);
+  box-shadow: var(--surface-ring), var(--surface-lift);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  letter-spacing: -0.006em;
+  color: #171717;
+  transform-origin: var(--transform-origin);
+  transition:
+    opacity 150ms var(--ease),
+    transform 150ms var(--ease);
+}
+
+.tip-popup[data-starting-style],
+.tip-popup[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.97);
+}
+
+/* Tabular figures so the seconds do not jitter between hovers. */
+.tip-primary,
+.tip-secondary {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tip-primary {
+  font-weight: 500;
+}
+
+.tip-secondary {
+  color: rgb(0 0 0 / 0.5);
+}
+
+.tip-commit {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 0.8px solid rgb(0 0 0 / 0.08);
+}
+
+.tip-sha {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: rgb(0 0 0 / 0.55);
+}
+
+/* One line, ellipsised: the full message is one click away on GitHub. */
+.tip-subject {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tip-hint {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: rgb(0 0 0 / 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tip-popup[data-starting-style],
+  .tip-popup[data-ending-style] {
+    transform: none;
   }
 }
