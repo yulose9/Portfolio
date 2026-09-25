@@ -16,6 +16,7 @@ import SmoothCursor from "../components/SmoothCursor";
 import SmoothScroll from "../providers/SmoothScroll";
 import "../globals.css";
 import "../article.css";
+import "../article-blocks.css";
 
 /*
  * Inter, self-hosted by next/font at build time — no runtime request to

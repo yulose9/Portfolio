@@ -6,6 +6,7 @@ import { isValidSlug, slugify } from "../../../cms/format";
 import { toast } from "../../lib/toast";
 import { api, ApiError, type Draft } from "./api";
 import type { Meta } from "./Editor";
+import { FontsEditor } from "./MetaEditors";
 import Sheet from "./Sheet";
 
 /*
@@ -69,7 +70,7 @@ export default function DetailsSheet({
   const description = meta.dek.trim() || "Add a standfirst; search results and link previews show it here.";
 
   return (
-    <Sheet open={open} onClose={onClose} title="Details" description="URL, tags, cover and previews.">
+    <Sheet open={open} onClose={onClose} title="Details" description="URL, tags, fonts, cover and previews.">
       <section className="field">
         <label className="field-label" htmlFor="slug">
           URL
@@ -128,6 +129,12 @@ export default function DetailsSheet({
           />
         </div>
         <p className="field-help">The first tag shows above the headline.</p>
+      </section>
+
+      <section className="field">
+        <span className="field-label">Typography</span>
+        <p className="field-help">From Google Fonts and Fontshare, both free. Inter unless you choose otherwise.</p>
+        <FontsEditor fonts={meta.fonts} onChange={(fonts) => onChange({ fonts })} />
       </section>
 
       <section className="field">

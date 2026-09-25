@@ -2,9 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { fluentUrl } from "../../../../cms/emoji";
+import { fontLinks, fontVars } from "../../../../cms/fonts";
+import ArticleBody from "../../../components/writing/ArticleBody";
+import Byline from "../../../components/writing/Byline";
+import FluentText from "../../../components/writing/FluentText";
 import ShareRow from "../../../components/writing/ShareRow";
 import { SITE_INFO } from "../../../constants/seo";
-import { formatLongDate, postBySlug, publishedPosts, renderMarkdown, wasUpdated } from "../../../lib/writing";
+import { formatLongDate, postBySlug, publishedPosts, wasUpdated } from "../../../lib/writing";
 import { PROFILE } from "../../../site-content";
 
 /*
@@ -55,7 +60,6 @@ export default async function ArticlePage({ params }: Props) {
   const post = postBySlug((await params).slug);
   if (!post) notFound();
 
-  const html = await renderMarkdown(post.body);
   const others = publishedPosts().filter((p) => p.id !== post.id).slice(0, 3);
   const url = `${SITE_INFO.url}/writing/${post.slug}`;
 
@@ -68,13 +72,21 @@ export default async function ArticlePage({ params }: Props) {
     dateModified: post.updatedAt,
     mainEntityOfPage: url,
     image: post.cover ? new URL(post.cover.src, SITE_INFO.url).toString() : undefined,
-    author: { "@type": "Person", name: PROFILE.name, url: SITE_INFO.url },
+    author: post.authors.map((a) => ({ "@type": "Person", name: a.name, ...(a.name === PROFILE.name ? { url: SITE_INFO.url } : {}) })),
     keywords: post.tags.join(", ") || undefined,
   };
 
   return (
     <div className="flex w-full justify-center bg-white">
-      <main data-cursor-frame className="page-shell page-enter article-shell article-page w-full max-w-[672px] py-16 sm:py-24">
+      {/* A post's own typefaces, if it has any; React hoists these into <head>. */}
+      {fontLinks(post.fonts).map((href) => (
+        <link key={href} rel="stylesheet" href={href} precedence="default" />
+      ))}
+      <main
+        data-cursor-frame
+        className="page-shell page-enter article-shell article-page w-full max-w-[672px] py-16 sm:py-24"
+        style={fontVars(post.fonts) as React.CSSProperties}
+      >
         <nav className="article-nav">
           <Link href="/#writing" className="article-back">
             <span aria-hidden="true">←</span> Writing
@@ -83,33 +95,28 @@ export default async function ArticlePage({ params }: Props) {
 
         <article className="article">
           <header className="article-header">
+            {post.icon ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="article-icon" src={fluentUrl(post.icon)} alt={post.icon} width={72} height={72} />
+            ) : null}
             <p className="article-eyebrow">
               {post.tags[0] ? <span className="article-tag">{post.tags[0]}</span> : null}
               <time dateTime={post.publishedAt}>{formatLongDate(post.publishedAt)}</time>
             </p>
             <h1 data-cursor="text" className="article-title">
-              {post.title}
+              <FluentText>{post.title}</FluentText>
             </h1>
             {post.dek ? (
               <p data-cursor="text" className="article-dek">
-                {post.dek}
+                <FluentText>{post.dek}</FluentText>
               </p>
             ) : null}
-            <div className="article-byline">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/avatar-96.webp" alt="" width={28} height={28} className="article-avatar" />
-              <span className="article-author">{PROFILE.name}</span>
-              <span aria-hidden="true">·</span>
-              <span>{post.minutes} min read</span>
-              {wasUpdated(post) ? (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <span>
-                    Updated <time dateTime={post.updatedAt}>{formatLongDate(post.updatedAt)}</time>
-                  </span>
-                </>
-              ) : null}
-            </div>
+            <Byline
+              authors={post.authors}
+              minutes={post.minutes}
+              updated={wasUpdated(post) ? post.updatedAt : null}
+              updatedLabel={wasUpdated(post) ? formatLongDate(post.updatedAt) : null}
+            />
           </header>
 
           {post.cover ? (
@@ -127,7 +134,9 @@ export default async function ArticlePage({ params }: Props) {
             </figure>
           ) : null}
 
-          <div data-cursor="text" className="article-body" dangerouslySetInnerHTML={{ __html: html }} />
+          <div data-cursor="text" className="article-body">
+            <ArticleBody markdown={post.body} />
+          </div>
 
           <footer className="article-footer">
             {post.tags.length ? (
@@ -150,7 +159,9 @@ export default async function ArticlePage({ params }: Props) {
               {others.map((p) => (
                 <li key={p.id}>
                   <Link href={`/writing/${p.slug}`} className="article-more-row">
-                    <span className="article-more-name">{p.title}</span>
+                    <span className="article-more-name">
+                      <FluentText>{p.title}</FluentText>
+                    </span>
                     <time dateTime={p.publishedAt}>{formatLongDate(p.publishedAt)}</time>
                   </Link>
                 </li>

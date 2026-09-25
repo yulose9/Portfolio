@@ -1,0 +1,278 @@
+/* ── Article blocks ───────────────────────────────────────────────────────
+   The Notion-style blocks, styled once for the published page and the editor
+   alike (the editor's nodes carry the same classes). Quiet by default: each
+   block is set apart by space and a tint, not by borders and colour. */
+
+/* Per-post typefaces (cms/fonts.ts). Unset, everything stays Inter. */
+.article-shell .article-title,
+.article-shell .article-body h2,
+.article-shell .article-body h3,
+.article-shell .article-body h4 {
+  font-family: var(--article-heading-font, inherit);
+}
+.article-shell .article-dek,
+.article-shell .article-body {
+  font-family: var(--article-body-font, inherit);
+}
+
+/* The page icon, Notion's emoji above the title. */
+.article-icon {
+  display: block;
+  width: 72px;
+  height: 72px;
+  margin: 0 0 0.25rem -4px;
+  user-select: none;
+}
+
+/* Several authors: avatars overlap, each ringed in the page colour. */
+.article-avatars {
+  display: inline-flex;
+  margin-right: 0.25rem;
+}
+.article-avatars > * + * {
+  margin-left: -8px;
+}
+.article-avatars .article-avatar {
+  margin-right: 0;
+  box-shadow: 0 0 0 2px #fff;
+  object-fit: cover;
+}
+.article-avatar-initial {
+  display: inline-grid;
+  place-items: center;
+  background: #f4f4f5;
+  color: #52525b;
+  font-size: 12px;
+  font-weight: 600;
+}
+.article-author-link {
+  color: inherit;
+  text-decoration: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .article-author-link:hover {
+    text-decoration: underline;
+    text-decoration-color: #d4d4d8;
+    text-underline-offset: 3px;
+  }
+}
+
+/* Fluent emoji: the character stays in the text, the art is its background. */
+.fe {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: -0.24em;
+  color: transparent;
+  background: var(--fe) center / contain no-repeat;
+  overflow: hidden;
+  line-height: 1;
+  text-indent: 0;
+}
+.fe::selection {
+  color: transparent;
+  background: rgb(37 99 235 / 0.16);
+}
+
+.article-body h4 {
+  font-size: 1.0625rem;
+  line-height: 1.4;
+  letter-spacing: -0.012em;
+  font-weight: 600;
+  color: var(--ink);
+}
+.article-body > * + h4 {
+  margin-top: 1.8em;
+}
+.article-body > h4 + * {
+  margin-top: 0.5em;
+}
+
+.article-body mark {
+  padding: 0.05em 0.15em;
+  border-radius: 4px;
+  background: #fef3c7;
+  color: inherit;
+}
+.article-body u {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* Callout */
+.article-body .callout {
+  display: grid;
+  grid-template-columns: 1.6rem 1fr;
+  gap: 0.75rem;
+  padding: 1rem 1.15rem 1rem 1rem;
+  border-radius: 14px;
+  background: #f7f7f8;
+  font-size: 0.95em;
+  line-height: 1.6;
+}
+.article-body .callout[data-type="tip"] {
+  background: #f0fdf4;
+}
+.article-body .callout[data-type="important"] {
+  background: #eff6ff;
+}
+.article-body .callout[data-type="warning"] {
+  background: #fffbeb;
+}
+.article-body .callout[data-type="caution"] {
+  background: #fef2f2;
+}
+.article-body .callout-icon {
+  font-size: 1.15rem;
+  line-height: 1.6rem;
+  user-select: none;
+}
+.article-body .callout-body > * {
+  margin: 0;
+}
+.article-body .callout-body > * + * {
+  margin-top: 0.7em;
+}
+
+/* To-do list */
+.article-body ul.contains-task-list,
+.article-body ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.1em;
+}
+.article-body .task-list-item,
+.article-body ul[data-type="taskList"] > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6em;
+}
+.article-body .task-list-item > input,
+.article-body ul[data-type="taskList"] > li > label {
+  flex: none;
+  margin-top: 0.42em;
+}
+.article-body ul[data-type="taskList"] > li > div {
+  flex: 1;
+  min-width: 0;
+}
+.article-body input[type="checkbox"] {
+  appearance: none;
+  width: 1em;
+  height: 1em;
+  margin: 0;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1.5px #d4d4d8;
+  background: #fff center / 70% no-repeat;
+  vertical-align: middle;
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+.article-body input[type="checkbox"]:checked {
+  background-color: var(--ink);
+  box-shadow: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2 5 8.5l4.5-5' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.article-body .task-list-item:has(> input:checked),
+.article-body ul[data-type="taskList"] > li[data-checked="true"] > div {
+  color: var(--ink-3);
+  text-decoration: line-through;
+  text-decoration-color: #d4d4d8;
+}
+
+/* Tables */
+.article-body .table-wrap,
+.article-body .tableWrapper {
+  overflow-x: auto;
+  margin-inline: -0.25rem;
+  padding-inline: 0.25rem;
+}
+.article-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+.article-body th,
+.article-body td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+  min-width: 6rem;
+}
+.article-body th {
+  font-weight: 600;
+  color: var(--ink);
+  border-bottom-color: #d4d4d8;
+}
+.article-body td > p,
+.article-body th > p {
+  margin: 0;
+}
+
+/* Toggle */
+.article-body details {
+  padding: 0.1rem 0;
+}
+.article-body summary {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 500;
+  color: var(--ink);
+}
+.article-body summary::-webkit-details-marker {
+  display: none;
+}
+.article-body summary::before {
+  content: "";
+  flex: none;
+  width: 0.9em;
+  height: 0.9em;
+  background: currentColor;
+  clip-path: polygon(30% 18%, 78% 50%, 30% 82%);
+  transition: rotate 200ms var(--ease);
+}
+.article-body details[open] > summary::before {
+  rotate: 90deg;
+}
+.article-body details > :not(summary) {
+  margin: 0.6em 0 0 1.35em;
+}
+
+/* Embeds */
+.article-body .embed {
+  display: grid;
+  justify-items: center;
+}
+.article-body .embed-x .react-tweet-theme {
+  margin: 0 !important;
+  --tweet-container-margin: 0;
+  --tweet-font-family: inherit;
+}
+.article-body .embed-threads iframe {
+  width: min(100%, 540px);
+  height: 560px;
+  border: 0;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 1px var(--rule);
+  background: #fafafa;
+}
+.article-body .embed-source {
+  margin-top: 0.5rem;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.article-body .embed-youtube {
+  width: var(--breakout, 100%);
+  max-width: none;
+  margin-left: calc(50% - var(--breakout, 100%) / 2);
+}
+.article-body .embed-youtube iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 14px;
+  background: #0a0a0a;
+}

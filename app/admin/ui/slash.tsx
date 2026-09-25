@@ -1,20 +1,12 @@
 "use client";
 
-import {
-  CodeBlock,
-  ImageSquare,
-  ListBullets,
-  ListNumbers,
-  Minus,
-  Quotes,
-  TextHOne,
-  TextHTwo,
-  TextT,
-} from "@phosphor-icons/react";
 import { Extension, type Editor, type Range } from "@tiptap/core";
+import { PluginKey } from "@tiptap/pm/state";
 import { ReactRenderer } from "@tiptap/react";
 import Suggestion, { type SuggestionKeyDownProps, type SuggestionProps } from "@tiptap/suggestion";
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { Fragment, forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+
+import { BLOCKS, inserts, turnInto } from "./commands";
 
 /*
  * "/" at the start of a line (or after a space) opens the block menu: type to
@@ -28,11 +20,9 @@ export type SlashItem = {
   hint: string;
   keywords: string[];
   icon: React.ReactNode;
+  group: "Blocks" | "Insert";
   run: (editor: Editor, range: Range) => void;
 };
-
-/** Set by the editor: opens the file picker and inserts the upload. */
-export type PickImage = () => void;
 
 /**
  * Remove the "/query", and if the line still has words on it, start a new
@@ -42,30 +32,32 @@ export type PickImage = () => void;
 function fresh(e: Editor, r: Range) {
   e.chain().focus().deleteRange(r).run();
   if (e.state.selection.$from.parent.textContent.trim()) e.chain().splitBlock().run();
-  return e.chain().focus();
 }
 
-export function slashItems(pickImage: PickImage): SlashItem[] {
-  const I = { size: 16, "aria-hidden": true } as const;
+export function slashItems(pickImage: () => void, pickEmoji: () => void): SlashItem[] {
   return [
-    { title: "Text", hint: "Plain paragraph", keywords: ["paragraph", "p"], icon: <TextT {...I} />, run: (e, r) => fresh(e, r).setParagraph().run() },
-    { title: "Heading", hint: "Section title", keywords: ["h2", "title", "section"], icon: <TextHOne {...I} />, run: (e, r) => fresh(e, r).setHeading({ level: 2 }).run() },
-    { title: "Subheading", hint: "Smaller title", keywords: ["h3"], icon: <TextHTwo {...I} />, run: (e, r) => fresh(e, r).setHeading({ level: 3 }).run() },
-    { title: "Bulleted list", hint: "- item", keywords: ["ul", "unordered", "bullet"], icon: <ListBullets {...I} />, run: (e, r) => fresh(e, r).toggleBulletList().run() },
-    { title: "Numbered list", hint: "1. item", keywords: ["ol", "ordered"], icon: <ListNumbers {...I} />, run: (e, r) => fresh(e, r).toggleOrderedList().run() },
-    { title: "Quote", hint: "> pull a line out", keywords: ["blockquote", "cite"], icon: <Quotes {...I} />, run: (e, r) => fresh(e, r).toggleBlockquote().run() },
-    { title: "Code", hint: "``` block", keywords: ["code", "snippet", "pre"], icon: <CodeBlock {...I} />, run: (e, r) => fresh(e, r).toggleCodeBlock().run() },
-    {
-      title: "Image",
-      hint: "Upload, or paste one",
-      keywords: ["picture", "photo", "figure", "img"],
-      icon: <ImageSquare {...I} />,
+    ...BLOCKS.map((b): SlashItem => ({
+      title: b.title,
+      hint: b.md || b.hint,
+      keywords: b.keywords,
+      icon: b.icon,
+      group: "Blocks",
       run: (e, r) => {
-        fresh(e, r).run();
-        pickImage();
+        fresh(e, r);
+        turnInto(e, b.kind);
       },
-    },
-    { title: "Divider", hint: "---", keywords: ["hr", "rule", "separator"], icon: <Minus {...I} />, run: (e, r) => e.chain().focus().deleteRange(r).setHorizontalRule().run() },
+    })),
+    ...inserts(pickImage, pickEmoji).map((i): SlashItem => ({
+      title: i.title,
+      hint: i.hint,
+      keywords: i.keywords,
+      icon: i.icon,
+      group: "Insert",
+      run: (e, r) => {
+        fresh(e, r);
+        i.run(e);
+      },
+    })),
   ];
 }
 
@@ -109,8 +101,9 @@ const SlashList = forwardRef<ListHandle, ListProps>(function SlashList({ items, 
     <div ref={listRef} className="slash-menu" role="listbox" aria-label="Insert block">
       {items.length ? (
         items.map((item, i) => (
+          <Fragment key={item.title}>
+          {i === 0 || items[i - 1].group !== item.group ? <p className="slash-group">{item.group}</p> : null}
           <button
-            key={item.title}
             type="button"
             role="option"
             aria-selected={i === index}
@@ -124,6 +117,7 @@ const SlashList = forwardRef<ListHandle, ListProps>(function SlashList({ items, 
             <span className="slash-title">{item.title}</span>
             <span className="slash-hint">{item.hint}</span>
           </button>
+          </Fragment>
         ))
       ) : (
         <p className="slash-empty">No blocks match</p>
@@ -151,6 +145,7 @@ export function SlashCommand(getItems: () => SlashItem[]) {
         Suggestion<SlashItem>({
           editor: this.editor,
           char: "/",
+          pluginKey: new PluginKey("slashCommand"),
           startOfLine: false,
           allowSpaces: false,
           // Only where a block could start: not in code, not mid-word.

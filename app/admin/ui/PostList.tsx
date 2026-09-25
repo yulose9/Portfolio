@@ -1,11 +1,14 @@
 "use client";
 
-import { MagnifyingGlass, Plus } from "@phosphor-icons/react";
+import { MagnifyingGlass, Plus, TextAlignLeft } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { toast } from "../../lib/toast";
 import { api, ApiError, type PostSummary } from "./api";
 import { relative, StatusDot, statusLabel } from "./bits";
+import type { Panel } from "./Editor";
+import { Fluent } from "./extensions/emoji";
+import { PostRow } from "./PostActions";
 
 /*
  * The list: every post, newest edit first, filterable by state. Rows, not
@@ -21,13 +24,14 @@ const FILTERS = [
 ] as const;
 type Filter = (typeof FILTERS)[number]["id"];
 
-export default function PostList({ email, onOpen }: { email: string; onOpen: (id: string) => void }) {
+export default function PostList({ email, onOpen, onSearch }: { email: string; onOpen: (id: string, panel?: Panel) => void; onSearch: () => void }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
   const search = useRef<HTMLInputElement>(null);
 
+  const [version, setVersion] = useState(0);
   useEffect(() => {
     api
       .list()
@@ -36,7 +40,14 @@ export default function PostList({ email, onOpen }: { email: string; onOpen: (id
         setPosts([]);
         toast.add({ type: "error", title: "Couldn’t load posts", description: error instanceof ApiError ? error.message : undefined });
       });
-  }, []);
+  }, [version]);
+
+  const rowActions = {
+    open: onOpen,
+    refresh: () => setVersion((v) => v + 1),
+    replace: (next: PostSummary | null, id: string) =>
+      setPosts((list) => (list ? (next ? list.map((p) => (p.id === id ? next : p)) : list.filter((p) => p.id !== id)) : list)),
+  };
 
   const create = async () => {
     if (creating) return;
@@ -115,11 +126,18 @@ export default function PostList({ email, onOpen }: { email: string; onOpen: (id
             </button>
           ))}
         </div>
-        <label className="admin-search">
-          <MagnifyingGlass size={14} aria-hidden="true" />
-          <input ref={search} type="search" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search posts" />
-          <kbd className="admin-kbd">/</kbd>
-        </label>
+        <div className="admin-toolbar-end">
+          <label className="admin-search">
+            <MagnifyingGlass size={14} aria-hidden="true" />
+            <input ref={search} type="search" placeholder="Filter" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Filter posts by title" />
+            <kbd className="admin-kbd">/</kbd>
+          </label>
+          <button type="button" className="admin-button" onClick={onSearch} title="Search the words inside every post">
+            <TextAlignLeft size={14} aria-hidden="true" />
+            <span className="admin-hide-sm">Search text</span>
+            <kbd className="admin-kbd">⌘K</kbd>
+          </button>
+        </div>
       </div>
 
       {posts === null ? (
@@ -143,9 +161,13 @@ export default function PostList({ email, onOpen }: { email: string; onOpen: (id
         <ul className="admin-rows">
           {shown.map((p) => (
             <li key={p.id}>
+              <PostRow post={p} actions={rowActions}>
               <button type="button" className="admin-row" onClick={() => onOpen(p.id)}>
                 <span className="admin-row-main">
-                  <span className="admin-row-title">{p.title.trim() || <em>Untitled</em>}</span>
+                  <span className="admin-row-title">
+                    {p.icon ? <Fluent emoji={p.icon} size={18} /> : null}
+                    {p.title.trim() || <em>Untitled</em>}
+                  </span>
                   {p.dek ? <span className="admin-row-dek">{p.dek}</span> : null}
                 </span>
                 <span className="admin-row-meta">
@@ -159,6 +181,7 @@ export default function PostList({ email, onOpen }: { email: string; onOpen: (id
                   <img className="admin-row-thumb" src={p.cover} alt="" loading="lazy" />
                 ) : null}
               </button>
+              </PostRow>
             </li>
           ))}
         </ul>

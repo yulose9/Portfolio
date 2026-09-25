@@ -4,7 +4,9 @@ import { Inter } from "next/font/google";
 import LazyToaster from "../components/LazyToaster";
 import "../globals.css";
 import "../article.css";
+import "../article-blocks.css";
 import "./admin.css";
+import "./admin-editor.css";
 
 /*
  * The admin's own root layout, separate from the site's on purpose.

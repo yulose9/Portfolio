@@ -1,4 +1,4 @@
-import { newId, postToDraft, type Draft } from "../../../../cms/format";
+import { DEFAULT_AUTHOR, newId, postToDraft, type Draft } from "../../../../cms/format";
 import { json, readJson, type AdminFunction } from "../../../../cms/server/http";
 import { livePosts } from "../../../../cms/server/publish";
 import { listDrafts, putDraft } from "../../../../cms/server/store";
@@ -23,6 +23,9 @@ export const onRequestPost: AdminFunction = async ({ env, request }) => {
     title: String(input.title ?? ""),
     slug: "",
     dek: "",
+    icon: null,
+    authors: [DEFAULT_AUTHOR],
+    fonts: null,
     tags: [],
     cover: null,
     body: "",

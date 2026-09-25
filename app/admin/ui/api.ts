@@ -13,6 +13,7 @@ export type PostSummary = {
   title: string;
   slug: string;
   dek: string;
+  icon: string | null;
   tags: string[];
   cover: string | null;
   status: Draft["status"];
@@ -26,6 +27,18 @@ export type PostSummary = {
 };
 
 export type Revision = { at: string; label: string; words: number };
+
+export type SearchHit = { field: "title" | "dek" | "body"; snippet: string; start: number; length: number; occurrence: number };
+export type SearchResult = {
+  id: string;
+  title: string;
+  icon: string | null;
+  status: Draft["status"];
+  dirty: boolean;
+  updatedAt: string;
+  total: number;
+  hits: SearchHit[];
+};
 
 export class ApiError extends Error {
   constructor(
@@ -69,8 +82,13 @@ export const api = {
   list: () => call<{ posts: PostSummary[] }>("/posts"),
   create: (title = "") => call<{ post: Draft }>("/posts", post({ title })),
   get: (id: string) => call<{ post: Draft }>(`/posts/${id}`),
-  save: (id: string, edit: Partial<Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover" | "body">> & { base?: string; snapshot?: boolean }) =>
+  save: (
+    id: string,
+    edit: Partial<Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover" | "body" | "icon" | "authors" | "fonts">> & { base?: string; snapshot?: boolean }
+  ) =>
     call<{ post: Draft; snapshotted: boolean }>(`/posts/${id}`, put(edit)),
+  duplicate: (id: string) => call<{ post: Draft }>(`/posts/${id}/duplicate`, post()),
+  search: (q: string, signal?: AbortSignal) => call<{ q: string; results: SearchResult[] }>(`/search?q=${encodeURIComponent(q)}`, { signal }),
   remove: (id: string) => call<{ ok: true }>(`/posts/${id}`, { method: "DELETE" }),
   publish: (id: string, at?: string) => call<{ post: Draft }>(`/posts/${id}/publish`, post(at ? { at } : {})),
   unpublish: (id: string) => call<{ post: Draft }>(`/posts/${id}/unpublish`, post()),

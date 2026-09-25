@@ -14,7 +14,7 @@ import {
 import type { Editor } from "@tiptap/react";
 import { useEditorState } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 /*
  * The selection toolbar. It only appears over selected text (never in code,
@@ -50,9 +50,21 @@ function Tool({
   );
 }
 
+/*
+ * Props for Tiptap's menus are module constants on purpose. BubbleMenu
+ * re-registers its ProseMirror plugin whenever these change identity, and a
+ * re-registration rebuilds every plugin view, which closes whatever "/" or ":"
+ * menu is open. Inline objects would do that on every keystroke.
+ */
+const TEXT_OPTIONS = { placement: "top", offset: 10 } as const;
+const IMAGE_OPTIONS = { placement: "bottom", offset: 10 } as const;
+const showForText = ({ editor: e, state: s }: { editor: Editor; state: Editor["state"] }) =>
+  !s.selection.empty && e.isEditable && !e.isActive("codeBlock") && !e.isActive("image") && !e.isActive("embed");
+const showForImage = ({ editor: e }: { editor: Editor }) => e.isEditable && e.isActive("image");
+
 const mod = typeof navigator !== "undefined" && /Mac|iP/.test(navigator.platform) ? "⌘" : "Ctrl+";
 
-export function TextBubble({ editor, linkRequest }: { editor: Editor; linkRequest: number }) {
+export const TextBubble = memo(function TextBubble({ editor, linkRequest }: { editor: Editor; linkRequest: number }) {
   const [editingLink, setEditingLink] = useState(false);
   const [href, setHref] = useState("");
   const input = useRef<HTMLInputElement>(null);
@@ -103,10 +115,8 @@ export function TextBubble({ editor, linkRequest }: { editor: Editor; linkReques
     <BubbleMenu
       editor={editor}
       className="bubble"
-      options={{ placement: "top", offset: 10 }}
-      shouldShow={({ editor: e, state: s }) =>
-        !s.selection.empty && e.isEditable && !e.isActive("codeBlock") && !e.isActive("image")
-      }
+      options={TEXT_OPTIONS}
+      shouldShow={showForText}
     >
       {editingLink ? (
         <form
@@ -167,10 +177,10 @@ export function TextBubble({ editor, linkRequest }: { editor: Editor; linkReques
       )}
     </BubbleMenu>
   );
-}
+});
 
 /** Over a selected image: its alt text and caption, edited where it sits. */
-export function ImageBubble({ editor }: { editor: Editor }) {
+export const ImageBubble = memo(function ImageBubble({ editor }: { editor: Editor }) {
   const attrs = useEditorState({
     editor,
     selector: ({ editor: e }) =>
@@ -185,8 +195,8 @@ export function ImageBubble({ editor }: { editor: Editor }) {
       editor={editor}
       pluginKey="imageBubble"
       className="bubble bubble-image"
-      options={{ placement: "bottom", offset: 10 }}
-      shouldShow={({ editor: e }) => e.isEditable && e.isActive("image")}
+      options={IMAGE_OPTIONS}
+      shouldShow={showForImage}
     >
       {attrs ? (
         <div className="bubble-fields">
@@ -202,4 +212,4 @@ export function ImageBubble({ editor }: { editor: Editor }) {
       ) : null}
     </BubbleMenu>
   );
-}
+});

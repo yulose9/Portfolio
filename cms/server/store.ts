@@ -11,7 +11,7 @@
  * refuses anything outside media/, so drafts can't be reached by guessing.
  */
 
-import type { Draft } from "../format";
+import { upgradeDraft, type Draft } from "../format";
 
 export type StoreEnv = { WRITING: R2Bucket };
 
@@ -25,7 +25,7 @@ const AUTOSNAPSHOT_MS = 10 * 60 * 1000;
 
 export async function getDraft(env: StoreEnv, id: string): Promise<Draft | null> {
   const obj = await env.WRITING.get(current(id));
-  return obj ? ((await obj.json()) as Draft) : null;
+  return obj ? upgradeDraft((await obj.json()) as Draft) : null;
 }
 
 export async function putDraft(env: StoreEnv, draft: Draft): Promise<void> {
@@ -90,7 +90,7 @@ export async function listRevisions(env: StoreEnv, id: string): Promise<Revision
 
 export async function getRevision(env: StoreEnv, id: string, at: string): Promise<Draft | null> {
   const obj = await env.WRITING.get(`${revPrefix(id)}${at}.json`);
-  return obj ? ((await obj.json()) as Draft) : null;
+  return obj ? upgradeDraft((await obj.json()) as Draft) : null;
 }
 
 export async function deleteDraft(env: StoreEnv, id: string): Promise<void> {

@@ -85,18 +85,29 @@ after that you land on the post list. Press **N** to start a post.
 
 ## Writing
 
+The editor is the article page, editable, with Notion's habits:
+
 | | |
 | --- | --- |
-| `/` | Block menu: heading, list, quote, code, image, divider |
+| `/` | Blocks: text, headings 1–3, bulleted, numbered and to-do lists, toggle, quote, callout, code, table, image, embed, divider, emoji |
+| `:dog` | Emoji autocomplete, drawn as Microsoft's Fluent 3D |
+| Markdown as you type | `#`, `-`, `1.`, `[]`, `>`, ```` ``` ````, `**bold**`, `==highlight==`, `---` |
+| Hover a block | ⋮⋮ handle in the margin: drag to move, click for Turn into, Duplicate, Move, Copy as Markdown, Delete; `+` adds a block below |
+| Right-click the text | Cut, copy, paste (also as Markdown), format, turn into, insert, table rows and columns, find, search Google, duplicate/move/delete block |
 | Select text | Bold, italic, strike, code, link, headings, quote |
-| `⌘K` / `Ctrl+K` | Link the selection |
+| Paste a link to a post on X or Threads, or a YouTube video, on an empty line | It becomes an embed (X posts are rendered by react-tweet when the site builds) |
 | Paste or drop an image | Resized in the browser (WebP, 2400px), uploaded, inserted |
-| Click an image | Edit its alt text and caption |
-| `⌘S` / `Ctrl+S` | Keep a revision now (autosave keeps one every ten minutes) |
-| `⌘.` / `Ctrl+.` | Details: URL, tags, cover, search and share previews, delete |
-| `⌘⇧P` / `Ctrl+Shift+P` | Publish |
+| Above the title | Page icon (any emoji) and cover |
+| Byline | Click it: authors (you by default), each with name, email and a photo that's cropped square and resized for you |
+| Details (`⌘.`) | URL, tags, fonts (Google Fonts and Fontshare), cover, search and share previews, delete |
+| History | Timeline by day, words added and removed per save, word-level diff, restore |
+| `⌘F` | Find in this post |
+| `⌘K` | Search the words in every post; choosing a passage opens the post on it |
+| `⌘S` · `⌘D` · `⌘⇧↑/↓` · `⌘⇧P` | Keep a revision · duplicate block · move block · publish |
 
-The chrome fades while you type and comes back when you move the mouse.
+In the list, right-click a post (or tap ⋯) for Open, Open in new tab, View on site, Publish, Schedule, Unpublish, Duplicate, Copy link, Copy as Markdown, History, Details and Delete.
+
+On a phone, formatting moves to a toolbar that sits on top of the keyboard, and every sheet comes up from the bottom.
 
 ## URLs (slugs)
 

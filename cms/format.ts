@@ -25,6 +25,24 @@ export type Cover = {
   height?: number;
 };
 
+export type Author = {
+  name: string;
+  email?: string;
+  /** A square image, already cropped and resized when it was uploaded. */
+  avatar?: string;
+};
+
+/** Every post is mine unless I say otherwise. */
+export const DEFAULT_AUTHOR: Author = {
+  name: "John Nazarene Dela Pisa",
+  email: "jannazarene09@gmail.com",
+  avatar: "/avatar-96.webp",
+};
+
+/** A typeface from a free service: Google Fonts or Fontshare. */
+export type FontChoice = { family: string; source: "google" | "fontshare" };
+export type Fonts = { heading?: FontChoice | null; body?: FontChoice | null };
+
 /** What a published file carries. */
 export type PostMeta = {
   /** Stable forever. Slugs can change; the id is how a post is recognised. */
@@ -33,6 +51,11 @@ export type PostMeta = {
   slug: string;
   /** The standfirst: one or two sentences under the headline. */
   dek: string;
+  /** A page emoji, Notion-style, shown above the headline. */
+  icon: string | null;
+  authors: Author[];
+  /** Optional per-post typefaces; null means the site's Inter. */
+  fonts: Fonts | null;
   tags: string[];
   cover: Cover | null;
   /** First went live. Never moves after that, even when the post is edited. */
@@ -57,6 +80,9 @@ export type Draft = {
   title: string;
   slug: string;
   dek: string;
+  icon: string | null;
+  authors: Author[];
+  fonts: Fonts | null;
   tags: string[];
   cover: Cover | null;
   body: string;
@@ -80,6 +106,9 @@ const KEY_ORDER: (keyof PostMeta)[] = [
   "title",
   "slug",
   "dek",
+  "icon",
+  "authors",
+  "fonts",
   "tags",
   "cover",
   "publishedAt",
@@ -111,6 +140,9 @@ export function parsePost(source: string): Post {
     title: String(meta.title ?? ""),
     slug: String(meta.slug ?? ""),
     dek: String(meta.dek ?? ""),
+    icon: typeof meta.icon === "string" && meta.icon ? meta.icon : null,
+    authors: normalizeAuthors(meta.authors),
+    fonts: (meta.fonts as Fonts | null) ?? null,
     tags: Array.isArray(meta.tags) ? meta.tags.map(String) : [],
     cover: (meta.cover as Cover | null) ?? null,
     publishedAt: String(meta.publishedAt ?? ""),
@@ -120,6 +152,25 @@ export function parsePost(source: string): Post {
   };
   if (!post.id || !isValidSlug(post.slug)) throw new Error("Post needs an id and a valid slug");
   return post;
+}
+
+export function normalizeAuthors(value: unknown): Author[] {
+  const list = Array.isArray(value)
+    ? value
+        .filter((a): a is Author => Boolean(a) && typeof (a as Author).name === "string" && Boolean((a as Author).name.trim()))
+        .map((a) => ({
+          name: a.name.trim().slice(0, 120),
+          ...(a.email ? { email: String(a.email).trim().slice(0, 200) } : {}),
+          ...(a.avatar ? { avatar: String(a.avatar).slice(0, 500) } : {}),
+        }))
+        .slice(0, 6)
+    : [];
+  return list.length ? list : [DEFAULT_AUTHOR];
+}
+
+/** Drafts saved before a field existed get its default. */
+export function upgradeDraft(d: Draft): Draft {
+  return { ...d, icon: d.icon ?? null, authors: normalizeAuthors(d.authors), fonts: d.fonts ?? null };
 }
 
 /* ── Slugs ──────────────────────────────────────────────────────────────── */
@@ -164,6 +215,9 @@ export function draftToPost(draft: Draft, now: string): Post {
     title: draft.title.trim(),
     slug: draft.slug,
     dek: draft.dek.trim(),
+    icon: draft.icon,
+    authors: normalizeAuthors(draft.authors),
+    fonts: draft.fonts,
     tags: draft.tags,
     cover: draft.cover,
     publishedAt: draft.publishedAt ?? now,
@@ -179,6 +233,9 @@ export function postToDraft(post: Post): Draft {
     title: post.title,
     slug: post.slug,
     dek: post.dek,
+    icon: post.icon,
+    authors: post.authors,
+    fonts: post.fonts,
     tags: post.tags,
     cover: post.cover,
     body: post.body,

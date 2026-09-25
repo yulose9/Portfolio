@@ -1,41 +1,70 @@
 "use client";
 
-import { ArrowLeft, ClockCounterClockwise, ImageSquare, SlidersHorizontal, X } from "@phosphor-icons/react";
+import { ArrowLeft, ClockCounterClockwise, ImageSquare, MagnifyingGlass, SlidersHorizontal, X } from "@phosphor-icons/react";
 import { Extension } from "@tiptap/core";
+import Highlight from "@tiptap/extension-highlight";
 import Image from "@tiptap/extension-image";
+import { TaskItem, TaskList } from "@tiptap/extension-list";
+import { TableKit } from "@tiptap/extension-table";
+import Typography from "@tiptap/extension-typography";
 import { Placeholder } from "@tiptap/extensions";
 import { Markdown } from "@tiptap/markdown";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { fontVars } from "../../../cms/fonts";
 import { readingMinutes, slugify, type Cover } from "../../../cms/format";
+import { useFinePointer } from "../../components/menu/useFinePointer";
 import { toast } from "../../lib/toast";
 import { altFromName, api, ApiError, prepareImage, type Draft } from "./api";
 import { exactTime, StatusDot, statusLabel } from "./bits";
 import { ImageBubble, TextBubble } from "./Bubble";
+import { currentBlock, duplicateBlock, moveBlock } from "./commands";
 import DetailsSheet from "./DetailsSheet";
+import { BlockHandle, EditorContextMenu, FindBar, MobileToolbar } from "./EditorChrome";
+import { Callout, DetailsContent, DetailsSummary, Find, FluentEmoji, Toggle } from "./extensions/blocks";
+import { EmojiPicker, EmojiSuggest } from "./extensions/emoji";
+import { Embed } from "./extensions/EmbedView";
+import { AuthorsEditor, IconPicker, loadFont } from "./MetaEditors";
 import PublishDialog from "./PublishDialog";
 import RevisionsSheet from "./RevisionsSheet";
 import SaveState, { type SaveStatus } from "./SaveState";
+import Sheet from "./Sheet";
 import { SlashCommand, slashItems, type SlashItem } from "./slash";
 
 /*
- * The editor is the article page, editable. Title, standfirst, cover and body
- * use the published page's own classes (.article-title, .article-dek,
+ * The editor is the article page, editable. Title, standfirst, byline, cover
+ * and body use the published page's own classes (.article-title, .article-dek,
  * .article-body …), so what you see while writing is what goes live, down to
- * the measure and the figure breakouts. The chrome — top bar, word count —
- * steps back while you type and returns when the mouse moves.
+ * the measure, the figure breakouts and the post's own fonts.
+ *
+ * Around it: Notion's affordances — "/" for blocks, ":" for emoji, a handle on
+ * every block, a right-click menu, find in page — and on a phone, a toolbar
+ * on top of the keyboard instead of the floating one.
  *
  * Saving is continuous: edits settle for 900ms, then go to R2. Nothing here
  * touches git until Publish.
  */
 
-export type Meta = Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover">;
+export type Meta = Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover" | "icon" | "authors" | "fonts">;
 
-const metaOf = (d: Draft): Meta => ({ title: d.title, slug: d.slug, dek: d.dek, tags: d.tags, cover: d.cover });
+const metaOf = (d: Draft): Meta => ({
+  title: d.title,
+  slug: d.slug,
+  dek: d.dek,
+  tags: d.tags,
+  cover: d.cover,
+  icon: d.icon,
+  authors: d.authors,
+  fonts: d.fonts,
+});
 
-export default function EditorScreen({ id, onBack }: { id: string; onBack: () => void }) {
+export type Panel = null | "details" | "revisions" | "publish";
+
+export type OpenOptions = { q?: string; n?: number; panel?: Panel };
+
+export default function EditorScreen({ id, onBack, options }: { id: string; onBack: () => void; options?: OpenOptions }) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
 
@@ -57,13 +86,13 @@ export default function EditorScreen({ id, onBack }: { id: string; onBack: () =>
       </main>
     );
   }
-  return draft ? <Composer initial={draft} onBack={onBack} /> : <div className="admin-loading" aria-busy="true" />;
+  return draft ? <Composer initial={draft} onBack={onBack} options={options} /> : <div className="admin-loading" aria-busy="true" />;
 }
 
 /**
  * A textarea as tall as its text. Remeasured when the text changes, when the
- * width does, and once Inter has loaded: measured against the fallback font,
- * a headline wraps differently and leaves a gap under itself.
+ * width does, and once the fonts have loaded: measured against a fallback
+ * font, a headline wraps differently and leaves a gap under itself.
  */
 function useAutosize(value: string) {
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -93,23 +122,31 @@ async function uploadImage(file: File) {
   return { src: res.src, width, height };
 }
 
-/* The slash menu's Image item opens the body file picker, found by id so the
-   item list can be built once, outside the component. */
+/* The pickers are reached by id and a window event, so the slash items can
+   be built once, outside the component. */
 const BODY_PICK = "editor-body-pick";
-const SLASH_ITEMS: SlashItem[] = slashItems(() => document.getElementById(BODY_PICK)?.click());
+const EMOJI_EVENT = "admin:pick-emoji";
+const openBodyPicker = () => document.getElementById(BODY_PICK)?.click();
+const openEmojiPicker = () => window.dispatchEvent(new Event(EMOJI_EVENT));
+const SLASH_ITEMS: SlashItem[] = slashItems(openBodyPicker, openEmojiPicker);
 
 const imageFiles = (list: FileList | null | undefined) => Array.from(list ?? []).filter((f) => f.type.startsWith("image/"));
 
-function Composer({ initial, onBack }: { initial: Draft; onBack: () => void }) {
+const HEADING_PLACEHOLDER: Record<number, string> = { 2: "Heading 1", 3: "Heading 2", 4: "Heading 3" };
+
+function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => void; options?: OpenOptions }) {
+  const fine = useFinePointer();
   const [doc, setDoc] = useState<Draft>(initial);
   const [meta, setMeta] = useState<Meta>(() => metaOf(initial));
   const [slugTouched, setSlugTouched] = useState(() => Boolean(initial.slug) && initial.slug !== slugify(initial.title));
   const [save, setSave] = useState<SaveStatus>("saved");
   const [savedAt, setSavedAt] = useState<string | null>(initial.updatedAt);
-  const [panel, setPanel] = useState<null | "details" | "revisions" | "publish">(null);
+  const [panel, setPanel] = useState<Panel>(options?.panel ?? null);
   const [linkRequest, setLinkRequest] = useState(0);
   const [words, setWords] = useState(0);
   const [typing, setTyping] = useState(false);
+  const [find, setFind] = useState<{ query: string; index: number } | null>(options?.q ? { query: options.q, index: options.n ?? 0 } : null);
+  const [emojiOpen, setEmojiOpen] = useState(false);
 
   const server = useRef(initial);
   const metaRef = useRef(meta);
@@ -122,6 +159,7 @@ function Composer({ initial, onBack }: { initial: Draft; onBack: () => void }) {
   const saveRef = useRef<(snapshot?: boolean) => Promise<boolean>>(async () => true);
   const bodyPick = useRef<HTMLInputElement>(null);
   const coverPick = useRef<HTMLInputElement>(null);
+  const openFind = useRef<(query?: string) => void>(() => {});
 
   const insertImages = useRef<(files: File[], pos?: number) => Promise<void>>(async () => {});
 
@@ -129,20 +167,59 @@ function Composer({ initial, onBack }: { initial: Draft; onBack: () => void }) {
     immediatelyRender: false,
     extensions: [
       StarterKit.configure({
-        heading: { levels: [2, 3] },
+        heading: { levels: [2, 3, 4] },
         link: { openOnClick: false, autolink: true, defaultProtocol: "https" },
+        dropcursor: { color: "#2563eb", width: 2 },
       }),
       Image.configure({ inline: false, allowBase64: false }),
       Placeholder.configure({
-        placeholder: ({ node }) => (node.type.name === "heading" ? "Heading" : "Write, or press / for blocks"),
+        includeChildren: true,
+        placeholder: ({ node }) => {
+          if (node.type.name === "heading") return HEADING_PLACEHOLDER[node.attrs.level as number] ?? "Heading";
+          if (node.type.name === "detailsSummary") return "Toggle";
+          if (node.type.name === "codeBlock") return "";
+          return "Write, or press / for blocks and : for emoji";
+        },
       }),
       Markdown,
+      TaskList,
+      TaskItem.configure({ nested: true }),
+      TableKit.configure({ table: { resizable: false } }),
+      Highlight,
+      Typography,
+      Callout,
+      Toggle,
+      DetailsSummary,
+      DetailsContent,
+      Embed,
+      FluentEmoji,
+      Find,
+      EmojiSuggest,
       SlashCommand(() => SLASH_ITEMS),
       Extension.create({
         name: "adminKeys",
         addKeyboardShortcuts: () => ({
           "Mod-k": () => {
             setLinkRequest((n) => n + 1);
+            return true;
+          },
+          "Mod-f": () => {
+            openFind.current();
+            return true;
+          },
+          "Mod-d": ({ editor: e }) => {
+            const b = currentBlock(e);
+            if (b) duplicateBlock(e, b.pos);
+            return true;
+          },
+          "Mod-Shift-ArrowUp": ({ editor: e }) => {
+            const b = currentBlock(e);
+            if (b) moveBlock(e, b.pos, -1);
+            return true;
+          },
+          "Mod-Shift-ArrowDown": ({ editor: e }) => {
+            const b = currentBlock(e);
+            if (b) moveBlock(e, b.pos, 1);
             return true;
           },
         }),
@@ -181,25 +258,44 @@ function Composer({ initial, onBack }: { initial: Draft; onBack: () => void }) {
 
   useEffect(() => {
     insertImages.current = async (files, pos) => {
-    if (!editor) return;
-    for (const file of files) {
-      try {
-        const up = await toast.promise(uploadImage(file), {
-          loading: "Uploading image…",
-          success: "Image added",
-          error: (e: unknown) => (e instanceof Error ? e.message : "Upload failed"),
-        });
-        editor
-          .chain()
-          .focus()
-          .insertContentAt(pos ?? editor.state.selection.to, { type: "image", attrs: { src: up.src, alt: altFromName(file.name), title: "" } })
-          .run();
-      } catch {
-        /* the toast said why */
+      if (!editor) return;
+      for (const file of files) {
+        try {
+          const up = await toast.promise(uploadImage(file), {
+            loading: "Uploading image…",
+            success: "Image added",
+            error: (e: unknown) => (e instanceof Error ? e.message : "Upload failed"),
+          });
+          editor
+            .chain()
+            .focus()
+            .insertContentAt(pos ?? editor.state.selection.to, { type: "image", attrs: { src: up.src, alt: altFromName(file.name), title: "" } })
+            .run();
+        } catch {
+          /* the toast said why */
+        }
       }
-    }
     };
   }, [editor]);
+
+  useEffect(() => {
+    openFind.current = (query) => {
+      const selected = editor ? editor.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to, " ").trim() : "";
+      setFind({ query: query ?? (selected.length < 80 ? selected : ""), index: 0 });
+    };
+  }, [editor]);
+
+  useEffect(() => {
+    const onPick = () => setEmojiOpen(true);
+    window.addEventListener(EMOJI_EVENT, onPick);
+    return () => window.removeEventListener(EMOJI_EVENT, onPick);
+  }, []);
+
+  // The post's own typefaces, loaded into the admin as they're chosen.
+  useEffect(() => {
+    loadFont(meta.fonts?.heading);
+    loadFont(meta.fonts?.body);
+  }, [meta.fonts]);
 
   /* ── Saving ─────────────────────────────────────────────────────────── */
 
@@ -300,6 +396,9 @@ function Composer({ initial, onBack }: { initial: Draft; onBack: () => void }) {
       } else if (mod && e.key === ".") {
         e.preventDefault();
         setPanel((p) => (p === "details" ? null : "details"));
+      } else if (mod && e.key.toLowerCase() === "f" && !editor?.isFocused) {
+        e.preventDefault();
+        openFind.current();
       }
     };
     const wake = () => setTyping(false);
@@ -309,7 +408,7 @@ function Composer({ initial, onBack }: { initial: Draft; onBack: () => void }) {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("pointermove", wake);
     };
-  }, [flush]);
+  }, [flush, editor]);
 
   /* ── Fields ─────────────────────────────────────────────────────────── */
 
@@ -341,9 +440,15 @@ function Composer({ initial, onBack }: { initial: Draft; onBack: () => void }) {
   const minutes = readingMinutes(editor?.getText() ?? "");
   const live = doc.liveSlug !== null;
   const publishLabel = doc.status === "scheduled" ? "Scheduled" : live ? (doc.dirty ? "Publish changes" : "Published") : "Publish";
+  const pickers = {
+    pickImage: openBodyPicker,
+    pickEmoji: openEmojiPicker,
+    onLink: () => setLinkRequest((n) => n + 1),
+    onFind: (q?: string) => openFind.current(q),
+  };
 
   return (
-    <div className="editor-root" data-typing={typing || undefined}>
+    <div className="editor-root" data-typing={typing || undefined} data-touch={!fine || undefined}>
       <header className="editor-bar">
         <div className="editor-bar-side">
           <button type="button" className="admin-icon-button" onClick={back} aria-label="All writing" title="All writing">
@@ -356,7 +461,10 @@ function Composer({ initial, onBack }: { initial: Draft; onBack: () => void }) {
           <SaveState status={save} at={savedAt} />
         </div>
         <div className="editor-bar-side">
-          <button type="button" className="admin-icon-button" aria-label="Revisions" title="Revisions" onClick={() => setPanel("revisions")}>
+          <button type="button" className="admin-icon-button" aria-label="Find in this post" title="Find  ⌘F" onClick={() => openFind.current()}>
+            <MagnifyingGlass size={16} weight="bold" />
+          </button>
+          <button type="button" className="admin-icon-button" aria-label="History" title="History" onClick={() => setPanel("revisions")}>
             <ClockCounterClockwise size={16} weight="bold" />
           </button>
           <button type="button" className="admin-icon-button" aria-label="Details" title="Details  ⌘." onClick={() => setPanel("details")}>
@@ -374,9 +482,27 @@ function Composer({ initial, onBack }: { initial: Draft; onBack: () => void }) {
         </div>
       </header>
 
-      <main className="page-shell editor-canvas article-shell w-full max-w-[672px]">
+      {find && editor ? (
+        <FindBar
+          key={`${find.query}:${find.index}`}
+          editor={editor}
+          initial={find.query}
+          initialIndex={find.index}
+          onClose={() => setFind(null)}
+        />
+      ) : null}
+
+      <main className="page-shell editor-canvas article-shell w-full max-w-[672px]" style={fontVars(meta.fonts) as React.CSSProperties}>
         <article className="article">
           <header className="article-header">
+            <div className="editor-page-tools" data-has-icon={meta.icon ? "" : undefined}>
+              <IconPicker icon={meta.icon} onChange={(icon) => setMeta((m) => ({ ...m, icon }))} />
+              {!meta.cover ? (
+                <button type="button" className="admin-chip page-icon-add" onClick={() => coverPick.current?.click()}>
+                  <ImageSquare size={14} aria-hidden="true" /> Add cover
+                </button>
+              ) : null}
+            </div>
             <p className="article-eyebrow">
               {meta.tags[0] ? <span className="article-tag">{meta.tags[0]}</span> : null}
               <span>
@@ -418,6 +544,7 @@ function Composer({ initial, onBack }: { initial: Draft; onBack: () => void }) {
               rows={1}
               aria-label="Standfirst"
             />
+            <AuthorsEditor authors={meta.authors} minutes={minutes} onChange={(authors) => setMeta((m) => ({ ...m, authors }))} />
           </header>
 
           {meta.cover ? (
@@ -448,27 +575,21 @@ function Composer({ initial, onBack }: { initial: Draft; onBack: () => void }) {
                 data-missing={!meta.cover.alt.trim() || undefined}
               />
             </figure>
-          ) : (
-            <button
-              type="button"
-              className="editor-cover-empty"
-              onClick={() => coverPick.current?.click()}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                const file = imageFiles(e.dataTransfer.files)[0];
-                if (file) void setCover(file);
-              }}
-            >
-              <ImageSquare size={16} aria-hidden="true" />
-              Add a cover image
-            </button>
-          )}
+          ) : null}
 
           {editor ? (
             <>
-              <EditorContent editor={editor} />
-              <TextBubble editor={editor} linkRequest={linkRequest} />
+              <EditorContextMenu editor={editor} {...pickers}>
+                <EditorContent editor={editor} />
+              </EditorContextMenu>
+              {fine ? (
+                <>
+                  <BlockHandle editor={editor} />
+                  <TextBubble editor={editor} linkRequest={linkRequest} />
+                </>
+              ) : (
+                <MobileToolbar editor={editor} {...pickers} />
+              )}
               <ImageBubble editor={editor} />
             </>
           ) : null}
@@ -480,7 +601,7 @@ function Composer({ initial, onBack }: { initial: Draft; onBack: () => void }) {
           {words.toLocaleString()} {words === 1 ? "word" : "words"} · {minutes} min read
         </span>
         <span className="editor-foot-keys">
-          <kbd className="admin-kbd">/</kbd> blocks <kbd className="admin-kbd">⌘S</kbd> revision <kbd className="admin-kbd">⌘⇧P</kbd> publish
+          <kbd className="admin-kbd">/</kbd> blocks <kbd className="admin-kbd">:</kbd> emoji <kbd className="admin-kbd">⌘K</kbd> search <kbd className="admin-kbd">⌘⇧P</kbd> publish
         </span>
       </footer>
 
@@ -509,6 +630,15 @@ function Composer({ initial, onBack }: { initial: Draft; onBack: () => void }) {
         }}
       />
 
+      <Sheet open={emojiOpen} onClose={() => setEmojiOpen(false)} title="Emoji" variant="center">
+        <EmojiPicker
+          onPick={(emoji) => {
+            setEmojiOpen(false);
+            editor?.chain().focus().insertContent(emoji).run();
+          }}
+        />
+      </Sheet>
+
       <DetailsSheet
         open={panel === "details"}
         onClose={() => setPanel(null)}
@@ -522,7 +652,8 @@ function Composer({ initial, onBack }: { initial: Draft; onBack: () => void }) {
       <RevisionsSheet
         open={panel === "revisions"}
         onClose={() => setPanel(null)}
-        id={doc.id}
+        doc={doc}
+        currentBody={editor?.getMarkdown() ?? doc.body}
         onRestored={() => window.location.reload()}
       />
       <PublishDialog
