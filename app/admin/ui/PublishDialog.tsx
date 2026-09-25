@@ -6,7 +6,7 @@ import { useState } from "react";
 import { isValidSlug } from "../../../cms/format";
 import { toast } from "../../lib/toast";
 import { api, ApiError, type Draft } from "./api";
-import { exactTime } from "./bits";
+import { exactTime, PageSwitch } from "./bits";
 import type { Meta } from "./Editor";
 import Sheet from "./Sheet";
 
@@ -36,6 +36,7 @@ export default function PublishDialog({
   beforePublish,
   onDone,
   onSlugChange,
+  onPageChange,
 }: {
   open: boolean;
   onClose: () => void;
@@ -45,6 +46,7 @@ export default function PublishDialog({
   beforePublish: () => Promise<boolean>;
   onDone: (post: Draft) => void;
   onSlugChange: (slug: string) => void;
+  onPageChange: (page: boolean) => void;
 }) {
   const live = doc.liveSlug !== null;
   const scheduled = doc.status === "scheduled";
@@ -66,7 +68,9 @@ export default function PublishDialog({
     { label: "Title", ok: Boolean(meta.title.trim()), blocking: true },
     { label: "Standfirst", ok: Boolean(meta.dek.trim()), blocking: false, hint: "Recommended: it's what search and link previews show." },
     ...(meta.cover ? [{ label: "Cover alt text", ok: Boolean(meta.cover.alt.trim()), blocking: true }] : []),
-    { label: "Body", ok: Boolean(body.trim()), blocking: true },
+    meta.page
+      ? { label: "Body", ok: Boolean(body.trim()), blocking: true }
+      : { label: "Body", ok: true, blocking: false, hint: "Optional for a listed-only note." },
     { label: "URL", ok: isValidSlug(meta.slug), blocking: true, hint: "Lowercase letters, numbers and hyphens." },
   ];
   const blocked = checks.some((c) => c.blocking && !c.ok);
@@ -130,6 +134,8 @@ export default function PublishDialog({
         <span className="publish-url-full">nazarene.dev/writing/{meta.slug || "…"}</span>
         {moved ? <p className="field-help" data-tone="warn">/writing/{doc.liveSlug} will redirect here.</p> : null}
       </div>
+
+      <PageSwitch page={meta.page} slug={meta.slug} onChange={onPageChange} />
 
       <ul className="publish-checks">
         {checks.map((c) => (

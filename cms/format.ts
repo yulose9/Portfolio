@@ -56,6 +56,13 @@ export type PostMeta = {
   authors: Author[];
   /** Optional per-post typefaces; null means the site's Inter. */
   fonts: Fonts | null;
+  /**
+   * Whether the post has a page of its own. False makes it a listed-only
+   * note: its title and date appear in the Writing list, but it isn't a
+   * link, has no /writing/<slug> page, and stays out of the sitemap and feed.
+   * It may have a body or none at all.
+   */
+  page: boolean;
   tags: string[];
   cover: Cover | null;
   /** First went live. Never moves after that, even when the post is edited. */
@@ -83,6 +90,7 @@ export type Draft = {
   icon: string | null;
   authors: Author[];
   fonts: Fonts | null;
+  page: boolean;
   tags: string[];
   cover: Cover | null;
   body: string;
@@ -109,6 +117,7 @@ const KEY_ORDER: (keyof PostMeta)[] = [
   "icon",
   "authors",
   "fonts",
+  "page",
   "tags",
   "cover",
   "publishedAt",
@@ -143,6 +152,7 @@ export function parsePost(source: string): Post {
     icon: typeof meta.icon === "string" && meta.icon ? meta.icon : null,
     authors: normalizeAuthors(meta.authors),
     fonts: (meta.fonts as Fonts | null) ?? null,
+    page: meta.page !== false,
     tags: Array.isArray(meta.tags) ? meta.tags.map(String) : [],
     cover: (meta.cover as Cover | null) ?? null,
     publishedAt: String(meta.publishedAt ?? ""),
@@ -170,7 +180,7 @@ export function normalizeAuthors(value: unknown): Author[] {
 
 /** Drafts saved before a field existed get its default. */
 export function upgradeDraft(d: Draft): Draft {
-  return { ...d, icon: d.icon ?? null, authors: normalizeAuthors(d.authors), fonts: d.fonts ?? null };
+  return { ...d, icon: d.icon ?? null, authors: normalizeAuthors(d.authors), fonts: d.fonts ?? null, page: d.page !== false };
 }
 
 /* ── Slugs ──────────────────────────────────────────────────────────────── */
@@ -218,6 +228,7 @@ export function draftToPost(draft: Draft, now: string): Post {
     icon: draft.icon,
     authors: normalizeAuthors(draft.authors),
     fonts: draft.fonts,
+    page: draft.page !== false,
     tags: draft.tags,
     cover: draft.cover,
     publishedAt: draft.publishedAt ?? now,
@@ -236,6 +247,7 @@ export function postToDraft(post: Post): Draft {
     icon: post.icon,
     authors: post.authors,
     fonts: post.fonts,
+    page: post.page,
     tags: post.tags,
     cover: post.cover,
     body: post.body,

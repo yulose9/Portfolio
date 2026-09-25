@@ -17,6 +17,7 @@ export type PostSummary = {
   tags: string[];
   cover: string | null;
   status: Draft["status"];
+  page: boolean;
   publishAt: string | null;
   publishedAt: string | null;
   liveSlug: string | null;
@@ -84,7 +85,7 @@ export const api = {
   get: (id: string) => call<{ post: Draft }>(`/posts/${id}`),
   save: (
     id: string,
-    edit: Partial<Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover" | "body" | "icon" | "authors" | "fonts">> & { base?: string; snapshot?: boolean }
+    edit: Partial<Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover" | "body" | "icon" | "authors" | "fonts" | "page">> & { base?: string; snapshot?: boolean }
   ) =>
     call<{ post: Draft; snapshotted: boolean }>(`/posts/${id}`, put(edit)),
   duplicate: (id: string) => call<{ post: Draft }>(`/posts/${id}/duplicate`, post()),

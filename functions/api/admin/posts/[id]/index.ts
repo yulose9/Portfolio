@@ -8,7 +8,7 @@ export const onRequestGet: AdminFunction<"id"> = async ({ env, params }) =>
   json({ post: await loadDraft(env, param(params.id)) });
 
 /** The fields the editor may change. Status and what's live belong to the server. */
-const EDITABLE = ["title", "slug", "dek", "icon", "authors", "fonts", "tags", "cover", "body"] as const;
+const EDITABLE = ["title", "slug", "dek", "icon", "authors", "fonts", "page", "tags", "cover", "body"] as const;
 type Edit = Partial<Pick<Draft, (typeof EDITABLE)[number]>> & {
   /** The updatedAt the editor last saw. A mismatch means another tab saved in between. */
   base?: string;
@@ -34,6 +34,7 @@ export const onRequestPut: AdminFunction<"id"> = async ({ env, params, request }
   if (edit.icon !== undefined) next.icon = typeof edit.icon === "string" && edit.icon.trim() ? [...edit.icon.trim()].slice(0, 8).join("") : null;
   if (edit.authors !== undefined) next.authors = normalizeAuthors(edit.authors);
   if (edit.fonts !== undefined) next.fonts = cleanFonts(edit.fonts);
+  if (edit.page !== undefined) next.page = edit.page !== false;
   if (next.body.length > 400_000) throw new HttpError("That's longer than a post can be (400k characters).", 413);
 
   const changed = EDITABLE.some((k) => JSON.stringify(next[k]) !== JSON.stringify(draft[k]));

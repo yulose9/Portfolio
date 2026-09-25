@@ -5,6 +5,9 @@ import LocalTime from "../components/LocalTime";
 import TabbedIndex from "../components/TabbedIndex";
 import { buildTimeCommit } from "../last-commit";
 import ToolRow from "../components/ToolRow";
+import type { Metadata } from "next";
+
+import { FEED, homeGraph, jsonLd } from "../constants/seo";
 import { publishedPosts } from "../lib/writing";
 import { PROFILE, TABS, TOOLS, type Tab } from "../site-content";
 
@@ -12,12 +15,12 @@ import { PROFILE, TABS, TOOLS, type Tab } from "../site-content";
 const manilaDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" });
 
 /**
- * The Writing tab lists what's published in content/writing. Until the first
- * post goes out it keeps its placeholder rows, so the tab never sits empty.
+ * The Writing tab lists what's published in content/writing. A post with a
+ * page links to it; a listed-only note is its title and date and nothing to
+ * click.
  */
 function withWriting(tabs: Tab[]): Tab[] {
   const posts = publishedPosts();
-  if (!posts.length) return tabs;
   return tabs.map((tab) =>
     tab.id === "writing"
       ? {
@@ -25,16 +28,27 @@ function withWriting(tabs: Tab[]): Tab[] {
           posts: posts.map((p) => ({
             title: p.title,
             date: manilaDay.format(new Date(p.publishedAt)),
-            href: `/writing/${p.slug}`,
+            href: p.page ? `/writing/${p.slug}` : undefined,
           })),
         }
       : tab
   );
 }
 
+export const metadata: Metadata = {
+  alternates: { canonical: "/", types: FEED },
+};
+
 export default async function Page() {
+  const commit = await buildTimeCommit();
   return (
     <PageMenu>
+      {/*
+        JSON-LD as a plain script, so it's in the HTML crawlers download. (A
+        next/script tag only arrives through JavaScript, which AI crawlers
+        don't run.)
+      */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(homeGraph(commit?.date ?? new Date().toISOString()))} />
       <div className="flex w-full justify-center bg-white">
       {/*
         The design pins the text column to 672px and centres it. min-w is left
@@ -86,7 +100,7 @@ export default async function Page() {
         <footer className="footer-gap mt-24 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
           <LocalTime />
           {/* Read during the build; refreshed from GitHub on the client. */}
-          <LastUpdated initial={await buildTimeCommit()} />
+          <LastUpdated initial={commit} />
         </footer>
       </main>
       </div>

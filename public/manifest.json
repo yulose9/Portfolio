@@ -1,7 +1,7 @@
 {
   "name": "John Nazarene Dela Pisa",
   "short_name": "Nazarene",
-  "description": "Solutions Architect and Computer Engineer based in the Philippines.",
+  "description": "AI Specialist and Computer Engineer in the Philippines, building agentic systems and the infrastructure they run on.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -31,5 +31,6 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "lang": "en"
 }

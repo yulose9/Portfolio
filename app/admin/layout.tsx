@@ -5,8 +5,10 @@ import LazyToaster from "../components/LazyToaster";
 import "../globals.css";
 import "../article.css";
 import "../article-blocks.css";
+import "../article-extras.css";
 import "./admin.css";
 import "./admin-editor.css";
+import "./admin-modes.css";
 
 /*
  * The admin's own root layout, separate from the site's on purpose.

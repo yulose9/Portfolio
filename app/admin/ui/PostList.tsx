@@ -1,13 +1,14 @@
 "use client";
 
 import { MagnifyingGlass, Plus, TextAlignLeft } from "@phosphor-icons/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { toast } from "../../lib/toast";
 import { api, ApiError, type PostSummary } from "./api";
 import { relative, StatusDot, statusLabel } from "./bits";
 import type { Panel } from "./Editor";
 import { Fluent } from "./extensions/emoji";
+import { usePulse } from "./live";
 import { PostRow } from "./PostActions";
 
 /*
@@ -41,6 +42,9 @@ export default function PostList({ email, onOpen, onSearch }: { email: string; o
         toast.add({ type: "error", title: "Couldn’t load posts", description: error instanceof ApiError ? error.message : undefined });
       });
   }, [version]);
+
+  // Another device changed something: fetch the list again.
+  usePulse(useCallback(() => setVersion((v) => v + 1), []));
 
   const rowActions = {
     open: onOpen,

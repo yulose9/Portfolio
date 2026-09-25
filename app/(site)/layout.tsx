@@ -1,13 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import Script from "next/script";
 import VendorScripts from "../analytics/VendorScripts";
-import {
-  ENHANCED_METADATA,
-  PERSON_SCHEMA,
-  PROFILE_PAGE_SCHEMA,
-  WEBSITE_SCHEMA,
-} from "../constants/seo";
+import { ENHANCED_METADATA } from "../constants/seo";
 import DeferredAnalytics from "../providers/DeferredAnalytics";
 import UiSounds from "../components/UiSounds";
 import LazyToaster from "../components/LazyToaster";
@@ -17,6 +11,7 @@ import SmoothScroll from "../providers/SmoothScroll";
 import "../globals.css";
 import "../article.css";
 import "../article-blocks.css";
+import "../article-extras.css";
 
 /*
  * Inter, self-hosted by next/font at build time — no runtime request to
@@ -63,29 +58,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable}>
-      <head>
-        {/*
-          JSON-LD. Search engines read these for the knowledge panel; they are
-          inert markup, so they sit in the head with no loading strategy.
-        */}
-        <Script
-          id="schema-person"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(PERSON_SCHEMA) }}
-        />
-        <Script
-          id="schema-website"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_SCHEMA) }}
-        />
-        <Script
-          id="schema-profile"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(PROFILE_PAGE_SCHEMA),
-          }}
-        />
-      </head>
       <body>
         {children}
 

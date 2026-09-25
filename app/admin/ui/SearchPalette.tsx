@@ -1,12 +1,13 @@
 "use client";
 
-import { MagnifyingGlass } from "@phosphor-icons/react";
+import { Lightning, MagnifyingGlass } from "@phosphor-icons/react";
 import { Dialog } from "@base-ui/react/dialog";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { api, type SearchResult } from "./api";
 import { relative, StatusDot, statusLabel } from "./bits";
 import { Fluent } from "./extensions/emoji";
+import { keys } from "./menu";
 
 /*
  * ⌘K: search every post, drafts and live, by title, standfirst and full text.
@@ -15,6 +16,7 @@ import { Fluent } from "./extensions/emoji";
  */
 
 export type Jump = { id: string; q: string; n: number };
+export type Command = { id: string; title: string; keys?: string };
 
 function Snippet({ text, start, length }: { text: string; start: number; length: number }) {
   return (
@@ -26,7 +28,25 @@ function Snippet({ text, start, length }: { text: string; start: number; length:
   );
 }
 
-export default function SearchPalette({ open, onClose, onJump }: { open: boolean; onClose: () => void; onJump: (j: Jump) => void }) {
+/*
+ * It's also Obsidian's command palette: with nothing typed it lists actions
+ * (New post; in the editor Publish, Find, History, focus and typewriter
+ * modes…); typing filters them alongside the posts, and a leading ">" shows
+ * actions only.
+ */
+export default function SearchPalette({
+  open,
+  onClose,
+  onJump,
+  commands = [],
+  onCommand,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onJump: (j: Jump) => void;
+  commands?: Command[];
+  onCommand?: (id: string) => void;
+}) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [active, setActive] = useState(0);
@@ -35,8 +55,8 @@ export default function SearchPalette({ open, onClose, onJump }: { open: boolean
   // Debounced, and a newer query aborts the one in flight.
   useEffect(() => {
     const q = query.trim();
-    // Too short to search: the list below shows a prompt, whatever's in results.
-    if (q.length < 2) return;
+    // Too short to search (or a ">" command query): the list shows actions instead.
+    if (q.length < 2 || q.startsWith(">")) return;
     const ctrl = new AbortController();
     const t = window.setTimeout(() => {
       api
@@ -53,16 +73,25 @@ export default function SearchPalette({ open, onClose, onJump }: { open: boolean
     };
   }, [query]);
 
-  // One flat list of choices: each post, then each of its passages.
+  const commandQuery = query.trim().replace(/^>\s*/, "").toLowerCase();
+  const onlyCommands = query.trim().startsWith(">");
+  const shownCommands = useMemo(
+    () => (query.trim().length < 2 || onlyCommands ? commands : commands.filter((c) => c.title.toLowerCase().includes(commandQuery))).filter((c) => !commandQuery || c.title.toLowerCase().includes(commandQuery)),
+    [commands, query, onlyCommands, commandQuery]
+  );
+
+  // One flat list of choices: matching actions, then each post and its passages.
   const choices = useMemo(
-    () =>
-      (results ?? []).flatMap((r) => [
-        { key: `${r.id}`, jump: { id: r.id, q: query.trim(), n: 0 }, result: r, hit: null },
+    () => [
+      ...shownCommands.map((c) => ({ key: `cmd:${c.id}`, command: c, jump: null, result: null, hit: null })),
+      ...(onlyCommands || query.trim().length < 2 ? [] : results ?? []).flatMap((r) => [
+        { key: `${r.id}`, command: null, jump: { id: r.id, q: query.trim(), n: 0 }, result: r, hit: null },
         ...r.hits
           .filter((h) => h.field === "body")
-          .map((h) => ({ key: `${r.id}:${h.occurrence}`, jump: { id: r.id, q: query.trim(), n: h.occurrence }, result: r, hit: h })),
+          .map((h) => ({ key: `${r.id}:${h.occurrence}`, command: null, jump: { id: r.id, q: query.trim(), n: h.occurrence }, result: r, hit: h })),
       ]),
-    [results, query]
+    ],
+    [results, query, shownCommands, onlyCommands]
   );
 
   useEffect(() => {
@@ -72,8 +101,9 @@ export default function SearchPalette({ open, onClose, onJump }: { open: boolean
   const go = (i: number) => {
     const c = choices[i];
     if (!c) return;
-    onJump(c.jump);
     onClose();
+    if (c.command) onCommand?.(c.command.id);
+    else if (c.jump) onJump(c.jump);
   };
 
   return (
@@ -93,7 +123,7 @@ export default function SearchPalette({ open, onClose, onJump }: { open: boolean
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search titles and words in every post"
+              placeholder="Search every post, or type > for actions"
               aria-label="Search all writing"
               onKeyDown={(e) => {
                 if (e.key === "ArrowDown") {
@@ -111,15 +141,28 @@ export default function SearchPalette({ open, onClose, onJump }: { open: boolean
             <kbd className="admin-kbd">esc</kbd>
           </div>
           <div ref={list} className="palette-results" role="listbox" aria-label="Results">
-            {query.trim().length < 2 ? (
-              <p className="palette-empty">Type to search every draft and published post.</p>
-            ) : results === null ? (
+            {!choices.length && query.trim().length >= 2 && results === null && !onlyCommands ? (
               <p className="palette-empty">Searching…</p>
             ) : !choices.length ? (
-              <p className="palette-empty">Nothing matches “{query.trim()}”.</p>
+              <p className="palette-empty">{query.trim().length < 2 ? "Type to search every draft and published post." : `Nothing matches “${query.trim()}”.`}</p>
             ) : (
               choices.map((c, i) =>
-                c.hit ? (
+                c.command ? (
+                  <button
+                    key={c.key}
+                    type="button"
+                    role="option"
+                    aria-selected={i === active}
+                    data-index={i}
+                    className="palette-command"
+                    onMouseEnter={() => setActive(i)}
+                    onClick={() => go(i)}
+                  >
+                    <Lightning size={14} aria-hidden="true" />
+                    <span>{c.command.title}</span>
+                    {c.command.keys ? <kbd className="admin-kbd">{keys(c.command.keys)}</kbd> : null}
+                  </button>
+                ) : c.hit ? (
                   <button
                     key={c.key}
                     type="button"
@@ -132,7 +175,7 @@ export default function SearchPalette({ open, onClose, onJump }: { open: boolean
                   >
                     <Snippet text={c.hit.snippet} start={c.hit.start} length={c.hit.length} />
                   </button>
-                ) : (
+                ) : c.result ? (
                   <button
                     key={c.key}
                     type="button"
@@ -150,7 +193,7 @@ export default function SearchPalette({ open, onClose, onJump }: { open: boolean
                       {statusLabel({ ...c.result, publishAt: null })} · {c.result.total} {c.result.total === 1 ? "match" : "matches"} · {relative(c.result.updatedAt)}
                     </span>
                   </button>
-                )
+                ) : null
               )
             )}
           </div>

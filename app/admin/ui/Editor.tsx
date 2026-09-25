@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowLeft, ClockCounterClockwise, ImageSquare, MagnifyingGlass, SlidersHorizontal, X } from "@phosphor-icons/react";
+import { ArrowLeft, Check, ClockCounterClockwise, Eye, ImageSquare, MagnifyingGlass, SlidersHorizontal, X } from "@phosphor-icons/react";
+import { Menu } from "@base-ui/react/menu";
 import { Extension } from "@tiptap/core";
 import Highlight from "@tiptap/extension-highlight";
 import Image from "@tiptap/extension-image";
@@ -23,13 +24,18 @@ import { ImageBubble, TextBubble } from "./Bubble";
 import { currentBlock, duplicateBlock, moveBlock } from "./commands";
 import DetailsSheet from "./DetailsSheet";
 import { BlockHandle, EditorContextMenu, FindBar, MobileToolbar } from "./EditorChrome";
-import { Callout, DetailsContent, DetailsSummary, Find, FluentEmoji, Toggle } from "./extensions/blocks";
+import { Callout, CurrentBlock, DetailsContent, DetailsSummary, Find, FluentEmoji, Toggle } from "./extensions/blocks";
 import { EmojiPicker, EmojiSuggest } from "./extensions/emoji";
+import { announceSave, usePulse, type Pulse } from "./live";
+import { keys, MenuSurface, MItem, MLabel } from "./menu";
+import { Outline } from "./Outline";
 import { Embed } from "./extensions/EmbedView";
+import { forgetLinkTargets, PostLinks } from "./extensions/links";
 import { AuthorsEditor, IconPicker, loadFont } from "./MetaEditors";
 import PublishDialog from "./PublishDialog";
 import RevisionsSheet from "./RevisionsSheet";
 import SaveState, { type SaveStatus } from "./SaveState";
+import SmoothCaret from "./SmoothCaret";
 import Sheet from "./Sheet";
 import { SlashCommand, slashItems, type SlashItem } from "./slash";
 
@@ -47,7 +53,7 @@ import { SlashCommand, slashItems, type SlashItem } from "./slash";
  * touches git until Publish.
  */
 
-export type Meta = Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover" | "icon" | "authors" | "fonts">;
+export type Meta = Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover" | "icon" | "authors" | "fonts" | "page">;
 
 const metaOf = (d: Draft): Meta => ({
   title: d.title,
@@ -58,6 +64,7 @@ const metaOf = (d: Draft): Meta => ({
   icon: d.icon,
   authors: d.authors,
   fonts: d.fonts,
+  page: d.page,
 });
 
 export type Panel = null | "details" | "revisions" | "publish";
@@ -134,6 +141,38 @@ const imageFiles = (list: FileList | null | undefined) => Array.from(list ?? [])
 
 const HEADING_PLACEHOLDER: Record<number, string> = { 2: "Heading 1", 3: "Heading 2", 4: "Heading 3" };
 
+/* The open post, for the [[ link menu (so it doesn't offer the post itself). */
+const OPEN_POST = { id: "" };
+
+/*
+ * Writing modes, remembered per browser:
+ *  - focus: everything but the paragraph you're in fades back (iA Writer);
+ *  - typewriter: the line you're typing stays at the same height on screen;
+ *  - outline: the headings, in the left margin (Obsidian).
+ */
+type Modes = { focus: boolean; typewriter: boolean; outline: boolean };
+const MODES_KEY = "admin-writing-modes";
+function readModes(): Modes {
+  try {
+    return { focus: false, typewriter: false, outline: true, ...(JSON.parse(localStorage.getItem(MODES_KEY) ?? "{}") as Partial<Modes>) };
+  } catch {
+    return { focus: false, typewriter: false, outline: true };
+  }
+}
+
+/** Commands the ⌘K palette can send to the open editor. */
+export const EDITOR_COMMANDS = [
+  { id: "publish", title: "Publish…", keys: "⌘⇧P" },
+  { id: "save", title: "Keep a revision", keys: "⌘S" },
+  { id: "find", title: "Find in this post", keys: "⌘F" },
+  { id: "details", title: "Details", keys: "⌘." },
+  { id: "history", title: "History" },
+  { id: "focus", title: "Toggle focus mode" },
+  { id: "typewriter", title: "Toggle typewriter scrolling" },
+  { id: "outline", title: "Toggle outline" },
+] as const;
+export type EditorCommand = (typeof EDITOR_COMMANDS)[number]["id"];
+
 function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => void; options?: OpenOptions }) {
   const fine = useFinePointer();
   const [doc, setDoc] = useState<Draft>(initial);
@@ -147,6 +186,18 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
   const [typing, setTyping] = useState(false);
   const [find, setFind] = useState<{ query: string; index: number } | null>(options?.q ? { query: options.q, index: options.n ?? 0 } : null);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [modes, setModes] = useState<Modes>(readModes);
+  const toggleMode = useCallback((mode: keyof Modes) => {
+    setModes((m) => {
+      const next = { ...m, [mode]: !m[mode] };
+      try {
+        localStorage.setItem(MODES_KEY, JSON.stringify(next));
+      } catch {
+        /* private mode */
+      }
+      return next;
+    });
+  }, []);
 
   const server = useRef(initial);
   const metaRef = useRef(meta);
@@ -194,13 +245,16 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
       Embed,
       FluentEmoji,
       Find,
+      CurrentBlock,
       EmojiSuggest,
+      PostLinks(() => OPEN_POST.id),
       SlashCommand(() => SLASH_ITEMS),
       Extension.create({
         name: "adminKeys",
         addKeyboardShortcuts: () => ({
-          "Mod-k": () => {
-            setLinkRequest((n) => n + 1);
+          "Mod-k": ({ editor: e }) => {
+            if (e.state.selection.empty) window.dispatchEvent(new Event("admin:palette"));
+            else setLinkRequest((n) => n + 1);
             return true;
           },
           "Mod-f": () => {
@@ -286,6 +340,32 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
   }, [editor]);
 
   useEffect(() => {
+    OPEN_POST.id = initial.id;
+  }, [initial.id]);
+
+  // Typewriter scrolling: keep the caret's line at ~42% of the window.
+  useEffect(() => {
+    if (!editor || !modes.typewriter) return;
+    let frame = 0;
+    const keep = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (!editor.isFocused) return;
+        const top = editor.view.coordsAtPos(editor.state.selection.head).top;
+        const delta = top - window.innerHeight * 0.42;
+        if (Math.abs(delta) > 18) window.scrollBy({ top: delta, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      });
+    };
+    editor.on("selectionUpdate", keep);
+    editor.on("update", keep);
+    return () => {
+      cancelAnimationFrame(frame);
+      editor.off("selectionUpdate", keep);
+      editor.off("update", keep);
+    };
+  }, [editor, modes.typewriter]);
+
+  useEffect(() => {
     const onPick = () => setEmojiOpen(true);
     window.addEventListener(EMOJI_EVENT, onPick);
     return () => window.removeEventListener(EMOJI_EVENT, onPick);
@@ -314,6 +394,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
       const run = api
         .save(server.current.id, { ...sent, base: server.current.updatedAt, snapshot })
         .then(({ post, snapshotted }) => {
+          announceSave(post.id, post.updatedAt);
           server.current = post;
           setDoc(post);
           setSavedAt(post.updatedAt);
@@ -365,13 +446,55 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
   }
 
   const first = useRef(true);
+  const applyingRemote = useRef(false);
   useEffect(() => {
     if (first.current) {
       first.current = false;
       return;
     }
+    // A change that came from another device is already saved.
+    if (applyingRemote.current) {
+      applyingRemote.current = false;
+      return;
+    }
     scheduleSave();
   }, [meta]);
+
+  /* ── Live: another device saved this post ───────────────────────────── */
+
+  const saveStatus = useRef(save);
+  useEffect(() => {
+    saveStatus.current = save;
+  }, [save]);
+
+  const onPulse = useCallback(
+    async (p: Pulse) => {
+      if (!editor || !p.version || p.version === server.current.updatedAt) return;
+      // Unsaved words here win; if both sides edited, the next save reports the conflict.
+      if (inflight.current || saveStatus.current !== "saved") return;
+      try {
+        const { post } = await api.get(server.current.id);
+        if (post.updatedAt === server.current.updatedAt || saveStatus.current !== "saved") return;
+        server.current = post;
+        setDoc(post);
+        setSavedAt(post.updatedAt);
+        applyingRemote.current = true;
+        setMeta(metaOf(post));
+        if (post.body !== editor.getMarkdown()) {
+          const { from, to } = editor.state.selection;
+          editor.commands.setContent(post.body, { contentType: "markdown", emitUpdate: false } as never);
+          const max = editor.state.doc.content.size;
+          editor.commands.setTextSelection({ from: Math.min(from, max), to: Math.min(to, max) });
+          setWords(countWords(editor.getText()));
+        }
+        toast.add({ id: "remote-update", type: "info", title: "Updated from another device", timeout: 1800 });
+      } catch {
+        /* next pulse */
+      }
+    },
+    [editor]
+  );
+  usePulse(onPulse, initial.id);
 
   // Leaving with unsaved words asks first.
   useEffect(() => {
@@ -409,6 +532,20 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
       window.removeEventListener("pointermove", wake);
     };
   }, [flush, editor]);
+
+  useEffect(() => {
+    const onCommand = (e: Event) => {
+      const id = (e as CustomEvent<EditorCommand>).detail;
+      if (id === "publish") setPanel("publish");
+      else if (id === "details") setPanel("details");
+      else if (id === "history") setPanel("revisions");
+      else if (id === "find") openFind.current();
+      else if (id === "save") void flush(true);
+      else if (id === "focus" || id === "typewriter" || id === "outline") toggleMode(id);
+    };
+    window.addEventListener("admin:command", onCommand);
+    return () => window.removeEventListener("admin:command", onCommand);
+  }, [flush, toggleMode]);
 
   /* ── Fields ─────────────────────────────────────────────────────────── */
 
@@ -448,7 +585,13 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
   };
 
   return (
-    <div className="editor-root" data-typing={typing || undefined} data-touch={!fine || undefined}>
+    <div
+      className="editor-root"
+      data-typing={typing || undefined}
+      data-touch={!fine || undefined}
+      data-focus-mode={modes.focus || undefined}
+      data-typewriter={modes.typewriter || undefined}
+    >
       <header className="editor-bar">
         <div className="editor-bar-side">
           <button type="button" className="admin-icon-button" onClick={back} aria-label="All writing" title="All writing">
@@ -464,6 +607,26 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
           <button type="button" className="admin-icon-button" aria-label="Find in this post" title="Find  ⌘F" onClick={() => openFind.current()}>
             <MagnifyingGlass size={16} weight="bold" />
           </button>
+          <Menu.Root>
+            <Menu.Trigger className="admin-icon-button" aria-label="View" title="View">
+              <Eye size={16} weight="bold" />
+            </Menu.Trigger>
+            <MenuSurface align="end">
+              <MLabel>View</MLabel>
+              <MItem icon={modes.focus ? <Check size={15} weight="bold" /> : <span className="menu-check-space" />} onSelect={() => toggleMode("focus")} closeOnClick={false}>
+                Focus mode
+              </MItem>
+              <MItem icon={modes.typewriter ? <Check size={15} weight="bold" /> : <span className="menu-check-space" />} onSelect={() => toggleMode("typewriter")} closeOnClick={false}>
+                Typewriter scrolling
+              </MItem>
+              <MItem icon={modes.outline ? <Check size={15} weight="bold" /> : <span className="menu-check-space" />} onSelect={() => toggleMode("outline")} closeOnClick={false}>
+                Outline
+              </MItem>
+              <MItem icon={<span className="menu-check-space" />} keys={keys("⌘K")} onSelect={() => window.dispatchEvent(new Event("admin:palette"))}>
+                Command palette
+              </MItem>
+            </MenuSurface>
+          </Menu.Root>
           <button type="button" className="admin-icon-button" aria-label="History" title="History" onClick={() => setPanel("revisions")}>
             <ClockCounterClockwise size={16} weight="bold" />
           </button>
@@ -584,6 +747,8 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
               </EditorContextMenu>
               {fine ? (
                 <>
+                  <SmoothCaret editor={editor} />
+                  {modes.outline ? <Outline editor={editor} /> : null}
                   <BlockHandle editor={editor} />
                   <TextBubble editor={editor} linkRequest={linkRequest} />
                 </>
@@ -664,6 +829,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
         body={editor?.getMarkdown() ?? ""}
         beforePublish={() => flush()}
         onDone={(post) => {
+          forgetLinkTargets();
           server.current = post;
           setDoc(post);
           setSavedAt(post.updatedAt);
@@ -673,6 +839,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
           setSlugTouched(true);
           setMeta((m) => ({ ...m, slug }));
         }}
+        onPageChange={(page) => setMeta((m) => ({ ...m, page }))}
       />
     </div>
   );

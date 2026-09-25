@@ -46,8 +46,13 @@ export function publishedPosts(): Listed[] {
   return cache;
 }
 
+/** Posts with a page of their own: what gets a URL, the sitemap and the feed. */
+export function pagedPosts(): Listed[] {
+  return publishedPosts().filter((p) => p.page);
+}
+
 export function postBySlug(slug: string): Listed | undefined {
-  return publishedPosts().find((p) => p.slug === slug);
+  return pagedPosts().find((p) => p.slug === slug);
 }
 
 /* ── Markdown → hast ─────────────────────────────────────────────────── */
@@ -63,26 +68,95 @@ const isEl = (n: RootContent | ElementContent | undefined, tag?: string): n is E
 const textOf = (n: ElementContent): string =>
   n.type === "text" ? n.value : n.type === "element" ? n.children.map(textOf).join("") : "";
 
-const CALLOUT = /^\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/;
+/*
+ * Callouts: GitHub's five alert types, plus Obsidian's, with Obsidian's
+ * extras — a title after the type, and "-" / "+" to make it foldable
+ * (closed / open):  > [!question]- Why not just retry?
+ */
+const CALLOUT = /^\s*\[!([a-z]+)\]([+-]?)[ \t]*([^\n]*)\n?/i;
 export const CALLOUT_EMOJI: Record<string, string> = {
   note: "💡",
   tip: "✅",
   important: "📌",
   warning: "⚠️",
   caution: "🛑",
+  info: "ℹ️",
+  question: "❓",
+  success: "✅",
+  danger: "⛔",
+  bug: "🐛",
+  example: "📋",
+  quote: "💬",
+  abstract: "📝",
+  todo: "☑️",
+  failure: "❌",
 };
+const CALLOUT_ALIAS: Record<string, string> = {
+  hint: "tip",
+  check: "success",
+  done: "success",
+  help: "question",
+  faq: "question",
+  attention: "warning",
+  error: "danger",
+  fail: "failure",
+  missing: "failure",
+  summary: "abstract",
+  tldr: "abstract",
+  cite: "quote",
+};
+/** Colour family for each kind, so the page needs five tints, not fifteen. */
+const CALLOUT_TONE: Record<string, string> = {
+  note: "note",
+  info: "important",
+  important: "important",
+  abstract: "important",
+  todo: "important",
+  tip: "tip",
+  success: "tip",
+  question: "warning",
+  warning: "warning",
+  caution: "caution",
+  danger: "caution",
+  failure: "caution",
+  bug: "caution",
+  example: "note",
+  quote: "note",
+};
+
+/* ── Links between posts ─────────────────────────────────────────────── */
+
+/**
+ * Obsidian's [[wikilinks]]: [[Post title]] or [[Post title|shown text]]
+ * links to that post, matched by title or slug. A link to something not
+ * (yet) published stays plain text, marked so it can be styled as pending.
+ */
+function resolveWiki(name: string): Listed | undefined {
+  const key = name.trim().toLowerCase();
+  return pagedPosts().find((p) => p.title.trim().toLowerCase() === key || p.slug === key);
+}
 
 /** Inside these, text is left exactly as written: no emoji art, no ==marks==. */
 const LITERAL = new Set(["code", "pre", "kbd", "samp", "script", "style", "title"]);
 
-/** Plain text → text, <mark> and Fluent emoji spans. */
+/** Plain text → text, wikilinks, <mark>, <u> and Fluent emoji spans. */
 function decorateText(value: string): ElementContent[] {
   const out: ElementContent[] = [];
-  // ==highlight== first; each piece then gets its emoji.
-  // ==highlight== and ++underline++, the editor's Markdown for them.
-  const pieces = value.split(/(==[^=\n]+==|\+\+[^+\n]+\+\+)/g);
+  // [[wikilinks]], ==highlight== and ++underline++ first; each piece then gets its emoji.
+  const pieces = value.split(/(\[\[[^\]\n]+\]\]|==[^=\n]+==|\+\+[^+\n]+\+\+)/g);
   for (const piece of pieces) {
     if (!piece) continue;
+    const wiki = /^\[\[([^\]|\n]+)(?:\|([^\]\n]+))?\]\]$/.exec(piece);
+    if (wiki) {
+      const target = resolveWiki(wiki[1]);
+      const label = (wiki[2] ?? wiki[1]).trim();
+      out.push(
+        target
+          ? el("a", { href: `/writing/${target.slug}`, className: ["wikilink"] }, [{ type: "text", value: label }])
+          : el("span", { className: ["wikilink", "wikilink-missing"], title: "Not published yet" }, [{ type: "text", value: label }])
+      );
+      continue;
+    }
     const marked = /^==([^=\n]+)==$/.exec(piece) ?? /^\+\+([^+\n]+)\+\+$/.exec(piece);
     const target = marked ? el(piece.startsWith("==") ? "mark" : "u", {}, []) : null;
     for (const run of splitEmoji(marked ? marked[1] : piece)) {
@@ -142,26 +216,41 @@ function rehypeEditorial() {
           }
         }
 
-        // > [!NOTE] … → a callout.
+        // > [!NOTE] … → a callout (GitHub's and Obsidian's syntax both).
         if (node.tagName === "blockquote") {
           const firstP = node.children.find((k): k is Element => isEl(k, "p"));
           const firstText = firstP?.children[0];
           const match = firstText?.type === "text" ? CALLOUT.exec(firstText.value) : null;
-          if (firstP && firstText?.type === "text" && match) {
-            const type = match[1].toLowerCase();
+          const raw = match?.[1].toLowerCase() ?? "";
+          const kind = CALLOUT_ALIAS[raw] ?? raw;
+          if (firstP && firstText?.type === "text" && match && CALLOUT_EMOJI[kind]) {
+            const fold = match[2];
+            const title = match[3].trim();
             firstText.value = firstText.value.slice(match[0].length);
             if (!firstP.children.some((k) => textOf(k).trim())) node.children = node.children.filter((k) => k !== firstP);
-            kids[i] = el("aside", { className: ["callout"], dataType: type }, [
-              el("span", { className: ["callout-icon"], ariaHidden: "true" }, [
-                el("span", { className: ["fe"], style: `--fe:url(${fluentUrl(CALLOUT_EMOJI[type])})` }, [
-                  { type: "text", value: CALLOUT_EMOJI[type] },
-                ]),
-              ]),
-              el("div", { className: ["callout-body"] }, node.children),
+            const icon = el("span", { className: ["callout-icon"], ariaHidden: "true" }, [
+              el("span", { className: ["fe"], style: `--fe:url(${fluentUrl(CALLOUT_EMOJI[kind])})` }, [{ type: "text", value: CALLOUT_EMOJI[kind] }]),
             ]);
+            const heading = title ? [el("p", { className: ["callout-title"] }, decorateText(title))] : [];
+            const tone = CALLOUT_TONE[kind] ?? "note";
+            kids[i] = fold
+              ? el("details", { className: ["callout", "callout-fold"], dataType: tone, dataKind: kind, open: fold === "+" }, [
+                  el("summary", { className: ["callout-summary"] }, [icon, ...(title ? decorateText(title) : [{ type: "text", value: kind[0].toUpperCase() + kind.slice(1) } as Text])]),
+                  el("div", { className: ["callout-body"] }, node.children),
+                ])
+              : el("aside", { className: ["callout"], dataType: tone, dataKind: kind }, [icon, el("div", { className: ["callout-body"] }, [...heading, ...node.children])]);
             walk(kids[i] as Element, literal);
             continue;
           }
+        }
+
+        // Headings get a link to themselves, the way Notion and Obsidian do.
+        if ((node.tagName === "h2" || node.tagName === "h3" || node.tagName === "h4") && node.properties?.id) {
+          walk(node, literal);
+          node.children.push(
+            el("a", { href: `#${node.properties.id}`, className: ["heading-anchor"], ariaLabel: "Link to this section" }, [{ type: "text", value: "#" }])
+          );
+          continue;
         }
 
         // Tables scroll sideways on a phone instead of breaking the page.
@@ -203,6 +292,53 @@ const pipeline = unified()
 export async function markdownTree(markdown: string): Promise<Root> {
   return (await pipeline.run(pipeline.parse(markdown))) as Root;
 }
+
+/* ── Outline, backlinks, related ─────────────────────────────────────── */
+
+export type OutlineItem = { id: string; text: string; depth: 2 | 3 };
+
+/** The h2s and h3s, for the table of contents. */
+export function outline(tree: Root): OutlineItem[] {
+  const out: OutlineItem[] = [];
+  const walk = (n: Root | Element) => {
+    for (const k of n.children) {
+      if (!isEl(k)) continue;
+      if ((k.tagName === "h2" || k.tagName === "h3") && k.properties?.id) {
+        const text = k.children
+          .filter((c) => !(isEl(c) && (c.properties?.className as string[] | undefined)?.includes("heading-anchor")))
+          .map(textOf)
+          .join("")
+          .trim();
+        out.push({ id: String(k.properties.id), text, depth: k.tagName === "h2" ? 2 : 3 });
+      } else walk(k);
+    }
+  };
+  walk(tree);
+  return out;
+}
+
+/** Posts that link here, by URL or by [[title]]: Obsidian's backlinks. */
+export function backlinks(post: Post): Listed[] {
+  const title = post.title.trim().toLowerCase();
+  return pagedPosts().filter(
+    (p) =>
+      p.id !== post.id &&
+      (p.body.includes(`/writing/${post.slug}`) || p.body.toLowerCase().includes(`[[${title}`) || p.body.includes(`[[${post.slug}`))
+  );
+}
+
+/** Other posts, most shared tags first, then newest. */
+export function related(post: Post, limit = 3): Listed[] {
+  const tags = new Set(post.tags.map((t) => t.toLowerCase()));
+  return pagedPosts()
+    .filter((p) => p.id !== post.id)
+    .map((p) => ({ p, shared: p.tags.filter((t) => tags.has(t.toLowerCase())).length }))
+    .sort((a, b) => b.shared - a.shared || (a.p.publishedAt < b.p.publishedAt ? 1 : -1))
+    .slice(0, limit)
+    .map(({ p }) => p);
+}
+
+export const wordCount = (markdown: string) => markdown.match(/[\p{L}\p{N}’']+/gu)?.length ?? 0;
 
 /** For the feed: embeds fall back to their links. */
 export async function renderMarkdown(markdown: string): Promise<string> {

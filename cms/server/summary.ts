@@ -8,6 +8,7 @@ export function summarize(d: Draft) {
     slug: d.slug,
     dek: d.dek,
     icon: d.icon ?? null,
+    page: d.page !== false,
     tags: d.tags,
     cover: d.cover?.src ?? null,
     status: d.status,

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { isValidSlug, slugify } from "../../../cms/format";
 import { toast } from "../../lib/toast";
 import { api, ApiError, type Draft } from "./api";
+import { PageSwitch } from "./bits";
 import type { Meta } from "./Editor";
 import { FontsEditor } from "./MetaEditors";
 import Sheet from "./Sheet";
@@ -100,6 +101,10 @@ export default function DetailsSheet({
         {doc.redirectFrom.length ? (
           <p className="field-help">Also redirects from {doc.redirectFrom.map((s) => `/writing/${s}`).join(", ")}.</p>
         ) : null}
+      </section>
+
+      <section className="field">
+        <PageSwitch page={meta.page} slug={meta.slug} onChange={(page) => onChange({ page })} />
       </section>
 
       <section className="field">

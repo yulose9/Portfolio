@@ -8,3 +8,8 @@
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-store
   Referrer-Policy: same-origin
+
+# The placeholder a static export needs while nothing is published.
+/writing/_
+  X-Robots-Tag: noindex
+

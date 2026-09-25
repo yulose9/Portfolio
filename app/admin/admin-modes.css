@@ -1,0 +1,242 @@
+/* ── Caret, writing modes, outline, palette actions, the page switch ──── */
+
+/* The drawn caret replaces the native one where it runs (SmoothCaret). */
+.editor-root[data-smooth-caret] .editor-body,
+.editor-root[data-smooth-caret] .editor-field {
+  caret-color: transparent;
+}
+.smooth-caret {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 15;
+  width: 2px;
+  height: 20px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--a-ink);
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform;
+  transition: opacity 120ms ease;
+}
+.smooth-caret[data-visible] {
+  opacity: 1;
+}
+/* Blink the way macOS does: a soft fade rather than a hard toggle. */
+.smooth-caret[data-visible][data-blink] {
+  animation: caret-blink 1.06s ease-in-out infinite;
+}
+@keyframes caret-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  55%,
+  95% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Focus mode: everything but the block you're in steps back. */
+.editor-root[data-focus-mode] .editor-body > * {
+  transition: opacity 260ms ease;
+}
+.editor-root[data-focus-mode] .editor-body:focus-within > :not(.is-current) {
+  opacity: 0.28;
+}
+.editor-root[data-focus-mode] .article-header,
+.editor-root[data-focus-mode] .editor-cover {
+  transition: opacity 260ms ease;
+}
+.editor-root[data-focus-mode]:has(.editor-body:focus-within) .article-header,
+.editor-root[data-focus-mode]:has(.editor-body:focus-within) .editor-cover {
+  opacity: 0.28;
+}
+
+/* Typewriter: room below the last line so it can reach the middle too. */
+.editor-root[data-typewriter] .editor-canvas {
+  padding-bottom: 60vh;
+}
+
+/* Outline, in the left margin on wide screens. */
+.editor-outline {
+  display: none;
+}
+@media (min-width: 1180px) {
+  .editor-outline {
+    position: fixed;
+    top: 7rem;
+    left: max(1.5rem, calc(50% - 336px - 260px));
+    z-index: 5;
+    display: block;
+    width: 200px;
+    max-height: calc(100vh - 10rem);
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.4;
+    transition: opacity 300ms ease;
+  }
+  .editor-root[data-typing] .editor-outline {
+    opacity: 0.35;
+  }
+}
+.editor-outline ol {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.editor-outline li[data-depth="1"] {
+  padding-left: 0.75rem;
+}
+.editor-outline li[data-depth="2"] {
+  padding-left: 1.5rem;
+}
+.editor-outline button {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0.25rem 0.4rem 0.25rem 0.75rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  color: var(--a-ink-3);
+  cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+.editor-outline button::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.35rem;
+  bottom: 0.35rem;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--a-ink);
+  transform: scaleY(0);
+  opacity: 0;
+  transition-property: transform, opacity;
+  transition-duration: 220ms;
+  transition-timing-function: var(--ease);
+}
+.editor-outline button[data-active] {
+  color: var(--a-ink);
+}
+.editor-outline button[data-active]::before {
+  transform: scaleY(1);
+  opacity: 1;
+}
+@media (hover: hover) and (pointer: fine) {
+  .editor-outline button:hover {
+    color: var(--a-ink);
+    background: var(--a-fill-2);
+  }
+}
+
+/* Palette actions */
+.palette-command {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.55rem 0.6rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  color: var(--a-ink);
+  cursor: pointer;
+}
+.palette-command svg {
+  color: var(--a-ink-3);
+}
+.palette-command span {
+  flex: 1;
+}
+.palette-command[aria-selected="true"] {
+  background: var(--a-fill);
+}
+.menu-check-space {
+  display: inline-block;
+  width: 15px;
+}
+
+/* The page / listed-only switch */
+.switch-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 0;
+  cursor: pointer;
+}
+.switch-text {
+  display: grid;
+  gap: 0.2rem;
+}
+.switch-title {
+  font-size: 14px;
+  font-weight: 500;
+}
+.switch {
+  appearance: none;
+  flex: none;
+  position: relative;
+  width: 40px;
+  height: 24px;
+  margin: 0;
+  border-radius: 999px;
+  background: #e4e4e7;
+  cursor: pointer;
+  transition: background-color 200ms ease;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  transition: translate 240ms var(--ease-drawer);
+}
+.switch:checked {
+  background: var(--a-ink);
+}
+.switch:checked::after {
+  translate: 16px 0;
+}
+.switch:focus-visible {
+  outline: 2px solid var(--a-ink);
+  outline-offset: 2px;
+}
+.publish-url + .switch-row {
+  box-shadow: 0 -1px 0 var(--a-line);
+}
+
+/* [[ link menu */
+.link-item .slash-icon {
+  font-size: 13px;
+  color: var(--a-ink-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smooth-caret[data-blink] {
+    animation: none;
+  }
+  .editor-outline button::before,
+  .switch::after {
+    transition-duration: 0ms;
+  }
+}

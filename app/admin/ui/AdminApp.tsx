@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { api, ApiError } from "./api";
-import Editor, { type OpenOptions, type Panel } from "./Editor";
+import Editor, { EDITOR_COMMANDS, type OpenOptions, type Panel } from "./Editor";
 import PostList from "./PostList";
 import SearchPalette from "./SearchPalette";
 
@@ -44,8 +44,13 @@ export default function AdminApp() {
         setSearching(true);
       }
     };
+    const onPalette = () => setSearching(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("admin:palette", onPalette);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("admin:palette", onPalette);
+    };
   }, []);
 
   useEffect(() => {
@@ -99,7 +104,21 @@ export default function AdminApp() {
       ) : (
         <PostList email={gate.email} onOpen={(id, panel?: Panel) => open(id, { panel })} onSearch={() => setSearching(true)} />
       )}
-      <SearchPalette open={searching} onClose={() => setSearching(false)} onJump={(j) => open(j.id, { q: j.q, n: j.n })} />
+      <SearchPalette
+        open={searching}
+        onClose={() => setSearching(false)}
+        onJump={(j) => open(j.id, { q: j.q, n: j.n })}
+        commands={[
+          { id: "new", title: "New post", keys: "N" },
+          ...(postId ? [{ id: "home", title: "All writing" }, ...EDITOR_COMMANDS] : []),
+        ]}
+        onCommand={(id) => {
+          if (id === "new") {
+            void api.create().then(({ post }) => open(post.id));
+          } else if (id === "home") open(null);
+          else window.dispatchEvent(new CustomEvent("admin:command", { detail: id }));
+        }}
+      />
     </>
   );
 }

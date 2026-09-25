@@ -271,6 +271,9 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
         {active.posts?.length ? (
           <PostList posts={active.posts} start={active.body?.length ?? 0} />
         ) : null}
+        {active.posts && !active.posts.length && active.empty ? (
+          <p className="panel-chunk m-0 text-base leading-6 text-zinc-400">{active.empty}</p>
+        ) : null}
         {active.links?.length ? (
           <LinkList
             links={active.links}
@@ -282,6 +285,62 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
           ) : null}
         </div>
       </div>
+
+      <TabArchive tabs={tabs} activeId={active.id} />
+    </div>
+  );
+}
+
+/**
+ * Every other tab, as plain HTML, hidden.
+ *
+ * Only the active tab is drawn, so without this the prerendered page holds
+ * the Work list and nothing else: the bio, certificates, writing and links
+ * would exist only after JavaScript runs, which search crawlers do late and
+ * AI crawlers not at all. This is the same content as simple semantic
+ * markup, in the HTML they download. `hidden` keeps it out of sight and out
+ * of the accessibility tree, so nobody meets it twice.
+ */
+function TabArchive({ tabs, activeId }: { tabs: Tab[]; activeId: string | undefined }) {
+  return (
+    <div hidden>
+      {tabs
+        .filter((tab) => tab.id !== activeId)
+        .map((tab) => (
+          <section key={tab.id} aria-label={tab.label}>
+            <h2>{tab.label}</h2>
+            {tab.items?.length ? (
+              <ul>
+                {tab.items.map((item) => (
+                  <li key={`${item.title}-${item.year}`}>
+                    {item.href ? <a href={item.href}>{item.title}</a> : item.title}
+                    {item.company ? `, ${item.company}` : ""}
+                    {item.year ? ` (${item.year})` : ""}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {tab.body?.map((paragraph) => <p key={paragraph.slice(0, 40)}>{paragraph}</p>)}
+            {tab.posts?.length ? (
+              <ul>
+                {tab.posts.map((post) => (
+                  <li key={post.title}>
+                    {post.href ? <a href={post.href}>{post.title}</a> : post.title} <time dateTime={post.date}>{post.date}</time>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {tab.links?.length ? (
+              <ul>
+                {tab.links.map((link) => (
+                  <li key={link.href}>
+                    <a href={link.href}>{link.label}</a>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
+        ))}
     </div>
   );
 }

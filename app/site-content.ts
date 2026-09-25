@@ -177,32 +177,12 @@ export const TABS: Tab[] = [
     ],
   },
   {
-    // Its own tab now, rather than a section under the bio. Placeholders for
-    // the moment: rows have no href, so they show the hand but go nowhere.
+    // Filled from content/writing at build time (app/(site)/page.tsx), and
+    // managed in the admin at /admin.
     id: "writing",
     label: "Writing",
-    posts: [
-      {
-        title: "Your agent eval suite is measuring the wrong thing",
-        date: "2026-06-18",
-      },
-      {
-        title: "Terraform state is a coordination problem, not a file",
-        date: "2026-02-04",
-      },
-      {
-        title: "Checkpointing inference jobs on spot instances",
-        date: "2025-11-12",
-      },
-      {
-        title: "Retrieval was never the hard part",
-        date: "2025-07-30",
-      },
-      {
-        title: "Notes on tuning RHEL for latency-sensitive workloads",
-        date: "2024-09-09",
-      },
-    ],
+    posts: [],
+    empty: "Nothing published yet.",
   },
   {
     id: "about",

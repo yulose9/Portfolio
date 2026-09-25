@@ -19,6 +19,30 @@ const current = (id: string) => `drafts/${id}/current.json`;
 const revPrefix = (id: string) => `drafts/${id}/rev/`;
 const marker = (id: string) => `scheduled/${id}`;
 
+/*
+ * The pulse: one tiny object rewritten on every change to any draft. Open
+ * admin screens poll it (a single R2 head) to learn that something changed
+ * on another device, and only then fetch what they show. That keeps "live
+ * across devices" to a few cheap reads instead of re-listing everything.
+ */
+const PULSE = "meta/pulse";
+
+async function beat(env: StoreEnv, id: string) {
+  const at = new Date().toISOString();
+  await env.WRITING.put(PULSE, JSON.stringify({ at, id }), { customMetadata: { at, id } });
+}
+
+export async function pulse(env: StoreEnv): Promise<{ at: string | null; id: string | null }> {
+  const head = await env.WRITING.head(PULSE);
+  return { at: head?.customMetadata?.at ?? null, id: head?.customMetadata?.id ?? null };
+}
+
+/** The draft's last save time, without reading the draft. */
+export async function draftVersion(env: StoreEnv, id: string): Promise<string | null> {
+  const head = await env.WRITING.head(current(id));
+  return head?.customMetadata?.updatedAt ?? null;
+}
+
 /** Kept per post. Autosave only snapshots every ten minutes, so this is days of work. */
 const MAX_REVISIONS = 60;
 const AUTOSNAPSHOT_MS = 10 * 60 * 1000;
@@ -33,6 +57,7 @@ export async function putDraft(env: StoreEnv, draft: Draft): Promise<void> {
     httpMetadata: { contentType: "application/json" },
     customMetadata: { title: draft.title.slice(0, 200), status: draft.status, updatedAt: draft.updatedAt },
   });
+  await beat(env, draft.id);
 }
 
 export async function listDrafts(env: StoreEnv): Promise<Draft[]> {
@@ -103,6 +128,7 @@ export async function deleteDraft(env: StoreEnv, id: string): Promise<void> {
   } while (cursor);
   // R2 deletes up to 1000 keys per call.
   for (let i = 0; i < keys.length; i += 1000) await env.WRITING.delete(keys.slice(i, i + 1000));
+  await beat(env, id);
 }
 
 export async function setScheduled(env: StoreEnv, id: string, publishAt: string | null): Promise<void> {

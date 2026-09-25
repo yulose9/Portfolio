@@ -29,8 +29,31 @@ export class PublishError extends Error {
   }
 }
 
-/** Every live post, parsed. Unparseable files are skipped, not fatal. */
+/*
+ * What's live, from GitHub, cached for a minute at the edge. The list screen
+ * refreshes itself while open, and without this every refresh would cost a
+ * GitHub call per post. Publishing clears it, so a publish shows at once.
+ */
+const liveKey = (env: GitHubEnv) => new Request(`https://cms.internal/live/${env.GITHUB_REPO}/${env.GITHUB_BRANCH}`);
+const edgeCache = () => (typeof caches !== "undefined" ? (caches as unknown as { default: Cache }).default : null);
+
 export async function livePosts(env: GitHubEnv): Promise<Post[]> {
+  const cache = edgeCache();
+  const hit = await cache?.match(liveKey(env)).catch(() => undefined);
+  if (hit) return (await hit.json()) as Post[];
+  const posts = await readLivePosts(env);
+  await cache
+    ?.put(liveKey(env), new Response(JSON.stringify(posts), { headers: { "Cache-Control": "max-age=60", "Content-Type": "application/json" } }))
+    .catch(() => undefined);
+  return posts;
+}
+
+async function forgetLive(env: GitHubEnv) {
+  await edgeCache()?.delete(liveKey(env)).catch(() => undefined);
+}
+
+/** Every live post, parsed. Unparseable files are skipped, not fatal. */
+async function readLivePosts(env: GitHubEnv): Promise<Post[]> {
   const files = (await listDir(env, CONTENT_DIR)).filter((f) => f.name.endsWith(".md"));
   const posts = await Promise.all(
     files.map(async (f) => {
@@ -54,7 +77,9 @@ function validate(draft: Draft) {
   if (!draft.title.trim()) throw new PublishError("Give it a title first.");
   if (!isValidSlug(draft.slug))
     throw new PublishError("The URL can only use lowercase letters, numbers and single hyphens.");
-  if (!draft.body.trim()) throw new PublishError("There's nothing in the body yet.");
+  // A listed-only note can be just a title; a post with a page needs words on it.
+  if (draft.page !== false && !draft.body.trim())
+    throw new PublishError("There's nothing in the body yet. Write something, or turn off “Has its own page” to list just the title.");
   if (draft.cover && !draft.cover.alt.trim()) throw new PublishError("The cover image needs alt text.");
 }
 
@@ -79,6 +104,7 @@ export async function publish(env: CmsEnv, draft: Draft, label = "Published"): P
   const summary =
     verb === "move" ? `writing: move “${post.title}” to /writing/${post.slug}` : `writing: ${verb} “${post.title}”`;
   await commit(env, summary, changes);
+  await forgetLive(env);
 
   const next: Draft = {
     ...draft,
@@ -117,6 +143,7 @@ export async function schedule(env: CmsEnv, draft: Draft, publishAt: string): Pr
 export async function unpublish(env: CmsEnv, draft: Draft): Promise<Draft> {
   if (draft.liveSlug) {
     await commit(env, `writing: unpublish “${draft.title.trim()}”`, [{ path: postPath(draft.liveSlug), delete: true }]);
+    await forgetLive(env);
   }
   const next: Draft = {
     ...draft,
@@ -140,4 +167,5 @@ export async function removeLive(env: GitHubEnv, draft: Draft | null, post: Post
   // Only if it's really there: deleting a missing path fails the whole commit.
   if ((await readFile(env, postPath(slug))) === null) return;
   await commit(env, `writing: delete “${title.trim()}”`, [{ path: postPath(slug), delete: true }]);
+  await forgetLive(env);
 }

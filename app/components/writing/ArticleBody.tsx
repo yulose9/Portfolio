@@ -1,15 +1,16 @@
+import type { Root } from "hast";
 import { toJsxRuntime, type Components } from "hast-util-to-jsx-runtime";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import { Tweet } from "react-tweet";
 
 import { threadsFrame, youtubeFrame, type Embed } from "../../../cms/embeds";
-import { markdownTree } from "../../lib/writing";
 
 /*
  * The body of an article, rendered at build time. The Markdown's hast tree
  * becomes React here, so an embed is a component rather than a string: a post
  * on X is fetched and drawn by react-tweet during the build (no X script ever
- * loads for readers), Threads and YouTube get lazy iframes.
+ * loads for readers), Threads and YouTube get lazy iframes. Images are marked
+ * for the zoom the page's enhancement island adds.
  */
 
 function EmbedBlock(props: Record<string, unknown>) {
@@ -29,13 +30,7 @@ function EmbedBlock(props: Record<string, unknown>) {
   if (embed.kind === "threads") {
     return (
       <div className="embed embed-threads">
-        <iframe
-          src={threadsFrame(embed)}
-          title={`Threads post by @${embed.user}`}
-          loading="lazy"
-          scrolling="no"
-          allowFullScreen
-        />
+        <iframe src={threadsFrame(embed)} title={`Threads post by @${embed.user}`} loading="lazy" scrolling="no" allowFullScreen />
         <a className="embed-source" href={embed.url} target="_blank" rel="noreferrer">
           View on Threads
         </a>
@@ -56,12 +51,14 @@ function EmbedBlock(props: Record<string, unknown>) {
   );
 }
 
-export default async function ArticleBody({ markdown }: { markdown: string }) {
-  const tree = await markdownTree(markdown);
+// eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+const ZoomableImage = (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} data-zoom="" />;
+
+export default function ArticleBody({ tree }: { tree: Root }) {
   return toJsxRuntime(tree, {
     Fragment,
     jsx,
     jsxs,
-    components: { "x-embed": EmbedBlock } as unknown as Partial<Components>,
+    components: { "x-embed": EmbedBlock, img: ZoomableImage } as unknown as Partial<Components>,
   });
 }

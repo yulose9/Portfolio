@@ -36,12 +36,23 @@ type Lexer = MarkdownLexerConfiguration & {
 
 export const CALLOUT_TYPES = ["note", "tip", "important", "warning", "caution"] as const;
 export type CalloutType = (typeof CALLOUT_TYPES)[number];
-export const CALLOUT_EMOJI: Record<CalloutType, string> = {
+export const CALLOUT_EMOJI: Record<string, string> = {
   note: "💡",
   tip: "✅",
   important: "📌",
   warning: "⚠️",
   caution: "🛑",
+  // Obsidian's kinds, kept as written when a post uses them.
+  info: "ℹ️",
+  question: "❓",
+  success: "✅",
+  danger: "⛔",
+  bug: "🐛",
+  example: "📋",
+  quote: "💬",
+  abstract: "📝",
+  todo: "☑️",
+  failure: "❌",
 };
 
 declare module "@tiptap/core" {
@@ -60,6 +71,21 @@ declare module "@tiptap/core" {
   }
 }
 
+/** The five tints the page has, for fifteen kinds. */
+const TONE: Record<string, string> = {
+  info: "important",
+  abstract: "important",
+  todo: "important",
+  success: "tip",
+  question: "warning",
+  danger: "caution",
+  failure: "caution",
+  bug: "caution",
+  example: "note",
+  quote: "note",
+};
+const toneOf = (kind: string) => TONE[kind] ?? kind;
+
 export const Callout = Node.create({
   name: "callout",
   group: "block",
@@ -70,16 +96,20 @@ export const Callout = Node.create({
     return {
       type: {
         default: "note",
-        parseHTML: (el) => el.getAttribute("data-type") ?? "note",
-        renderHTML: (attrs) => ({ "data-type": attrs.type }),
+        parseHTML: (el) => el.getAttribute("data-kind") ?? el.getAttribute("data-type") ?? "note",
+        renderHTML: (attrs) => ({ "data-type": toneOf(attrs.type as string), "data-kind": attrs.type }),
       },
+      // Obsidian's extras, carried through untouched: a title after the
+      // type, and "-" / "+" for a foldable callout.
+      title: { default: "", renderHTML: () => ({}) },
+      fold: { default: "", renderHTML: () => ({}) },
     };
   },
   parseHTML() {
     return [{ tag: "aside.callout" }, { tag: "div[data-callout]" }];
   },
   renderHTML({ node, HTMLAttributes }) {
-    const type = (node.attrs.type as CalloutType) ?? "note";
+    const type = (node.attrs.type as string) ?? "note";
     const emoji = CALLOUT_EMOJI[type] ?? CALLOUT_EMOJI.note;
     return [
       "aside",
@@ -115,7 +145,7 @@ export const Callout = Node.create({
             if (node.type.name !== this.name) return false;
             if (!(event.target as Element).closest?.("[data-callout-toggle]")) return false;
             const i = CALLOUT_TYPES.indexOf(node.attrs.type as CalloutType);
-            const next = CALLOUT_TYPES[(i + 1) % CALLOUT_TYPES.length];
+            const next = CALLOUT_TYPES[(i + 1) % CALLOUT_TYPES.length] ?? "note";
             view.dispatch(view.state.tr.setNodeMarkup(nodePos, undefined, { ...node.attrs, type: next }));
             return true;
           },
@@ -127,18 +157,25 @@ export const Callout = Node.create({
   markdownTokenizer: {
     name: "callout",
     level: "block",
-    start: (src: string) => src.search(/^ {0,3}> ?\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/im),
+    start: (src: string) => src.search(/^ {0,3}> ?\[![a-z]+\]/im),
     tokenize: (src: string, _tokens: MarkdownToken[], config: MarkdownLexerConfiguration) => {
       const lexer = config as Lexer;
-      const match = /^ {0,3}> ?\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\][^\n]*(?:\n|$)((?: {0,3}>[^\n]*(?:\n|$))*)/i.exec(src);
-      if (!match) return undefined;
-      const inner = match[2].replace(/^ {0,3}> ?/gm, "");
-      return { type: "callout", raw: match[0], calloutType: match[1].toLowerCase(), tokens: lexer.blockTokens(inner) };
+      const match = /^ {0,3}> ?\[!([a-z]+)\]([+-]?)[ \t]*([^\n]*)(?:\n|$)((?: {0,3}>[^\n]*(?:\n|$))*)/i.exec(src);
+      if (!match || !CALLOUT_EMOJI[match[1].toLowerCase()]) return undefined;
+      const inner = match[4].replace(/^ {0,3}> ?/gm, "");
+      return {
+        type: "callout",
+        raw: match[0],
+        calloutType: match[1].toLowerCase(),
+        fold: match[2],
+        title: match[3].trim(),
+        tokens: lexer.blockTokens(inner || " "),
+      };
     },
   },
   parseMarkdown: (token: MarkdownToken, helpers: MarkdownParseHelpers) => ({
     type: "callout",
-    attrs: { type: token.calloutType ?? "note" },
+    attrs: { type: token.calloutType ?? "note", title: token.title ?? "", fold: token.fold ?? "" },
     content: helpers.parseChildren(token.tokens ?? []),
   }),
   renderMarkdown: (node: JSONContent, helpers: MarkdownRendererHelpers) => {
@@ -147,7 +184,8 @@ export const Callout = Node.create({
       .split("\n")
       .map((line) => (line ? `> ${line}` : ">"))
       .join("\n");
-    return `> [!${String(node.attrs?.type ?? "note").toUpperCase()}]\n${quoted}`;
+    const title = node.attrs?.title ? ` ${node.attrs.title}` : "";
+    return `> [!${String(node.attrs?.type ?? "note").toUpperCase()}]${node.attrs?.fold ?? ""}${title}\n${quoted}`;
   },
 });
 
@@ -369,6 +407,33 @@ export const Find = Extension.create({
               state.doc,
               s.matches.map((m, i) => Decoration.inline(m.from, m.to, { class: i === s.index ? "find-match find-current" : "find-match" }))
             );
+          },
+        },
+      }),
+    ];
+  },
+});
+
+/* ── The block you're in (for focus mode) ────────────────────────────── */
+
+/**
+ * Marks the top-level block holding the caret with .is-current, so focus
+ * mode can dim everything else (iA Writer's focus, without leaving the page).
+ */
+export const CurrentBlock = Extension.create({
+  name: "currentBlock",
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey("currentBlock"),
+        props: {
+          decorations(state) {
+            const { $from } = state.selection;
+            if ($from.depth === 0) return null;
+            const start = $from.before(1);
+            const node = state.doc.nodeAt(start);
+            if (!node) return null;
+            return DecorationSet.create(state.doc, [Decoration.node(start, start + node.nodeSize, { class: "is-current" })]);
           },
         },
       }),

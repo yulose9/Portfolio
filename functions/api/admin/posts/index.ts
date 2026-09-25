@@ -26,6 +26,7 @@ export const onRequestPost: AdminFunction = async ({ env, request }) => {
     icon: null,
     authors: [DEFAULT_AUTHOR],
     fonts: null,
+    page: true,
     tags: [],
     cover: null,
     body: "",
