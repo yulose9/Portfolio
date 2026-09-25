@@ -94,7 +94,7 @@ async function uploadPhoto(file: File, progress: Progress): Promise<Uploaded> {
     if (largest) main = { src: res.src, width, height };
   }
   bitmap.close();
-  if (!main) throw new ApiError("Nothing was uploaded.", 0);
+  if (!main) throw new ApiError("The upload came back empty. Try again.", 0);
   return { kind: "image", ...main };
 }
 

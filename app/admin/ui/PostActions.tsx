@@ -21,7 +21,7 @@ import {
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { Menu } from "@base-ui/react/menu";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 import { serializePost, draftToPost } from "../../../cms/format";
 import { copy } from "../../components/menu/actions";
@@ -30,6 +30,7 @@ import { toast } from "../../lib/toast";
 import { api, ApiError, type PostSummary } from "./api";
 import type { Panel } from "./Editor";
 import { MenuSurface, MItem, MLabel, MSep } from "./menu";
+import type { Command } from "./registry";
 
 /*
  * Everything you can do to a post from the list, offered twice: on right-click
@@ -87,7 +88,7 @@ function rowCommands(p: PostSummary, actions: RowActions, askDelete: () => void,
     );
   }
 
-  const toTrash = busy("delete it", async () => {
+  const toTrash = busy("move it to Trash", async () => {
     const { post } = await api.remove(p.id);
     actions.replace(post ? { ...p, trashedAt: post.trashedAt ?? new Date().toISOString(), status: "draft", liveSlug: null } : null, p.id);
     const id = toast.add({
@@ -130,7 +131,7 @@ function rowCommands(p: PostSummary, actions: RowActions, askDelete: () => void,
           icon={<PaperPlaneTilt {...I} />}
           onSelect={busy("publish", async () => {
             const { post } = await api.publish(p.id);
-            toast.add({ type: "success", title: "Published", description: "Live in about a minute, once the site rebuilds." });
+            toast.add({ type: "success", title: "Published", description: "Live in about 3 minutes, once the site rebuilds." });
             actions.replace({ ...p, status: post.status, liveSlug: post.liveSlug, dirty: post.dirty, publishedAt: post.publishedAt, updatedAt: post.updatedAt }, p.id);
           })}
         >
@@ -157,9 +158,9 @@ function rowCommands(p: PostSummary, actions: RowActions, askDelete: () => void,
       {p.status !== "draft" ? (
         <MItem
           icon={<ArrowUUpLeft {...I} />}
-          onSelect={busy("do that", async () => {
+          onSelect={busy(p.status === "scheduled" ? "cancel the schedule" : "unpublish", async () => {
             const { post } = await api.unpublish(p.id);
-            toast.add({ type: "success", title: p.status === "scheduled" ? "Schedule cancelled" : "Unpublished", description: p.status === "scheduled" ? undefined : "It leaves the site with the next build." });
+            toast.add({ type: "success", title: p.status === "scheduled" ? "Schedule cancelled" : "Unpublished", description: p.status === "scheduled" ? undefined : "It leaves the site in about 3 minutes." });
             actions.replace({ ...p, status: post.status, liveSlug: null, publishAt: null, dirty: true, updatedAt: post.updatedAt }, p.id);
           })}
         >
@@ -219,11 +220,47 @@ function rowCommands(p: PostSummary, actions: RowActions, askDelete: () => void,
 }
 
 /** A row wrapped in its right-click menu, with the ⋯ button and the delete confirmation. */
-export function PostRow({ post, actions, children, onSelect }: { post: PostSummary; actions: RowActions; children: React.ReactNode; onSelect?: () => void }) {
+/**
+ * `selection`: when this row is one of several checked, its menus act on all
+ * of them, with the same actions as the bulk bar and the palette.
+ */
+export function PostRow({
+  post,
+  actions,
+  children,
+  onSelect,
+  selection,
+}: {
+  post: PostSummary;
+  actions: RowActions;
+  children: React.ReactNode;
+  onSelect?: () => void;
+  selection?: Command[];
+}) {
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const fine = useFinePointer();
-  const items = rowCommands(post, actions, () => setConfirm(true), onSelect);
+  const items = selection ? (
+    <>
+      <MLabel>{selection.filter((c) => c.id !== "sel:clear").length ? "Selected posts" : ""}</MLabel>
+      {selection.map((c) =>
+        c.id === "sel:clear" ? (
+          <Fragment key={c.id}>
+            <MSep />
+            <MItem icon={c.icon} keys={c.keys} onSelect={c.run}>
+              {c.title}
+            </MItem>
+          </Fragment>
+        ) : (
+          <MItem key={c.id} icon={c.icon} danger={c.id === "sel:trash" || c.id === "sel:destroy"} disabled={Boolean(c.disabled)} onSelect={c.run}>
+            {c.title}
+          </MItem>
+        )
+      )}
+    </>
+  ) : (
+    rowCommands(post, actions, () => setConfirm(true), onSelect)
+  );
 
   const remove = async () => {
     setDeleting(true);
@@ -232,7 +269,7 @@ export function PostRow({ post, actions, children, onSelect }: { post: PostSumma
       toast.add({ type: "success", title: "Deleted forever" });
       actions.replace(null, post.id);
     } catch (error) {
-      toast.add({ type: "error", title: "Couldn’t delete", description: error instanceof ApiError ? error.message : undefined });
+      toast.add({ type: "error", title: "Couldn’t delete it forever", description: error instanceof ApiError ? error.message : undefined });
     } finally {
       setDeleting(false);
       setConfirm(false);
@@ -263,7 +300,7 @@ export function PostRow({ post, actions, children, onSelect }: { post: PostSumma
             <div className="sheet-header">
               <div>
                 <AlertDialog.Title className="sheet-title">Delete “{post.title.trim() || "Untitled"}” forever?</AlertDialog.Title>
-                <AlertDialog.Description className="sheet-description">The post and its whole history are deleted. This can’t be undone.</AlertDialog.Description>
+                <AlertDialog.Description className="sheet-description">Its revision history goes with it. This can’t be undone.</AlertDialog.Description>
               </div>
             </div>
             <div className="sheet-body">

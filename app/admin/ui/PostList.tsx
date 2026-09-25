@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarBlank, CaretDown, Checks, FileText, MagnifyingGlass, PaperPlaneTilt, PushPin, Tag as TagIcon, TextAlignLeft, Trash, Tray } from "@phosphor-icons/react";
+import { ArrowSquareOut, CalendarBlank, CaretDown, Checks, FileText, MagnifyingGlass, PaperPlaneTilt, PushPin, Tag as TagIcon, TextAlignLeft, Trash, Tray } from "@phosphor-icons/react";
 import { Menu } from "@base-ui/react/menu";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -11,8 +11,8 @@ import { relative, StatusDot, statusLabel } from "./bits";
 import type { Panel } from "./Editor";
 import { Fluent } from "./extensions/emoji";
 import { usePulse } from "./live";
-import BulkBar, { Checkbox } from "./BulkBar";
-import { MenuSurface, MItem, MLabel } from "./menu";
+import BulkBar, { Checkbox, useBulk } from "./BulkBar";
+import { keys, MenuSurface, MItem, MLabel } from "./menu";
 import { useCommands } from "./registry";
 import { PostRow } from "./PostActions";
 import { TEMPLATES, type Template } from "./templates";
@@ -84,7 +84,7 @@ export default function PostList({ email, onOpen, onSearch }: { email: string; o
       const { post } = await api.create(template?.init ?? {});
       onOpen(post.id);
     } catch (error) {
-      toast.add({ type: "error", title: "Couldn’t start a post", description: error instanceof ApiError ? error.message : undefined });
+      toast.add({ type: "error", title: "Couldn’t create a post", description: error instanceof ApiError ? error.message : undefined });
       setCreating(false);
     }
   };
@@ -176,7 +176,16 @@ export default function PostList({ email, onOpen, onSearch }: { email: string; o
 
   const allChecked = shown.length > 0 && picked.length === shown.length;
 
+  const bulk = useBulk({
+    selected: picked,
+    inTrash: filter === "trash",
+    onClear: () => setSelected(new Set()),
+    onDone: () => setVersion((v) => v + 1),
+    onOpen: (id) => onOpen(id),
+  });
+
   useCommands(() => [
+    ...bulk.commands,
     ...FILTERS.map((f) => ({
       id: `filter:${f.id}`,
       group: "Posts" as const,
@@ -205,6 +214,12 @@ export default function PostList({ email, onOpen, onSearch }: { email: string; o
           <p className="admin-eyebrow">nazarene.dev · {email}</p>
           <h1 className="admin-list-title">Writing</h1>
         </div>
+        <div className="admin-list-actions">
+        <a className="admin-button admin-button-quiet" href="/writing" target="_blank" rel="noopener" title="Open nazarene.dev/writing in a new tab">
+          <ArrowSquareOut size={14} aria-hidden="true" />
+          <span className="admin-hide-sm">View on site</span>
+          <span className="admin-show-sm">Site</span>
+        </a>
         <div className="split-button">
           <button type="button" className="admin-button admin-button-primary split-main" data-keycap onClick={() => void create()} disabled={creating}>
             New post
@@ -226,6 +241,7 @@ export default function PostList({ email, onOpen, onSearch }: { email: string; o
               ))}
             </MenuSurface>
           </Menu.Root>
+        </div>
         </div>
       </header>
 
@@ -253,10 +269,10 @@ export default function PostList({ email, onOpen, onSearch }: { email: string; o
             <input ref={search} type="search" placeholder="Filter" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Filter posts by title" />
             <kbd className="admin-kbd">/</kbd>
           </label>
-          <button type="button" className="admin-button" onClick={onSearch} title="Search the words inside every post">
+          <button type="button" className="admin-button" onClick={onSearch} title="Search every post, and run actions">
             <TextAlignLeft size={14} aria-hidden="true" />
-            <span className="admin-hide-sm">Search text</span>
-            <kbd className="admin-kbd">⌘K</kbd>
+            <span className="admin-hide-sm">Search</span>
+            <kbd className="admin-kbd">{keys("⌘K")}</kbd>
           </button>
         </div>
       </div>
@@ -281,7 +297,7 @@ export default function PostList({ email, onOpen, onSearch }: { email: string; o
       ) : shown.length === 0 ? (
         <div className="admin-empty">
           {filter === "trash" ? (
-            <p className="admin-empty-text">Trash is empty. Deleted posts wait here for 60 days.</p>
+            <p className="admin-empty-text">Trash is empty. Posts you move to Trash wait here for 60 days.</p>
           ) : live.length === 0 ? (
             <>
               <p className="admin-empty-title">Nothing written yet</p>
@@ -306,7 +322,7 @@ export default function PostList({ email, onOpen, onSearch }: { email: string; o
           {shown.map((p) => (
             <li key={p.id} data-selected={selected.has(p.id) || undefined}>
               <Checkbox checked={selected.has(p.id)} label={`Select “${p.title.trim() || "Untitled"}”`} onToggle={(e) => toggle(p.id, e.shiftKey)} />
-              <PostRow post={p} actions={rowActions} onSelect={() => toggle(p.id, false)}>
+              <PostRow post={p} actions={rowActions} onSelect={() => toggle(p.id, false)} selection={picked.length > 1 && selected.has(p.id) ? bulk.commands : undefined}>
                 <button
                   type="button"
                   className="admin-row"
@@ -329,7 +345,7 @@ export default function PostList({ email, onOpen, onSearch }: { email: string; o
                   </span>
                   <span className="admin-row-meta">
                     <StatusDot status={p.status} dirty={p.dirty} />
-                    <span>{p.trashedAt ? `Deleted ${relative(p.trashedAt)}` : statusLabel(p)}</span>
+                    <span>{p.trashedAt ? `Trashed ${relative(p.trashedAt)}` : statusLabel(p)}</span>
                     <span aria-hidden="true">·</span>
                     <span>{p.status === "scheduled" && p.publishAt ? relative(p.publishAt) : `edited ${relative(p.updatedAt)}`}</span>
                     {p.tags.slice(0, 3).map((t) => (
@@ -350,14 +366,7 @@ export default function PostList({ email, onOpen, onSearch }: { email: string; o
         </>
       )}
 
-      <BulkBar
-        selected={picked}
-        inTrash={filter === "trash"}
-        total={shown.length}
-        onSelectAll={() => setSelected(new Set(shown.map((p) => p.id)))}
-        onClear={() => setSelected(new Set())}
-        onDone={() => setVersion((v) => v + 1)}
-      />
+      <BulkBar bulk={bulk} total={shown.length} onSelectAll={() => setSelected(new Set(shown.map((p) => p.id)))} onClear={() => setSelected(new Set())} />
     </main>
   );
 }

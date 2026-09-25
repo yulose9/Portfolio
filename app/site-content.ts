@@ -85,6 +85,35 @@ export const TOOLS: Tool[] = [
 
 export const TABS: Tab[] = [
   {
+    id: "about",
+    label: "About",
+    body: [
+      "I am a Computer Engineer based in Cavite, Philippines, working as an AI Specialist at FEAREX Technologies.",
+      "Most of what I build sits where AI meets infrastructure — agentic systems, the platforms they run on, and the tooling that keeps them dependable once they are in production. I care about the unglamorous half: evaluation, orchestration, and the plumbing that decides whether any of it survives contact with real use.",
+      "Before this I spent two years as a Solutions Architect across AWS and RHEL, which is where the infrastructure instincts come from.",
+    ],
+    links: [
+      {
+        label: "Email",
+        href: "mailto:jannazarene09@gmail.com",
+        icon: "email",
+      },
+      { label: "GitHub", href: "https://github.com/yulose9", icon: "github" },
+      {
+        label: "LinkedIn",
+        href: "https://www.linkedin.com/in/jannazarene",
+        icon: "linkedin",
+      },
+      { label: "X", href: "https://x.com/xcszan", icon: "x" },
+      {
+        label: "Resume",
+        href: "https://johnnazarene-resume.s3.ap-southeast-1.amazonaws.com/John_Nazarene_Resume_Latest_Cert.pdf",
+        display: "Download PDF",
+        icon: "resume",
+      },
+    ],
+  },
+  {
     id: "work",
     label: "Work",
     items: [
@@ -183,34 +212,5 @@ export const TABS: Tab[] = [
     label: "Writing",
     posts: [],
     empty: "Nothing published yet.",
-  },
-  {
-    id: "about",
-    label: "About",
-    body: [
-      "I am a Computer Engineer based in Cavite, Philippines, working as an AI Specialist at FEAREX Technologies.",
-      "Most of what I build sits where AI meets infrastructure — agentic systems, the platforms they run on, and the tooling that keeps them dependable once they are in production. I care about the unglamorous half: evaluation, orchestration, and the plumbing that decides whether any of it survives contact with real use.",
-      "Before this I spent two years as a Solutions Architect across AWS and RHEL, which is where the infrastructure instincts come from.",
-    ],
-    links: [
-      {
-        label: "Email",
-        href: "mailto:jannazarene09@gmail.com",
-        icon: "email",
-      },
-      { label: "GitHub", href: "https://github.com/yulose9", icon: "github" },
-      {
-        label: "LinkedIn",
-        href: "https://www.linkedin.com/in/jannazarene",
-        icon: "linkedin",
-      },
-      { label: "X", href: "https://x.com/xcszan", icon: "x" },
-      {
-        label: "Resume",
-        href: "https://johnnazarene-resume.s3.ap-southeast-1.amazonaws.com/John_Nazarene_Resume_Latest_Cert.pdf",
-        display: "Download PDF",
-        icon: "resume",
-      },
-    ],
   },
 ];

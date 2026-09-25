@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   referrer: "same-origin",
 };
 
-export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#ffffff" };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#ffffff", viewportFit: "cover" };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (

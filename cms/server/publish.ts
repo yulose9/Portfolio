@@ -90,7 +90,7 @@ function preparePublish(posts: Post[], draft: Draft, now: string, taken: Set<str
   validate(draft);
   const owner = slugOwner(posts, draft.slug, draft.id);
   if (owner) throw new PublishError(`“${owner.title}” already uses /writing/${draft.slug}.`, 409);
-  if (taken.has(draft.slug)) throw new PublishError(`Two of these posts want /writing/${draft.slug}.`, 409);
+  if (taken.has(draft.slug)) throw new PublishError(`Two selected posts use /writing/${draft.slug}. Change one URL.`, 409);
   taken.add(draft.slug);
 
   const renamed = draft.liveSlug !== null && draft.liveSlug !== draft.slug;
@@ -186,7 +186,7 @@ export async function unpublishMany(env: CmsEnv, drafts: Draft[]): Promise<Draft
 
 export async function schedule(env: CmsEnv, draft: Draft, publishAt: string): Promise<Draft> {
   validate(draft);
-  if (draft.liveSlug !== null) throw new PublishError("This post is already live; publish the edit instead.");
+  if (draft.liveSlug !== null) throw new PublishError("This post is already live, so it can’t be scheduled. Publish the changes now.");
   const at = Date.parse(publishAt);
   if (!Number.isFinite(at)) throw new PublishError("That date isn't valid.");
   if (at <= Date.now() + 60_000) throw new PublishError("Pick a time at least a minute from now.");
@@ -217,7 +217,7 @@ export async function unpublish(env: CmsEnv, draft: Draft): Promise<Draft> {
   };
   await putDraft(env, next);
   await setScheduled(env, draft.id, null);
-  await snapshot(env, next, true, draft.liveSlug ? "Unpublished" : "Unscheduled");
+  await snapshot(env, next, true, draft.liveSlug ? "Unpublished" : "Schedule cancelled");
   return next;
 }
 

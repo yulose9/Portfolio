@@ -62,7 +62,7 @@ const showForText = ({ editor: e, state: s }: { editor: Editor; state: Editor["s
   !s.selection.empty && e.isEditable && !e.isActive("codeBlock") && !e.isActive("image") && !e.isActive("embed");
 const showForImage = ({ editor: e }: { editor: Editor }) => e.isEditable && e.isActive("image");
 
-const mod = typeof navigator !== "undefined" && /Mac|iP/.test(navigator.platform) ? "⌘" : "Ctrl+";
+const mod = typeof navigator !== "undefined" && /Mac|iP/.test(navigator.platform) ? "⌘" : "Ctrl ";
 
 export const TextBubble = memo(function TextBubble({ editor, linkRequest }: { editor: Editor; linkRequest: number }) {
   const [editingLink, setEditingLink] = useState(false);
@@ -164,10 +164,10 @@ export const TextBubble = memo(function TextBubble({ editor, linkRequest }: { ed
             <LinkSimple size={15} weight="bold" />
           </Tool>
           <span className="bubble-sep" aria-hidden="true" />
-          <Tool label="Heading" active={state.h2} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
+          <Tool label="Heading 1" active={state.h2} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
             <TextHOne size={15} weight="bold" />
           </Tool>
-          <Tool label="Subheading" active={state.h3} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
+          <Tool label="Heading 2" active={state.h3} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
             <TextHTwo size={15} weight="bold" />
           </Tool>
           <Tool label="Quote" active={state.quote} onClick={() => editor.chain().focus().toggleBlockquote().run()}>

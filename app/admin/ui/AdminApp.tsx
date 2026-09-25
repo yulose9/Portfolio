@@ -43,7 +43,7 @@ export default function AdminApp() {
   const [options, setOptions] = useState<OpenOptions>(() => currentOptions());
   const [searching, setSearching] = useState(false);
 
-  // ⌘K anywhere but inside the text (where it makes a link): search every post.
+  // ⌘K anywhere: search and actions. Inside the text the editor opens it itself.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && !(e.target as Element | null)?.closest?.(".ProseMirror")) {
@@ -95,7 +95,7 @@ export default function AdminApp() {
     void api
       .create(init)
       .then(({ post }) => open(post.id))
-      .catch((error: unknown) => toast.add({ type: "error", title: "Couldn’t start a post", description: error instanceof ApiError ? error.message : undefined }));
+      .catch((error: unknown) => toast.add({ type: "error", title: "Couldn’t create a post", description: error instanceof ApiError ? error.message : undefined }));
 
   useCommands(() => [
     { id: "new", group: "Go to", title: "New post", keys: "N", icon: <NotePencil {...CI} />, keywords: ["create", "write", "draft", "blank"], run: () => create() },
@@ -108,7 +108,7 @@ export default function AdminApp() {
       run: () => create(t.init),
     })),
     ...(postId ? [{ id: "home", group: "Go to" as const, title: "All writing", icon: <House {...CI} />, keywords: ["home", "list", "back", "dashboard"], run: () => open(null) }] : []),
-    { id: "site", group: "Go to", title: "Open the site", icon: <ArrowSquareOut {...CI} />, keywords: ["live", "nazarene.dev", "writing"], run: () => window.open("/writing", "_blank", "noopener") },
+    { id: "site", group: "Go to", title: "View on site", icon: <ArrowSquareOut {...CI} />, keywords: ["live", "nazarene.dev", "writing"], run: () => window.open("/writing", "_blank", "noopener") },
     { id: "signout", group: "Go to", title: "Sign out", icon: <SignOut {...CI} />, keywords: ["logout", "access"], run: () => window.open("/cdn-cgi/access/logout", "_self") },
   ]);
 

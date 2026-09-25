@@ -28,7 +28,7 @@
   height: 16px;
   border-radius: 5px;
   background: #fff;
-  box-shadow: inset 0 0 0 1.5px #d4d4d8;
+  box-shadow: inset 0 0 0 1.5px #8a8a93;
   color: #fff;
   transition-property: background-color, box-shadow;
   transition-duration: 150ms;
@@ -490,13 +490,48 @@
 
 /* ── Find & replace ─────────────────────────────────────────────────── */
 
+/* Floats under the top bar (so the article doesn't jump), always mounted:
+   in and out are transitions, which reverse mid-way when interrupted. The
+   exit is quicker and smaller than the entrance. */
 .find-bar {
+  position: fixed;
+  top: 68px;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  width: min(520px, calc(100vw - 24px));
+  margin: 0 auto;
   align-items: flex-start;
   padding-left: 0.3rem;
   border-radius: 20px;
+  opacity: 0;
+  translate: 0 -6px;
+  scale: 0.98;
+  transform-origin: 50% 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition-property: opacity, translate, scale, visibility;
+  transition-duration: 140ms, 140ms, 140ms, 0s;
+  transition-delay: 0s, 0s, 0s, 140ms;
+  transition-timing-function: ease-out;
+}
+.find-bar[data-open] {
+  opacity: 1;
+  translate: 0 0;
+  scale: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition-duration: 220ms, 260ms, 260ms, 0s;
+  transition-delay: 0s;
+  transition-timing-function: ease-out, var(--ease-drawer), var(--ease-drawer), linear;
+}
+@media (max-width: 640px) {
+  .find-bar {
+    top: calc(60px + env(safe-area-inset-top));
+  }
 }
 .find-toggle svg {
-  transition: rotate 200ms var(--ease);
+  transition: rotate 220ms var(--ease-drawer);
 }
 .find-toggle[aria-expanded="true"] svg {
   rotate: 90deg;
@@ -505,7 +540,6 @@
   display: grid;
   flex: 1;
   min-width: 0;
-  gap: 0.2rem;
 }
 .find-row {
   display: flex;
@@ -513,17 +547,49 @@
   gap: 0.3rem;
   min-width: 0;
 }
-.find-replace {
-  padding-top: 0.2rem;
-  box-shadow: 0 -1px 0 var(--a-line);
-  transition-property: opacity, translate;
-  transition-duration: 180ms;
-  transition-timing-function: var(--ease);
+/* The replace row opens by height (0fr → 1fr), so the bar grows downward
+   from its top edge instead of the row popping in. */
+.find-replace-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition-property: grid-template-rows, opacity;
+  transition-duration: 200ms, 120ms;
+  transition-timing-function: var(--ease-drawer), ease-out;
 }
-@starting-style {
-  .find-replace {
-    opacity: 0;
-    translate: 0 -4px;
+.find-replace-wrap[data-open] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition-duration: 260ms, 200ms;
+  transition-delay: 0s, 60ms;
+}
+.find-replace-wrap > .find-row {
+  min-height: 0;
+  overflow: hidden;
+}
+.find-replace {
+  margin-top: 0.2rem;
+  padding-top: 0.2rem;
+  box-shadow: inset 0 1px 0 var(--a-line);
+}
+.find-count {
+  min-width: 4.5rem;
+  text-align: right;
+  transition: color 150ms ease;
+}
+.find-count[data-empty] {
+  color: var(--a-red);
+}
+/* The current match announces itself when you step to it. */
+.find-current {
+  animation: find-land 420ms var(--ease) both;
+}
+@keyframes find-land {
+  from {
+    box-shadow: 0 0 0 5px rgb(251 146 60 / 0.35);
+  }
+  to {
+    box-shadow: 0 0 0 1px #fb923c;
   }
 }
 .find-row input {
@@ -574,9 +640,6 @@
 }
 .find-action:disabled {
   opacity: 0.4;
-}
-.find-bar[data-replacing] {
-  width: min(520px, calc(100vw - 24px));
 }
 
 /* ── Palette: groups, icons, switches ─────────────────────────────────── */
@@ -633,7 +696,7 @@
   width: 28px;
   height: 16px;
   border-radius: 999px;
-  background: #e4e4e7;
+  background: #8a8a93;
   transition: background-color 200ms ease;
 }
 .palette-switch::after {
@@ -688,8 +751,20 @@
   .check-mark,
   .check-dash,
   .palette-switch::after,
-  .find-toggle svg {
+  .find-toggle svg,
+  .find-bar,
+  .find-bar[data-open],
+  .find-replace-wrap,
+  .find-replace-wrap[data-open] {
     transition-duration: 0ms;
+    transition-delay: 0ms;
+  }
+  .find-bar {
+    translate: none;
+    scale: none;
+  }
+  .find-current {
+    animation: none;
   }
   .page-view {
     animation: none;
@@ -703,4 +778,122 @@
 }
 .admin-row-meta > span {
   white-space: nowrap;
+}
+
+/* The list header: a way out to the site, then New post. */
+.admin-list-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.admin-list-actions > a.admin-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  text-decoration: none;
+}
+.admin-show-sm {
+  display: none;
+}
+@media (max-width: 639px) {
+  .admin-show-sm {
+    display: inline;
+  }
+  .menu-item.admin-show-sm {
+    display: flex;
+  }
+}
+.bulk-more kbd {
+  font: inherit;
+  font-size: 12px;
+  color: #a1a1aa;
+}
+
+/* ── From the UI audit ───────────────────────────────────────────────── */
+
+/* One layer scale. Popovers open above the sheet they came from (the date
+   picker in the publish dialog), toasts above everything. */
+.admin-body .menu-positioner {
+  z-index: 60;
+}
+
+/* Toasts rise above the bulk bar and the phone's keyboard toolbar. */
+.admin-body:has(.bulk-bar[data-open]) .toast-viewport {
+  bottom: calc(max(1.25rem, env(safe-area-inset-bottom)) + 56px);
+}
+.admin-body:has(.mobile-bar[data-visible]) .toast-viewport {
+  bottom: 64px;
+}
+
+/* Focus you can see: 2px ink rings, 3:1 or better against every surface. */
+.admin-body :is(input, textarea, select):focus-visible:not(.editor-field) {
+  box-shadow: inset 0 0 0 1.5px var(--a-ink);
+}
+.admin-body :is(button, [role="button"], [role="checkbox"], a):focus-visible {
+  outline: 2px solid var(--a-ink);
+  outline-offset: 2px;
+}
+.bulk-bar :is(button, a):focus-visible {
+  outline-color: #fff;
+  outline-offset: -2px;
+}
+
+/* 44px hit areas on touch, without changing how anything looks. */
+@media (pointer: coarse) {
+  .admin-button,
+  .admin-icon-button,
+  .bulk-action,
+  .bulk-close,
+  .admin-row-more {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  :is(.admin-chip, .admin-segment, .tag, .tag-add, .find-option, .find-action, .check, .deploy-close, .author-shuffle, .avatar-style, .embed-tool) {
+    position: relative;
+  }
+  :is(.admin-chip, .admin-segment, .tag, .tag-add, .find-option, .find-action, .check, .deploy-close, .author-shuffle, .avatar-style, .embed-tool)::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+  .dtp-calendar.rdp-root {
+    --rdp-day-height: 44px;
+    --rdp-day-width: 44px;
+    --rdp-day_button-height: 40px;
+    --rdp-day_button-width: 40px;
+  }
+  .dtp-popover {
+    width: min(21rem, calc(100vw - 16px));
+  }
+}
+
+/* Suggestions stay on screen. */
+.tag-suggest {
+  max-width: calc(100vw - 32px);
+}
+
+/* Reduced motion: fades stay, movement goes. */
+@media (prefers-reduced-motion: reduce) {
+  .admin-row-skeleton {
+    animation: none;
+  }
+  .admin-body :active {
+    scale: 1 !important;
+  }
+  .sheet[data-variant="full"][data-starting-style],
+  .sheet[data-variant="full"][data-ending-style] {
+    scale: 1;
+  }
+  .button-label,
+  .save-label,
+  .deploy-pill {
+    transition-property: opacity;
+  }
+  .author-shuffle:hover {
+    rotate: 0deg;
+  }
 }

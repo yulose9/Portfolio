@@ -128,7 +128,11 @@ export default function DateTimePicker({
   className = "admin-button",
   children,
   footer,
+  open: controlledOpen,
+  onOpenChange,
 }: {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   value: Date;
   onChange: (d: Date) => void;
   min?: Date;
@@ -138,7 +142,12 @@ export default function DateTimePicker({
   children?: React.ReactNode;
   footer?: (close: () => void) => React.ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [ownOpen, setOwnOpen] = useState(false);
+  const open = controlledOpen ?? ownOpen;
+  const setOpen = (next: boolean) => {
+    setOwnOpen(next);
+    onOpenChange?.(next);
+  };
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger className={className} aria-label={label ?? "Pick a date and time"}>

@@ -480,7 +480,7 @@ export default function PreviewSheet({
                   onPublish();
                 }}
               >
-                {doc.liveSlug ? "Publish changes" : "Publish…"}
+                {doc.liveSlug ? "Publish changes…" : "Publish…"}
               </button>
             </div>
           </header>

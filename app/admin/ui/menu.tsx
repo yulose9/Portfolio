@@ -29,7 +29,9 @@ export function MItem({
   danger,
   disabled,
   closeOnClick = true,
+  className,
 }: {
+  className?: string;
   icon?: React.ReactNode;
   children: React.ReactNode;
   keys?: string;
@@ -39,7 +41,7 @@ export function MItem({
   closeOnClick?: boolean;
 }) {
   return (
-    <Menu.Item className="menu-item" data-danger={danger || undefined} disabled={disabled} closeOnClick={closeOnClick} onClick={onSelect}>
+    <Menu.Item className={className ? `menu-item ${className}` : "menu-item"} data-danger={danger || undefined} disabled={disabled} closeOnClick={closeOnClick} onClick={onSelect}>
       {icon ? (
         <span className="menu-item-icon" aria-hidden="true">
           {icon}
@@ -179,4 +181,6 @@ export function MSub({ icon, label, children }: { icon?: React.ReactNode; label:
 
 /** ⌘ on Apple keyboards, Ctrl elsewhere, for shortcut hints. */
 export const MOD = typeof navigator !== "undefined" && /Mac|iP/.test(navigator.platform) ? "⌘" : "Ctrl ";
-export const keys = (k: string) => k.replace("⌘", MOD).replace("⇧", MOD === "⌘" ? "⇧" : "Shift ");
+/** Every modifier in a hint, for this keyboard: "⌘⇧P" is "Ctrl Shift P" on Windows. */
+export const keys = (k: string) =>
+  MOD === "⌘" ? k : k.replaceAll("⌘", "Ctrl ").replaceAll("⇧", "Shift ").replaceAll("⌥", "Alt ").replaceAll("↵", "Enter");

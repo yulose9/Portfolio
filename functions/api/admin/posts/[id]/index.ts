@@ -41,7 +41,7 @@ export const onRequestPut: AdminFunction<"id"> = async ({ env, params, request }
   if (edit.publishedAt !== undefined) {
     if (edit.publishedAt === null) next.publishedAt = null;
     else if (typeof edit.publishedAt === "string" && !Number.isNaN(Date.parse(edit.publishedAt))) next.publishedAt = new Date(edit.publishedAt).toISOString();
-    else throw new HttpError("That date isn't one I can read.");
+    else throw new HttpError("That date isn’t valid.");
   }
   if (next.body.length > 400_000) throw new HttpError("That's longer than a post can be (400k characters).", 413);
 

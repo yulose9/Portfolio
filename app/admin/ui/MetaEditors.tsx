@@ -288,7 +288,7 @@ export function ShareImageField({ ogImage, hasCover, onChange }: { ogImage: stri
         <span className="field-help">{hasCover ? "The cover, as it is." : "Add a cover first."}</span>
       </button>
       <button type="button" role="radio" aria-checked={mode === "custom"} className="share-option" onClick={() => pick.current?.click()} disabled={busy}>
-        <span className="share-option-title">{busy ? "Uploading…" : mode === "custom" ? "Custom image (change)" : "Upload an image"}</span>
+        <span className="share-option-title">{busy ? "Uploading…" : mode === "custom" ? "Custom image, click to replace" : "Upload an image"}</span>
         <span className="field-help">Cropped to 1200×630 for you.</span>
         {mode === "custom" && ogImage ? (
           // eslint-disable-next-line @next/next/no-img-element

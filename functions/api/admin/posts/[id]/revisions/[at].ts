@@ -6,7 +6,7 @@ import { getRevision, putDraft, snapshot } from "../../../../../../cms/server/st
 type P = "id" | "at";
 
 async function find(env: AdminEnv, id: string, at: string): Promise<Draft> {
-  if (!/^\d{4}-\d\d-\d\dT[\d:.]+Z$/.test(at)) throw new HttpError("Not a revision.");
+  if (!/^\d{4}-\d\d-\d\dT[\d:.]+Z$/.test(at)) throw new HttpError("That revision link isn’t valid.");
   const rev = await getRevision(env, id, at);
   if (!rev) throw new HttpError("That revision is gone.", 404);
   return rev;

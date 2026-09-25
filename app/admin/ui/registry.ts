@@ -12,7 +12,7 @@ import { useEffect, useId, useRef } from "react";
 export type Command = {
   id: string;
   title: string;
-  group: "Post" | "View" | "Insert" | "Turn into" | "Edit" | "Go to" | "Posts";
+  group: "Selected" | "Selection" | "Post" | "View" | "Insert" | "Turn into" | "Edit" | "Go to" | "Posts";
   icon: React.ReactNode;
   keys?: string;
   keywords?: string[];
@@ -48,7 +48,9 @@ export function allCommands(): Command[] {
       seen.add(c.id);
       out.push(c);
     }
-  return out;
+  // What you've selected comes first: that's what ⌘K was pressed for.
+  const first = (c: Command) => (c.group === "Selected" || c.group === "Selection" ? 0 : 1);
+  return out.map((c, i) => [c, i] as const).sort((a, b) => first(a[0]) - first(b[0]) || a[1] - b[1]).map(([c]) => c);
 }
 
 /** Loose matching: every word of the query appears in the title or keywords, in any order. */

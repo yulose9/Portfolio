@@ -9,6 +9,12 @@ import {
   BookOpenText,
   CalendarBlank,
   Check,
+  Code,
+  HighlighterCircle,
+  TextB,
+  TextItalic,
+  TextStrikethrough,
+  TextUnderline,
   ClockCounterClockwise,
   CopySimple,
   CursorText,
@@ -52,7 +58,7 @@ import { toast } from "../../lib/toast";
 import { altFromName, api, ApiError, type Draft } from "./api";
 import { exactTime, StatusDot, statusLabel } from "./bits";
 import { ImageBubble, TextBubble } from "./Bubble";
-import { BLOCKS, currentBlock, duplicateBlock, inserts, moveBlock, selectBlock, turnInto } from "./commands";
+import { BLOCKS, currentBlock, duplicateBlock, inserts, MARKS, moveBlock, selectBlock, selectionMarkdown, turnInto } from "./commands";
 import DateTimePicker from "./DateTimePicker";
 import { useCommands, type Command } from "./registry";
 import DetailsSheet from "./DetailsSheet";
@@ -234,6 +240,14 @@ const MODE_TITLES: Record<keyof Modes, { title: string; icon: React.ReactNode; k
 
 const SITE = "https://nazarene.dev";
 const CI = { size: 16, "aria-hidden": true } as const;
+const MARK_ICONS: Record<string, React.ReactNode> = {
+  bold: <TextB {...CI} weight="bold" />,
+  italic: <TextItalic {...CI} />,
+  underline: <TextUnderline {...CI} />,
+  strike: <TextStrikethrough {...CI} />,
+  highlight: <HighlighterCircle {...CI} />,
+  code: <Code {...CI} />,
+};
 
 /** Edit, or read it as the page (the site's renderer, in place). */
 type View = "edit" | "page";
@@ -322,9 +336,10 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
       Extension.create({
         name: "adminKeys",
         addKeyboardShortcuts: () => ({
-          "Mod-k": ({ editor: e }) => {
-            if (e.state.selection.empty) window.dispatchEvent(new Event("admin:palette"));
-            else setLinkRequest((n) => n + 1);
+          // The palette, always. With text selected it leads with what can be
+          // done to the selection, "Add link" first, so ⌘K ↵ still makes a link.
+          "Mod-k": () => {
+            window.dispatchEvent(new Event("admin:palette"));
             return true;
           },
           // Paste without formatting; the browser does the paste, this only notes the intent.
@@ -804,7 +819,36 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
       keywords: [...b.keywords, "turn", "convert", "block"],
       run: () => (setView("edit"), turnInto(editor, b.kind)),
     }));
-    return [...post, ...viewCmds, ...edit, ...insert, ...turn];
+    const { from, to, empty } = editor.state.selection;
+    const picked = empty || view !== "edit" ? "" : editor.state.doc.textBetween(from, to, " ").trim();
+    const short = picked.length > 28 ? `${picked.slice(0, 27)}…` : picked;
+    const selection: Command[] = picked
+      ? [
+          {
+            id: "sel:link",
+            group: "Selection",
+            title: editor.isActive("link") ? "Edit link…" : "Add link…",
+            icon: <LinkSimple {...CI} />,
+            keywords: ["url", "href", "anchor"],
+            run: () => window.setTimeout(() => setLinkRequest((n) => n + 1), 60),
+          },
+          ...MARKS.map((m) => ({
+            id: `sel:${m.id}`,
+            group: "Selection" as const,
+            title: m.active(editor) ? `Remove ${m.title.toLowerCase()}` : m.title,
+            keys: m.keys,
+            icon: MARK_ICONS[m.id],
+            keywords: ["format", "style", m.id],
+            run: () => m.run(editor),
+          })),
+          { id: "sel:copy-md", group: "Selection", title: "Copy as Markdown", icon: <MarkdownLogo {...CI} />, keywords: ["copy", "md", "clipboard"], run: () => void copy(selectionMarkdown(editor), "Copied as Markdown") },
+          { id: "sel:find", group: "Selection", title: `Find “${short}” in this post`, icon: <MagnifyingGlass {...CI} />, keywords: ["search", "occurrences"], run: () => openFind.current(picked) },
+          { id: "sel:replace", group: "Selection", title: `Replace “${short}”…`, icon: <Swap {...CI} />, keywords: ["substitute", "change"], run: () => openFind.current(picked, true) },
+          { id: "sel:google", group: "Selection", title: `Search Google for “${short}”`, icon: <ArrowSquareOut {...CI} />, keywords: ["web", "look up"], run: () => window.open(`https://www.google.com/search?q=${encodeURIComponent(picked)}`, "_blank", "noopener") },
+          { id: "sel:delete", group: "Selection", title: "Delete selection", icon: <Trash {...CI} />, keywords: ["remove", "erase"], run: () => editor.chain().focus().deleteSelection().run() },
+        ]
+      : [];
+    return [...selection, ...post, ...viewCmds, ...edit, ...insert, ...turn];
   });
 
   const minutes = readingMinutes(editor?.getText() ?? "");
@@ -851,7 +895,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
               <span className="admin-hide-sm">Page</span>
             </button>
           </div>
-          <button type="button" className="admin-icon-button" aria-label="Find in this post" title="Find  ⌘F" onClick={() => openFind.current()}>
+          <button type="button" className="admin-icon-button admin-hide-sm" aria-label="Find in this post" title={`Find  ${keys("⌘F")}`} onClick={() => openFind.current()}>
             <MagnifyingGlass size={16} weight="bold" />
           </button>
           <Menu.Root>
@@ -859,6 +903,12 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
               <Eye size={16} weight="bold" />
             </Menu.Trigger>
             <MenuSurface align="end">
+              <MItem className="admin-show-sm" icon={<MagnifyingGlass size={15} />} onSelect={() => openFind.current()}>
+                Find in this post
+              </MItem>
+              <MItem className="admin-show-sm" icon={<ClockCounterClockwise size={15} />} onSelect={() => setPanel("revisions")}>
+                History
+              </MItem>
               <MLabel>View</MLabel>
               <MItem icon={modes.focus ? <Check size={15} weight="bold" /> : <span className="menu-check-space" />} onSelect={() => toggleMode("focus")} closeOnClick={false}>
                 Focus mode
@@ -879,14 +929,14 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
                 Preview page and share cards
               </MItem>
               <MItem icon={<span className="menu-check-space" />} keys={keys("⌘K")} onSelect={() => window.dispatchEvent(new Event("admin:palette"))}>
-                Command palette
+                Search and actions
               </MItem>
             </MenuSurface>
           </Menu.Root>
-          <button type="button" className="admin-icon-button" aria-label="History" title="History" onClick={() => setPanel("revisions")}>
+          <button type="button" className="admin-icon-button admin-hide-sm" aria-label="History" title="History" onClick={() => setPanel("revisions")}>
             <ClockCounterClockwise size={16} weight="bold" />
           </button>
-          <button type="button" className="admin-icon-button" aria-label="Details" title="Details  ⌘." onClick={() => setPanel("details")}>
+          <button type="button" className="admin-icon-button" aria-label="Details" title={`Details  ${keys("⌘.")}`} onClick={() => setPanel("details")}>
             <SlidersHorizontal size={16} weight="bold" />
           </button>
           <button
@@ -901,16 +951,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
         </div>
       </header>
 
-      {find && editor && view === "edit" ? (
-        <FindBar
-          key={`${find.query}:${find.index}:${find.replace ? 1 : 0}`}
-          editor={editor}
-          initial={find.query}
-          initialIndex={find.index}
-          initialReplace={find.replace}
-          onClose={() => setFind(null)}
-        />
-      ) : null}
+      {editor ? <FindBar editor={editor} request={view === "edit" ? find : null} onClose={() => setFind(null)} /> : null}
 
       {view === "page" ? <PageView meta={meta} body={editor?.getMarkdown() ?? doc.body} doc={doc} /> : null}
 
@@ -1019,7 +1060,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
           {words.toLocaleString()} {words === 1 ? "word" : "words"} · {minutes} min read
         </span>
         <span className="editor-foot-keys">
-          <kbd className="admin-kbd">/</kbd> blocks <kbd className="admin-kbd">:</kbd> emoji <kbd className="admin-kbd">⌘K</kbd> search <kbd className="admin-kbd">⌘⇧P</kbd> publish
+          <kbd className="admin-kbd">/</kbd> blocks <kbd className="admin-kbd">:</kbd> emoji <kbd className="admin-kbd">{keys("⌘K")}</kbd> search and actions <kbd className="admin-kbd">{keys("⌘⇧P")}</kbd> publish
         </span>
       </footer>
 
@@ -1200,7 +1241,7 @@ function EyebrowDate({
       }
     >
       <CalendarBlank size={13} aria-hidden="true" />
-      {value ? exactTime(value.toISOString()) : "Not published · set a date"}
+      {value ? exactTime(value.toISOString()) : "Set a date"}
     </DateTimePicker>
   );
 }

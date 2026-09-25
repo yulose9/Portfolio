@@ -6,8 +6,9 @@ import type { Draft } from "./api";
 
 export function statusLabel(p: { status: Draft["status"]; dirty: boolean; publishAt: string | null; page?: boolean }): string {
   if (p.status === "scheduled") return "Scheduled";
-  const live = p.page === false ? "Listed" : "Live";
-  if (p.status === "published") return p.dirty ? `${live} · unpublished edits` : live;
+  // One word for the state everywhere: the filter, toasts and History say "Published" too.
+  const live = p.page === false ? "Published, listed only" : "Published";
+  if (p.status === "published") return p.dirty ? `${live}, with unpublished changes` : live;
   return "Draft";
 }
 

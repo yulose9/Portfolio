@@ -45,7 +45,7 @@ export const onRequestPost: AdminFunction = async ({ env, request }) => {
     const dot = name.lastIndexOf(".");
     const stem = name.slice(0, dot);
     const ext = name.slice(dot + 1);
-    if (dot < 1 || !MEDIA_NAME.test(stem) || !exts.includes(ext)) return fail("That file name isn't one the uploader makes.");
+    if (dot < 1 || !MEDIA_NAME.test(stem) || !exts.includes(ext)) return fail("Unexpected file name. Upload through the editor.");
     file = name;
   } else {
     file = `${newId()}.${exts[0]}`;

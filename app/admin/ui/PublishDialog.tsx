@@ -83,7 +83,7 @@ export default function PublishDialog({
   const go = async () => {
     setBusy(true);
     try {
-      if (!(await beforePublish())) throw new ApiError("Save the latest edits first; the save didn't go through.", 0);
+      if (!(await beforePublish())) throw new ApiError("Your latest edits didn’t save, so nothing was published. Try again.", 0);
       if (when === "later" && at.getTime() <= Date.now()) throw new ApiError("Pick a time in the future.", 0);
       const isoAt = when === "later" ? at.toISOString() : undefined;
       const { post } = await api.publish(doc.id, isoAt);
@@ -112,15 +112,15 @@ export default function PublishDialog({
       const { post } = await api.unpublish(doc.id);
       onDone(post);
       onClose();
-      toast.add({ type: "success", title: scheduled ? "Schedule cancelled" : "Unpublished", description: scheduled ? "It's a draft again." : "It leaves the site with the next build, in about a minute." });
+      toast.add({ type: "success", title: scheduled ? "Schedule cancelled" : "Unpublished", description: scheduled ? "It's a draft again." : "It leaves the site in about 3 minutes." });
     } catch (error) {
-      toast.add({ type: "error", title: "Couldn’t do that", description: error instanceof ApiError ? error.message : undefined });
+      toast.add({ type: "error", title: scheduled ? "Couldn’t cancel the schedule" : "Couldn’t unpublish", description: error instanceof ApiError ? error.message : undefined });
     } finally {
       setBusy(false);
     }
   };
 
-  const title = scheduled ? "Scheduled" : live ? "Publish changes" : "Publish";
+  const title = scheduled ? "Edit schedule" : live ? "Publish changes" : "Publish";
   const action = busy ? "Publishing…" : when === "later" ? (scheduled ? "Update schedule" : "Schedule") : live ? "Publish changes" : "Publish now";
 
   return (
@@ -143,7 +143,6 @@ export default function PublishDialog({
           <b>Preview first</b>
           <span className="field-help">The page on a laptop and a phone, how it looks in lists, and the card on X, Threads, LinkedIn, WhatsApp and more.</span>
         </span>
-        <span aria-hidden="true">→</span>
       </button>
 
       <PageSwitch page={meta.page} slug={meta.slug} onChange={onPageChange} />
@@ -173,7 +172,7 @@ export default function PublishDialog({
           {when === "later" ? (
             <div className="publish-at">
               <DateTimePicker value={at} min={new Date()} onChange={setAt} label="When it goes live" className="admin-button dtp-trigger" />
-              <span className="field-help">Your time. Published within ten minutes of it.</span>
+              <span className="field-help">In your time zone. It goes live within 10 minutes of this time.</span>
             </div>
           ) : null}
         </div>

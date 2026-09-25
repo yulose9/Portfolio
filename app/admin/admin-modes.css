@@ -10,10 +10,11 @@
   top: 0;
   left: 0;
   z-index: 15;
-  width: 2px;
+  /* A hairline, like the native caret: 2px read as bold next to body text. */
+  width: 1px;
   height: 20px;
-  margin-left: -1px;
-  border-radius: 1px;
+  margin-left: -0.5px;
+  border-radius: 0.5px;
   background: var(--a-ink);
   pointer-events: none;
   opacity: 0;
@@ -195,7 +196,7 @@
   height: 24px;
   margin: 0;
   border-radius: 999px;
-  background: #e4e4e7;
+  background: #8a8a93;
   cursor: pointer;
   transition: background-color 200ms ease;
 }

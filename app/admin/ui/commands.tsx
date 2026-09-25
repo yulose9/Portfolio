@@ -57,7 +57,7 @@ export const BLOCKS: BlockDef[] = [
   { kind: "todo", title: "To-do list", hint: "Track tasks", md: "[]", keywords: ["todo", "task", "checkbox", "check"], icon: <CheckSquare {...I} /> },
   { kind: "toggle", title: "Toggle", hint: "Hide content inside", md: ">", keywords: ["toggle", "details", "collapse", "accordion"], icon: <CaretCircleRight {...I} /> },
   { kind: "quote", title: "Quote", hint: "Pull a line out", md: '"', keywords: ["blockquote", "cite", "quote"], icon: <Quotes {...I} /> },
-  { kind: "callout", title: "Callout", hint: "Make it stand out", md: "", keywords: ["callout", "note", "tip", "warning", "alert", "info"], icon: <Info {...I} /> },
+  { kind: "callout", title: "Callout", hint: "Note, tip or warning box", md: "", keywords: ["callout", "note", "tip", "warning", "alert", "info"], icon: <Info {...I} /> },
   { kind: "code", title: "Code", hint: "Code block", md: "```", keywords: ["code", "snippet", "pre"], icon: <CodeBlock {...I} /> },
 ];
 

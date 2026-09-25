@@ -300,7 +300,7 @@ export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Edito
             type="button"
             className="block-button block-grip"
             aria-label="Drag to move, click for options"
-            title="Drag to move · Click for options"
+            title="Drag to move, click for options"
             onClick={() => setOpen(true)}
           >
             <DotsSixVertical size={16} weight="bold" />
@@ -363,26 +363,22 @@ export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Edito
 
 /* ── Find and replace ────────────────────────────────────────────────── */
 
+export type FindRequest = { query: string; index: number; replace?: boolean };
+
 /**
  * ⌘F finds; the chevron (or ⌥⌘F) opens the replace row under it. Match case
- * and whole word are Aa and ab| beside the field, like VS Code. Replace takes
+ * and whole word are Aa and ab beside the field, like VS Code. Replace takes
  * the current match and moves on; Replace all is one step to undo.
+ *
+ * It stays mounted and floats over the page, so opening it doesn't push the
+ * article down, closing it can fade out, and ⌘F while it's open refocuses it
+ * instead of replaying the entrance. Enter and exit are transitions, so a
+ * quick open-close-open reverses mid-way rather than restarting.
  */
-export function FindBar({
-  editor,
-  initial,
-  initialIndex = 0,
-  initialReplace = false,
-  onClose,
-}: {
-  editor: Editor;
-  initial: string;
-  initialIndex?: number;
-  initialReplace?: boolean;
-  onClose: () => void;
-}) {
-  const [query, setQuery] = useState(initial);
-  const [replacing, setReplacing] = useState(initialReplace);
+export function FindBar({ editor, request, onClose }: { editor: Editor; request: FindRequest | null; onClose: () => void }) {
+  const open = request !== null;
+  const [query, setQuery] = useState(request?.query ?? "");
+  const [replacing, setReplacing] = useState(Boolean(request?.replace));
   const [replacement, setReplacement] = useState("");
   const [options, setOptions] = useState<FindOptions>({});
   const input = useRef<HTMLInputElement>(null);
@@ -395,22 +391,34 @@ export function FindBar({
     },
   });
 
+  // A new request (⌘F, ⌥⌘F, "Find … in this post"): take its words.
+  const [seen, setSeen] = useState<FindRequest | null>(request);
+  if (request !== seen) {
+    setSeen(request);
+    if (request) {
+      setQuery(request.query);
+      if (request.replace) setReplacing(true);
+    }
+  }
+
   useEffect(() => {
-    editor.commands.setFind(initial, initialIndex, {});
-    input.current?.focus();
-    input.current?.select();
-    return () => {
-      editor.commands.setFind("", 0, {});
-    };
-  }, [editor, initial, initialIndex]);
+    if (!request) {
+      editor.commands.setFind("", 0);
+      return;
+    }
+    editor.commands.setFind(request.query, request.index);
+    const target = request.replace && request.query ? replaceInput.current : input.current;
+    target?.focus();
+    target?.select();
+  }, [editor, request]);
 
   // Keep the current match in view, centred, with room for the top bar.
   useEffect(() => {
-    if (state.first < 0) return;
+    if (!open || state.first < 0) return;
     const coords = editor.view.coordsAtPos(state.first);
     const y = coords.top + window.scrollY - window.innerHeight / 2.5;
-    window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
-  }, [editor, state.first, state.index]);
+    window.scrollTo({ top: Math.max(0, y), behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }, [editor, open, state.first, state.index]);
 
   const setOption = (key: keyof FindOptions) => {
     const next = { ...options, [key]: !options[key] };
@@ -420,6 +428,11 @@ export function FindBar({
   const close = () => {
     onClose();
     editor.commands.focus();
+  };
+  const toggleReplace = () => {
+    const next = !replacing;
+    setReplacing(next);
+    (next ? replaceInput : input).current?.focus();
   };
   const replaceOne = () => editor.commands.replaceCurrent(replacement);
   const replaceAll = () => {
@@ -434,22 +447,19 @@ export function FindBar({
       close();
     } else if ((e.metaKey || e.ctrlKey) && e.altKey && e.key.toLowerCase() === "f") {
       e.preventDefault();
-      setReplacing((r) => !r);
+      toggleReplace();
     }
   };
 
   return (
-    <div className="find-bar" role="search" data-replacing={replacing || undefined} onKeyDown={onKey}>
+    <div className="find-bar" role="search" data-open={open || undefined} data-replacing={replacing || undefined} inert={!open} onKeyDown={onKey}>
       <button
         type="button"
         className="admin-icon-button find-toggle"
         aria-expanded={replacing}
         aria-label={replacing ? "Hide replace" : "Replace"}
         title={`Replace  ${keys("⌥⌘F")}`}
-        onClick={() => {
-          setReplacing((r) => !r);
-          if (!replacing) window.setTimeout(() => replaceInput.current?.focus(), 0);
-        }}
+        onClick={toggleReplace}
       >
         <CaretRight size={12} weight="bold" />
       </button>
@@ -477,7 +487,7 @@ export function FindBar({
           <button type="button" className="find-option" aria-pressed={Boolean(options.wholeWord)} onClick={() => setOption("wholeWord")} title="Whole word" aria-label="Whole word">
             <span className="find-word">ab</span>
           </button>
-          <span className="find-count" aria-live="polite">
+          <span className="find-count" aria-live="polite" data-empty={(query && !state.count) || undefined}>
             {query ? (state.count ? `${state.index + 1} of ${state.count}` : "No matches") : ""}
           </span>
           <button type="button" className="admin-icon-button" onClick={() => editor.commands.findStep(-1)} aria-label="Previous match" disabled={!state.count}>
@@ -490,7 +500,7 @@ export function FindBar({
             <X size={14} weight="bold" />
           </button>
         </div>
-        {replacing ? (
+        <div className="find-replace-wrap" data-open={replacing || undefined} inert={!replacing}>
           <div className="find-row find-replace">
             <input
               ref={replaceInput}
@@ -513,7 +523,7 @@ export function FindBar({
               All
             </button>
           </div>
-        ) : null}
+        </div>
       </div>
     </div>
   );

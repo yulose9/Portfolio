@@ -22,9 +22,9 @@ function XPreview({ url }: { url: string }) {
     fetch(`/api/admin/embed?url=${encodeURIComponent(url)}`)
       .then(async (r) => {
         const body = (await r.json()) as { tweet?: Tweet; error?: string };
-        if (live) setState(r.ok ? { tweet: body.tweet } : { error: body.error ?? "Couldn’t load the post." });
+        if (live) setState(r.ok ? { tweet: body.tweet } : { error: body.error ?? "Couldn’t load that post." });
       })
-      .catch(() => live && setState({ error: "Couldn’t load the post." }));
+      .catch(() => live && setState({ error: "Couldn’t load that post." }));
     return () => {
       live = false;
     };

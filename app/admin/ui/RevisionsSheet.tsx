@@ -6,6 +6,7 @@ import { toast } from "../../lib/toast";
 import { api, ApiError, type Draft, type Revision } from "./api";
 import { exactTime, relative } from "./bits";
 import { diffWords, wordDelta, type Piece } from "./diff";
+import { keys } from "./menu";
 import Sheet from "./Sheet";
 
 /*
@@ -173,7 +174,7 @@ export default function RevisionsSheet({
           ))}
         </ul>
       ) : revisions.length === 0 ? (
-        <p className="field-help">Nothing yet. Press ⌘S to keep a revision.</p>
+        <p className="field-help">Nothing yet. Press {keys("⌘S")} to keep a revision.</p>
       ) : (
         <div className="timeline">
           {groups.map((g) => (
@@ -194,7 +195,7 @@ export default function RevisionsSheet({
                       <span className="rev-label">{r.label}</span>
                       <span className="rev-time">{timeFormat.format(new Date(r.at))}</span>
                       <span className="rev-meta">
-                        {r.words.toLocaleString()} words
+                        {r.words.toLocaleString()} {r.words === 1 ? "word" : "words"}
                         {r.delta ? (
                           <span className="rev-delta" data-sign={r.delta > 0 ? "up" : "down"}>
                             {r.delta > 0 ? `+${r.delta}` : `−${-r.delta}`}
@@ -218,7 +219,7 @@ export default function RevisionsSheet({
                 What changed
               </button>
               <button type="button" role="radio" aria-checked={against === "current"} className="admin-segment" onClick={() => setAgainst("current")}>
-                vs. now
+                Compared with now
               </button>
             </div>
             {delta ? (
@@ -235,7 +236,7 @@ export default function RevisionsSheet({
           </div>
           {pieces ? <Diff pieces={pieces} /> : <div className="rev-skeleton" />}
           <button type="button" className="admin-button admin-button-primary" data-keycap onClick={restore} disabled={restoring || !pieces}>
-            {restoring ? "Restoring…" : "Restore this version"}
+            {restoring ? "Restoring…" : "Restore this revision"}
           </button>
         </div>
       ) : null}

@@ -15,12 +15,15 @@
 :root {
   --a-ink: #0a0a0a;
   --a-ink-2: #52525b;
-  --a-ink-3: #a1a1aa;
+  /* 5.3:1 on white, 4.8:1 on --a-fill: quiet, and still readable (AA). */
+  --a-ink-3: #6b6b73;
+  /* Decoration only (separators, disabled): never for text that says something. */
+  --a-ink-4: #a1a1aa;
   --a-line: #ececee;
   --a-fill: #f4f4f5;
   --a-fill-2: #fafafa;
   --a-amber: #b45309;
-  --a-green: #16a34a;
+  --a-green: #15803d;
   --a-blue: #2563eb;
   --a-red: #dc2626;
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
@@ -513,11 +516,9 @@
   font-family: inherit;
   color: inherit;
 }
+/* Placeholders at 3.4:1: visibly a hint, still legible. */
 .editor-field::placeholder {
-  color: #d4d4d8;
-}
-.editor-field.article-title::placeholder {
-  color: #d4d4d8;
+  color: #8a8a93;
 }
 
 .editor-cover-empty {
@@ -593,7 +594,7 @@
 .editor-alt {
   margin-top: 0.15rem;
   font-size: 12px;
-  color: #c4c4c9;
+  color: var(--a-ink-3);
 }
 .editor-alt[data-missing] {
   color: var(--a-amber);
@@ -613,7 +614,7 @@
   content: attr(data-placeholder);
   float: left;
   height: 0;
-  color: #c4c4c9;
+  color: #8a8a93;
   pointer-events: none;
 }
 .editor-body img {

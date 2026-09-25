@@ -70,7 +70,7 @@ const LinkList = forwardRef<Handle, Props>(function LinkList({ items, command, q
             <span className="slash-title">{p.title.trim() || "Untitled"}</span>
             <span className="slash-hint">
               /writing/{p.slug || "…"}
-              {p.status === "published" ? "" : p.status === "scheduled" ? " · scheduled" : " · not live yet"}
+              {p.status === "published" ? "" : p.status === "scheduled" ? ", scheduled" : ", draft"}
             </span>
           </button>
         ))

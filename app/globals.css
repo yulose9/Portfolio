@@ -1685,6 +1685,12 @@ html.has-smooth-cursor [contenteditable] {
      under the 24px line, so the footer doesn't move when the dog appears. */
   margin: -8px 0 -8px 4px;
   vertical-align: middle;
+  /* Optically centred on the text: the drawing's ink sits low in its 40px
+     box (paws at y=34), so "middle" left it 3px under the caps' centre with
+     the paws 7px past the baseline. Up 4px: centred on the caps, paws just
+     under the baseline, like an emoji. */
+  position: relative;
+  top: -4px;
   color: inherit;
   opacity: 0;
   transition: opacity 0.3s ease;

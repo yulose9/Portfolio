@@ -75,6 +75,6 @@ export const onRequest: AdminFunction = async (ctx) => {
       return fail(hint, 502);
     }
     console.error(error);
-    return fail("Something went wrong on the server.", 500);
+    return fail("The server hit an error. Try again, or check the Pages logs.", 500);
   }
 };

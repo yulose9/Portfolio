@@ -63,7 +63,7 @@ export default function DetailsSheet({
       onDeleted();
     } catch (error) {
       setDeleting(false);
-      toast.add({ type: "error", title: "Couldn’t delete", description: error instanceof ApiError ? error.message : undefined });
+      toast.add({ type: "error", title: "Couldn’t move it to Trash", description: error instanceof ApiError ? error.message : undefined });
     }
   };
 
@@ -195,7 +195,7 @@ export default function DetailsSheet({
 
       <section className="field field-danger">
         <button type="button" className="admin-button admin-button-danger" data-confirming={confirming || undefined} onClick={remove} disabled={deleting}>
-          {deleting ? "Moving…" : confirming ? (live ? "Click again: take down and move to Trash" : "Click again to move to Trash") : "Move to Trash"}
+          {deleting ? "Moving to Trash…" : confirming ? (live ? "Click again to unpublish and move to Trash" : "Click again to move to Trash") : "Move to Trash"}
         </button>
         <p className="field-help">
           {live ? "Takes it off the site. It waits in Trash for 60 days, with its history." : "It waits in Trash for 60 days, with its history."}

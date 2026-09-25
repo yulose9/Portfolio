@@ -70,12 +70,12 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
   const type = res.headers.get("Content-Type") ?? "";
   if (!type.includes("application/json")) {
     throw new ApiError(
-      res.redirected || res.status === 302 || res.ok ? "Your sign-in expired. Reload to sign in again." : `The server answered ${res.status}.`,
+      res.redirected || res.status === 302 || res.ok ? "Your sign-in expired. Reload to sign in again." : `The server returned error ${res.status}. Try again.`,
       res.ok ? 401 : res.status
     );
   }
   const body = (await res.json()) as Record<string, unknown>;
-  if (!res.ok) throw new ApiError(String(body.error ?? `Request failed (${res.status})`), res.status, body);
+  if (!res.ok) throw new ApiError(String(body.error ?? `The server returned error ${res.status}. Try again.`), res.status, body);
   return body as T;
 }
 

@@ -133,7 +133,7 @@ export default function SearchPalette({
     >
       <Dialog.Portal>
         <Dialog.Backdrop className="sheet-backdrop" data-variant="center" />
-        <Dialog.Popup className="palette" aria-label="Search all writing">
+        <Dialog.Popup className="palette" aria-label="Search posts and actions">
           <div className="palette-input">
             <MagnifyingGlass size={16} aria-hidden="true" />
             <input
@@ -141,7 +141,7 @@ export default function SearchPalette({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search posts and actions, or > for actions only"
-              aria-label="Search all writing"
+              aria-label="Search posts and actions"
               onKeyDown={(e) => {
                 if (e.key === "ArrowDown") {
                   e.preventDefault();
@@ -155,7 +155,7 @@ export default function SearchPalette({
                 }
               }}
             />
-            <kbd className="admin-kbd">esc</kbd>
+            <kbd className="admin-kbd">Esc</kbd>
           </div>
           <div ref={list} className="palette-results" role="listbox" aria-label="Results">
             {!choices.length && query.trim().length >= 2 && results === null && !onlyCommands ? (
