@@ -1424,3 +1424,249 @@ html.has-smooth-cursor [contenteditable] {
     transform: none;
   }
 }
+
+/*
+ * Toasts (components/ui/toast.tsx, on Base UI's Toast).
+ *
+ * The context menu's glass, bottom-centred for a single-column page. Newer
+ * toasts sit in front; older ones tuck behind, a step smaller, and fan out
+ * into a list when the stack is hovered or focused. Base UI supplies the
+ * geometry as custom properties (--toast-index, --toast-offset-y, heights and
+ * swipe movement); everything visual is here.
+ *
+ * Enter from below on a strong ease-out — it acknowledges the action at once,
+ * then settles — and leave the way it came, or by the direction it was swiped.
+ */
+.toast-viewport {
+  position: fixed;
+  z-index: 90; /* over the page and the menus, under the custom cursors */
+  left: 50%;
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  width: min(22rem, calc(100vw - 2rem));
+  transform: translateX(-50%);
+  outline: none;
+}
+
+.toast-root {
+  --gap: 8px;
+  --peek: 8px;
+  --scale: calc(max(0, 1 - (var(--toast-index) * 0.06)));
+  --shrink: calc(1 - var(--scale));
+  --height: var(--toast-frontmost-height, var(--toast-height));
+  --offset-y: calc(
+    var(--toast-offset-y) * -1 + (var(--toast-index) * var(--gap) * -1) +
+      var(--toast-swipe-movement-y)
+  );
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  height: var(--height);
+  border-radius: 14px;
+  background-color: var(--surface-fill);
+  background-image: var(--surface-bg);
+  box-shadow: var(--surface-ring), var(--surface-lift);
+  color: #171717;
+  -webkit-user-select: none;
+  user-select: none;
+  transform-origin: bottom center;
+  z-index: calc(1000 - var(--toast-index));
+  transform: translateX(var(--toast-swipe-movement-x))
+    translateY(
+      calc(
+        var(--toast-swipe-movement-y) - (var(--toast-index) * var(--peek)) -
+          (var(--shrink) * var(--height))
+      )
+    )
+    scale(var(--scale));
+  transition:
+    transform 420ms cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 300ms cubic-bezier(0.23, 1, 0.32, 1),
+    height 150ms cubic-bezier(0.23, 1, 0.32, 1);
+  outline: none;
+}
+
+/* Hovered or focused: the stack fans out so every toast can be read. */
+.toast-root[data-expanded] {
+  transform: translateX(var(--toast-swipe-movement-x)) translateY(var(--offset-y));
+  height: var(--toast-height);
+}
+
+.toast-root[data-starting-style],
+.toast-root[data-ending-style] {
+  transform: translateY(calc(100% + 1.5rem));
+  opacity: 0;
+}
+
+.toast-root[data-limited] {
+  opacity: 0;
+}
+
+.toast-root[data-ending-style][data-swipe-direction="down"] {
+  transform: translateY(calc(var(--toast-swipe-movement-y) + 150%));
+}
+
+/* Keeps hover alive in the gap between fanned-out toasts. */
+.toast-root::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: calc(var(--gap) + 1px);
+}
+
+.toast-root:focus-visible {
+  box-shadow: var(--surface-ring), var(--surface-lift), 0 0 0 2px rgb(0 0 0 / 0.5);
+}
+
+.toast-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  overflow: hidden;
+  transition: opacity 250ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* A toast tucked behind the front one shows its edge, not its text. */
+.toast-content[data-behind] {
+  opacity: 0;
+}
+
+.toast-content[data-expanded] {
+  opacity: 1;
+}
+
+.toast-icon {
+  display: grid;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: rgb(0 0 0 / 0.45);
+}
+
+.toast-root[data-type="success"] .toast-icon {
+  color: #16a34a;
+}
+
+.toast-root[data-type="error"] .toast-icon {
+  color: #dc2626;
+}
+
+.toast-root[data-type="warning"] .toast-icon {
+  color: #d97706;
+}
+
+.toast-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.toast-title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  letter-spacing: -0.006em;
+}
+
+.toast-description {
+  margin: 0;
+  overflow: hidden;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  color: rgb(0 0 0 / 0.55);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toast-description:empty {
+  display: none;
+}
+
+/* The action, when there is one: a small pill in the same glass family. */
+.toast-action {
+  flex-shrink: 0;
+  align-self: center;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 99px;
+  background: rgb(0 0 0 / 0.06);
+  color: #171717;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.125rem;
+  cursor: pointer;
+  transition: background-color 120ms ease, transform 160ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.toast-action:empty {
+  display: none;
+}
+
+.toast-action:active {
+  transform: scale(0.96);
+}
+
+.toast-close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin: 0 -2px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 99px;
+  background: transparent;
+  color: rgb(0 0 0 / 0.35);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .toast-action:hover {
+    background: rgb(0 0 0 / 0.1);
+  }
+
+  .toast-close:hover {
+    background: rgb(0 0 0 / 0.06);
+    color: rgb(0 0 0 / 0.6);
+  }
+}
+
+.toast-spin {
+  animation: toast-spin 900ms linear infinite;
+}
+
+@keyframes toast-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/*
+ * Reduced motion: toasts keep their stacked positions (the stack is built
+ * from transforms, so removing them would pile every toast on one spot) but
+ * jump there instead of travelling, and arrive and leave by fading in place.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .toast-root {
+    transition: opacity 200ms linear;
+  }
+
+  .toast-root[data-starting-style],
+  .toast-root[data-ending-style],
+  .toast-root[data-ending-style][data-swipe-direction="down"] {
+    transform: translateX(var(--toast-swipe-movement-x)) translateY(var(--offset-y));
+  }
+
+  .toast-spin {
+    animation-duration: 2.4s;
+  }
+}

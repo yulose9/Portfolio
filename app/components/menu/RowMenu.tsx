@@ -38,13 +38,13 @@ export default function RowMenu({
       <MenuLabel>{title}</MenuLabel>
 
       {kind === "certificates" && href ? (
-        <MenuItem icon={<SealCheck size={ICON} />} onClick={() => openUrl(href)}>
+        <MenuItem icon={<SealCheck size={ICON} />} onClick={() => openUrl(href, "the credential")}>
           Verify credential
         </MenuItem>
       ) : null}
 
       {kind === "work" && href ? (
-        <MenuItem icon={<Buildings size={ICON} />} onClick={() => openUrl(href)}>
+        <MenuItem icon={<Buildings size={ICON} />} onClick={() => openUrl(href, company ?? undefined)}>
           Visit {company ?? "company"}
         </MenuItem>
       ) : null}
@@ -52,7 +52,7 @@ export default function RowMenu({
       {kind === "projects" && href ? (
         <MenuItem
           icon={<ArrowSquareOut size={ICON} />}
-          onClick={() => openUrl(href)}
+          onClick={() => openUrl(href, "the project")}
         >
           Open project
         </MenuItem>
@@ -60,12 +60,22 @@ export default function RowMenu({
 
       {href ? <MenuSeparator /> : null}
 
-      <MenuItem icon={<Copy size={ICON} />} onClick={() => void copy(title)}>
+      <MenuItem
+        icon={<Copy size={ICON} />}
+        onClick={() =>
+          void copy(title, kind === "certificates" ? "Credential name copied" : "Title copied")
+        }
+      >
         Copy {kind === "certificates" ? "credential name" : "title"}
       </MenuItem>
 
       {company ? (
-        <MenuItem icon={<Copy size={ICON} />} onClick={() => void copy(company)}>
+        <MenuItem
+          icon={<Copy size={ICON} />}
+          onClick={() =>
+            void copy(company, kind === "certificates" ? "Issuer copied" : "Company copied")
+          }
+        >
           Copy {kind === "certificates" ? "issuer" : "company"}
         </MenuItem>
       ) : null}
@@ -75,7 +85,7 @@ export default function RowMenu({
         onClick={() =>
           // The whole row as one line, which is what someone pasting it into a
           // message or a CV actually wants.
-          void copy([title, company, year].filter(Boolean).join(" · "))
+          void copy([title, company, year].filter(Boolean).join(" · "), "Details copied")
         }
       >
         Copy all details

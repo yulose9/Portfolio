@@ -66,11 +66,11 @@ export default function PageMenu({ children }: { children: ReactNode }) {
 
       <MenuItem
         icon={<LinkSimple size={ICON} />}
-        onClick={() => void copy(LINKS.SITE)}
+        onClick={() => void copy(LINKS.SITE, "Link copied")}
       >
         Copy link to page
       </MenuItem>
-      <MenuItem icon={<Code size={ICON} />} onClick={() => openUrl(LINKS.REPO)}>
+      <MenuItem icon={<Code size={ICON} />} onClick={() => openUrl(LINKS.REPO, "the source on GitHub")}>
         View source
       </MenuItem>
       <MenuSeparator />

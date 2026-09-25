@@ -10,6 +10,7 @@ import {
 } from "./constants/seo";
 import DeferredAnalytics from "./providers/DeferredAnalytics";
 import UiSounds from "./components/UiSounds";
+import LazyToaster from "./components/LazyToaster";
 import PeerCursors from "./components/PeerCursors";
 import SmoothCursor from "./components/SmoothCursor";
 import SmoothScroll from "./providers/SmoothScroll";
@@ -98,6 +99,7 @@ export default function RootLayout({
         <SmoothCursor />
         <PeerCursors />
         <UiSounds />
+        <LazyToaster />
 
         <VendorScripts />
         <DeferredAnalytics />

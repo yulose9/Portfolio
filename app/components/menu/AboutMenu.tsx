@@ -15,6 +15,7 @@ import {
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Menu, MenuItem, MenuLabel, MenuSeparator } from "./ContextMenu";
+import { toast } from "../../lib/toast";
 import { LINKS, copy, currentSelection, openEmail, openUrl, searchWeb } from "./actions";
 
 const ICON = 15;
@@ -25,6 +26,9 @@ const TWEET_QUOTE_MAX = 240;
 
 /** One word — letters, apostrophes, hyphens — is worth offering a definition. */
 const SINGLE_WORD = /^[\p{L}'’-]{2,}$/u;
+
+/** One reading toast at a time, closed when the voice stops. */
+const READING = "read-aloud";
 
 const canSpeak = () => typeof window !== "undefined" && "speechSynthesis" in window;
 
@@ -56,21 +60,37 @@ export default function AboutMenu({
   // Leaving the tab stops a reading in progress rather than orphaning it.
   useEffect(() => () => {
     if (canSpeak()) window.speechSynthesis.cancel();
+    toast.close(READING);
   }, []);
+
+  const stopReading = () => {
+    window.speechSynthesis.cancel();
+    setSpeaking(false);
+    toast.close(READING);
+  };
 
   const readAloud = () => {
     const synth = window.speechSynthesis;
-    if (synth.speaking) {
-      synth.cancel();
-      setSpeaking(false);
-      return;
-    }
+    if (synth.speaking) return stopReading();
     const utterance = new SpeechSynthesisUtterance(bio);
     utterance.lang = "en";
     utterance.rate = 1;
-    utterance.onend = utterance.onerror = () => setSpeaking(false);
+    utterance.onend = utterance.onerror = () => {
+      setSpeaking(false);
+      toast.close(READING);
+    };
     synth.speak(utterance);
     setSpeaking(true);
+    // Stays up for as long as it is speaking, with the way to stop it on it:
+    // the menu that started it has closed by now.
+    toast.add({
+      id: READING,
+      type: "info",
+      title: "Reading your bio aloud",
+      description: "Using your browser’s voice.",
+      timeout: 0,
+      actionProps: { children: "Stop", onClick: stopReading },
+    });
   };
 
   const quote = (text: string) => `“${text}” — ${NAME} (nazarene.dev)`;
@@ -78,7 +98,7 @@ export default function AboutMenu({
   const shareOnX = (text: string) => {
     const trimmed = text.length > TWEET_QUOTE_MAX ? `${text.slice(0, TWEET_QUOTE_MAX - 1).trimEnd()}…` : text;
     const params = new URLSearchParams({ text: `“${trimmed}”`, url: LINKS.SITE });
-    openUrl(`https://x.com/intent/post?${params}`);
+    openUrl(`https://x.com/intent/post?${params}`, "X to share the quote");
   };
 
   const word = SINGLE_WORD.test(selection) ? selection : "";
@@ -109,7 +129,7 @@ export default function AboutMenu({
           <MenuItem icon={<Copy size={ICON} />} onClick={() => void copy(selection)}>
             Copy
           </MenuItem>
-          <MenuItem icon={<Quotes size={ICON} />} onClick={() => void copy(quote(selection))}>
+          <MenuItem icon={<Quotes size={ICON} />} onClick={() => void copy(quote(selection), "Quote copied")}>
             Copy as quote
           </MenuItem>
           <MenuItem icon={<XLogo size={ICON} />} onClick={() => shareOnX(selection)}>
@@ -118,7 +138,7 @@ export default function AboutMenu({
           {word ? (
             <MenuItem
               icon={<BookOpenText size={ICON} />}
-              onClick={() => searchWeb(`define ${word}`)}
+              onClick={() => searchWeb(`define ${word}`, `Looking up “${word}”`)}
             >
               Define “{word}”
             </MenuItem>
@@ -138,11 +158,11 @@ export default function AboutMenu({
       {/* Only when the right-click landed on a paragraph, and it is not
           already covered by a selection of that same text. */}
       {paragraph && paragraph !== selection ? (
-        <MenuItem icon={<Paragraph size={ICON} />} onClick={() => void copy(paragraph)}>
+        <MenuItem icon={<Paragraph size={ICON} />} onClick={() => void copy(paragraph, "Paragraph copied")}>
           Copy this paragraph
         </MenuItem>
       ) : null}
-      <MenuItem icon={<TextAlignLeft size={ICON} />} onClick={() => void copy(bio)}>
+      <MenuItem icon={<TextAlignLeft size={ICON} />} onClick={() => void copy(bio, "Bio copied")}>
         Copy full bio
       </MenuItem>
       {canSpeak() ? (
@@ -155,14 +175,14 @@ export default function AboutMenu({
       ) : null}
 
       <MenuSeparator />
-      <MenuItem icon={<Copy size={ICON} />} onClick={() => void copy(LINKS.EMAIL)}>
+      <MenuItem icon={<Copy size={ICON} />} onClick={() => void copy(LINKS.EMAIL, "Email address copied")}>
         Copy email address
       </MenuItem>
       <MenuItem icon={<EnvelopeSimple size={ICON} />} onClick={() => openEmail()}>
         Email me
       </MenuItem>
       {resumeHref ? (
-        <MenuItem icon={<FileArrowDown size={ICON} />} onClick={() => openUrl(resumeHref)}>
+        <MenuItem icon={<FileArrowDown size={ICON} />} onClick={() => openUrl(resumeHref, "the résumé")}>
           Download résumé
         </MenuItem>
       ) : null}
