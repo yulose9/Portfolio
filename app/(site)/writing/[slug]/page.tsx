@@ -3,13 +3,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { fluentUrl } from "../../../../cms/emoji";
+import { tagSlug } from "../../../../cms/format";
 import { fontLinks, fontVars } from "../../../../cms/fonts";
 import ArticleBody from "../../../components/writing/ArticleBody";
 import ArticleEnhance from "../../../components/writing/ArticleEnhance";
+import ArticleMenu from "../../../components/writing/ArticleMenu";
 import AuthorCard from "../../../components/writing/AuthorCard";
 import Byline from "../../../components/writing/Byline";
 import FluentText from "../../../components/writing/FluentText";
 import ShareRow from "../../../components/writing/ShareRow";
+import Tag from "../../../components/writing/Tag";
 import Toc from "../../../components/writing/Toc";
 import { FEED, ID, jsonLd, SITE_INFO, TWITTER_METADATA } from "../../../constants/seo";
 import {
@@ -51,15 +54,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!post) return { title: "Not found", robots: { index: false, follow: false } };
   const url = `${SITE_INFO.url}/writing/${post.slug}`;
   const description = post.dek || `${post.title}, by ${post.authors.map((a) => a.name).join(" and ")}.`;
-  // A cover is the share image when there is one; otherwise the card drawn
-  // for this post by opengraph-image.tsx (Next adds that one itself).
-  const cover = post.cover ? [{ url: new URL(post.cover.src, SITE_INFO.url).toString(), alt: post.cover.alt }] : undefined;
+  // The share image as chosen in the admin: an uploaded one, the cover, or
+  // (null) the card drawn for this post by opengraph-image.tsx, which Next
+  // adds itself when nothing is named here.
+  const cover =
+    post.ogImage && post.ogImage !== "cover"
+      ? [{ url: new URL(post.ogImage, SITE_INFO.url).toString(), width: 1200, height: 630, alt: post.title }]
+      : post.ogImage === "cover" && post.cover
+        ? [{ url: new URL(post.cover.src, SITE_INFO.url).toString(), alt: post.cover.alt }]
+        : undefined;
   return {
     title: post.title,
     description,
     authors: post.authors.map((a) => ({ name: a.name, ...(a.name === SITE_INFO.name ? { url: SITE_INFO.url } : {}) })),
     keywords: post.tags,
-    alternates: { canonical: url, types: FEED },
+    alternates: { canonical: url, types: { ...FEED, "text/markdown": [{ url: `${url}/index.md`, title: "Markdown" }] } },
     // No default image spread in: the post's own share card (opengraph-image.tsx)
     // only appears when openGraph doesn't name one.
     openGraph: {
@@ -88,7 +97,12 @@ export default async function ArticlePage({ params }: Props) {
   const linksHere = backlinks(post);
   const next = related(post);
   const url = `${SITE_INFO.url}/writing/${post.slug}`;
-  const image = post.cover ? new URL(post.cover.src, SITE_INFO.url).toString() : `${url}/opengraph-image`;
+  const image =
+    post.ogImage && post.ogImage !== "cover"
+      ? new URL(post.ogImage, SITE_INFO.url).toString()
+      : post.cover
+        ? new URL(post.cover.src, SITE_INFO.url).toString()
+        : `${url}/opengraph-image`;
 
   const graph = {
     "@context": "https://schema.org",
@@ -110,7 +124,7 @@ export default async function ArticlePage({ params }: Props) {
         articleSection: post.tags[0],
         isPartOf: { "@id": ID.website },
         publisher: { "@id": ID.person },
-        author: post.authors.map((a) =>
+        author: post.authors.filter((a) => a.name.trim()).map((a) =>
           a.name === SITE_INFO.name
             ? { "@id": ID.person }
             : { "@type": "Person", name: a.name, ...(a.avatar ? { image: new URL(a.avatar, SITE_INFO.url).toString() } : {}) }
@@ -153,6 +167,7 @@ export default async function ArticlePage({ params }: Props) {
           </ol>
         </nav>
 
+        <ArticleMenu title={post.title} url={url} markdownUrl={`/writing/${post.slug}/index.md`}>
         <article className="article" data-has-toc={toc.length >= 3 || undefined}>
           <header className="article-header">
             {post.icon ? (
@@ -160,9 +175,15 @@ export default async function ArticlePage({ params }: Props) {
               <img className="article-icon" src={fluentUrl(post.icon)} alt="" width={72} height={72} />
             ) : null}
             <p className="article-eyebrow">
-              {post.tags[0] ? <span className="article-tag">{post.tags[0]}</span> : null}
               <time dateTime={post.publishedAt}>{formatLongDate(post.publishedAt)}</time>
             </p>
+            {post.tags.length ? (
+              <div className="article-header-tags">
+                {post.tags.map((t) => (
+                  <Tag key={t} name={t} href={`/writing/tag/${tagSlug(t)}`} />
+                ))}
+              </div>
+            ) : null}
             <h1 data-cursor="text" className="article-title">
               <FluentText>{post.title}</FluentText>
             </h1>
@@ -206,7 +227,9 @@ export default async function ArticlePage({ params }: Props) {
             {post.tags.length ? (
               <ul className="article-tags" aria-label="Tags">
                 {post.tags.map((tag) => (
-                  <li key={tag}>{tag}</li>
+                  <li key={tag}>
+                    <Tag name={tag} href={`/writing/tag/${tagSlug(tag)}`} />
+                  </li>
                 ))}
               </ul>
             ) : null}
@@ -215,6 +238,7 @@ export default async function ArticlePage({ params }: Props) {
 
           <AuthorCard authors={post.authors} />
         </article>
+        </ArticleMenu>
 
         {linksHere.length ? (
           <section className="article-more" aria-labelledby="links-here">

@@ -12,7 +12,7 @@ import { formatLongDate, publishedPosts } from "../../lib/writing";
  * not a link.
  */
 
-const description = `Writing by ${SITE_INFO.name} on agentic systems, AI infrastructure and the engineering that keeps them dependable.`;
+const description = `Writing by ${SITE_INFO.name}: technical notes on building AI systems and the infrastructure under them, and personal ones on whatever else I'm working out.`;
 
 export const metadata: Metadata = {
   title: "Writing",
@@ -77,7 +77,7 @@ export default function WritingIndex() {
 
         <header className="article-header">
           <h1 className="article-title">Writing</h1>
-          <p className="article-dek">Notes on agentic systems, AI infrastructure and the unglamorous engineering that keeps them dependable.</p>
+          <p className="article-dek">Some technical, some personal: notes on building AI systems and the infrastructure under them, and on whatever else I’m working out.</p>
           <p className="writing-index-meta">
             <a href="/feed.xml">RSS</a>
             <span aria-hidden="true">·</span>

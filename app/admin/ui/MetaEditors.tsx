@@ -1,14 +1,17 @@
 "use client";
 
-import { ArrowCounterClockwise, Camera, Plus, Smiley, Trash, UserPlus } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, Camera, Plus, Shuffle, Smiley, Trash, UserPlus } from "@phosphor-icons/react";
 import { Popover } from "@base-ui/react/popover";
 import { useEffect, useRef, useState } from "react";
 
 import { FONT_SHELF, fontHref, fontStack } from "../../../cms/fonts";
 import { DEFAULT_AUTHOR, type Author, type FontChoice, type Fonts } from "../../../cms/format";
-import { Avatars, joinNames } from "../../components/writing/Byline";
+import Avatar, { AVATAR_STYLES, parseGenerated, randomAvatar } from "../../components/writing/Avatar";
+import { Avatars, joinNames, named } from "../../components/writing/Byline";
 import { toast } from "../../lib/toast";
+import { mediaName, newMediaId } from "../../../cms/media";
 import { api, ApiError } from "./api";
+import { shareImage, squareImage } from "./media";
 import { EmojiPicker, Fluent } from "./extensions/emoji";
 
 /* ── Page icon ───────────────────────────────────────────────────────── */
@@ -55,33 +58,14 @@ export function IconPicker({ icon, onChange }: { icon: string | null; onChange: 
 
 const AVATAR = 256;
 
-/** Centre-crop to a square and resize, so any photo becomes a tidy avatar. */
-async function squareAvatar(file: File): Promise<Blob> {
-  const bitmap = await createImageBitmap(file);
-  const side = Math.min(bitmap.width, bitmap.height);
-  const canvas = document.createElement("canvas");
-  canvas.width = AVATAR;
-  canvas.height = AVATAR;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new ApiError("This browser can't process images.", 0);
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, AVATAR, AVATAR);
-  bitmap.close();
-  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/webp", 0.9));
-  if (blob && blob.type === "image/webp") return blob;
-  const jpeg = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.9));
-  if (!jpeg) throw new ApiError("Couldn't process that image.", 0);
-  return jpeg;
-}
-
 function AuthorRow({ author, onChange, onRemove }: { author: Author; onChange: (a: Author) => void; onRemove?: () => void }) {
   const pick = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const upload = async (file: File) => {
     setBusy(true);
     try {
-      const blob = await squareAvatar(file);
-      const { src } = await api.upload(blob, AVATAR, AVATAR);
+      const blob = await squareImage(file, AVATAR);
+      const { src } = await api.uploadNamed(blob, mediaName(newMediaId(), { width: AVATAR, height: AVATAR }));
       onChange({ ...author, avatar: src });
     } catch (error) {
       toast.add({ type: "error", title: "Couldn’t use that photo", description: error instanceof ApiError ? error.message : undefined });
@@ -91,17 +75,27 @@ function AuthorRow({ author, onChange, onRemove }: { author: Author; onChange: (
   };
   return (
     <div className="author-row">
-      <button type="button" className="author-photo" onClick={() => pick.current?.click()} aria-label="Change photo" data-busy={busy || undefined}>
-        {author.avatar ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={author.avatar} alt="" />
-        ) : (
-          <span>{author.name.trim().charAt(0).toUpperCase() || "?"}</span>
-        )}
-        <span className="author-photo-edit" aria-hidden="true">
-          <Camera size={14} weight="bold" />
-        </span>
-      </button>
+      <div className="author-photo-wrap">
+        <button type="button" className="author-photo" onClick={() => pick.current?.click()} aria-label="Upload a photo" title="Upload a photo" data-busy={busy || undefined}>
+          <Avatar author={author} size={44} className="author-photo-img" />
+          <span className="author-photo-edit" aria-hidden="true">
+            <Camera size={14} weight="bold" />
+          </span>
+        </button>
+        <button
+          type="button"
+          className="author-shuffle"
+          onClick={() => {
+            const gen = parseGenerated(author.avatar);
+            // Same style, new seed; a second click on a photo starts a generated one.
+            onChange({ ...author, avatar: randomAvatar(gen?.style) });
+          }}
+          aria-label="Generate an avatar"
+          title="Generate an avatar"
+        >
+          <Shuffle size={11} weight="bold" />
+        </button>
+      </div>
       <input
         ref={pick}
         type="file"
@@ -114,7 +108,25 @@ function AuthorRow({ author, onChange, onRemove }: { author: Author; onChange: (
         }}
       />
       <div className="author-fields">
-        <input value={author.name} onChange={(e) => onChange({ ...author, name: e.target.value })} placeholder="Name" aria-label="Author name" />
+        <input value={author.name} onChange={(e) => onChange({ ...author, name: e.target.value })} placeholder="Name (optional)" aria-label="Author name" />
+        {parseGenerated(author.avatar) ? (
+          <div className="avatar-styles" role="radiogroup" aria-label="Avatar style">
+            {AVATAR_STYLES.map((style) => (
+              <button
+                key={style}
+                type="button"
+                role="radio"
+                aria-checked={parseGenerated(author.avatar)?.style === style}
+                aria-label={style}
+                title={style}
+                className="avatar-style"
+                onClick={() => onChange({ ...author, avatar: `gen:${style}:${parseGenerated(author.avatar)!.seed}` })}
+              >
+                <Avatar author={{ name: "", avatar: `gen:${style}:${parseGenerated(author.avatar)!.seed}` }} size={20} className="avatar-style-img" />
+              </button>
+            ))}
+          </div>
+        ) : null}
         <input
           value={author.email ?? ""}
           onChange={(e) => onChange({ ...author, email: e.target.value || undefined })}
@@ -141,7 +153,7 @@ export function AuthorsEditor({ authors, minutes, onChange }: { authors: Author[
     <Popover.Root>
       <Popover.Trigger className="article-byline byline-trigger" aria-label="Edit authors">
         <Avatars authors={authors} />
-        <span className="article-author">{joinNames(authors.map((a, i) => <span key={i}>{a.name || "Unnamed"}</span>))}</span>
+        <span className="article-author">{named(authors).length ? joinNames(named(authors).map((a, i) => <span key={i}>{a.name}</span>)) : "Add authors"}</span>
         <span aria-hidden="true">·</span>
         <span>{minutes} min read</span>
       </Popover.Trigger>
@@ -153,7 +165,7 @@ export function AuthorsEditor({ authors, minutes, onChange }: { authors: Author[
               <AuthorRow key={i} author={a} onChange={(next) => set(i, next)} onRemove={authors.length > 1 ? () => onChange(authors.filter((_, j) => j !== i)) : undefined} />
             ))}
             <div className="popover-actions">
-              <button type="button" className="admin-chip" onClick={() => onChange([...authors, { name: "" }])} disabled={authors.length >= 6}>
+              <button type="button" className="admin-chip" onClick={() => onChange([...authors, { name: "", avatar: randomAvatar() }])} disabled={authors.length >= 6}>
                 <UserPlus size={13} /> Add co-author
               </button>
               {!isDefault ? (
@@ -162,7 +174,7 @@ export function AuthorsEditor({ authors, minutes, onChange }: { authors: Author[
                 </button>
               ) : null}
             </div>
-            <p className="field-help">Photos are cropped square and resized for you. The email makes the name a mailto link.</p>
+            <p className="field-help">Upload a photo (cropped square and resized for you) or shuffle a generated avatar. Name and email are optional; an email makes the name a mailto link.</p>
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>
@@ -239,5 +251,61 @@ export function FontsEditor({ fonts, onChange }: { fonts: Fonts | null; onChange
       <FontSelect label="Headings" value={fonts?.heading} onChange={(heading) => set({ heading })} />
       <FontSelect label="Body" value={fonts?.body} onChange={(body) => set({ body })} />
     </>
+  );
+}
+
+/* ── Share image ─────────────────────────────────────────────────────── */
+
+/**
+ * What a link to the post shows when shared: the card drawn for it (my face,
+ * the title, the icon; the default), the cover, or an image of your own,
+ * cropped to 1200×630 in the browser.
+ */
+export function ShareImageField({ ogImage, hasCover, onChange }: { ogImage: string | null; hasCover: boolean; onChange: (v: string | null) => void }) {
+  const pick = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const mode = !ogImage ? "card" : ogImage === "cover" ? "cover" : "custom";
+  const upload = async (file: File) => {
+    setBusy(true);
+    try {
+      const blob = await shareImage(file);
+      const { src } = await api.uploadNamed(blob, mediaName(newMediaId(), { width: 1200, height: 630 }, "jpg"));
+      onChange(src);
+    } catch (error) {
+      toast.add({ type: "error", title: "Couldn’t use that image", description: error instanceof ApiError ? error.message : undefined });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="share-choice" role="radiogroup" aria-label="Share image">
+      <button type="button" role="radio" aria-checked={mode === "card"} className="share-option" onClick={() => onChange(null)}>
+        <span className="share-option-title">Generated card</span>
+        <span className="field-help">Title, icon and my face, drawn for this post.</span>
+      </button>
+      <button type="button" role="radio" aria-checked={mode === "cover"} className="share-option" onClick={() => onChange("cover")} disabled={!hasCover}>
+        <span className="share-option-title">Cover image</span>
+        <span className="field-help">{hasCover ? "The cover, as it is." : "Add a cover first."}</span>
+      </button>
+      <button type="button" role="radio" aria-checked={mode === "custom"} className="share-option" onClick={() => pick.current?.click()} disabled={busy}>
+        <span className="share-option-title">{busy ? "Uploading…" : mode === "custom" ? "Custom image (change)" : "Upload an image"}</span>
+        <span className="field-help">Cropped to 1200×630 for you.</span>
+        {mode === "custom" && ogImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={ogImage} alt="" className="share-option-img" />
+        ) : null}
+      </button>
+      <input
+        ref={pick}
+        type="file"
+        accept="image/*,.heic,.heif"
+        hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (f) void upload(f);
+        }}
+      />
+    </div>
   );
 }

@@ -9,6 +9,8 @@ export function summarize(d: Draft) {
     dek: d.dek,
     icon: d.icon ?? null,
     page: d.page !== false,
+    pinned: Boolean(d.pinned),
+    trashedAt: d.trashedAt ?? null,
     tags: d.tags,
     cover: d.cover?.src ?? null,
     status: d.status,

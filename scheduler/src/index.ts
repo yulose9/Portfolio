@@ -1,5 +1,5 @@
 import { publish, type CmsEnv } from "../../cms/server/publish";
-import { dueScheduled, getDraft, setScheduled } from "../../cms/server/store";
+import { deleteDraft, dueScheduled, getDraft, listDrafts, setScheduled } from "../../cms/server/store";
 
 /**
  * Every ten minutes: publish whatever scheduled post has come due.
@@ -22,6 +22,15 @@ export default {
         console.log(`published ${id} “${draft.title}”`);
       } catch (error) {
         console.error(`couldn't publish ${id}:`, error instanceof Error ? error.message : error);
+      }
+    }
+
+    // Trash empties itself: anything deleted more than 60 days ago goes for good.
+    // Once an hour is plenty (the cron runs every ten minutes).
+    if (new Date().getUTCMinutes() < 10) {
+      const cutoff = Date.now() - 60 * 864e5;
+      for (const d of await listDrafts(env)) {
+        if (d.trashedAt && Date.parse(d.trashedAt) < cutoff) await deleteDraft(env, d.id);
       }
     }
   },

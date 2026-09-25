@@ -4,6 +4,7 @@ import {
   ArrowSquareOut,
   ArrowUUpLeft,
   CalendarBlank,
+  CheckSquare,
   ClockCounterClockwise,
   Copy,
   CopySimple,
@@ -12,6 +13,8 @@ import {
   MarkdownLogo,
   NotePencil,
   PaperPlaneTilt,
+  PushPin,
+  PushPinSlash,
   SlidersHorizontal,
   Trash,
 } from "@phosphor-icons/react";
@@ -43,7 +46,7 @@ export type RowActions = {
   replace: (post: PostSummary | null, id: string) => void;
 };
 
-function rowCommands(p: PostSummary, actions: RowActions, askDelete: () => void) {
+function rowCommands(p: PostSummary, actions: RowActions, askDelete: () => void, onSelect?: () => void) {
   const liveUrl = p.liveSlug ? `${SITE}/writing/${p.liveSlug}` : null;
   const busy = (label: string, run: () => Promise<unknown>) => async () => {
     try {
@@ -53,12 +56,66 @@ function rowCommands(p: PostSummary, actions: RowActions, askDelete: () => void)
     }
   };
 
+  // In the trash, only what makes sense for something deleted.
+  if (p.trashedAt) {
+    return (
+      <>
+        <MLabel>{p.title.trim() || "Untitled"}</MLabel>
+        <MItem
+          icon={<ArrowUUpLeft {...I} />}
+          onSelect={busy("restore it", async () => {
+            const { post } = await api.untrash(p.id);
+            toast.add({ type: "success", title: "Restored", description: "It's a draft again." });
+            actions.replace({ ...p, trashedAt: null, status: post.status, liveSlug: post.liveSlug, updatedAt: post.updatedAt }, p.id);
+          })}
+        >
+          Restore
+        </MItem>
+        <MItem icon={<NotePencil {...I} />} onSelect={() => actions.open(p.id)}>
+          Open
+        </MItem>
+        {onSelect ? (
+          <MItem icon={<CheckSquare {...I} />} onSelect={onSelect}>
+            Select
+          </MItem>
+        ) : null}
+        <MSep />
+        <MItem icon={<Trash {...I} />} danger onSelect={askDelete}>
+          Delete forever…
+        </MItem>
+      </>
+    );
+  }
+
+  const toTrash = busy("delete it", async () => {
+    const { post } = await api.remove(p.id);
+    actions.replace(post ? { ...p, trashedAt: post.trashedAt ?? new Date().toISOString(), status: "draft", liveSlug: null } : null, p.id);
+    const id = toast.add({
+      type: "success",
+      title: "Moved to Trash",
+      description: p.liveSlug ? "Taken off the site with the next build." : "Kept for 60 days.",
+      timeout: 6000,
+      actionProps: {
+        children: "Undo",
+        onClick: () => {
+          toast.close(id);
+          void api.untrash(p.id).then(({ post: back }) => actions.replace({ ...p, trashedAt: null, status: back.status, liveSlug: back.liveSlug }, p.id));
+        },
+      },
+    });
+  });
+
   return (
     <>
       <MLabel>{p.title.trim() || "Untitled"}</MLabel>
       <MItem icon={<NotePencil {...I} />} onSelect={() => actions.open(p.id)}>
         Open
       </MItem>
+      {onSelect ? (
+        <MItem icon={<CheckSquare {...I} />} onSelect={onSelect}>
+          Select
+        </MItem>
+      ) : null}
       <MItem icon={<ArrowSquareOut {...I} />} onSelect={() => window.open(`/admin?post=${p.id}`, "_blank")}>
         Open in new tab
       </MItem>
@@ -138,6 +195,15 @@ function rowCommands(p: PostSummary, actions: RowActions, askDelete: () => void)
         Copy title
       </MItem>
       <MSep />
+      <MItem
+        icon={p.pinned ? <PushPinSlash {...I} /> : <PushPin {...I} />}
+        onSelect={busy(p.pinned ? "unpin it" : "pin it", async () => {
+          await api.save(p.id, { pinned: !p.pinned });
+          actions.replace({ ...p, pinned: !p.pinned }, p.id);
+        })}
+      >
+        {p.pinned ? "Unpin" : "Pin to top"}
+      </MItem>
       <MItem icon={<ClockCounterClockwise {...I} />} onSelect={() => actions.open(p.id, "revisions")}>
         History
       </MItem>
@@ -145,25 +211,25 @@ function rowCommands(p: PostSummary, actions: RowActions, askDelete: () => void)
         Details
       </MItem>
       <MSep />
-      <MItem icon={<Trash {...I} />} danger onSelect={askDelete}>
-        Delete…
+      <MItem icon={<Trash {...I} />} danger onSelect={toTrash}>
+        Move to Trash
       </MItem>
     </>
   );
 }
 
 /** A row wrapped in its right-click menu, with the ⋯ button and the delete confirmation. */
-export function PostRow({ post, actions, children }: { post: PostSummary; actions: RowActions; children: React.ReactNode }) {
+export function PostRow({ post, actions, children, onSelect }: { post: PostSummary; actions: RowActions; children: React.ReactNode; onSelect?: () => void }) {
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const fine = useFinePointer();
-  const items = rowCommands(post, actions, () => setConfirm(true));
+  const items = rowCommands(post, actions, () => setConfirm(true), onSelect);
 
   const remove = async () => {
     setDeleting(true);
     try {
-      await api.remove(post.id);
-      toast.add({ type: "success", title: post.liveSlug ? "Deleted and taken down" : "Deleted" });
+      await api.remove(post.id, true);
+      toast.add({ type: "success", title: "Deleted forever" });
       actions.replace(null, post.id);
     } catch (error) {
       toast.add({ type: "error", title: "Couldn’t delete", description: error instanceof ApiError ? error.message : undefined });
@@ -181,7 +247,8 @@ export function PostRow({ post, actions, children }: { post: PostSummary; action
           <ContextMenu.Trigger render={<div className="admin-row-trigger" />}>{children}</ContextMenu.Trigger>
           <MenuSurface>{items}</MenuSurface>
         </ContextMenu.Root>
-        <Menu.Root>
+        {/* Not modal: a modal menu locks the page's scroll while it's open. */}
+        <Menu.Root modal={false}>
           <Menu.Trigger className="admin-row-more" aria-label={`More actions for ${post.title || "Untitled"}`} data-fine={fine || undefined}>
             <DotsThree size={18} weight="bold" />
           </Menu.Trigger>
@@ -195,19 +262,15 @@ export function PostRow({ post, actions, children }: { post: PostSummary; action
           <AlertDialog.Popup className="sheet" data-variant="center">
             <div className="sheet-header">
               <div>
-                <AlertDialog.Title className="sheet-title">Delete “{post.title.trim() || "Untitled"}”?</AlertDialog.Title>
-                <AlertDialog.Description className="sheet-description">
-                  {post.liveSlug
-                    ? "It comes off the site with the next build, and the draft and its whole history go too. This can't be undone."
-                    : "The draft and its whole history are deleted. This can't be undone."}
-                </AlertDialog.Description>
+                <AlertDialog.Title className="sheet-title">Delete “{post.title.trim() || "Untitled"}” forever?</AlertDialog.Title>
+                <AlertDialog.Description className="sheet-description">The post and its whole history are deleted. This can’t be undone.</AlertDialog.Description>
               </div>
             </div>
             <div className="sheet-body">
               <div className="publish-actions">
                 <AlertDialog.Close className="admin-button admin-button-quiet">Keep it</AlertDialog.Close>
                 <button type="button" className="admin-button admin-button-danger" data-confirming="" onClick={remove} disabled={deleting}>
-                  {deleting ? "Deleting…" : "Delete"}
+                  {deleting ? "Deleting…" : "Delete forever"}
                 </button>
               </div>
             </div>

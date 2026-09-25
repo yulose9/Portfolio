@@ -6,7 +6,8 @@
 /* Menus: the site's .menu-popup, plus shortcuts, submenus, danger. */
 .admin-menu {
   min-width: 14rem;
-  max-height: min(70vh, 34rem);
+  max-height: min(70vh, 34rem, var(--available-height, 70vh));
+  overscroll-behavior: contain;
   overflow-y: auto;
 }
 .admin-menu .menu-item-text {

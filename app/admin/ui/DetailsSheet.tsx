@@ -7,7 +7,7 @@ import { toast } from "../../lib/toast";
 import { api, ApiError, type Draft } from "./api";
 import { PageSwitch } from "./bits";
 import type { Meta } from "./Editor";
-import { FontsEditor } from "./MetaEditors";
+import { FontsEditor, ShareImageField } from "./MetaEditors";
 import Sheet from "./Sheet";
 
 /*
@@ -59,7 +59,7 @@ export default function DetailsSheet({
     setDeleting(true);
     try {
       await api.remove(doc.id);
-      toast.add({ type: "success", title: live ? "Post deleted and taken down" : "Draft deleted" });
+      toast.add({ type: "success", title: "Moved to Trash", description: live ? "Taken off the site with the next build. Restore it from Trash within 60 days." : "Restore it from Trash within 60 days." });
       onDeleted();
     } catch (error) {
       setDeleting(false);
@@ -173,6 +173,11 @@ export default function DetailsSheet({
       </section>
 
       <section className="field">
+        <span className="field-label">Share image</span>
+        <ShareImageField ogImage={meta.ogImage} hasCover={Boolean(meta.cover)} onChange={(ogImage) => onChange({ ogImage })} />
+      </section>
+
+      <section className="field">
         <span className="field-label">When shared</span>
         <div className="preview-card">
           {meta.cover ? (
@@ -190,10 +195,10 @@ export default function DetailsSheet({
 
       <section className="field field-danger">
         <button type="button" className="admin-button admin-button-danger" data-confirming={confirming || undefined} onClick={remove} disabled={deleting}>
-          {deleting ? "Deleting…" : confirming ? (live ? "Click again: delete and take down" : "Click again to delete") : "Delete post"}
+          {deleting ? "Moving…" : confirming ? (live ? "Click again: take down and move to Trash" : "Click again to move to Trash") : "Move to Trash"}
         </button>
         <p className="field-help">
-          {live ? "Removes it from the site and deletes the draft and its history." : "Deletes the draft and its history."}
+          {live ? "Takes it off the site. It waits in Trash for 60 days, with its history." : "It waits in Trash for 60 days, with its history."}
         </p>
       </section>
     </Sheet>

@@ -12,6 +12,7 @@ import "../globals.css";
 import "../article.css";
 import "../article-blocks.css";
 import "../article-extras.css";
+import "../writing-extras.css";
 
 /*
  * Inter, self-hosted by next/font at build time — no runtime request to

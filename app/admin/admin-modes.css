@@ -159,7 +159,7 @@
 .palette-command svg {
   color: var(--a-ink-3);
 }
-.palette-command span {
+.palette-command > .palette-command-title {
   flex: 1;
 }
 .palette-command[aria-selected="true"] {

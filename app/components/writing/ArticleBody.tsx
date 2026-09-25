@@ -4,6 +4,7 @@ import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import { Tweet } from "react-tweet";
 
 import { threadsFrame, youtubeFrame, type Embed } from "../../../cms/embeds";
+import AudioPlayer from "./AudioPlayer";
 
 /*
  * The body of an article, rendered at build time. The Markdown's hast tree
@@ -51,6 +52,18 @@ function EmbedBlock(props: Record<string, unknown>) {
   );
 }
 
+function AudioBlock(props: Record<string, unknown>) {
+  const src = String(props["data-src"] ?? "");
+  const title = String(props["data-title"] ?? "");
+  if (!src) return null;
+  return (
+    <figure className="article-audio">
+      <AudioPlayer src={src} title={title || undefined} />
+      {title ? <figcaption>{title}</figcaption> : null}
+    </figure>
+  );
+}
+
 // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
 const ZoomableImage = (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} data-zoom="" />;
 
@@ -59,6 +72,6 @@ export default function ArticleBody({ tree }: { tree: Root }) {
     Fragment,
     jsx,
     jsxs,
-    components: { "x-embed": EmbedBlock, img: ZoomableImage } as unknown as Partial<Components>,
+    components: { "x-embed": EmbedBlock, "x-audio": AudioBlock, img: ZoomableImage } as unknown as Partial<Components>,
   });
 }

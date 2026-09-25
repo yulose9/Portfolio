@@ -65,8 +65,10 @@ declare module "@tiptap/core" {
       setEmbed: (url: string) => ReturnType;
     };
     find: {
-      setFind: (query: string, index?: number) => ReturnType;
+      setFind: (query: string, index?: number, options?: FindOptions) => ReturnType;
       findStep: (direction: 1 | -1) => ReturnType;
+      replaceCurrent: (text: string) => ReturnType;
+      replaceAll: (text: string) => ReturnType;
     };
   }
 }
@@ -339,20 +341,26 @@ export const FluentEmoji = Extension.create({
 
 /* ── Find in page ────────────────────────────────────────────────────── */
 
-export type FindState = { query: string; index: number; matches: { from: number; to: number }[] };
+export type FindOptions = { caseSensitive?: boolean; wholeWord?: boolean };
+export type FindState = { query: string; index: number; options: FindOptions; matches: { from: number; to: number }[] };
 export const findKey = new PluginKey<FindState>("find");
 
-function findMatches(doc: PMNode, query: string) {
+const WORD = /[\p{L}\p{N}_]/u;
+
+function findMatches(doc: PMNode, query: string, { caseSensitive, wholeWord }: FindOptions = {}) {
   const out: { from: number; to: number }[] = [];
   if (!query) return out;
-  const needle = query.toLowerCase();
+  const needle = caseSensitive ? query : query.toLowerCase();
   // Search each textblock as one string, so a match can span bold → plain.
   doc.descendants((node, pos) => {
     if (!node.isTextblock) return;
-    const text = node.textBetween(0, node.content.size, "\n", "￼");
-    const hay = text.toLowerCase();
-    for (let at = hay.indexOf(needle); at !== -1; at = hay.indexOf(needle, at + needle.length)) {
-      out.push({ from: pos + 1 + at, to: pos + 1 + at + needle.length });
+    const text = node.textBetween(0, node.content.size, "\n", "\ufffc");
+    const hay = caseSensitive ? text : text.toLowerCase();
+    for (let at = hay.indexOf(needle); at !== -1; at = hay.indexOf(needle, at + 1)) {
+      const end = at + needle.length;
+      if (wholeWord && ((at > 0 && WORD.test(hay[at - 1])) || (end < hay.length && WORD.test(hay[end])))) continue;
+      out.push({ from: pos + 1 + at, to: pos + 1 + end });
+      at = end - 1;
     }
     return false;
   });
@@ -364,9 +372,9 @@ export const Find = Extension.create({
   addCommands() {
     return {
       setFind:
-        (query, index = 0) =>
-        ({ tr, dispatch }) => {
-          dispatch?.(tr.setMeta(findKey, { query, index }));
+        (query, index = 0, options) =>
+        ({ tr, state, dispatch }) => {
+          dispatch?.(tr.setMeta(findKey, { query, index, options: options ?? findKey.getState(state)?.options ?? {} }));
           return true;
         },
       findStep:
@@ -375,7 +383,36 @@ export const Find = Extension.create({
           const current = findKey.getState(state);
           if (!current?.matches.length) return false;
           const n = current.matches.length;
-          dispatch?.(tr.setMeta(findKey, { query: current.query, index: (current.index + direction + n) % n }));
+          dispatch?.(tr.setMeta(findKey, { ...current, index: (current.index + direction + n) % n }));
+          return true;
+        },
+      // The replacement takes the formatting of the text it replaces.
+      replaceCurrent:
+        (text) =>
+        ({ tr, state, dispatch }) => {
+          const s = findKey.getState(state);
+          const m = s?.matches[s.index];
+          if (!s || !m) return false;
+          if (dispatch) {
+            if (text) tr.insertText(text, m.from, m.to);
+            else tr.delete(m.from, m.to);
+            // Stay on the same index: it's now the next match.
+            dispatch(tr.setMeta(findKey, { query: s.query, index: s.index, options: s.options }).scrollIntoView());
+          }
+          return true;
+        },
+      replaceAll:
+        (text) =>
+        ({ tr, state, dispatch }) => {
+          const s = findKey.getState(state);
+          if (!s?.matches.length) return false;
+          if (dispatch) {
+            for (const m of [...s.matches].reverse()) {
+              if (text) tr.insertText(text, m.from, m.to);
+              else tr.delete(m.from, m.to);
+            }
+            dispatch(tr.setMeta(findKey, { query: s.query, index: 0, options: s.options }));
+          }
           return true;
         },
     };
@@ -385,15 +422,16 @@ export const Find = Extension.create({
       new Plugin<FindState>({
         key: findKey,
         state: {
-          init: () => ({ query: "", index: 0, matches: [] }),
+          init: () => ({ query: "", index: 0, options: {}, matches: [] }),
           apply: (tr, prev) => {
-            const meta = tr.getMeta(findKey) as { query: string; index: number } | undefined;
+            const meta = tr.getMeta(findKey) as { query: string; index: number; options?: FindOptions } | undefined;
             if (meta) {
-              const matches = findMatches(tr.doc, meta.query);
-              return { query: meta.query, index: Math.min(Math.max(0, meta.index), Math.max(0, matches.length - 1)), matches };
+              const options = meta.options ?? prev.options;
+              const matches = findMatches(tr.doc, meta.query, options);
+              return { query: meta.query, options, index: Math.min(Math.max(0, meta.index), Math.max(0, matches.length - 1)), matches };
             }
             if (tr.docChanged && prev.query) {
-              const matches = findMatches(tr.doc, prev.query);
+              const matches = findMatches(tr.doc, prev.query, prev.options);
               return { ...prev, matches, index: Math.min(prev.index, Math.max(0, matches.length - 1)) };
             }
             return prev;

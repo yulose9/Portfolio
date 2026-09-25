@@ -34,7 +34,7 @@ function fresh(e: Editor, r: Range) {
   if (e.state.selection.$from.parent.textContent.trim()) e.chain().splitBlock().run();
 }
 
-export function slashItems(pickImage: () => void, pickEmoji: () => void): SlashItem[] {
+export function slashItems(pickImage: () => void, pickEmoji: () => void, pickVoice: () => void): SlashItem[] {
   return [
     ...BLOCKS.map((b): SlashItem => ({
       title: b.title,
@@ -47,7 +47,7 @@ export function slashItems(pickImage: () => void, pickEmoji: () => void): SlashI
         turnInto(e, b.kind);
       },
     })),
-    ...inserts(pickImage, pickEmoji).map((i): SlashItem => ({
+    ...inserts(pickImage, pickEmoji, pickVoice).map((i): SlashItem => ({
       title: i.title,
       hint: i.hint,
       keywords: i.keywords,

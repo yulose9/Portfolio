@@ -18,6 +18,8 @@ export type PostSummary = {
   cover: string | null;
   status: Draft["status"];
   page: boolean;
+  pinned: boolean;
+  trashedAt: string | null;
   publishAt: string | null;
   publishedAt: string | null;
   liveSlug: string | null;
@@ -26,6 +28,8 @@ export type PostSummary = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type BulkAction = "publish" | "unpublish" | "schedule" | "trash" | "restore" | "destroy" | "pin" | "unpin";
 
 export type Revision = { at: string; label: string; words: number };
 
@@ -81,21 +85,28 @@ const post = (body: unknown = {}): RequestInit => ({ method: "POST", body: JSON.
 export const api = {
   me: () => call<{ email: string; github: boolean; storage: boolean }>("/me"),
   list: () => call<{ posts: PostSummary[] }>("/posts"),
-  create: (title = "") => call<{ post: Draft }>("/posts", post({ title })),
+  create: (init: { title?: string; body?: string; tags?: string[]; page?: boolean } = {}) => call<{ post: Draft }>("/posts", post(init)),
   get: (id: string) => call<{ post: Draft }>(`/posts/${id}`),
   save: (
     id: string,
-    edit: Partial<Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover" | "body" | "icon" | "authors" | "fonts" | "page">> & { base?: string; snapshot?: boolean }
+    edit: Partial<Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover" | "body" | "icon" | "authors" | "fonts" | "page" | "ogImage" | "pinned" | "publishedAt">> & { base?: string; snapshot?: boolean }
   ) =>
     call<{ post: Draft; snapshotted: boolean }>(`/posts/${id}`, put(edit)),
   duplicate: (id: string) => call<{ post: Draft }>(`/posts/${id}/duplicate`, post()),
   search: (q: string, signal?: AbortSignal) => call<{ q: string; results: SearchResult[] }>(`/search?q=${encodeURIComponent(q)}`, { signal }),
-  remove: (id: string) => call<{ ok: true }>(`/posts/${id}`, { method: "DELETE" }),
+  /** To the trash; `forever` deletes it and its history. */
+  remove: (id: string, forever = false) => call<{ ok: true; post?: Draft }>(`/posts/${id}${forever ? "?forever=1" : ""}`, { method: "DELETE" }),
+  untrash: (id: string) => call<{ post: Draft }>(`/posts/${id}/restore`, post()),
   publish: (id: string, at?: string) => call<{ post: Draft }>(`/posts/${id}/publish`, post(at ? { at } : {})),
   unpublish: (id: string) => call<{ post: Draft }>(`/posts/${id}/unpublish`, post()),
+  bulk: (action: BulkAction, ids: string[], at?: string) =>
+    call<{ posts: Draft[]; deleted?: string[]; failed: { id: string; error: string }[] }>("/bulk", post({ action, ids, at })),
   revisions: (id: string) => call<{ revisions: Revision[] }>(`/posts/${id}/revisions`),
   revision: (id: string, at: string) => call<{ revision: Draft }>(`/posts/${id}/revisions/${encodeURIComponent(at)}`),
   restore: (id: string, at: string) => call<{ post: Draft }>(`/posts/${id}/revisions/${encodeURIComponent(at)}`, post()),
+  /** Upload an already-prepared file under a name from cms/media.ts. */
+  uploadNamed: (blob: Blob, name: string) =>
+    call<{ src: string }>(`/uploads?name=${encodeURIComponent(name)}`, { method: "POST", body: blob, headers: { "Content-Type": blob.type } }),
   upload: async (blob: Blob, width?: number, height?: number) => {
     const q = new URLSearchParams();
     if (width) q.set("w", String(width));

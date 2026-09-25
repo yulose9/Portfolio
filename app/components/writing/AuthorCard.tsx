@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Author } from "../../../cms/format";
 import { SITE_INFO, SOCIAL_LINKS } from "../../constants/seo";
 import { PROFILE } from "../../site-content";
+import Avatar from "./Avatar";
 
 /**
  * Who wrote this, at the end of the piece: a face, a name, one line of what
@@ -13,18 +14,11 @@ import { PROFILE } from "../../site-content";
 export default function AuthorCard({ authors }: { authors: Author[] }) {
   return (
     <section className="author-card" aria-label={authors.length > 1 ? "About the authors" : "About the author"}>
-      {authors.map((a) => {
+      {authors.map((a, i) => {
         const me = a.name === SITE_INFO.name;
         return (
-          <div key={a.name} className="author-card-row">
-            {a.avatar ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img className="author-card-photo" src={me ? "/avatar-144.webp" : a.avatar} alt="" width={56} height={56} loading="lazy" />
-            ) : (
-              <span className="author-card-photo author-card-initial" aria-hidden="true">
-                {a.name.charAt(0)}
-              </span>
-            )}
+          <div key={`${a.name}-${i}`} className="author-card-row">
+            <Avatar author={me ? { ...a, avatar: "/avatar-144.webp" } : a} size={56} className="author-card-photo" />
             <div className="author-card-text">
               <p className="author-card-name">
                 {me ? (
@@ -32,7 +26,7 @@ export default function AuthorCard({ authors }: { authors: Author[] }) {
                     {a.name}
                   </Link>
                 ) : (
-                  a.name
+                  a.name || "Co-author"
                 )}
               </p>
               <p className="author-card-bio">

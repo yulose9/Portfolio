@@ -1,0 +1,245 @@
+/* ── Tags, voice notes, video, generated avatars ──────────────────────────
+   Shared by the published pages and the admin, so a tag or a voice note is
+   the same object in both. */
+
+/* Tags: Notion's soft pills, tinted by name (components/writing/Tag.tsx). */
+.tag {
+  --tag-bg: #f1f1ef;
+  --tag-ink: #3f3f46;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 24px;
+  padding: 0 0.55rem;
+  border: 0;
+  border-radius: 6px;
+  background: var(--tag-bg);
+  color: var(--tag-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: default;
+  transition-property: filter, scale, box-shadow;
+  transition-duration: 150ms, 160ms, 150ms;
+  transition-timing-function: ease, var(--ease), ease;
+}
+a.tag,
+button.tag {
+  cursor: pointer;
+}
+@media (hover: hover) and (pointer: fine) {
+  a.tag:hover,
+  button.tag:hover {
+    filter: brightness(0.96);
+  }
+}
+a.tag:active,
+button.tag:active {
+  scale: 0.96;
+}
+.tag[data-tint="gray"] { --tag-bg: #f1f1ef; --tag-ink: #3f3f46; }
+.tag[data-tint="brown"] { --tag-bg: #f4eeee; --tag-ink: #6b3f2a; }
+.tag[data-tint="orange"] { --tag-bg: #fbecdd; --tag-ink: #8a4414; }
+.tag[data-tint="yellow"] { --tag-bg: #fbf3db; --tag-ink: #7a5a0b; }
+.tag[data-tint="green"] { --tag-bg: #edf3ec; --tag-ink: #2b593f; }
+.tag[data-tint="blue"] { --tag-bg: #e7f3f8; --tag-ink: #1f4f73; }
+.tag[data-tint="purple"] { --tag-bg: #f6f3f9; --tag-ink: #5b3a82; }
+.tag[data-tint="pink"] { --tag-bg: #faf1f5; --tag-ink: #8a2b5a; }
+.tag[data-tint="red"] { --tag-bg: #fdebec; --tag-ink: #9b2c2c; }
+.tag[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+.tag-count {
+  font-family: "Paper Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  opacity: 0.6;
+}
+.tag-sm {
+  height: 20px;
+  padding: 0 0.4rem;
+  font-size: 11.5px;
+}
+.article-header-tags,
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.article-header-tags {
+  margin-top: -0.35rem;
+}
+.article-tags li {
+  padding: 0;
+  background: none;
+}
+
+/* Voice notes (components/writing/AudioPlayer.tsx) */
+.article-audio {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+}
+.article-audio figcaption {
+  font-size: 13px;
+  color: var(--ink-3, #a1a1aa);
+}
+.voice {
+  display: grid;
+  grid-template-columns: 40px 1fr auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem 0.6rem 0.6rem;
+  border-radius: 999px;
+  background: #f4f4f5;
+  max-width: 460px;
+}
+.voice-play {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink, #0a0a0a);
+  color: #fff;
+  cursor: pointer;
+  transition: scale 160ms var(--ease);
+}
+.voice-play:active {
+  scale: 0.94;
+}
+.voice-play svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+.voice-play path {
+  transform-origin: center;
+  transition-property: opacity, scale, filter;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+.voice-icon-pause,
+.voice[data-playing] .voice-icon-play {
+  opacity: 0;
+  scale: 0.25;
+  filter: blur(2px);
+}
+.voice[data-playing] .voice-icon-pause {
+  opacity: 1;
+  scale: 1;
+  filter: none;
+}
+.voice-wave {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 32px;
+  cursor: pointer;
+  outline-offset: 4px;
+}
+.voice-bar {
+  flex: 1;
+  min-width: 2px;
+  border-radius: 2px;
+  background: #d4d4d8;
+  transition: background-color 120ms ease;
+}
+.voice-bar[data-on] {
+  background: var(--ink, #0a0a0a);
+}
+.voice-time {
+  min-width: 2.6rem;
+  font-family: "Paper Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  letter-spacing: 0;
+  color: var(--ink-2, #52525b);
+  font-variant-numeric: tabular-nums;
+}
+.voice-speed {
+  min-width: 2.4rem;
+  height: 26px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 0 0 1px #e4e4e7;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Video: a figure like an image, rounded, the caption on the text measure. */
+.article-body .article-video video,
+.article-video video {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+  background: #0a0a0a;
+  outline: 1px solid oklch(0 0 0 / 0.1);
+  outline-offset: -1px;
+}
+
+/* Generated avatars: the SVG fills the round frame. */
+.avatar-gen {
+  display: inline-block;
+  overflow: hidden;
+  border-radius: 999px;
+  flex: none;
+  line-height: 0;
+}
+.avatar-gen svg {
+  width: 100%;
+  height: 100%;
+}
+
+@media print {
+  .reading-progress,
+  .article-share,
+  .toc-rail,
+  .article-more,
+  .smooth-cursor,
+  .code-copy {
+    display: none !important;
+  }
+}
+
+/* The article's own right-click menu (components/writing/ArticleMenu.tsx):
+   the site's menu material, placed at the pointer, growing out of it. */
+.article-menu {
+  position: fixed;
+  z-index: 70;
+  display: grid;
+  min-width: 15rem;
+  max-height: min(80vh, 36rem);
+  overflow-y: auto;
+  transition-property: opacity, transform;
+  transition-duration: 140ms;
+  transition-timing-function: var(--ease);
+}
+@starting-style {
+  .article-menu {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+.article-menu .menu-item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+}
+.article-menu .menu-item:hover,
+.article-menu .menu-item:focus-visible {
+  background-color: rgb(0 0 0 / 0.045);
+  outline: none;
+}

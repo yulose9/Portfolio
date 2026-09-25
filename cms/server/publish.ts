@@ -83,14 +83,16 @@ function validate(draft: Draft) {
   if (draft.cover && !draft.cover.alt.trim()) throw new PublishError("The cover image needs alt text.");
 }
 
-/** Publish now. Returns the updated draft. */
-export async function publish(env: CmsEnv, draft: Draft, label = "Published"): Promise<Draft> {
+type Prepared = { draft: Draft; next: Draft; changes: Change[]; summary: string };
+
+/** Everything a publish will do, without doing it: checks, the file, a rename. */
+function preparePublish(posts: Post[], draft: Draft, now: string, taken: Set<string>): Prepared {
   validate(draft);
-  const posts = await livePosts(env);
   const owner = slugOwner(posts, draft.slug, draft.id);
   if (owner) throw new PublishError(`“${owner.title}” already uses /writing/${draft.slug}.`, 409);
+  if (taken.has(draft.slug)) throw new PublishError(`Two of these posts want /writing/${draft.slug}.`, 409);
+  taken.add(draft.slug);
 
-  const now = new Date().toISOString();
   const renamed = draft.liveSlug !== null && draft.liveSlug !== draft.slug;
   const redirectFrom = renamed
     ? [...new Set([...draft.redirectFrom, draft.liveSlug as string])].filter((s) => s !== draft.slug)
@@ -101,11 +103,7 @@ export async function publish(env: CmsEnv, draft: Draft, label = "Published"): P
   if (renamed) changes.push({ path: postPath(draft.liveSlug as string), delete: true });
 
   const verb = draft.liveSlug === null ? "publish" : renamed ? "move" : "update";
-  const summary =
-    verb === "move" ? `writing: move “${post.title}” to /writing/${post.slug}` : `writing: ${verb} “${post.title}”`;
-  await commit(env, summary, changes);
-  await forgetLive(env);
-
+  const summary = verb === "move" ? `writing: move “${post.title}” to /writing/${post.slug}` : `writing: ${verb} “${post.title}”`;
   const next: Draft = {
     ...draft,
     status: "published",
@@ -116,10 +114,74 @@ export async function publish(env: CmsEnv, draft: Draft, label = "Published"): P
     dirty: false,
     updatedAt: now,
   };
-  await putDraft(env, next);
-  await setScheduled(env, draft.id, null);
-  await snapshot(env, next, true, label);
-  return next;
+  return { draft, next, changes, summary };
+}
+
+async function settle(env: CmsEnv, prepared: Prepared[], label: string) {
+  for (const p of prepared) {
+    await putDraft(env, p.next);
+    await setScheduled(env, p.draft.id, null);
+    await snapshot(env, p.next, true, label);
+  }
+}
+
+/** Publish now. Returns the updated draft. */
+export async function publish(env: CmsEnv, draft: Draft, label = "Published"): Promise<Draft> {
+  const now = new Date().toISOString();
+  const prepared = preparePublish(await livePosts(env), draft, now, new Set());
+  await commit(env, prepared.summary, prepared.changes);
+  await forgetLive(env);
+  await settle(env, [prepared], label);
+  return prepared.next;
+}
+
+/**
+ * Publish several at once, as ONE commit, so the site rebuilds once rather
+ * than once per post. Posts that can't go out (no title, a taken URL) are
+ * reported and left as they were; the rest still publish.
+ */
+export async function publishMany(env: CmsEnv, drafts: Draft[]): Promise<{ done: Draft[]; failed: { id: string; error: string }[] }> {
+  const now = new Date().toISOString();
+  const posts = await livePosts(env);
+  const taken = new Set<string>();
+  const prepared: Prepared[] = [];
+  const failed: { id: string; error: string }[] = [];
+  for (const d of drafts) {
+    try {
+      prepared.push(preparePublish(posts, d, now, taken));
+    } catch (error) {
+      failed.push({ id: d.id, error: error instanceof Error ? error.message : "Couldn't publish" });
+    }
+  }
+  if (prepared.length) {
+    const message = prepared.length === 1 ? prepared[0].summary : `writing: publish ${prepared.length} posts\n\n${prepared.map((p) => `- ${p.summary.replace(/^writing: /, "")}`).join("\n")}`;
+    await commit(env, message, prepared.flatMap((p) => p.changes));
+    await forgetLive(env);
+    await settle(env, prepared, "Published");
+  }
+  return { done: prepared.map((p) => p.next), failed };
+}
+
+/** Take several down in one commit; each becomes a draft again. */
+export async function unpublishMany(env: CmsEnv, drafts: Draft[]): Promise<Draft[]> {
+  const live = drafts.filter((d) => d.liveSlug);
+  if (live.length) {
+    const existing = new Set((await livePosts(env)).map((p) => p.slug));
+    const changes: Change[] = live.filter((d) => existing.has(d.liveSlug!)).map((d) => ({ path: postPath(d.liveSlug!), delete: true }));
+    if (changes.length) {
+      await commit(env, changes.length === 1 ? `writing: unpublish “${live[0].title.trim()}”` : `writing: unpublish ${changes.length} posts`, changes);
+      await forgetLive(env);
+    }
+  }
+  const now = new Date().toISOString();
+  const out: Draft[] = [];
+  for (const d of drafts) {
+    const next: Draft = { ...d, status: "draft", publishAt: null, liveSlug: null, dirty: true, updatedAt: now };
+    await putDraft(env, next);
+    await setScheduled(env, d.id, null);
+    out.push(next);
+  }
+  return out;
 }
 
 export async function schedule(env: CmsEnv, draft: Draft, publishAt: string): Promise<Draft> {

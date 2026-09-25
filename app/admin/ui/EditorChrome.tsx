@@ -6,6 +6,7 @@ import {
   ArrowUUpLeft,
   ArrowUUpRight,
   CaretDown,
+  CaretRight,
   CaretUp,
   CheckSquare,
   ClipboardText,
@@ -16,6 +17,7 @@ import {
   Keyboard,
   LinkSimple,
   ListBullets,
+  Microphone,
   MagnifyingGlass,
   MarkdownLogo,
   Plus,
@@ -31,6 +33,8 @@ import {
   X,
   HighlighterCircle,
   Selection,
+  SelectionPlus,
+  Swap as SwapIcon,
   ArrowsInLineVertical,
 } from "@phosphor-icons/react";
 import { ContextMenu } from "@base-ui/react/context-menu";
@@ -52,10 +56,11 @@ import {
   inserts,
   MARKS,
   moveBlock,
+  selectBlock,
   selectionMarkdown,
   turnInto,
 } from "./commands";
-import { findKey } from "./extensions/blocks";
+import { findKey, type FindOptions } from "./extensions/blocks";
 import { keys, MenuSurface, MItem, MLabel, MSep, MSub } from "./menu";
 
 const I = { size: 15 } as const;
@@ -68,7 +73,14 @@ const MARK_ICON: Record<string, React.ReactNode> = {
   code: <MarkdownLogo {...I} />,
 };
 
-type Pickers = { pickImage: () => void; pickEmoji: () => void; onLink: () => void; onFind: (query?: string) => void };
+type Pickers = {
+  pickImage: () => void;
+  pickEmoji: () => void;
+  pickVoice?: () => void;
+  onLink: () => void;
+  onFind: (query?: string) => void;
+  onReplace?: (query?: string) => void;
+};
 
 /* ── Right-click menu ────────────────────────────────────────────────── */
 
@@ -165,7 +177,7 @@ export function EditorContextMenu({ editor, children, ...pick }: { editor: Edito
           ))}
         </MSub>
         <MSub icon={<Plus {...I} />} label="Insert">
-          {inserts(pick.pickImage, pick.pickEmoji).map((i) => (
+          {inserts(pick.pickImage, pick.pickEmoji, pick.pickVoice).map((i) => (
             <MItem key={i.id} icon={i.icon} onSelect={() => i.run(editor)}>
               {i.title}
             </MItem>
@@ -203,6 +215,11 @@ export function EditorContextMenu({ editor, children, ...pick }: { editor: Edito
             Find in this post
           </MItem>
         )}
+        {pick.onReplace ? (
+          <MItem icon={<SwapIcon {...I} />} keys={keys("⌥⌘F")} onSelect={() => pick.onReplace?.(info.text || undefined)}>
+            Find and replace…
+          </MItem>
+        ) : null}
         <MSep />
         <MItem icon={<CopySimple {...I} />} keys={keys("⌘D")} onSelect={() => { const b = block(); if (b) duplicateBlock(editor, b.pos); }}>
           Duplicate block
@@ -217,7 +234,10 @@ export function EditorContextMenu({ editor, children, ...pick }: { editor: Edito
           Delete block
         </MItem>
         <MSep />
-        <MItem icon={<ArrowsInLineVertical {...I} />} keys={keys("⌘A")} onSelect={run(() => editor.commands.selectAll())}>
+        <MItem icon={<SelectionPlus {...I} />} keys={keys("⌘A")} onSelect={run(() => selectBlock(editor))}>
+          Select block
+        </MItem>
+        <MItem icon={<ArrowsInLineVertical {...I} />} keys={keys("⌘A ⌘A")} onSelect={run(() => editor.commands.selectAll())}>
           Select all
         </MItem>
       </MenuSurface>
@@ -292,6 +312,15 @@ export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Edito
           <Menu.Positioner className="menu-positioner" anchor={grip} side="left" align="start" sideOffset={6} collisionPadding={8}>
             <Menu.Popup className="menu-popup admin-menu">
               <MLabel>Block</MLabel>
+              <MItem
+                icon={<SelectionPlus {...I} />}
+                onSelect={() => {
+                  const p = at();
+                  if (p !== null) editor.chain().focus().setNodeSelection(p).run();
+                }}
+              >
+                Select
+              </MItem>
               <MSub icon={<Selection {...I} />} label="Turn into">
                 {BLOCKS.map((b) => (
                   <MItem key={b.kind} icon={b.icon} onSelect={() => { if (select() !== null) turnInto(editor, b.kind); }}>
@@ -332,11 +361,32 @@ export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Edito
   );
 });
 
-/* ── Find in page ────────────────────────────────────────────────────── */
+/* ── Find and replace ────────────────────────────────────────────────── */
 
-export function FindBar({ editor, initial, initialIndex = 0, onClose }: { editor: Editor; initial: string; initialIndex?: number; onClose: () => void }) {
+/**
+ * ⌘F finds; the chevron (or ⌥⌘F) opens the replace row under it. Match case
+ * and whole word are Aa and ab| beside the field, like VS Code. Replace takes
+ * the current match and moves on; Replace all is one step to undo.
+ */
+export function FindBar({
+  editor,
+  initial,
+  initialIndex = 0,
+  initialReplace = false,
+  onClose,
+}: {
+  editor: Editor;
+  initial: string;
+  initialIndex?: number;
+  initialReplace?: boolean;
+  onClose: () => void;
+}) {
   const [query, setQuery] = useState(initial);
+  const [replacing, setReplacing] = useState(initialReplace);
+  const [replacement, setReplacement] = useState("");
+  const [options, setOptions] = useState<FindOptions>({});
   const input = useRef<HTMLInputElement>(null);
+  const replaceInput = useRef<HTMLInputElement>(null);
   const state = useEditorState({
     editor,
     selector: ({ editor: e }) => {
@@ -346,11 +396,11 @@ export function FindBar({ editor, initial, initialIndex = 0, onClose }: { editor
   });
 
   useEffect(() => {
-    editor.commands.setFind(initial, initialIndex);
+    editor.commands.setFind(initial, initialIndex, {});
     input.current?.focus();
     input.current?.select();
     return () => {
-      editor.commands.setFind("");
+      editor.commands.setFind("", 0, {});
     };
   }, [editor, initial, initialIndex]);
 
@@ -362,41 +412,109 @@ export function FindBar({ editor, initial, initialIndex = 0, onClose }: { editor
     window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
   }, [editor, state.first, state.index]);
 
+  const setOption = (key: keyof FindOptions) => {
+    const next = { ...options, [key]: !options[key] };
+    setOptions(next);
+    editor.commands.setFind(query, 0, next);
+  };
+  const close = () => {
+    onClose();
+    editor.commands.focus();
+  };
+  const replaceOne = () => editor.commands.replaceCurrent(replacement);
+  const replaceAll = () => {
+    const n = state.count;
+    if (!n) return;
+    editor.commands.replaceAll(replacement);
+    toast.add({ type: "success", title: `Replaced ${n} ${n === 1 ? "match" : "matches"}`, description: `${keys("⌘Z")} undoes it.`, timeout: 2400 });
+  };
+  const onKey = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      close();
+    } else if ((e.metaKey || e.ctrlKey) && e.altKey && e.key.toLowerCase() === "f") {
+      e.preventDefault();
+      setReplacing((r) => !r);
+    }
+  };
+
   return (
-    <div className="find-bar" role="search">
-      <MagnifyingGlass size={14} aria-hidden="true" />
-      <input
-        ref={input}
-        value={query}
-        placeholder="Find in this post"
-        aria-label="Find in this post"
-        onChange={(e) => {
-          setQuery(e.target.value);
-          editor.commands.setFind(e.target.value, 0);
+    <div className="find-bar" role="search" data-replacing={replacing || undefined} onKeyDown={onKey}>
+      <button
+        type="button"
+        className="admin-icon-button find-toggle"
+        aria-expanded={replacing}
+        aria-label={replacing ? "Hide replace" : "Replace"}
+        title={`Replace  ${keys("⌥⌘F")}`}
+        onClick={() => {
+          setReplacing((r) => !r);
+          if (!replacing) window.setTimeout(() => replaceInput.current?.focus(), 0);
         }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            editor.commands.findStep(e.shiftKey ? -1 : 1);
-          } else if (e.key === "Escape") {
-            e.preventDefault();
-            onClose();
-            editor.commands.focus();
-          }
-        }}
-      />
-      <span className="find-count" aria-live="polite">
-        {query ? (state.count ? `${state.index + 1} of ${state.count}` : "No matches") : ""}
-      </span>
-      <button type="button" className="admin-icon-button" onClick={() => editor.commands.findStep(-1)} aria-label="Previous match" disabled={!state.count}>
-        <CaretUp size={14} weight="bold" />
+      >
+        <CaretRight size={12} weight="bold" />
       </button>
-      <button type="button" className="admin-icon-button" onClick={() => editor.commands.findStep(1)} aria-label="Next match" disabled={!state.count}>
-        <CaretDown size={14} weight="bold" />
-      </button>
-      <button type="button" className="admin-icon-button" onClick={onClose} aria-label="Close find">
-        <X size={14} weight="bold" />
-      </button>
+      <div className="find-rows">
+        <div className="find-row">
+          <input
+            ref={input}
+            value={query}
+            placeholder="Find in this post"
+            aria-label="Find in this post"
+            onChange={(e) => {
+              setQuery(e.target.value);
+              editor.commands.setFind(e.target.value, 0, options);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                editor.commands.findStep(e.shiftKey ? -1 : 1);
+              }
+            }}
+          />
+          <button type="button" className="find-option" aria-pressed={Boolean(options.caseSensitive)} onClick={() => setOption("caseSensitive")} title="Match case" aria-label="Match case">
+            Aa
+          </button>
+          <button type="button" className="find-option" aria-pressed={Boolean(options.wholeWord)} onClick={() => setOption("wholeWord")} title="Whole word" aria-label="Whole word">
+            <span className="find-word">ab</span>
+          </button>
+          <span className="find-count" aria-live="polite">
+            {query ? (state.count ? `${state.index + 1} of ${state.count}` : "No matches") : ""}
+          </span>
+          <button type="button" className="admin-icon-button" onClick={() => editor.commands.findStep(-1)} aria-label="Previous match" disabled={!state.count}>
+            <CaretUp size={14} weight="bold" />
+          </button>
+          <button type="button" className="admin-icon-button" onClick={() => editor.commands.findStep(1)} aria-label="Next match" disabled={!state.count}>
+            <CaretDown size={14} weight="bold" />
+          </button>
+          <button type="button" className="admin-icon-button" onClick={close} aria-label="Close find">
+            <X size={14} weight="bold" />
+          </button>
+        </div>
+        {replacing ? (
+          <div className="find-row find-replace">
+            <input
+              ref={replaceInput}
+              value={replacement}
+              placeholder="Replace with"
+              aria-label="Replace with"
+              onChange={(e) => setReplacement(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (e.metaKey || e.ctrlKey) replaceAll();
+                  else replaceOne();
+                }
+              }}
+            />
+            <button type="button" className="admin-button admin-button-quiet find-action" onClick={replaceOne} disabled={!state.count} title="Replace  ↵">
+              Replace
+            </button>
+            <button type="button" className="admin-button admin-button-quiet find-action" onClick={replaceAll} disabled={!state.count} title={`Replace all  ${keys("⌘↵")}`}>
+              All
+            </button>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -529,6 +647,11 @@ export function MobileToolbar({ editor, ...pick }: { editor: Editor } & Pickers)
           <button type="button" className="mobile-tool" onPointerDown={tap(pick.pickImage)} aria-label="Image">
             <ImageSquare size={18} />
           </button>
+          {pick.pickVoice ? (
+            <button type="button" className="mobile-tool" onPointerDown={tap(pick.pickVoice)} aria-label="Record a voice note">
+              <Microphone size={18} />
+            </button>
+          ) : null}
           <button type="button" className="mobile-tool" onPointerDown={tap(pick.pickEmoji)} aria-label="Emoji">
             <Smiley size={18} />
           </button>

@@ -26,9 +26,13 @@ export type Cover = {
 };
 
 export type Author = {
+  /** Optional: an avatar alone is a valid co-author. */
   name: string;
   email?: string;
-  /** A square image, already cropped and resized when it was uploaded. */
+  /**
+   * A square image (already cropped and resized when it was uploaded), or a
+   * generated one: "gen:<style>:<seed>" (see components/writing/Avatar.tsx).
+   */
   avatar?: string;
 };
 
@@ -63,6 +67,11 @@ export type PostMeta = {
    * It may have a body or none at all.
    */
   page: boolean;
+  /**
+   * The share image: null for the card drawn for the post (the default),
+   * "cover" for the cover image, or the src of an uploaded 1200×630 image.
+   */
+  ogImage: string | null;
   tags: string[];
   cover: Cover | null;
   /** First went live. Never moves after that, even when the post is edited. */
@@ -91,10 +100,15 @@ export type Draft = {
   authors: Author[];
   fonts: Fonts | null;
   page: boolean;
+  ogImage: string | null;
   tags: string[];
   cover: Cover | null;
   body: string;
   status: DraftStatus;
+  /** Pinned to the top of the admin list. */
+  pinned?: boolean;
+  /** In the trash since then; restored by clearing it. */
+  trashedAt?: string | null;
   /** ISO. For a scheduled post, when it goes live. */
   publishAt: string | null;
   /** ISO. Set on first publish and then kept. */
@@ -118,6 +132,7 @@ const KEY_ORDER: (keyof PostMeta)[] = [
   "authors",
   "fonts",
   "page",
+  "ogImage",
   "tags",
   "cover",
   "publishedAt",
@@ -153,6 +168,7 @@ export function parsePost(source: string): Post {
     authors: normalizeAuthors(meta.authors),
     fonts: (meta.fonts as Fonts | null) ?? null,
     page: meta.page !== false,
+    ogImage: typeof meta.ogImage === "string" && meta.ogImage ? meta.ogImage : null,
     tags: Array.isArray(meta.tags) ? meta.tags.map(String) : [],
     cover: (meta.cover as Cover | null) ?? null,
     publishedAt: String(meta.publishedAt ?? ""),
@@ -167,9 +183,13 @@ export function parsePost(source: string): Post {
 export function normalizeAuthors(value: unknown): Author[] {
   const list = Array.isArray(value)
     ? value
-        .filter((a): a is Author => Boolean(a) && typeof (a as Author).name === "string" && Boolean((a as Author).name.trim()))
+        .filter((a): a is Author => {
+          if (!a || typeof a !== "object") return false;
+          const x = a as Author;
+          return Boolean(String(x.name ?? "").trim() || x.avatar || x.email);
+        })
         .map((a) => ({
-          name: a.name.trim().slice(0, 120),
+          name: String(a.name ?? "").trim().slice(0, 120),
           ...(a.email ? { email: String(a.email).trim().slice(0, 200) } : {}),
           ...(a.avatar ? { avatar: String(a.avatar).slice(0, 500) } : {}),
         }))
@@ -180,8 +200,26 @@ export function normalizeAuthors(value: unknown): Author[] {
 
 /** Drafts saved before a field existed get its default. */
 export function upgradeDraft(d: Draft): Draft {
-  return { ...d, icon: d.icon ?? null, authors: normalizeAuthors(d.authors), fonts: d.fonts ?? null, page: d.page !== false };
+  return {
+    ...d,
+    icon: d.icon ?? null,
+    authors: normalizeAuthors(d.authors),
+    fonts: d.fonts ?? null,
+    page: d.page !== false,
+    ogImage: d.ogImage ?? null,
+    pinned: Boolean(d.pinned),
+    trashedAt: d.trashedAt ?? null,
+  };
 }
+
+/** Tags as URL segments: "AI Infrastructure" → "ai-infrastructure". */
+export const tagSlug = (tag: string) =>
+  tag
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
 /* ── Slugs ──────────────────────────────────────────────────────────────── */
 
@@ -189,7 +227,7 @@ const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const SLUG_MAX = 80;
 
 /** Words a post can't be called, because the site already uses the path. */
-const RESERVED = new Set(["admin", "api", "media", "feed", "rss", "index", "new"]);
+const RESERVED = new Set(["admin", "api", "media", "feed", "rss", "index", "new", "tag"]);
 
 export function isValidSlug(slug: string): boolean {
   return slug.length > 0 && slug.length <= SLUG_MAX && SLUG.test(slug) && !RESERVED.has(slug);
@@ -229,6 +267,7 @@ export function draftToPost(draft: Draft, now: string): Post {
     authors: normalizeAuthors(draft.authors),
     fonts: draft.fonts,
     page: draft.page !== false,
+    ogImage: draft.ogImage ?? null,
     tags: draft.tags,
     cover: draft.cover,
     publishedAt: draft.publishedAt ?? now,
@@ -248,6 +287,7 @@ export function postToDraft(post: Post): Draft {
     authors: post.authors,
     fonts: post.fonts,
     page: post.page,
+    ogImage: post.ogImage,
     tags: post.tags,
     cover: post.cover,
     body: post.body,

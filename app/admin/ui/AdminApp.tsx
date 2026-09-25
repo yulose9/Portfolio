@@ -1,11 +1,18 @@
 "use client";
 
+import { ArrowSquareOut, House, NotePencil, SignOut } from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
 
+import { toast } from "../../lib/toast";
 import { api, ApiError } from "./api";
-import Editor, { EDITOR_COMMANDS, type OpenOptions, type Panel } from "./Editor";
+import Editor, { type OpenOptions, type Panel } from "./Editor";
+import { Fluent } from "./extensions/emoji";
 import PostList from "./PostList";
+import { useCommands } from "./registry";
 import SearchPalette from "./SearchPalette";
+import { TEMPLATES } from "./templates";
+
+const CI = { size: 16, "aria-hidden": true } as const;
 
 /*
  * Two screens, one URL: /admin is the list, /admin?post=<id> is the editor.
@@ -84,6 +91,27 @@ export default function AdminApp() {
     window.scrollTo({ top: 0 });
   }, []);
 
+  const create = (init: Parameters<typeof api.create>[0] = {}) =>
+    void api
+      .create(init)
+      .then(({ post }) => open(post.id))
+      .catch((error: unknown) => toast.add({ type: "error", title: "Couldn’t start a post", description: error instanceof ApiError ? error.message : undefined }));
+
+  useCommands(() => [
+    { id: "new", group: "Go to", title: "New post", keys: "N", icon: <NotePencil {...CI} />, keywords: ["create", "write", "draft", "blank"], run: () => create() },
+    ...TEMPLATES.filter((t) => t.id !== "blank").map((t) => ({
+      id: `new:${t.id}`,
+      group: "Go to" as const,
+      title: `New post: ${t.title}`,
+      icon: <Fluent emoji={t.emoji} size={16} />,
+      keywords: ["template", "create", t.hint],
+      run: () => create(t.init),
+    })),
+    ...(postId ? [{ id: "home", group: "Go to" as const, title: "All writing", icon: <House {...CI} />, keywords: ["home", "list", "back", "dashboard"], run: () => open(null) }] : []),
+    { id: "site", group: "Go to", title: "Open the site", icon: <ArrowSquareOut {...CI} />, keywords: ["live", "nazarene.dev", "writing"], run: () => window.open("/writing", "_blank", "noopener") },
+    { id: "signout", group: "Go to", title: "Sign out", icon: <SignOut {...CI} />, keywords: ["logout", "access"], run: () => window.open("/cdn-cgi/access/logout", "_self") },
+  ]);
+
   if (gate.state === "checking") return <div className="admin-loading" aria-busy="true" />;
   if (gate.state === "blocked") {
     return (
@@ -108,16 +136,6 @@ export default function AdminApp() {
         open={searching}
         onClose={() => setSearching(false)}
         onJump={(j) => open(j.id, { q: j.q, n: j.n })}
-        commands={[
-          { id: "new", title: "New post", keys: "N" },
-          ...(postId ? [{ id: "home", title: "All writing" }, ...EDITOR_COMMANDS] : []),
-        ]}
-        onCommand={(id) => {
-          if (id === "new") {
-            void api.create().then(({ post }) => open(post.id));
-          } else if (id === "home") open(null);
-          else window.dispatchEvent(new CustomEvent("admin:command", { detail: id }));
-        }}
       />
     </>
   );

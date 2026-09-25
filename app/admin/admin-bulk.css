@@ -1,0 +1,706 @@
+/* ── Selection, the bulk bar, date & time, find & replace, palette, views ── */
+
+/* Checkboxes: a square that fills; the check arrives out of a blur. */
+.check {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: scale 160ms var(--ease);
+}
+.check:active {
+  scale: 0.9;
+}
+.check:focus-visible {
+  outline: 2px solid var(--a-ink);
+  outline-offset: 0;
+}
+.check-box {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1.5px #d4d4d8;
+  color: #fff;
+  transition-property: background-color, box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+.check[aria-checked="true"] .check-box,
+.check[aria-checked="mixed"] .check-box {
+  background: var(--a-ink);
+  box-shadow: inset 0 0 0 1.5px var(--a-ink);
+}
+@media (hover: hover) and (pointer: fine) {
+  .check:hover .check-box {
+    box-shadow: inset 0 0 0 1.5px var(--a-ink-3);
+  }
+  .check[aria-checked="true"]:hover .check-box,
+  .check[aria-checked="mixed"]:hover .check-box {
+    box-shadow: inset 0 0 0 1.5px var(--a-ink);
+  }
+}
+.check-mark,
+.check-dash {
+  grid-area: 1 / 1;
+  opacity: 0;
+  scale: 0.25;
+  filter: blur(4px);
+  transition-property: opacity, scale, filter;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+.check-dash {
+  width: 8px;
+  height: 2px;
+  border-radius: 2px;
+  background: #fff;
+}
+.check-mark[data-on],
+.check-dash[data-on] {
+  opacity: 1;
+  scale: 1;
+  filter: blur(0);
+}
+
+/* In the list: the box sits in the row's leading edge. */
+.admin-rows > li {
+  position: relative;
+}
+.admin-rows > li > .check {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: -1.6rem;
+  translate: 0 -50%;
+  opacity: 0;
+  transition-property: opacity, scale;
+  transition-duration: 150ms, 160ms;
+}
+.admin-rows > li:hover > .check,
+.admin-rows > li > .check:focus-visible,
+.admin-shell[data-selecting] .admin-rows > li > .check {
+  opacity: 1;
+}
+.admin-rows > li[data-selected] .admin-row {
+  background: #f0f4ff;
+  box-shadow: none;
+}
+.admin-rows > li[data-selected] + li .admin-row {
+  box-shadow: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .admin-rows > li[data-selected] .admin-row:hover {
+    background: #e8eeff;
+  }
+}
+
+.rows-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 32px;
+  margin: 0 0 0.25rem -2.05rem;
+  font-size: 12px;
+  color: var(--a-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.rows-head .check {
+  opacity: 0;
+  transition-property: opacity, scale;
+  transition-duration: 150ms, 160ms;
+}
+.rows-head:hover .check,
+.rows-head .check:focus-visible,
+.admin-shell[data-selecting] .rows-head .check,
+.admin-shell:has(.admin-rows:hover) .rows-head .check {
+  opacity: 1;
+}
+
+/* No gutter on narrow screens: the rows make room for the box instead. */
+@media (max-width: 880px), (pointer: coarse) {
+  .admin-rows > li > .check {
+    left: 0.35rem;
+  }
+  .rows-head {
+    margin-left: 0;
+  }
+  .rows-head .check {
+    opacity: 1;
+  }
+  .admin-rows > li > .check {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .admin-shell[data-selecting] .admin-rows > li > .check {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .admin-row {
+    transition-property: background-color, scale, padding-left;
+  }
+  .admin-shell[data-selecting] .admin-row {
+    padding-left: 2.6rem;
+  }
+}
+
+/* The bulk bar rises from the bottom; exits are shorter and softer. */
+.bulk-bar {
+  position: fixed;
+  z-index: 40;
+  left: 50%;
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: calc(100vw - 24px);
+  padding: 0.3rem;
+  border-radius: 999px;
+  background: #0a0a0a;
+  color: #fff;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.06) inset, 0 12px 32px -8px rgb(0 0 0 / 0.35), 0 4px 10px -4px rgb(0 0 0 / 0.25);
+  translate: -50% 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  transition-property: opacity, translate, scale;
+  transition-duration: 180ms;
+  transition-timing-function: ease-out;
+  opacity: 0;
+  translate: -50% 12px;
+  scale: 0.98;
+  pointer-events: none;
+}
+.bulk-bar[data-open] {
+  opacity: 1;
+  translate: -50% 0;
+  scale: 1;
+  pointer-events: auto;
+  transition-duration: 260ms;
+  transition-timing-function: var(--ease-drawer);
+}
+.bulk-close,
+.bulk-action,
+.bulk-link {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.4rem;
+  height: 32px;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: #e4e4e7;
+  cursor: pointer;
+  white-space: nowrap;
+  transition-property: background-color, color, scale, opacity;
+  transition-duration: 150ms, 150ms, 160ms, 150ms;
+  transition-timing-function: ease, ease, var(--ease), ease;
+}
+.bulk-close {
+  width: 32px;
+  padding: 0;
+  justify-content: center;
+  color: #a1a1aa;
+}
+.bulk-icon {
+  width: 34px;
+  padding: 0;
+  justify-content: center;
+}
+.bulk-link {
+  color: #93c5fd;
+  padding: 0 0.5rem;
+}
+@media (hover: hover) and (pointer: fine) {
+  .bulk-close:hover,
+  .bulk-action:hover:not(:disabled) {
+    background: rgb(255 255 255 / 0.1);
+    color: #fff;
+  }
+  .bulk-action[data-danger]:hover:not(:disabled) {
+    background: rgb(248 113 113 / 0.16);
+    color: #fca5a5;
+  }
+  .bulk-link:hover {
+    color: #bfdbfe;
+  }
+}
+.bulk-close:active,
+.bulk-action:active:not(:disabled),
+.bulk-link:active {
+  scale: 0.96;
+}
+.bulk-action:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+.bulk-action[data-popup-open] {
+  background: rgb(255 255 255 / 0.14);
+  color: #fff;
+}
+.bulk-action:focus-visible,
+.bulk-close:focus-visible,
+.bulk-link:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -2px;
+}
+.bulk-count {
+  flex: none;
+  padding: 0 0.35rem 0 0.15rem;
+  font-size: 13px;
+  color: #a1a1aa;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.bulk-count b {
+  font-weight: 600;
+  color: #fff;
+}
+.bulk-sep {
+  flex: none;
+  width: 1px;
+  height: 18px;
+  margin: 0 0.2rem;
+  background: rgb(255 255 255 / 0.14);
+}
+.admin-shell[data-selecting] {
+  padding-bottom: 8rem;
+}
+
+/* ── Date & time (react-day-picker, dressed like shadcn's Calendar) ───── */
+
+.dtp-popover {
+  padding: 0.75rem;
+  width: 18.5rem;
+}
+.dtp {
+  display: grid;
+  gap: 0.6rem;
+}
+.dtp-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.dtp-presets .admin-chip {
+  height: 26px;
+  font-size: 12px;
+}
+.dtp-calendar.rdp-root {
+  --rdp-accent-color: var(--a-ink);
+  --rdp-accent-background-color: var(--a-fill);
+  --rdp-day-height: 36px;
+  --rdp-day-width: 36px;
+  --rdp-day_button-height: 32px;
+  --rdp-day_button-width: 32px;
+  --rdp-day_button-border-radius: 8px;
+  --rdp-day_button-border: 0;
+  --rdp-selected-border: 0;
+  --rdp-today-color: var(--a-blue);
+  --rdp-nav-height: 32px;
+  --rdp-nav_button-height: 28px;
+  --rdp-nav_button-width: 28px;
+  --rdp-weekday-opacity: 1;
+  --rdp-outside-opacity: 0.4;
+  --rdp-disabled-opacity: 0.3;
+  margin: 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.dtp-calendar .rdp-months {
+  max-width: none;
+}
+.dtp-calendar .rdp-month_caption {
+  height: 32px;
+  padding-left: 0.4rem;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.dtp-calendar .rdp-nav {
+  gap: 2px;
+}
+.dtp-calendar .rdp-button_previous,
+.dtp-calendar .rdp-button_next {
+  border-radius: 8px;
+  color: var(--a-ink-2);
+  transition-property: background-color, scale;
+  transition-duration: 150ms, 160ms;
+}
+.dtp-calendar .rdp-button_previous:active,
+.dtp-calendar .rdp-button_next:active {
+  scale: 0.92;
+}
+.dtp-calendar .rdp-weekday {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--a-ink-3);
+}
+.dtp-calendar .rdp-day_button {
+  font-size: 13px;
+  color: var(--a-ink);
+  transition-property: background-color, color, scale;
+  transition-duration: 120ms, 120ms, 160ms;
+  transition-timing-function: ease, ease, var(--ease);
+}
+.dtp-calendar .rdp-day_button:active {
+  scale: 0.92;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dtp-calendar .rdp-day:not(.rdp-disabled):not(.rdp-selected) .rdp-day_button:hover,
+  .dtp-calendar .rdp-button_previous:hover,
+  .dtp-calendar .rdp-button_next:hover {
+    background: var(--a-fill);
+  }
+}
+.dtp-calendar .rdp-today:not(.rdp-selected) .rdp-day_button {
+  font-weight: 600;
+}
+.dtp-calendar .rdp-selected {
+  font-size: 13px;
+  font-weight: 600;
+}
+.dtp-calendar .rdp-selected .rdp-day_button {
+  background: var(--a-ink);
+  color: #fff;
+}
+.dtp-calendar .rdp-day_button:focus-visible {
+  outline: 2px solid var(--a-ink);
+  outline-offset: 1px;
+}
+.dtp-calendar .rdp-chevron {
+  fill: currentColor;
+}
+.dtp-time {
+  display: grid;
+  gap: 0.3rem;
+  padding-top: 0.6rem;
+  box-shadow: 0 -1px 0 var(--a-line);
+}
+.dtp-time label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.dtp-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-variant-numeric: tabular-nums;
+}
+.dtp-clock select {
+  height: 28px;
+  padding: 0 0.4rem;
+  border: 0;
+  border-radius: 8px;
+  background: var(--a-fill);
+  font: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--a-ink);
+  cursor: pointer;
+}
+.dtp-clock select:focus-visible {
+  outline: 2px solid var(--a-ink);
+  outline-offset: 1px;
+}
+.dtp-ampm {
+  margin-left: 0.25rem;
+}
+.dtp-ampm .admin-segment {
+  height: 22px;
+  padding: 0 0.5rem;
+  font-size: 11px;
+}
+.dtp-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+.dtp-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The editor's date over the title: text until you point at it. */
+.eyebrow-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: -0.2rem -0.45rem;
+  padding: 0.2rem 0.45rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition-property: background-color, color, scale;
+  transition-duration: 150ms, 150ms, 160ms;
+  transition-timing-function: ease, ease, var(--ease);
+}
+.eyebrow-date svg {
+  opacity: 0;
+  margin-left: -1.1rem;
+  transition-property: opacity, margin;
+  transition-duration: 150ms;
+}
+.eyebrow-date:hover svg,
+.eyebrow-date:focus-visible svg,
+.eyebrow-date[data-popup-open] svg {
+  opacity: 1;
+  margin-left: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .eyebrow-date:hover {
+    background: var(--a-fill);
+    color: var(--a-ink);
+  }
+}
+.eyebrow-date[data-popup-open] {
+  background: var(--a-fill);
+  color: var(--a-ink);
+}
+.eyebrow-date:active {
+  scale: 0.96;
+}
+@media (hover: none) {
+  .eyebrow-date svg {
+    opacity: 1;
+    margin-left: 0;
+  }
+}
+
+/* ── Find & replace ─────────────────────────────────────────────────── */
+
+.find-bar {
+  align-items: flex-start;
+  padding-left: 0.3rem;
+  border-radius: 20px;
+}
+.find-toggle svg {
+  transition: rotate 200ms var(--ease);
+}
+.find-toggle[aria-expanded="true"] svg {
+  rotate: 90deg;
+}
+.find-rows {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 0.2rem;
+}
+.find-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.find-replace {
+  padding-top: 0.2rem;
+  box-shadow: 0 -1px 0 var(--a-line);
+  transition-property: opacity, translate;
+  transition-duration: 180ms;
+  transition-timing-function: var(--ease);
+}
+@starting-style {
+  .find-replace {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+}
+.find-row input {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--a-ink);
+}
+.find-option {
+  display: grid;
+  place-items: center;
+  flex: none;
+  min-width: 26px;
+  height: 24px;
+  padding: 0 0.3rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--a-ink-3);
+  cursor: pointer;
+  transition-property: background-color, color, scale;
+  transition-duration: 150ms, 150ms, 160ms;
+}
+.find-option:active {
+  scale: 0.92;
+}
+.find-option[aria-pressed="true"] {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.find-word {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.find-action {
+  height: 26px;
+  padding: 0 0.6rem;
+  font-size: 12px;
+}
+.find-action:disabled {
+  opacity: 0.4;
+}
+.find-bar[data-replacing] {
+  width: min(520px, calc(100vw - 24px));
+}
+
+/* ── Palette: groups, icons, switches ─────────────────────────────────── */
+
+.palette-group {
+  margin: 0.6rem 0.6rem 0.2rem;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--a-ink-3);
+}
+.palette-group:first-child {
+  margin-top: 0.2rem;
+}
+.palette-command-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--a-fill);
+  color: var(--a-ink-2);
+}
+.palette-command-icon img {
+  width: 16px;
+  height: 16px;
+}
+.palette-command[aria-selected="true"] .palette-command-icon {
+  background: #fff;
+  color: var(--a-ink);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.05), 0 1px 2px rgb(0 0 0 / 0.06);
+}
+.palette-command svg {
+  color: currentColor;
+}
+.palette-command .palette-command-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+.palette-command-group {
+  font-size: 12px;
+  color: var(--a-ink-3);
+}
+.palette-command[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: default;
+}
+.palette-switch {
+  flex: none;
+  position: relative;
+  width: 28px;
+  height: 16px;
+  border-radius: 999px;
+  background: #e4e4e7;
+  transition: background-color 200ms ease;
+}
+.palette-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  transition: translate 240ms var(--ease-drawer);
+}
+.palette-switch[data-on] {
+  background: var(--a-ink);
+}
+.palette-switch[data-on]::after {
+  translate: 12px 0;
+}
+
+/* ── Edit / Page ─────────────────────────────────────────────────────── */
+
+.view-switch .admin-segment {
+  height: 26px;
+  padding: 0 0.6rem;
+}
+.page-view {
+  padding-top: 1rem;
+  animation: page-view-in 220ms var(--ease) both;
+}
+@keyframes page-view-in {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+.page-view .preview-page {
+  padding-top: 2rem;
+}
+.editor-root[data-view="page"] .editor-foot-keys {
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bulk-bar,
+  .bulk-bar[data-open] {
+    translate: -50% 0;
+    scale: 1;
+    transition-property: opacity;
+  }
+  .check-mark,
+  .check-dash,
+  .palette-switch::after,
+  .find-toggle svg {
+    transition-duration: 0ms;
+  }
+  .page-view {
+    animation: none;
+  }
+}
+
+/* Row meta wraps as whole pieces, never word by word. */
+.admin-row-meta {
+  flex-wrap: wrap;
+  row-gap: 0.3rem;
+}
+.admin-row-meta > span {
+  white-space: nowrap;
+}

@@ -8,6 +8,7 @@ import {
   Info,
   ImageSquare,
   LinkSimple,
+  Microphone,
   ListBullets,
   ListNumbers,
   Minus,
@@ -106,9 +107,19 @@ export function activeBlock(editor: Editor): BlockKind {
 export type InsertDef = { id: string; title: string; hint: string; keywords: string[]; icon: React.ReactNode; run: (editor: Editor) => void };
 
 /** Things that are inserted rather than turned into. `pickImage` and `pickEmoji` come from the editor. */
-export function inserts(pickImage: () => void, pickEmoji?: () => void): InsertDef[] {
+export function inserts(pickImage: () => void, pickEmoji?: () => void, pickVoice?: () => void): InsertDef[] {
   return [
-    { id: "image", title: "Image", hint: "Upload, or paste one", keywords: ["picture", "photo", "figure", "img", "upload"], icon: <ImageSquare {...I} />, run: () => pickImage() },
+    {
+      id: "image",
+      title: "Photo, video or audio",
+      hint: "HEIC, GIF, MP4… compressed for you",
+      keywords: ["picture", "photo", "figure", "img", "upload", "video", "gif", "audio", "heic", "movie", "media"],
+      icon: <ImageSquare {...I} />,
+      run: () => pickImage(),
+    },
+    ...(pickVoice
+      ? [{ id: "voice", title: "Voice note", hint: "Record from the microphone", keywords: ["voice", "record", "audio", "mic", "memo", "podcast"], icon: <Microphone {...I} />, run: () => pickVoice() }]
+      : []),
     {
       id: "table",
       title: "Table",
@@ -184,4 +195,21 @@ export function selectionMarkdown(editor: Editor): string {
   const doc = empty ? editor.state.doc : editor.state.doc.cut(from, to);
   const manager = (editor as unknown as { markdown?: { serialize: (json: unknown) => string } }).markdown;
   return manager ? manager.serialize(doc.toJSON()) : editor.state.doc.textBetween(from, to, "\n\n");
+}
+
+/**
+ * ⌘A the Notion way: the first press selects the text of the block you're
+ * in; pressed again (or in an empty block), everything. Returns false to let
+ * the editor's own select-all run.
+ */
+export function selectBlock(editor: Editor): boolean {
+  const { selection } = editor.state;
+  const { $from } = selection;
+  // Inside a code block or a heading or a paragraph: that textblock.
+  const from = $from.start();
+  const to = $from.end();
+  if (from === to || !$from.sameParent(selection.$to)) return false;
+  if (selection.from <= from && selection.to >= to) return false;
+  editor.chain().focus().setTextSelection({ from, to }).run();
+  return true;
 }

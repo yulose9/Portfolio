@@ -2,13 +2,13 @@ import { normalizeAuthors, type Draft, type FontChoice, type Fonts } from "../..
 import { HttpError, json, param, readJson, type AdminFunction } from "../../../../../cms/server/http";
 import { loadDraft } from "../../../../../cms/server/load";
 import { removeLive } from "../../../../../cms/server/publish";
-import { deleteDraft, putDraft, snapshot } from "../../../../../cms/server/store";
+import { deleteDraft, putDraft, setScheduled, snapshot } from "../../../../../cms/server/store";
 
 export const onRequestGet: AdminFunction<"id"> = async ({ env, params }) =>
   json({ post: await loadDraft(env, param(params.id)) });
 
 /** The fields the editor may change. Status and what's live belong to the server. */
-const EDITABLE = ["title", "slug", "dek", "icon", "authors", "fonts", "page", "tags", "cover", "body"] as const;
+const EDITABLE = ["title", "slug", "dek", "icon", "authors", "fonts", "page", "ogImage", "pinned", "tags", "cover", "body", "publishedAt"] as const;
 type Edit = Partial<Pick<Draft, (typeof EDITABLE)[number]>> & {
   /** The updatedAt the editor last saw. A mismatch means another tab saved in between. */
   base?: string;
@@ -35,6 +35,14 @@ export const onRequestPut: AdminFunction<"id"> = async ({ env, params, request }
   if (edit.authors !== undefined) next.authors = normalizeAuthors(edit.authors);
   if (edit.fonts !== undefined) next.fonts = cleanFonts(edit.fonts);
   if (edit.page !== undefined) next.page = edit.page !== false;
+  if (edit.ogImage !== undefined) next.ogImage = typeof edit.ogImage === "string" && /^(cover|\/media\/[\w./-]+)$/.test(edit.ogImage) ? edit.ogImage : null;
+  if (edit.pinned !== undefined) next.pinned = Boolean(edit.pinned);
+  // The date a post shows: backdate an essay, or fix a typo in the year.
+  if (edit.publishedAt !== undefined) {
+    if (edit.publishedAt === null) next.publishedAt = null;
+    else if (typeof edit.publishedAt === "string" && !Number.isNaN(Date.parse(edit.publishedAt))) next.publishedAt = new Date(edit.publishedAt).toISOString();
+    else throw new HttpError("That date isn't one I can read.");
+  }
   if (next.body.length > 400_000) throw new HttpError("That's longer than a post can be (400k characters).", 413);
 
   const changed = EDITABLE.some((k) => JSON.stringify(next[k]) !== JSON.stringify(draft[k]));
@@ -61,13 +69,26 @@ function cleanFonts(value: unknown): Fonts | null {
   return fonts.heading || fonts.body ? fonts : null;
 }
 
-export const onRequestDelete: AdminFunction<"id"> = async ({ env, params }) => {
+/*
+ * DELETE moves a post to the trash (taking it off the site if it was live);
+ * DELETE ?forever=1 deletes it and its whole history. Trash older than 60
+ * days is emptied when the list is next loaded.
+ */
+export const onRequestDelete: AdminFunction<"id"> = async ({ env, params, request }) => {
   const id = param(params.id);
+  const forever = new URL(request.url).searchParams.get("forever") === "1";
   const draft = await loadDraft(env, id).catch((error) => {
     if (error instanceof HttpError && error.status === 404) return null;
     throw error;
   });
   await removeLive(env, draft, null);
-  await deleteDraft(env, id);
-  return json({ ok: true });
+  if (forever || !draft) {
+    await deleteDraft(env, id);
+    return json({ ok: true, deleted: true });
+  }
+  const now = new Date().toISOString();
+  const trashed: Draft = { ...draft, status: "draft", liveSlug: null, publishAt: null, trashedAt: now, dirty: true, updatedAt: now };
+  await putDraft(env, trashed);
+  await setScheduled(env, id, null);
+  return json({ ok: true, post: trashed });
 };

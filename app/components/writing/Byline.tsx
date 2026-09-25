@@ -1,4 +1,5 @@
 import type { Author } from "../../../cms/format";
+import Avatar from "./Avatar";
 
 /**
  * Who wrote it: stacked avatars, then the names ("A", "A and B", "A, B and
@@ -16,19 +17,15 @@ export function joinNames(names: React.ReactNode[]): React.ReactNode[] {
 export function Avatars({ authors }: { authors: Author[] }) {
   return (
     <span className="article-avatars" aria-hidden="true">
-      {authors.map((a, i) =>
-        a.avatar ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img key={i} src={a.avatar} alt="" width={28} height={28} className="article-avatar" />
-        ) : (
-          <span key={i} className="article-avatar article-avatar-initial">
-            {a.name.trim().charAt(0).toUpperCase()}
-          </span>
-        )
-      )}
+      {authors.map((a, i) => (
+        <Avatar key={i} author={a} />
+      ))}
     </span>
   );
 }
+
+/** Only the authors who gave a name are named; an avatar alone still shows. */
+export const named = (authors: Author[]) => authors.filter((a) => a.name.trim());
 
 export default function Byline({
   authors,
@@ -46,7 +43,7 @@ export default function Byline({
       <Avatars authors={authors} />
       <span className="article-author">
         {joinNames(
-          authors.map((a, i) =>
+          named(authors).map((a, i) =>
             a.email ? (
               <a key={i} href={`mailto:${a.email}`} className="article-author-link">
                 {a.name}

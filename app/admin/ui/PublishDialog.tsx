@@ -8,6 +8,7 @@ import { toast } from "../../lib/toast";
 import { api, ApiError, type Draft } from "./api";
 import { exactTime, PageSwitch } from "./bits";
 import type { Meta } from "./Editor";
+import DateTimePicker from "./DateTimePicker";
 import Sheet from "./Sheet";
 
 /*
@@ -21,10 +22,11 @@ import Sheet from "./Sheet";
 
 type Check = { label: string; ok: boolean; blocking: boolean; hint?: string };
 
-/** "2026-09-26T09:00" in the browser's zone, for datetime-local. */
-function localInput(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+/** Tomorrow at 9, the usual answer to "later". */
+function tomorrowMorning() {
+  const d = new Date(Date.now() + 24 * 3600 * 1000);
+  d.setHours(9, 0, 0, 0);
+  return d;
 }
 
 export default function PublishDialog({
@@ -37,6 +39,7 @@ export default function PublishDialog({
   onDone,
   onSlugChange,
   onPageChange,
+  onPreview,
 }: {
   open: boolean;
   onClose: () => void;
@@ -47,11 +50,12 @@ export default function PublishDialog({
   onDone: (post: Draft) => void;
   onSlugChange: (slug: string) => void;
   onPageChange: (page: boolean) => void;
+  onPreview: () => void;
 }) {
   const live = doc.liveSlug !== null;
   const scheduled = doc.status === "scheduled";
   const [when, setWhen] = useState<"now" | "later">("now");
-  const [at, setAt] = useState(() => localInput(new Date(Date.now() + 24 * 3600 * 1000)));
+  const [at, setAt] = useState<Date>(tomorrowMorning);
   const [busy, setBusy] = useState(false);
 
   // Each time it opens, start from the post's own state.
@@ -60,7 +64,7 @@ export default function PublishDialog({
     setWasOpen(open);
     if (open) {
       setWhen(scheduled ? "later" : "now");
-      if (scheduled && doc.publishAt) setAt(localInput(new Date(doc.publishAt)));
+      if (scheduled && doc.publishAt) setAt(new Date(doc.publishAt));
     }
   }
 
@@ -80,20 +84,19 @@ export default function PublishDialog({
     setBusy(true);
     try {
       if (!(await beforePublish())) throw new ApiError("Save the latest edits first; the save didn't go through.", 0);
-      const isoAt = when === "later" ? new Date(at).toISOString() : undefined;
+      if (when === "later" && at.getTime() <= Date.now()) throw new ApiError("Pick a time in the future.", 0);
+      const isoAt = when === "later" ? at.toISOString() : undefined;
       const { post } = await api.publish(doc.id, isoAt);
       onDone(post);
       onClose();
       if (isoAt) {
         toast.add({ type: "success", title: "Scheduled", description: `Goes live ${exactTime(isoAt)}.` });
       } else {
-        const url = `/writing/${post.slug}`;
         toast.add({
           type: "success",
           title: live ? "Changes published" : "Published",
-          description: "Live in about a minute, once the site rebuilds.",
+          description: "The site takes about 3 minutes to rebuild. The top bar shows when it's live.",
           timeout: 6000,
-          actionProps: { children: "Open", onClick: () => window.open(url, "_blank", "noopener") },
         });
       }
     } catch (error) {
@@ -135,6 +138,14 @@ export default function PublishDialog({
         {moved ? <p className="field-help" data-tone="warn">/writing/{doc.liveSlug} will redirect here.</p> : null}
       </div>
 
+      <button type="button" className="preview-cta" onClick={onPreview}>
+        <span>
+          <b>Preview first</b>
+          <span className="field-help">The page on a laptop and a phone, how it looks in lists, and the card on X, Threads, LinkedIn, WhatsApp and more.</span>
+        </span>
+        <span aria-hidden="true">→</span>
+      </button>
+
       <PageSwitch page={meta.page} slug={meta.slug} onChange={onPageChange} />
 
       <ul className="publish-checks">
@@ -160,10 +171,10 @@ export default function PublishDialog({
             </button>
           </div>
           {when === "later" ? (
-            <label className="publish-at">
-              <input type="datetime-local" value={at} min={localInput(new Date())} onChange={(e) => setAt(e.target.value)} />
+            <div className="publish-at">
+              <DateTimePicker value={at} min={new Date()} onChange={setAt} label="When it goes live" className="admin-button dtp-trigger" />
               <span className="field-help">Your time. Published within ten minutes of it.</span>
-            </label>
+            </div>
           ) : null}
         </div>
       ) : null}
