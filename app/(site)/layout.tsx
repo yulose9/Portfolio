@@ -1,20 +1,21 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
-import VendorScripts from "./analytics/VendorScripts";
+import VendorScripts from "../analytics/VendorScripts";
 import {
   ENHANCED_METADATA,
   PERSON_SCHEMA,
   PROFILE_PAGE_SCHEMA,
   WEBSITE_SCHEMA,
-} from "./constants/seo";
-import DeferredAnalytics from "./providers/DeferredAnalytics";
-import UiSounds from "./components/UiSounds";
-import LazyToaster from "./components/LazyToaster";
-import PeerCursors from "./components/PeerCursors";
-import SmoothCursor from "./components/SmoothCursor";
-import SmoothScroll from "./providers/SmoothScroll";
-import "./globals.css";
+} from "../constants/seo";
+import DeferredAnalytics from "../providers/DeferredAnalytics";
+import UiSounds from "../components/UiSounds";
+import LazyToaster from "../components/LazyToaster";
+import PeerCursors from "../components/PeerCursors";
+import SmoothCursor from "../components/SmoothCursor";
+import SmoothScroll from "../providers/SmoothScroll";
+import "../globals.css";
+import "../article.css";
 
 /*
  * Inter, self-hosted by next/font at build time — no runtime request to

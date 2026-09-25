@@ -32,6 +32,17 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
   const [activeId, setActiveId] = useState(tabs[0]?.id);
   const active = tabs.find((tab) => tab.id === activeId) ?? tabs[0];
 
+  // /#writing opens on that tab: how an article's "← Writing" gets back here.
+  useEffect(() => {
+    const fromHash = () => {
+      const id = decodeURIComponent(window.location.hash.slice(1));
+      if (tabs.some((tab) => tab.id === id)) setActiveId(id);
+    };
+    fromHash();
+    window.addEventListener("hashchange", fromHash);
+    return () => window.removeEventListener("hashchange", fromHash);
+  }, [tabs]);
+
   const tabRefs = useRef<Array<HTMLLIElement | null>>([]);
   const railRef = useRef<HTMLSpanElement>(null);
   const railPlaced = useRef(false);

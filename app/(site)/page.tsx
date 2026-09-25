@@ -1,11 +1,36 @@
-import AvatarZoom from "./components/AvatarZoom";
-import PageMenu from "./components/menu/PageMenu";
-import LastUpdated from "./components/LastUpdated";
-import LocalTime from "./components/LocalTime";
-import TabbedIndex from "./components/TabbedIndex";
-import { buildTimeCommit } from "./last-commit";
-import ToolRow from "./components/ToolRow";
-import { PROFILE, TABS, TOOLS } from "./site-content";
+import AvatarZoom from "../components/AvatarZoom";
+import PageMenu from "../components/menu/PageMenu";
+import LastUpdated from "../components/LastUpdated";
+import LocalTime from "../components/LocalTime";
+import TabbedIndex from "../components/TabbedIndex";
+import { buildTimeCommit } from "../last-commit";
+import ToolRow from "../components/ToolRow";
+import { publishedPosts } from "../lib/writing";
+import { PROFILE, TABS, TOOLS, type Tab } from "../site-content";
+
+// The calendar day in Manila, which is the day the post says it went out.
+const manilaDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" });
+
+/**
+ * The Writing tab lists what's published in content/writing. Until the first
+ * post goes out it keeps its placeholder rows, so the tab never sits empty.
+ */
+function withWriting(tabs: Tab[]): Tab[] {
+  const posts = publishedPosts();
+  if (!posts.length) return tabs;
+  return tabs.map((tab) =>
+    tab.id === "writing"
+      ? {
+          ...tab,
+          posts: posts.map((p) => ({
+            title: p.title,
+            date: manilaDay.format(new Date(p.publishedAt)),
+            href: `/writing/${p.slug}`,
+          })),
+        }
+      : tab
+  );
+}
 
 export default async function Page() {
   return (
@@ -50,7 +75,7 @@ export default async function Page() {
             <ToolRow tools={TOOLS} />
           </header>
 
-          <TabbedIndex tabs={TABS} />
+          <TabbedIndex tabs={withWriting(TABS)} />
         </div>
 
         {/*

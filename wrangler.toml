@@ -3,3 +3,17 @@ compatibility_date = "2024-12-01"
 
 # This tells Cloudflare where your built static files are located
 pages_build_output_dir = "out"
+
+# The writing admin (functions/api/admin, functions/media).
+#
+# Drafts, revisions and uploaded images live in this private bucket; only
+# published posts go to git. Secrets are set with `wrangler pages secret put`
+# and never appear here: GITHUB_TOKEN, ACCESS_TEAM_DOMAIN, ACCESS_AUD,
+# ADMIN_EMAIL. See docs/writing-admin.md.
+[[r2_buckets]]
+binding = "WRITING"
+bucket_name = "portfolio-writing"
+
+[vars]
+GITHUB_REPO = "yulose9/Portfolio"
+GITHUB_BRANCH = "master"

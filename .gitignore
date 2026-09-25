@@ -88,3 +88,6 @@ scripts/check-*.ps1
 # Local miniflare state: sqlite files rewritten on every `wrangler dev`.
 .wrangler/
 .dev.vars
+
+# generated from content/writing by next.config.js
+public/_redirects

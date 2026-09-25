@@ -1,0 +1,20 @@
+# Publishes scheduled posts when their time comes.
+#
+# Scheduled drafts wait in the private R2 bucket (never in the public repo);
+# every ten minutes this commits any that are due, and the commit sets off the
+# normal Pages build. Deploy: `npx wrangler deploy` from this folder, then
+# `npx wrangler secret put GITHUB_TOKEN` (the same token the admin uses).
+name = "portfolio-scheduler"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+[triggers]
+crons = ["*/10 * * * *"]
+
+[[r2_buckets]]
+binding = "WRITING"
+bucket_name = "portfolio-writing"
+
+[vars]
+GITHUB_REPO = "yulose9/Portfolio"
+GITHUB_BRANCH = "master"

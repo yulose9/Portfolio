@@ -36,7 +36,13 @@
   ],
   "exclude": [
     "node_modules",
-    "docs", ".audit", ".tools", ".agents",
-    "worker"
+    "docs",
+    ".audit",
+    ".tools",
+    ".agents",
+    "worker",
+    "functions",
+    "cms/server",
+    "scheduler"
   ]
 }
