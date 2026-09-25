@@ -36,7 +36,7 @@ function withWriting(tabs: Tab[]): Tab[] {
 }
 
 export const metadata: Metadata = {
-  alternates: { canonical: "/", types: FEED },
+  alternates: { canonical: "/", types: { ...FEED, "text/markdown": [{ url: "/llms.txt", title: "Markdown" }] } },
 };
 
 export default async function Page() {

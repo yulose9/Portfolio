@@ -1,0 +1,91 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "nazarene.dev content",
+    "version": "1.0.0",
+    "summary": "Read-only, public endpoints for the site's profile and writing.",
+    "description": "Everything here is static, public and read-only: no authentication, no rate plans, no write operations. Pages also answer in Markdown when the request sends Accept: text/markdown. Human-readable docs: https://nazarene.dev/api.md",
+    "contact": { "name": "John Nazarene Dela Pisa", "url": "https://nazarene.dev", "email": "jannazarene09@gmail.com" },
+    "license": { "name": "All rights reserved", "identifier": "LicenseRef-All-rights-reserved" }
+  },
+  "servers": [{ "url": "https://nazarene.dev" }],
+  "externalDocs": { "url": "https://nazarene.dev/api.md" },
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "getHome",
+        "summary": "The home page: role, experience, projects, certifications, writing and contact.",
+        "parameters": [{ "$ref": "#/components/parameters/Accept" }],
+        "responses": { "200": { "description": "HTML, or Markdown (the /llms.txt summary) when asked for.", "content": { "text/html": {}, "text/markdown": {} } } }
+      }
+    },
+    "/llms.txt": {
+      "get": {
+        "operationId": "getSummary",
+        "summary": "A summary of the site for language models (llmstxt.org).",
+        "responses": { "200": { "description": "Markdown.", "content": { "text/plain": {} } } }
+      }
+    },
+    "/llms-full.txt": {
+      "get": {
+        "operationId": "getFullText",
+        "summary": "The full text of every published post.",
+        "responses": { "200": { "description": "Markdown.", "content": { "text/plain": {} } } }
+      }
+    },
+    "/writing": {
+      "get": {
+        "operationId": "listPosts",
+        "summary": "Every published post, newest first.",
+        "parameters": [{ "$ref": "#/components/parameters/Accept" }],
+        "responses": { "200": { "description": "HTML, or a Markdown list when asked for.", "content": { "text/html": {}, "text/markdown": {} } } }
+      }
+    },
+    "/writing/index.md": {
+      "get": {
+        "operationId": "listPostsMarkdown",
+        "summary": "Every published post, as a Markdown list.",
+        "responses": { "200": { "description": "Markdown.", "content": { "text/markdown": {} } } }
+      }
+    },
+    "/writing/{slug}": {
+      "get": {
+        "operationId": "getPost",
+        "summary": "One post.",
+        "parameters": [{ "$ref": "#/components/parameters/Slug" }, { "$ref": "#/components/parameters/Accept" }],
+        "responses": {
+          "200": { "description": "HTML, or the post's Markdown source when asked for.", "content": { "text/html": {}, "text/markdown": {} } },
+          "404": { "description": "No published post at that address." }
+        }
+      }
+    },
+    "/writing/{slug}/index.md": {
+      "get": {
+        "operationId": "getPostMarkdown",
+        "summary": "One post as the Markdown it was written in, with front matter.",
+        "parameters": [{ "$ref": "#/components/parameters/Slug" }],
+        "responses": { "200": { "description": "Markdown.", "content": { "text/markdown": {} } }, "404": { "description": "No published post at that address." } }
+      }
+    },
+    "/feed.xml": {
+      "get": {
+        "operationId": "getFeed",
+        "summary": "RSS feed of published posts.",
+        "responses": { "200": { "description": "RSS 2.0.", "content": { "application/rss+xml": {} } } }
+      }
+    },
+    "/sitemap.xml": {
+      "get": {
+        "operationId": "getSitemap",
+        "summary": "Every public page.",
+        "responses": { "200": { "description": "Sitemap XML.", "content": { "application/xml": {} } } }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "Slug": { "name": "slug", "in": "path", "required": true, "description": "The post's address, lowercase letters, numbers and hyphens.", "schema": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" } },
+      "Accept": { "name": "Accept", "in": "header", "required": false, "description": "Send text/markdown to get Markdown instead of HTML.", "schema": { "type": "string", "example": "text/markdown" } }
+    }
+  }
+}

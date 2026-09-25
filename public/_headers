@@ -13,3 +13,24 @@
 /writing/_
   X-Robots-Tag: noindex
 
+
+# Discovery documents for agents: the right types, readable from anywhere.
+/.well-known/api-catalog
+  Content-Type: application/linkset+json; profile="https://www.rfc-editor.org/info/rfc9727"
+  Access-Control-Allow-Origin: *
+
+/.well-known/agent-skills/*
+  Access-Control-Allow-Origin: *
+
+/openapi.json
+  Content-Type: application/vnd.oai.openapi+json
+  Access-Control-Allow-Origin: *
+
+/api.md
+  Content-Type: text/markdown; charset=utf-8
+
+/auth.md
+  Content-Type: text/markdown; charset=utf-8
+
+/.well-known/agent-skills/read-nazarene-dev/SKILL.md
+  Content-Type: text/markdown; charset=utf-8

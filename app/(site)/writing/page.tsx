@@ -17,7 +17,7 @@ const description = `Writing by ${SITE_INFO.name}: technical notes on building A
 export const metadata: Metadata = {
   title: "Writing",
   description,
-  alternates: { canonical: "/writing", types: FEED },
+  alternates: { canonical: "/writing", types: { ...FEED, "text/markdown": [{ url: "/writing/index.md", title: "Markdown" }] } },
   openGraph: { ...OG_METADATA, title: `Writing · ${SITE_INFO.name}`, description, url: `${SITE_INFO.url}/writing` },
 };
 

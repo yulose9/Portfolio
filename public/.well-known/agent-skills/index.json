@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "read-nazarene-dev",
+      "type": "skill-md",
+      "description": "Read John Nazarene Dela Pisa's portfolio and writing on nazarene.dev as Markdown, without scraping HTML.",
+      "url": "https://nazarene.dev/.well-known/agent-skills/read-nazarene-dev/SKILL.md",
+      "digest": "sha256:0c5e48e56dcffe08b76b007172679f9104d2b63e2c3aeff45dbc30b436b4520a"
+    }
+  ]
+}

@@ -7,6 +7,7 @@ import UiSounds from "../components/UiSounds";
 import LazyToaster from "../components/LazyToaster";
 import PeerCursors from "../components/PeerCursors";
 import SmoothCursor from "../components/SmoothCursor";
+import WebMcpTools from "../components/WebMcpTools";
 import SmoothScroll from "../providers/SmoothScroll";
 import "../globals.css";
 import "../article.css";
@@ -61,6 +62,7 @@ export default function RootLayout({
     <html lang="en" className={inter.variable}>
       <body>
         {children}
+        <WebMcpTools />
 
         {/*
           Analytics load after the content, and every vendor script is

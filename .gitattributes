@@ -1,3 +1,7 @@
 # Env files hold exact, case-sensitive tokens. Force LF so a Windows checkout
 # can never append an invisible  to the last character of a value.
 .env* text eol=lf
+
+# Files whose SHA-256 is published (/.well-known/agent-skills/index.json) must
+# keep their exact bytes on every checkout.
+public/.well-known/** text eol=lf

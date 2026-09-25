@@ -4,11 +4,15 @@
 # their sources. They're named individually so the policy reads as a choice,
 # and so a future "User-agent: *" change can't quietly shut them out.
 # A summary for language models lives at /llms.txt.
+#
+# Content signals (contentsignals.org) say what the content may be used for,
+# and match the allow-list below: search, answering and citing, and training.
 
 User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /api/
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
 
 # Search
 User-agent: Googlebot
@@ -18,6 +22,7 @@ User-agent: Applebot
 Allow: /
 Disallow: /admin
 Disallow: /api/
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
 
 # AI search and assistants (answering, citing, browsing on a user's behalf)
 User-agent: OAI-SearchBot
@@ -33,5 +38,6 @@ User-agent: Applebot-Extended
 Allow: /
 Disallow: /admin
 Disallow: /api/
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
 
 Sitemap: https://nazarene.dev/sitemap.xml

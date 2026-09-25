@@ -1,0 +1,10 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://nazarene.dev/",
+      "service-desc": [{ "href": "https://nazarene.dev/openapi.json", "type": "application/vnd.oai.openapi+json" }],
+      "service-doc": [{ "href": "https://nazarene.dev/api.md", "type": "text/markdown" }],
+      "describedby": [{ "href": "https://nazarene.dev/llms.txt", "type": "text/markdown" }]
+    }
+  ]
+}
