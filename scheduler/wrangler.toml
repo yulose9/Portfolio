@@ -7,6 +7,8 @@
 name = "portfolio-scheduler"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
+# Cron only: no public URL.
+workers_dev = false
 
 [triggers]
 crons = ["*/10 * * * *"]
