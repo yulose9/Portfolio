@@ -8,7 +8,8 @@ import { Metadata } from "next";
 // Basic site information
 export const SITE_INFO = {
   name: "John Nazarene Dela Pisa",
-  title: "John Nazarene | AI Specialist & Computer Engineer", // 49 chars (optimal: 50-60)
+  // The browser tab, and the headline of link previews and search results.
+  title: "John Nazarene, AI Specialist",
   description:
     "AI Specialist and Computer Engineer in the Philippines, building products where AI meets infrastructure: agentic systems and the platforms they run on.", // 151 chars (optimal: 110-160)
   url: "https://www.nazarene.dev",

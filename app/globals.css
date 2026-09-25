@@ -534,6 +534,16 @@ html.has-smooth-cursor [contenteditable] {
   padding: 0.25rem;
   border-radius: 14px;
 
+  /*
+   * Base UI moves focus onto the menu as it opens, so the arrow keys work
+   * straight away. Chrome often treats that focus as keyboard focus and drew
+   * its default focus ring round the whole popup, which made a right-click
+   * look as though the menu had been tabbed to. The ring points at nothing
+   * useful — the highlighted item ([data-highlighted] below) is where
+   * keyboard focus actually is, and it keeps its own clear state.
+   */
+  outline: none;
+
   background-color: var(--surface-fill);
   background-image: var(--surface-bg);
   box-shadow: var(--surface-ring), var(--surface-lift);
