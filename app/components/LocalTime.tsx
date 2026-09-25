@@ -2,6 +2,8 @@
 
 import { useSyncExternalStore } from "react";
 
+import ShibaPet from "./ShibaPet";
+
 const PLACE = "Manila, Philippines";
 
 // Always Manila, never the viewer's zone — the point is to say where I am,
@@ -46,6 +48,7 @@ export default function LocalTime() {
       */}
       <span className="tabular-nums">{time ?? " "}</span>
       {time ? ` in ${PLACE}` : ""}
+      {time ? <ShibaPet /> : null}
     </p>
   );
 }

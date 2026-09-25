@@ -1670,3 +1670,280 @@ html.has-smooth-cursor [contenteditable] {
     animation-duration: 2.4s;
   }
 }
+
+/* ── Shiba ────────────────────────────────────────────────────────────────
+   The dog beside the clock (components/ShibaPet.tsx). One 12s cycle carries
+   the ear flicks (9–42%), a wag (44–54%), the head tilt (58–79%) and the
+   tongue (84–98%), so
+   they take turns; the eyes run on their own 5s loop so the two never sync
+   up into something that reads as mechanical. */
+.shiba {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  /* Hangs off the line rather than growing it: the margin box is 16px tall,
+     under the 24px line, so the footer doesn't move when the dog appears. */
+  margin: -8px 0 -8px 4px;
+  vertical-align: middle;
+  color: inherit;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.shiba[data-mood] {
+  opacity: 1;
+}
+.shiba svg {
+  display: block;
+  overflow: visible;
+}
+.shiba-line,
+.shiba-z {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.shiba-mouth {
+  stroke-width: 1.4;
+}
+.shiba-brows,
+.shiba-eye,
+.shiba-nose,
+.shiba-tongue {
+  fill: currentColor;
+}
+.shiba-nose {
+  stroke: currentColor;
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+
+.shiba-ear,
+.shiba-tail,
+.shiba-eye,
+.shiba-tongue,
+.shiba-tilt,
+.shiba-breath,
+.shiba-brows {
+  transform-box: fill-box;
+}
+.shiba-ear {
+  transform-origin: 50% 100%;
+}
+.shiba-tail {
+  transform-origin: 0 100%;
+}
+.shiba-eye {
+  transform-origin: center;
+}
+.shiba-tongue {
+  transform-origin: 50% 0;
+  transform: scaleY(0);
+}
+.shiba-tilt {
+  transform-origin: 50% 70%;
+}
+.shiba-breath {
+  transform-origin: 50% 100%;
+}
+.shiba-brows {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Which eyes are showing: a quick crossfade, as fast as a blink. */
+.shiba-eyes {
+  transition: opacity 0.12s ease;
+}
+.shiba-eyes-happy,
+.shiba-eyes-closed {
+  opacity: 0;
+}
+.shiba[data-happy] .shiba-eyes-open,
+.shiba[data-mood="asleep"] .shiba-eyes-open {
+  opacity: 0;
+}
+.shiba[data-happy] .shiba-eyes-happy,
+.shiba[data-mood="asleep"] .shiba-eyes-closed {
+  opacity: 1;
+}
+
+/* Awake */
+.shiba[data-mood="awake"] .shiba-glance {
+  animation: shiba-glance 5s ease-in-out infinite;
+}
+.shiba[data-mood="awake"] .shiba-eye {
+  animation: shiba-blink 5s linear infinite;
+}
+.shiba[data-mood="awake"] .shiba-ear-l {
+  animation: shiba-ear-l 12s ease-in-out infinite;
+}
+.shiba[data-mood="awake"] .shiba-ear-r {
+  animation: shiba-ear-r 12s ease-in-out infinite;
+}
+.shiba[data-mood="awake"] .shiba-tail {
+  animation: shiba-wag 12s ease-in-out infinite;
+}
+.shiba[data-mood="awake"] .shiba-tilt {
+  animation: shiba-tilt 12s ease-in-out infinite;
+}
+.shiba[data-mood="awake"] .shiba-tongue {
+  animation: shiba-blep 12s ease-in-out infinite;
+}
+
+/* Happy: brows up, ears wiggling, tail going, tongue out and panting. */
+.shiba[data-happy] .shiba-brows {
+  transform: translateY(-0.8px);
+}
+.shiba[data-happy] .shiba-ear-l {
+  animation: shiba-wiggle-l 0.28s ease-in-out infinite alternate;
+}
+.shiba[data-happy] .shiba-ear-r {
+  animation: shiba-wiggle-r 0.28s ease-in-out infinite alternate;
+}
+.shiba[data-happy] .shiba-tail {
+  animation: shiba-wag-happy 0.16s ease-in-out infinite alternate;
+}
+.shiba[data-happy] .shiba-tongue {
+  animation: shiba-pant 0.3s ease-in-out infinite alternate;
+}
+.shiba[data-happy] .shiba-tilt {
+  animation: shiba-bounce 0.3s ease-in-out infinite alternate;
+}
+
+/* Asleep */
+.shiba[data-mood="asleep"] .shiba-ear-l {
+  animation: shiba-sleep-ear-l 4s ease-in-out infinite;
+}
+.shiba[data-mood="asleep"] .shiba-ear-r {
+  animation: shiba-sleep-ear-r 4s ease-in-out infinite;
+}
+.shiba[data-mood="asleep"] .shiba-breath {
+  animation: shiba-breathe 4s ease-in-out infinite;
+}
+.shiba-z path {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: 0 100%;
+}
+.shiba[data-mood="asleep"] .shiba-z1 {
+  stroke-width: 1.5;
+  animation: shiba-z1 3s ease-out infinite both;
+}
+.shiba[data-mood="asleep"] .shiba-z2 {
+  stroke-width: 1.3;
+  animation: shiba-z2 3s ease-out 1s infinite both;
+}
+.shiba[data-mood="asleep"] .shiba-z3 {
+  stroke-width: 1.1;
+  animation: shiba-z3 3s ease-out 2s infinite both;
+}
+
+/* Glance right, hold, up-left, back, down-left, back. */
+@keyframes shiba-glance {
+  0%   { transform: translate(0, 0); }
+  10%  { transform: translate(0.8px, 0); }
+  20%  { transform: translate(0.8px, 0); }
+  40%  { transform: translate(-1px, -0.6px); }
+  55%  { transform: translate(0, 0); }
+  75%  { transform: translate(-0.5px, 0.5px); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes shiba-blink {
+  0%, 19%, 23%, 52%, 56%, 100% { transform: scaleY(1); }
+  21%, 54% { transform: scaleY(0.1); }
+}
+@keyframes shiba-ear-l {
+  0%, 9% { transform: rotate(0); }
+  12% { transform: rotate(-9deg); }
+  16%, 34% { transform: rotate(0); }
+  38% { transform: rotate(-14deg); }
+  42% { transform: rotate(-5deg); }
+  48%, 100% { transform: rotate(0); }
+}
+@keyframes shiba-ear-r {
+  0%, 9% { transform: rotate(0); }
+  12% { transform: rotate(6deg); }
+  16%, 34% { transform: rotate(0); }
+  38% { transform: rotate(11deg); }
+  42% { transform: rotate(4deg); }
+  48%, 100% { transform: rotate(0); }
+}
+/* The head tilt a dog gives a sound it can't place. */
+@keyframes shiba-tilt {
+  0%, 58% { transform: rotate(0); }
+  63%, 74% { transform: rotate(-10deg); }
+  79%, 100% { transform: rotate(0); }
+}
+@keyframes shiba-blep {
+  0%, 84% { transform: scaleY(0); }
+  87%, 95% { transform: scaleY(1); }
+  98%, 100% { transform: scaleY(0); }
+}
+@keyframes shiba-wag {
+  0%, 44% { transform: rotate(0); }
+  46% { transform: rotate(-16deg); }
+  48% { transform: rotate(8deg); }
+  50% { transform: rotate(-16deg); }
+  52% { transform: rotate(8deg); }
+  54%, 100% { transform: rotate(0); }
+}
+@keyframes shiba-wag-happy {
+  from { transform: rotate(-18deg); }
+  to   { transform: rotate(10deg); }
+}
+@keyframes shiba-wiggle-l {
+  from { transform: rotate(-4deg); }
+  to   { transform: rotate(-14deg); }
+}
+@keyframes shiba-wiggle-r {
+  from { transform: rotate(4deg); }
+  to   { transform: rotate(14deg); }
+}
+@keyframes shiba-pant {
+  from { transform: scaleY(0.75); }
+  to   { transform: scaleY(1.1); }
+}
+@keyframes shiba-bounce {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-0.7px); }
+}
+@keyframes shiba-sleep-ear-l {
+  0%, 100% { transform: rotate(-9deg) scaleY(0.84); }
+  50%      { transform: rotate(-6deg) scaleY(0.84); }
+}
+@keyframes shiba-sleep-ear-r {
+  0%, 100% { transform: rotate(9deg) scaleY(0.84); }
+  50%      { transform: rotate(6deg) scaleY(0.84); }
+}
+@keyframes shiba-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.03, 1.015); }
+}
+@keyframes shiba-z1 {
+  0%   { transform: translate(0, 0) scale(0.7); opacity: 0; }
+  10%, 80% { opacity: 1; }
+  100% { transform: translate(4px, -14px) scale(1); opacity: 0; }
+}
+@keyframes shiba-z2 {
+  0%   { transform: translate(0, 0) scale(0.6); opacity: 0; }
+  10%, 80% { opacity: 1; }
+  100% { transform: translate(6px, -16px) scale(0.9); opacity: 0; }
+}
+@keyframes shiba-z3 {
+  0%   { transform: translate(0, 0) scale(0.5); opacity: 0; }
+  10%, 80% { opacity: 1; }
+  100% { transform: translate(8px, -18px) scale(0.8); opacity: 0; }
+}
+
+/* Still there, still itself; it just stops moving. */
+@media (prefers-reduced-motion: reduce) {
+  .shiba *,
+  .shiba[data-mood] * {
+    animation: none !important;
+  }
+  .shiba[data-mood="asleep"] .shiba-z1 {
+    opacity: 1;
+  }
+}
