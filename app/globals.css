@@ -1953,3 +1953,9 @@ html.has-smooth-cursor [contenteditable] {
     opacity: 1;
   }
 }
+
+/* Content timestamps share the existing quiet tooltip surface. */
+.updated-at { display: inline-block; font-size: 12px; font-weight: 400; line-height: 1.5; color: #71717a; border-radius: 4px; font-variant-numeric: tabular-nums; }
+.updated-at:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+.writing-row-updated { display: block; margin-top: 4px; }
+.article-more-row .updated-at time { font: inherit; color: inherit; }

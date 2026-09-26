@@ -1,3 +1,4 @@
+import UpdatedAt from "../../components/UpdatedAt";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -104,6 +105,7 @@ export default function WritingIndex() {
                         <Link href={`/writing/${p.slug}`} className="article-more-row">
                           <span className="article-more-name">
                             <FluentText>{p.title}</FluentText>
+                            <span className="writing-row-updated"><UpdatedAt at={p.updatedAt} nested /></span>
                             {p.dek ? <span className="writing-row-dek">{p.dek}</span> : null}
                           </span>
                           <time dateTime={p.publishedAt} title={formatLongDate(p.publishedAt)}>
@@ -114,6 +116,7 @@ export default function WritingIndex() {
                         <span className="article-more-row writing-row-note">
                           <span className="article-more-name">
                             <FluentText>{p.title}</FluentText>
+                            <span className="writing-row-updated"><UpdatedAt at={p.updatedAt} nested /></span>
                           </span>
                           <time dateTime={p.publishedAt} title={formatLongDate(p.publishedAt)}>
                             {monthDay.format(new Date(p.publishedAt))}

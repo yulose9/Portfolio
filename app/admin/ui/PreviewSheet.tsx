@@ -170,7 +170,7 @@ function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
                 <FluentText>{meta.dek}</FluentText>
               </p>
             ) : null}
-            <Byline authors={meta.authors} minutes={readingMinutes(doc.body)} updated={null} updatedLabel={null} />
+            <Byline authors={meta.authors} minutes={readingMinutes(doc.body)} updated={doc.updatedAt} />
           </header>
           {meta.cover ? (
             <figure className="article-cover">

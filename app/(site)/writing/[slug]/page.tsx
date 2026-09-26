@@ -23,7 +23,6 @@ import {
   pagedPosts,
   postBySlug,
   related,
-  wasUpdated,
   wordCount,
 } from "../../../lib/writing";
 
@@ -195,8 +194,7 @@ export default async function ArticlePage({ params }: Props) {
             <Byline
               authors={post.authors}
               minutes={post.minutes}
-              updated={wasUpdated(post) ? post.updatedAt : null}
-              updatedLabel={wasUpdated(post) ? formatLongDate(post.updatedAt) : null}
+              updated={post.updatedAt}
             />
           </header>
 

@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-import { relative } from "./bits";
+import UpdatedAt from "../../components/UpdatedAt";
 
 export type SaveStatus = "saved" | "unsaved" | "saving" | "offline" | "error";
 
@@ -23,14 +21,7 @@ const LABEL: Record<SaveStatus, string> = {
 };
 
 export default function SaveState({ status, at }: { status: SaveStatus; at: string | null }) {
-  // "Saved 2 minutes ago", ticking over while the page sits open.
-  const [, tick] = useState(0);
-  useEffect(() => {
-    const id = window.setInterval(() => tick((n) => n + 1), 30_000);
-    return () => window.clearInterval(id);
-  }, []);
-
-  const label = status === "saved" && at ? `Saved ${relative(at)}` : LABEL[status];
+  const label = LABEL[status];
 
   return (
     <span className="save-state" data-status={status} role="status" aria-live="polite">
@@ -41,7 +32,7 @@ export default function SaveState({ status, at }: { status: SaveStatus; at: stri
         <path className="save-slash" d="M3.8 12.2 L12.2 3.8" pathLength="100" />
       </svg>
       <span key={label} className="save-label">
-        {label}
+        {status === "saved" && at ? <UpdatedAt at={at} /> : label}
       </span>
     </span>
   );

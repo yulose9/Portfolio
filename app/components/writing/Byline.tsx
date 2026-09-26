@@ -1,3 +1,4 @@
+import UpdatedAt from "../UpdatedAt";
 import type { Author } from "../../../cms/format";
 import Avatar from "./Avatar";
 
@@ -31,12 +32,10 @@ export default function Byline({
   authors,
   minutes,
   updated,
-  updatedLabel,
 }: {
   authors: Author[];
   minutes: number;
   updated: string | null;
-  updatedLabel: string | null;
 }) {
   return (
     <div className="article-byline">
@@ -56,12 +55,10 @@ export default function Byline({
       </span>
       <span aria-hidden="true">·</span>
       <span>{minutes} min read</span>
-      {updated && updatedLabel ? (
+      {updated ? (
         <>
           <span aria-hidden="true">·</span>
-          <span>
-            Updated <time dateTime={updated}>{updatedLabel}</time>
-          </span>
+          <UpdatedAt at={updated} />
         </>
       ) : null}
     </div>

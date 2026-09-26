@@ -4,6 +4,7 @@ import { ArrowSquareOut, CalendarBlank, CaretDown, Checks, FileText, MagnifyingG
 import { Menu } from "@base-ui/react/menu";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import UpdatedAt from "../../components/UpdatedAt";
 import { tagTint } from "../../components/writing/Tag";
 import { toast } from "../../lib/toast";
 import { api, ApiError, type PostSummary } from "./api";
@@ -347,7 +348,8 @@ export default function PostList({ email, onOpen, onSearch }: { email: string; o
                     <StatusDot status={p.status} dirty={p.dirty} />
                     <span>{p.trashedAt ? `Trashed ${relative(p.trashedAt)}` : statusLabel(p)}</span>
                     <span aria-hidden="true">·</span>
-                    <span>{p.status === "scheduled" && p.publishAt ? relative(p.publishAt) : `edited ${relative(p.updatedAt)}`}</span>
+                    {p.status === "scheduled" && p.publishAt ? <><span>{relative(p.publishAt)}</span><span aria-hidden="true">·</span></> : null}
+                    <UpdatedAt at={p.updatedAt} nested />
                     {p.tags.slice(0, 3).map((t) => (
                       <span key={t} className="tag tag-sm" data-tint={tagTint(t)}>
                         {t}
