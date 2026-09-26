@@ -22,7 +22,9 @@ type Body = { action: string; ids: string[]; at?: string };
 
 export const onRequestPost: AdminFunction = async ({ env, request }) => {
   const { action, ids, at } = await readJson<Body>(request);
-  if (!Array.isArray(ids) || !ids.length || ids.length > 200 || !ids.every((id) => ID.test(id))) throw new HttpError("Pick between 1 and 200 posts.");
+  if (!Array.isArray(ids) || !ids.length || ids.length > 200 || !ids.every((id) => typeof id === "string" && ID.test(id)) || new Set(ids).size !== ids.length) throw new HttpError("Pick between 1 and 200 distinct posts.");
+  if (!["publish", "unpublish", "schedule", "trash", "restore", "destroy", "pin", "unpin"].includes(action)) throw new HttpError("Unknown bulk action.");
+  if (action === "schedule" && (typeof at !== "string" || !Number.isFinite(Date.parse(at)))) throw new HttpError("Expected a valid scheduled date.");
   const drafts = await Promise.all(ids.map((id) => loadDraft(env, id)));
   const now = new Date().toISOString();
   const failed: { id: string; error: string }[] = [];

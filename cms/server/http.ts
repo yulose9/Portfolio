@@ -26,12 +26,54 @@ export function fail(message: string, status = 400): Response {
   return json({ error: message }, status);
 }
 
+/** Browser mutations need both an exact origin and a non-simple header. */
+export function isAdminWrite(request: Request): boolean {
+  const site = request.headers.get("Sec-Fetch-Site");
+  return request.headers.get("Origin") === new URL(request.url).origin &&
+    request.headers.get("X-Admin-Request") === "1" && (!site || site === "same-origin");
+}
+
 export async function readJson<T>(request: Request): Promise<T> {
+  if (request.headers.get("Content-Type")?.split(";")[0].trim().toLowerCase() !== "application/json") {
+    throw new HttpError("Expected application/json.", 415);
+  }
+  const bytes = await readBytes(request, 2 * 1024 * 1024);
+  let value: unknown;
   try {
-    return (await request.json()) as T;
+    value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
   } catch {
     throw new HttpError("Expected a JSON body.", 400);
   }
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new HttpError("Expected a JSON object.");
+  return value as T;
+}
+
+/** Count actual streamed bytes; Content-Length alone is not a size boundary. */
+export async function readBytes(request: Request, limit: number): Promise<Uint8Array> {
+  const length = request.headers.get("Content-Length");
+  if (length !== null && (!/^\d+$/.test(length) || Number(length) > limit)) throw new HttpError("Request body is too large.", 413);
+  if (!request.body) return new Uint8Array();
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > limit) {
+        await reader.cancel();
+        throw new HttpError("Request body is too large.", 413);
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return bytes;
 }
 
 export class HttpError extends Error {

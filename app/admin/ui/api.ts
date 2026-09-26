@@ -61,7 +61,7 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
     res = await fetch(`/api/admin${path}`, {
       credentials: "same-origin",
       ...init,
-      headers: { ...(init.body && typeof init.body === "string" ? { "Content-Type": "application/json" } : {}), ...init.headers },
+      headers: { "X-Admin-Request": "1", ...(init.body && typeof init.body === "string" ? { "Content-Type": "application/json" } : {}), ...init.headers },
     });
   } catch {
     throw new ApiError("You're offline, or the server can't be reached.", 0);

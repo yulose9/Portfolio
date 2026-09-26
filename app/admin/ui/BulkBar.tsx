@@ -138,7 +138,7 @@ export function useBulk({
                 : action === "schedule" && when
                   ? `Going live ${exactTime(when.toISOString())}.`
                   : action === "trash"
-                    ? "Kept for 60 days."
+                    ? "Kept in Trash until you delete it permanently."
                     : undefined),
           timeout: 6000,
           ...(action === "trash"

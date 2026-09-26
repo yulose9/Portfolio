@@ -3,7 +3,7 @@ import { toJsxRuntime, type Components } from "hast-util-to-jsx-runtime";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import { Tweet } from "react-tweet";
 
-import { threadsFrame, youtubeFrame, type Embed } from "../../../cms/embeds";
+import { parseEmbed, threadsFrame, youtubeFrame, type Embed } from "../../../cms/embeds";
 import AudioPlayer from "./AudioPlayer";
 
 /*
@@ -17,7 +17,11 @@ import AudioPlayer from "./AudioPlayer";
 function EmbedBlock(props: Record<string, unknown>) {
   let embed: Embed;
   try {
-    embed = JSON.parse(String(props["data-embed"])) as Embed;
+    const data: unknown = JSON.parse(String(props["data-embed"]));
+    if (!data || typeof data !== "object" || !("url" in data) || typeof data.url !== "string") return null;
+    const parsed = parseEmbed(data.url);
+    if (!parsed) return null;
+    embed = parsed;
   } catch {
     return null;
   }

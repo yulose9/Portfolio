@@ -8,7 +8,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 
-import { threadsFrame, youtubeFrame, type Embed } from "../../../cms/embeds";
+import { parseEmbed, threadsFrame, youtubeFrame, type Embed } from "../../../cms/embeds";
 import { fluentUrl } from "../../../cms/emoji";
 import { fontLinks, fontVars } from "../../../cms/fonts";
 import { readingMinutes, tagSlug } from "../../../cms/format";
@@ -82,7 +82,11 @@ function Frame({ width, height, children }: { width: number; height: number; chi
 function EmbedPreview(props: Record<string, unknown>) {
   let embed: Embed;
   try {
-    embed = JSON.parse(String(props["data-embed"])) as Embed;
+    const data: unknown = JSON.parse(String(props["data-embed"]));
+    if (!data || typeof data !== "object" || !("url" in data) || typeof data.url !== "string") return null;
+    const parsed = parseEmbed(data.url);
+    if (!parsed) return null;
+    embed = parsed;
   } catch {
     return null;
   }

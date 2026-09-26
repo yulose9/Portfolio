@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { SiGithub, SiGoogle, SiHashicorp, SiX } from "@icons-pack/react-simple-icons";
 import {
   Briefcase,
@@ -273,6 +274,11 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
         ) : null}
         {active.posts && !active.posts.length && active.empty ? (
           <p className="panel-chunk m-0 text-base leading-6 text-zinc-400">{active.empty}</p>
+        ) : null}
+        {active.id === "writing" ? (
+          <div className="panel-chunk">
+            <Link href="/writing" className="writing-button">View writing</Link>
+          </div>
         ) : null}
         {active.links?.length ? (
           <LinkList

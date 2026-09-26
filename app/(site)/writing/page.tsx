@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import FluentText from "../../components/writing/FluentText";
+import WritingMenu from "../../components/writing/WritingMenu";
+import { NotePencil } from "@phosphor-icons/react/dist/ssr";
 import { FEED, ID, jsonLd, OG_METADATA, SITE_INFO } from "../../constants/seo";
 import { formatLongDate, publishedPosts } from "../../lib/writing";
 
@@ -64,6 +66,7 @@ export default function WritingIndex() {
   };
 
   return (
+    <WritingMenu>
     <div className="flex w-full justify-center bg-white">
       <main data-cursor-frame className="page-shell page-enter article-shell article-page writing-index w-full max-w-[672px] py-16 sm:py-24">
         <nav className="article-nav" aria-label="Breadcrumb">
@@ -75,16 +78,16 @@ export default function WritingIndex() {
           </ol>
         </nav>
 
-        <header className="article-header">
+        <header className="article-header" data-cursor="text">
           <h1 className="article-title">Writing</h1>
           <p className="article-dek">Some technical, some personal: notes on building AI systems and the infrastructure under them, and on whatever else I’m working out.</p>
-          <p className="writing-index-meta">
+          {posts.length > 0 ? <p className="writing-index-meta">
             <a href="/feed.xml">RSS</a>
             <span aria-hidden="true">·</span>
             <span>
               {posts.length} {posts.length === 1 ? "entry" : "entries"}
             </span>
-          </p>
+          </p> : null}
         </header>
 
         {posts.length ? (
@@ -124,11 +127,19 @@ export default function WritingIndex() {
             ))}
           </div>
         ) : (
-          <p className="article-dek">Nothing published yet.</p>
+          <section className="writing-empty" aria-labelledby="writing-empty-title">
+            <NotePencil className="writing-empty-icon" size={32} weight="light" aria-hidden="true" />
+            <div data-cursor="text">
+              <h2 id="writing-empty-title">Nothing published yet.</h2>
+              <p>New posts will appear here. In the meantime, take a look at what I’ve been building.</p>
+            </div>
+            <Link href="/#projects" className="writing-button">View projects</Link>
+          </section>
         )}
 
         <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(graph)} />
       </main>
     </div>
+    </WritingMenu>
   );
 }

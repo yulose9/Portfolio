@@ -59,7 +59,7 @@ export default function DetailsSheet({
     setDeleting(true);
     try {
       await api.remove(doc.id);
-      toast.add({ type: "success", title: "Moved to Trash", description: live ? "Taken off the site with the next build. Restore it from Trash within 60 days." : "Restore it from Trash within 60 days." });
+      toast.add({ type: "success", title: "Moved to Trash", description: live ? "Taken off the site with the next build. Restore it from Trash until you delete it permanently." : "Restore it from Trash until you delete it permanently." });
       onDeleted();
     } catch (error) {
       setDeleting(false);
@@ -198,7 +198,7 @@ export default function DetailsSheet({
           {deleting ? "Moving to Trash…" : confirming ? (live ? "Click again to unpublish and move to Trash" : "Click again to move to Trash") : "Move to Trash"}
         </button>
         <p className="field-help">
-          {live ? "Takes it off the site. It waits in Trash for 60 days, with its history." : "It waits in Trash for 60 days, with its history."}
+          {live ? "Takes it off the site. It stays in Trash with its history until you delete it permanently." : "It stays in Trash with its history until you delete it permanently."}
         </p>
       </section>
     </Sheet>

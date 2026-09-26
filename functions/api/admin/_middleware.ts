@@ -1,7 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
 
 import { GitHubError } from "../../../cms/server/github";
-import { fail, HttpError, type AdminFunction } from "../../../cms/server/http";
+import { fail, HttpError, isAdminWrite, type AdminFunction } from "../../../cms/server/http";
 import { PublishError } from "../../../cms/server/publish";
 
 /*
@@ -19,7 +19,7 @@ import { PublishError } from "../../../cms/server/publish";
 let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
 let jwksFor = "";
 
-export const onRequest: AdminFunction = async (ctx) => {
+const handle: AdminFunction = async (ctx) => {
   const { request, env } = ctx;
   const url = new URL(request.url);
 
@@ -28,21 +28,25 @@ export const onRequest: AdminFunction = async (ctx) => {
     ctx.data.email = "dev@localhost";
   } else {
     const team = env.ACCESS_TEAM_DOMAIN?.replace(/\/+$/, "");
-    if (!team || !env.ACCESS_AUD || !env.ADMIN_EMAIL) {
-      return fail("The admin isn't configured yet (Access team domain, AUD or admin email missing).", 503);
+    if (!team || !/^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/.test(team) || !env.ACCESS_AUD || !env.ADMIN_EMAIL) {
+      return fail("Admin access is unavailable.", 503);
     }
 
     // The header is the one to trust; the cookie isn't always forwarded.
     const token = request.headers.get("Cf-Access-Jwt-Assertion");
-    if (!token) return fail("Not signed in.", 401);
+    if (!token || token.length > 16384) return fail("Not signed in.", 401);
 
     try {
       if (!jwks || jwksFor !== team) {
         jwks = createRemoteJWKSet(new URL(`${team}/cdn-cgi/access/certs`));
         jwksFor = team;
       }
-      const { payload } = await jwtVerify(token, jwks, { issuer: team, audience: env.ACCESS_AUD });
-      const email = String(payload.email ?? "").toLowerCase();
+      const { payload } = await jwtVerify(token, jwks, {
+        issuer: team, audience: env.ACCESS_AUD, algorithms: ["RS256"],
+        requiredClaims: ["exp", "iat", "sub", "email"], clockTolerance: 5,
+      });
+      if (payload.type !== "app" || typeof payload.sub !== "string" || !payload.sub || typeof payload.email !== "string") return fail("Not signed in.", 401);
+      const email = payload.email.toLowerCase();
       const allowed = env.ADMIN_EMAIL.split(",").map((e) => e.trim().toLowerCase());
       if (!email || !allowed.includes(email)) return fail("This account can't use the admin.", 403);
       ctx.data.email = email;
@@ -54,8 +58,7 @@ export const onRequest: AdminFunction = async (ctx) => {
   // Writes must come from the admin page itself. SameSite cookies already stop
   // most cross-site posts; this closes the rest.
   if (request.method !== "GET" && request.method !== "HEAD") {
-    const origin = request.headers.get("Origin");
-    if (origin && origin !== url.origin) return fail("Cross-origin request refused.", 403);
+    if (!isAdminWrite(request)) return fail("Request origin could not be verified. Reload the admin and try again.", 403);
   }
 
   try {
@@ -71,10 +74,23 @@ export const onRequest: AdminFunction = async (ctx) => {
         error.status === 401 || error.status === 403
           ? "GitHub refused the token. Check GITHUB_TOKEN has Contents: read and write on the repo."
           : "GitHub didn't accept the change. Try again in a moment.";
-      console.error(error.message);
+      console.error(JSON.stringify({ event: "admin_upstream_error", status: error.status }));
       return fail(hint, 502);
     }
-    console.error(error);
+    console.error(JSON.stringify({ event: "admin_internal_error" }));
     return fail("The server hit an error. Try again, or check the Pages logs.", 500);
   }
+};
+
+/** Apply to denials and errors too; Pages _headers does not cover Functions. */
+export const onRequest: AdminFunction = async (ctx) => {
+  const response = await handle(ctx);
+  const out = new Response(response.body, response);
+  out.headers.set("Cache-Control", "no-store");
+  out.headers.set("X-Robots-Tag", "noindex, nofollow");
+  out.headers.set("X-Content-Type-Options", "nosniff");
+  out.headers.set("X-Frame-Options", "DENY");
+  out.headers.set("Referrer-Policy", "no-referrer");
+  out.headers.set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+  return out;
 };

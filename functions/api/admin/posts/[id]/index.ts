@@ -1,4 +1,4 @@
-import { normalizeAuthors, type Draft, type FontChoice, type Fonts } from "../../../../../cms/format";
+import { normalizeAuthors, type Cover, type Draft, type FontChoice, type Fonts } from "../../../../../cms/format";
 import { HttpError, json, param, readJson, type AdminFunction } from "../../../../../cms/server/http";
 import { loadDraft } from "../../../../../cms/server/load";
 import { removeLive } from "../../../../../cms/server/publish";
@@ -28,8 +28,8 @@ export const onRequestPut: AdminFunction<"id"> = async ({ env, params, request }
   if (edit.slug !== undefined) next.slug = String(edit.slug).slice(0, 80);
   if (edit.dek !== undefined) next.dek = String(edit.dek).slice(0, 600);
   if (edit.tags !== undefined)
-    next.tags = (Array.isArray(edit.tags) ? edit.tags : []).map((t) => String(t).trim()).filter(Boolean).slice(0, 8);
-  if (edit.cover !== undefined) next.cover = edit.cover && typeof edit.cover.src === "string" ? edit.cover : null;
+    next.tags = (Array.isArray(edit.tags) ? edit.tags : []).map((t) => String(t).trim().slice(0, 80)).filter(Boolean).slice(0, 8);
+  if (edit.cover !== undefined) next.cover = cleanCover(edit.cover);
   if (edit.body !== undefined) next.body = String(edit.body);
   if (edit.icon !== undefined) next.icon = typeof edit.icon === "string" && edit.icon.trim() ? [...edit.icon.trim()].slice(0, 8).join("") : null;
   if (edit.authors !== undefined) next.authors = normalizeAuthors(edit.authors);
@@ -55,6 +55,30 @@ export const onRequestPut: AdminFunction<"id"> = async ({ env, params, request }
   return json({ post: next, snapshotted });
 };
 
+function cleanCover(value: unknown): Cover | null {
+  if (value === null) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new HttpError("Invalid cover.");
+  const v = value as Record<string, unknown>;
+  if (typeof v.src !== "string" || v.src.length > 2048 || typeof v.alt !== "string" || v.alt.length > 1000) throw new HttpError("Invalid cover image or alt text.");
+  const src = v.src.trim();
+  let url: URL;
+  try { url = new URL(src, "https://nazarene.dev"); }
+  catch { throw new HttpError("Invalid cover URL."); }
+  if (!src || /[\u0000-\u0020\\]/.test(src) || url.protocol !== "https:" || url.username || url.password) throw new HttpError("Use an HTTPS or local image URL.");
+  const result: Cover = { src, alt: v.alt };
+  if (v.caption !== undefined) {
+    if (typeof v.caption !== "string" || v.caption.length > 2000) throw new HttpError("Invalid cover caption.");
+    result.caption = v.caption;
+  }
+  for (const key of ["width", "height"] as const) {
+    if (v[key] !== undefined) {
+      if (typeof v[key] !== "number" || !Number.isInteger(v[key]) || v[key] < 1 || v[key] > 30000) throw new HttpError("Invalid image dimensions.");
+      result[key] = v[key];
+    }
+  }
+  return result;
+}
+
 function cleanFont(f: unknown): FontChoice | null {
   if (!f || typeof f !== "object") return null;
   const { family, source } = f as FontChoice;
@@ -71,8 +95,8 @@ function cleanFonts(value: unknown): Fonts | null {
 
 /*
  * DELETE moves a post to the trash (taking it off the site if it was live);
- * DELETE ?forever=1 deletes it and its whole history. Trash older than 60
- * days is emptied when the list is next loaded.
+ * DELETE ?forever=1 deletes it and its whole history. Reading the list never
+ * deletes trash; permanent deletion requires this explicit authenticated write.
  */
 export const onRequestDelete: AdminFunction<"id"> = async ({ env, params, request }) => {
   const id = param(params.id);

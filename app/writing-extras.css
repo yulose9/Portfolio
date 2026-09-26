@@ -243,3 +243,84 @@ button.tag:active {
   background-color: rgb(0 0 0 / 0.045);
   outline: none;
 }
+/* Writing uses the portfolio's neutral surfaces and compact controls. */
+.writing-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.625rem 1rem;
+  border-radius: 10px;
+  background: var(--surface-bg);
+  box-shadow: var(--surface-ring), 0 2px 4px rgb(0 0 0 / 0.04);
+  color: #3f3f46;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 140ms var(--ease), color 120ms ease;
+}
+.writing-button:focus-visible {
+  outline: 2px solid #52525b;
+  outline-offset: 4px;
+}
+.writing-button:active:not(:focus-visible) { transform: scale(0.96); }
+.writing-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+  padding: 2rem;
+  border: 1px solid #ececee;
+  border-radius: 16px;
+  background: #fafafa;
+}
+.writing-empty-icon { color: #71717a; }
+.writing-empty h2 {
+  margin: 0;
+  color: #27272a;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+}
+.writing-empty p {
+  max-width: 40ch;
+  margin: 0.625rem 0 0;
+  color: #52525b;
+  font-size: 15px;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+.writing-index { --ink-3: #71717a; }
+.writing-index [data-cursor="text"] { cursor: text; }
+.writing-index .article-nav,
+.writing-index .article-header > *,
+.writing-index .writing-years,
+.writing-index .writing-empty { animation: none; }
+@media (hover: hover) and (pointer: fine) {
+  .writing-button:hover { color: #18181b; transform: translateY(-1px); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .writing-index .article-header,
+  .writing-index .writing-empty,
+  .writing-index .writing-years {
+    animation: writing-arrive 280ms var(--ease) both;
+  }
+  .writing-index .writing-empty,
+  .writing-index .writing-years { animation-delay: 80ms; }
+}
+@keyframes writing-arrive {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .writing-button { transition: none; }
+  .writing-button:hover,
+  .writing-button:active:not(:focus-visible) { transform: none; }
+}
+@media (max-width: 767px) {
+  .writing-empty { padding: 1.5rem; margin-top: 2rem; }
+}

@@ -1,19 +1,14 @@
 import { DEFAULT_AUTHOR, newId, postToDraft, type Draft } from "../../../../cms/format";
 import { json, readJson, type AdminFunction } from "../../../../cms/server/http";
 import { livePosts } from "../../../../cms/server/publish";
-import { deleteDraft, listDrafts, putDraft } from "../../../../cms/server/store";
+import { listDrafts, putDraft } from "../../../../cms/server/store";
 import { summarize } from "../../../../cms/server/summary";
 
 /** Every post: the R2 working copies, plus any live file never opened here. */
-const TRASH_DAYS = 60;
-
-export const onRequestGet: AdminFunction = async ({ env, waitUntil }) => {
+export const onRequestGet: AdminFunction = async ({ env }) => {
   const [all, live] = await Promise.all([listDrafts(env), livePosts(env)]);
-  // Empty trash older than 60 days, after answering.
-  const cutoff = Date.now() - TRASH_DAYS * 864e5;
-  const expired = all.filter((d) => d.trashedAt && Date.parse(d.trashedAt) < cutoff);
-  if (expired.length) waitUntil(Promise.all(expired.map((d) => deleteDraft(env, d.id))));
-  const drafts = all.filter((d) => !expired.includes(d));
+  // Reading the list must never permanently delete content.
+  const drafts = all;
   const known = new Set(drafts.map((d) => d.id));
   const posts = [...drafts, ...live.filter((p) => !known.has(p.id)).map(postToDraft)]
     .map(summarize)
@@ -24,7 +19,7 @@ export const onRequestGet: AdminFunction = async ({ env, waitUntil }) => {
 /** A new, empty draft. */
 export const onRequestPost: AdminFunction = async ({ env, request }) => {
   type Input = { title?: string; body?: string; tags?: string[]; page?: boolean };
-  const input: Input = await readJson<Input>(request).catch(() => ({}));
+  const input: Input = await readJson<Input>(request);
   const now = new Date().toISOString();
   const draft: Draft = {
     id: newId(),
@@ -36,7 +31,7 @@ export const onRequestPost: AdminFunction = async ({ env, request }) => {
     fonts: null,
     page: input.page !== false,
     ogImage: null,
-    tags: Array.isArray(input.tags) ? input.tags.map(String).slice(0, 8) : [],
+    tags: Array.isArray(input.tags) ? input.tags.map((t) => String(t).trim().slice(0, 80)).filter(Boolean).slice(0, 8) : [],
     cover: null,
     body: typeof input.body === "string" ? input.body.slice(0, 400_000) : "",
     status: "draft",

@@ -23,7 +23,7 @@ const CI = { size: 16, "aria-hidden": true } as const;
  * The list: every post, pinned first, then newest edit. Filter by state or by
  * tag, search the titles here and the words inside with ⌘K. Rows, not cards:
  * this is a table of work to get back to, not a gallery. Deleted posts wait
- * in Trash for 60 days (Notion's trash), restorable in one click.
+ * in Trash until permanently deleted, restorable in one click.
  *
  * Check a row's box (or ⌘-click it) to select; Shift-click selects the run
  * between; ⌘A selects every row shown, Esc lets go. While anything is
@@ -297,7 +297,7 @@ export default function PostList({ email, onOpen, onSearch }: { email: string; o
       ) : shown.length === 0 ? (
         <div className="admin-empty">
           {filter === "trash" ? (
-            <p className="admin-empty-text">Trash is empty. Posts you move to Trash wait here for 60 days.</p>
+            <p className="admin-empty-text">Trash is empty. Posts you move to Trash stay here until you delete them permanently.</p>
           ) : live.length === 0 ? (
             <>
               <p className="admin-empty-title">Nothing written yet</p>

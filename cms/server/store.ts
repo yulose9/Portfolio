@@ -12,12 +12,17 @@
  */
 
 import { upgradeDraft, type Draft } from "../format";
+import { HttpError, ID } from "./http";
 
 export type StoreEnv = { WRITING: R2Bucket };
 
-const current = (id: string) => `drafts/${id}/current.json`;
-const revPrefix = (id: string) => `drafts/${id}/rev/`;
-const marker = (id: string) => `scheduled/${id}`;
+function validId(id: string): string {
+  if (typeof id !== "string" || !ID.test(id)) throw new HttpError("Invalid post ID.");
+  return id;
+}
+const current = (id: string) => `drafts/${validId(id)}/current.json`;
+const revPrefix = (id: string) => `drafts/${validId(id)}/rev/`;
+const marker = (id: string) => `scheduled/${validId(id)}`;
 
 /*
  * The pulse: one tiny object rewritten on every change to any draft. Open
@@ -114,6 +119,7 @@ export async function listRevisions(env: StoreEnv, id: string): Promise<Revision
 }
 
 export async function getRevision(env: StoreEnv, id: string, at: string): Promise<Draft | null> {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(at) || !Number.isFinite(Date.parse(at))) throw new HttpError("Invalid revision timestamp.");
   const obj = await env.WRITING.get(`${revPrefix(id)}${at}.json`);
   return obj ? upgradeDraft((await obj.json()) as Draft) : null;
 }

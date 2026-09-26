@@ -94,7 +94,7 @@ function rowCommands(p: PostSummary, actions: RowActions, askDelete: () => void,
     const id = toast.add({
       type: "success",
       title: "Moved to Trash",
-      description: p.liveSlug ? "Taken off the site with the next build." : "Kept for 60 days.",
+      description: p.liveSlug ? "Taken off the site with the next build." : "Kept in Trash until you delete it permanently.",
       timeout: 6000,
       actionProps: {
         children: "Undo",

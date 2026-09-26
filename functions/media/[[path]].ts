@@ -24,6 +24,9 @@ export const onRequestGet: PagesFunction<Env, "path"> = async ({ env, params, re
   headers.set("ETag", obj.httpEtag);
   headers.set("Cache-Control", "public, max-age=31536000, immutable");
   headers.set("X-Content-Type-Options", "nosniff");
+  // Direct navigation to a media object must not create an active document.
+  headers.set("Content-Security-Policy", "default-src 'none'; sandbox; frame-ancestors 'none'");
+  headers.set("X-Frame-Options", "DENY");
 
   // A conditional request that matched: the object comes back without a body.
   if (!("body" in obj)) return new Response(null, { status: 304, headers });

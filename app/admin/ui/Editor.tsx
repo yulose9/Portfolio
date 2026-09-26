@@ -706,7 +706,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
       const t = toast.add({
         type: "success",
         title: "Moved to Trash",
-        description: doc.liveSlug ? "Taken off the site with the next build." : "Kept for 60 days.",
+        description: doc.liveSlug ? "Taken off the site with the next build." : "Kept in Trash until you delete it permanently.",
         timeout: 6000,
         actionProps: { children: "Undo", onClick: () => void api.untrash(doc.id).then(() => toast.close(t)) },
       });

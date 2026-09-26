@@ -1,5 +1,6 @@
 import type { Element, ElementContent, Root, RootContent, Text } from "hast";
 import rehypeRaw from "rehype-raw";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
@@ -280,11 +281,24 @@ export async function markdownToTree(markdown: string, extra: PluggableList = []
   const pipeline = unified()
     .use(remarkParse)
     .use(remarkGfm)
-    // Raw HTML is allowed through: posts are written only by me, and it's how
-    // toggles (<details>), video and audio survive the trip.
+    // Parse HTML for media/toggles, then remove active content before any
+    // trusted plugin generates custom components or syntax-highlight styles.
     .use(remarkRehype, { allowDangerousHtml: true })
     .use(rehypeRaw)
     .use(rehypeSlug)
+    .use(rehypeSanitize, {
+      ...defaultSchema,
+      tagNames: [...(defaultSchema.tagNames ?? []), "video", "audio", "mark", "u"],
+      // Prefix authored and generated IDs to prevent DOM clobbering.
+      // The editorial pass below builds TOC links from these sanitized IDs.
+      attributes: {
+        ...defaultSchema.attributes,
+        video: ["src", "poster", "controls", "muted", "loop", "autoPlay", "playsInline", "preload", "width", "height", "title"],
+        audio: ["src", "controls", "preload", "title"],
+        source: ["src", "type"],
+      },
+      protocols: { ...defaultSchema.protocols, src: ["https", "http"], poster: ["https", "http"] },
+    })
     .use(rehypeEditorial)
     .use(extra);
   return (await pipeline.run(pipeline.parse(markdown))) as Root;
