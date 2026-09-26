@@ -32,7 +32,12 @@ function contents(root: HTMLElement) {
     frame = 0;
     let current = heads[0];
     for (const h of heads) if (h.getBoundingClientRect().top < window.innerHeight * 0.3) current = h;
-    for (const l of links) l.toggleAttribute("data-active", l.dataset.tocLink === current?.id);
+    for (const l of links) {
+      const active = l.dataset.tocLink === current?.id;
+      l.toggleAttribute("data-active", active);
+      if (active) l.setAttribute("aria-current", "location");
+      else l.removeAttribute("aria-current");
+    }
   };
   const onScroll = () => {
     if (!frame) frame = requestAnimationFrame(update);

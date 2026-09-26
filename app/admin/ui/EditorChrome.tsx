@@ -41,6 +41,7 @@ import { ContextMenu } from "@base-ui/react/context-menu";
 import { Menu } from "@base-ui/react/menu";
 import type { Editor } from "@tiptap/core";
 import { DragHandle } from "@tiptap/extension-drag-handle-react";
+import { isNodeRangeSelection } from "@tiptap/extension-node-range";
 import { useEditorState } from "@tiptap/react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
@@ -92,7 +93,7 @@ type Pickers = {
  */
 export function EditorContextMenu({ editor, children, ...pick }: { editor: Editor; children: React.ReactNode } & Pickers) {
   const fine = useFinePointer();
-  const [info, setInfo] = useState({ text: "", inTable: false, block: "paragraph" as ReturnType<typeof activeBlock> });
+  const [info, setInfo] = useState({ text: "", blocks: 0, inTable: false, block: "paragraph" as ReturnType<typeof activeBlock> });
 
   const onContextMenu = (event: React.MouseEvent) => {
     const { from, to, empty } = editor.state.selection;
@@ -101,6 +102,7 @@ export function EditorContextMenu({ editor, children, ...pick }: { editor: Edito
     const sel = editor.state.selection;
     setInfo({
       text: editor.state.doc.textBetween(sel.from, sel.to, " ").trim(),
+      blocks: isNodeRangeSelection(sel) ? sel.ranges.length : 0,
       inTable: editor.isActive("table"),
       block: activeBlock(editor),
     });
@@ -221,8 +223,13 @@ export function EditorContextMenu({ editor, children, ...pick }: { editor: Edito
           </MItem>
         ) : null}
         <MSep />
-        <MItem icon={<CopySimple {...I} />} keys={keys("⌘D")} onSelect={() => { const b = block(); if (b) duplicateBlock(editor, b.pos); }}>
-          Duplicate block
+        <MItem icon={<CopySimple {...I} />} keys={keys("⌘D")} onSelect={() => {
+          if (info.blocks) {
+            const { from, to } = editor.state.selection;
+            editor.chain().focus().insertContentAt(to, editor.state.doc.slice(from, to).content.toJSON()).run();
+          } else { const b = block(); if (b) duplicateBlock(editor, b.pos); }
+        }}>
+          {info.blocks ? "Duplicate selected blocks" : "Duplicate block"}
         </MItem>
         <MItem icon={<ArrowUp {...I} />} keys={keys("⌘⇧↑")} onSelect={() => { const b = block(); if (b) moveBlock(editor, b.pos, -1); }}>
           Move up
@@ -230,8 +237,8 @@ export function EditorContextMenu({ editor, children, ...pick }: { editor: Edito
         <MItem icon={<ArrowDown {...I} />} keys={keys("⌘⇧↓")} onSelect={() => { const b = block(); if (b) moveBlock(editor, b.pos, 1); }}>
           Move down
         </MItem>
-        <MItem icon={<Trash {...I} />} danger onSelect={() => { const b = block(); if (b) deleteBlock(editor, b.pos); }}>
-          Delete block
+        <MItem icon={<Trash {...I} />} danger onSelect={() => { if (info.blocks) editor.chain().focus().deleteSelection().run(); else { const b = block(); if (b) deleteBlock(editor, b.pos); } }}>
+          {info.blocks ? "Delete selected blocks" : "Delete block"}
         </MItem>
         <MSep />
         <MItem icon={<SelectionPlus {...I} />} keys={keys("⌘A")} onSelect={run(() => selectBlock(editor))}>
@@ -256,6 +263,8 @@ export function EditorContextMenu({ editor, children, ...pick }: { editor: Edito
 const HANDLE_POSITION = { placement: "left-start", strategy: "absolute" } as const;
 
 export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Editor }) {
+  const selectedCount = useEditorState({ editor, selector: ({ editor: e }) =>
+    isNodeRangeSelection(e.state.selection) ? e.state.selection.ranges.length : 0 });
   const target = useRef<number | null>(null);
   const grip = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
@@ -267,6 +276,7 @@ export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Edito
   const select = () => {
     const pos = at();
     if (pos === null) return null;
+    if (selectedCount > 1) return pos;
     editor.chain().setTextSelection(Math.min(pos + 1, editor.state.doc.content.size)).run();
     return pos;
   };
@@ -311,7 +321,7 @@ export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Edito
         <Menu.Portal>
           <Menu.Positioner className="menu-positioner" anchor={grip} side="left" align="start" sideOffset={6} collisionPadding={8}>
             <Menu.Popup className="menu-popup admin-menu">
-              <MLabel>Block</MLabel>
+              <MLabel>{selectedCount > 1 ? `${selectedCount} selected blocks` : "Block"}</MLabel>
               <MItem
                 icon={<SelectionPlus {...I} />}
                 onSelect={() => {
@@ -328,7 +338,12 @@ export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Edito
                   </MItem>
                 ))}
               </MSub>
-              <MItem icon={<CopySimple {...I} />} keys={keys("⌘D")} onSelect={() => { const p = at(); if (p !== null) duplicateBlock(editor, p); }}>
+              <MItem icon={<CopySimple {...I} />} keys={keys("⌘D")} onSelect={() => {
+                if (selectedCount > 1) {
+                  const { from, to } = editor.state.selection;
+                  editor.chain().focus().insertContentAt(to, editor.state.doc.slice(from, to).content.toJSON()).run();
+                } else { const p = at(); if (p !== null) duplicateBlock(editor, p); }
+              }}>
                 Duplicate
               </MItem>
               <MItem icon={<ArrowUp {...I} />} onSelect={() => { const p = at(); if (p !== null) moveBlock(editor, p, -1); }}>
@@ -340,6 +355,7 @@ export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Edito
               <MItem
                 icon={<MarkdownLogo {...I} />}
                 onSelect={() => {
+                  if (selectedCount > 1) { void copy(selectionMarkdown(editor), "Blocks copied as Markdown"); return; }
                   const p = at();
                   const node = p !== null ? editor.state.doc.nodeAt(p) : null;
                   if (!node || p === null) return;
@@ -350,7 +366,7 @@ export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Edito
                 Copy as Markdown
               </MItem>
               <MSep />
-              <MItem icon={<Trash {...I} />} danger onSelect={() => { const p = at(); if (p !== null) deleteBlock(editor, p); }}>
+              <MItem icon={<Trash {...I} />} danger onSelect={() => { if (selectedCount > 1) editor.chain().focus().deleteSelection().run(); else { const p = at(); if (p !== null) deleteBlock(editor, p); } }}>
                 Delete
               </MItem>
             </Menu.Popup>

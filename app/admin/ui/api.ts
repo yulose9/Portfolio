@@ -9,6 +9,7 @@ import type { Draft } from "../../../cms/format";
 export type { Draft };
 
 export type PostSummary = {
+  parentId?: string | null;
   id: string;
   title: string;
   slug: string;
@@ -85,7 +86,7 @@ const post = (body: unknown = {}): RequestInit => ({ method: "POST", body: JSON.
 export const api = {
   me: () => call<{ email: string; github: boolean; storage: boolean }>("/me"),
   list: () => call<{ posts: PostSummary[] }>("/posts"),
-  create: (init: { title?: string; body?: string; tags?: string[]; page?: boolean } = {}) => call<{ post: Draft }>("/posts", post(init)),
+  create: (init: { title?: string; body?: string; tags?: string[]; page?: boolean; parentId?: string } = {}) => call<{ post: Draft }>("/posts", post(init)),
   get: (id: string) => call<{ post: Draft }>(`/posts/${id}`),
   save: (
     id: string,

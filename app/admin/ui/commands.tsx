@@ -22,6 +22,7 @@ import {
   XLogo,
 } from "@phosphor-icons/react";
 import type { Editor } from "@tiptap/core";
+import { isNodeRangeSelection, NodeRangeSelection } from "@tiptap/extension-node-range";
 
 /*
  * The editor's verbs, defined once. The slash menu, the right-click menu, the
@@ -155,19 +156,28 @@ export const ICONS = { link: <LinkSimple {...I} />, code: <Code {...I} /> };
 /** The top-level block around the selection: its position and node. */
 export function currentBlock(editor: Editor) {
   const { $from } = editor.state.selection;
-  if ($from.depth === 0) return null;
-  const pos = $from.before(1);
+  const pos = $from.depth === 0 ? $from.pos : $from.before(1);
   const node = editor.state.doc.nodeAt(pos);
   return node ? { pos, node } : null;
 }
 
 export function duplicateBlock(editor: Editor, pos: number) {
+  const selection = editor.state.selection;
+  if (isNodeRangeSelection(selection) && pos >= selection.from && pos < selection.to) {
+    editor.chain().focus().insertContentAt(selection.to, editor.state.doc.slice(selection.from, selection.to).content.toJSON()).run();
+    return;
+  }
   const node = editor.state.doc.nodeAt(pos);
   if (!node) return;
   editor.chain().focus().insertContentAt(pos + node.nodeSize, node.toJSON()).run();
 }
 
 export function deleteBlock(editor: Editor, pos: number) {
+  const selection = editor.state.selection;
+  if (isNodeRangeSelection(selection) && pos >= selection.from && pos < selection.to) {
+    editor.chain().focus().deleteSelection().run();
+    return;
+  }
   const node = editor.state.doc.nodeAt(pos);
   if (!node) return;
   editor.chain().focus().deleteRange({ from: pos, to: pos + node.nodeSize }).run();
@@ -175,6 +185,19 @@ export function deleteBlock(editor: Editor, pos: number) {
 
 export function moveBlock(editor: Editor, pos: number, direction: -1 | 1) {
   const { doc } = editor.state;
+  const selection = editor.state.selection;
+  if (isNodeRangeSelection(selection) && pos >= selection.from && pos < selection.to) {
+    const { from, to } = selection;
+    const sibling = direction === -1 ? doc.resolve(from).nodeBefore : doc.resolve(to).nodeAfter;
+    if (!sibling) return;
+    const content = doc.slice(from, to).content;
+    const insertAt = direction === -1 ? from - sibling.nodeSize : from + sibling.nodeSize;
+    const tr = editor.state.tr.delete(from, to).insert(insertAt, content);
+    tr.setSelection(NodeRangeSelection.create(tr.doc, insertAt, insertAt + content.size, 0));
+    editor.view.dispatch(tr.scrollIntoView());
+    editor.commands.focus();
+    return;
+  }
   const node = doc.nodeAt(pos);
   if (!node) return;
   const $pos = doc.resolve(pos);

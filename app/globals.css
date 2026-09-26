@@ -1959,3 +1959,14 @@ html.has-smooth-cursor [contenteditable] {
 .updated-at:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
 .writing-row-updated { display: block; margin-top: 4px; }
 .article-more-row .updated-at time { font: inherit; color: inherit; }
+.date-mention, .page-mention {
+  display: inline;
+  border-radius: 4px;
+  background: #f4f4f5;
+  color: #52525b;
+  padding: 1px 4px;
+  font-size: 0.94em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.page-mention-unpublished { color: #71717a; }

@@ -40,7 +40,9 @@ import {
 import { Menu } from "@base-ui/react/menu";
 import { Extension } from "@tiptap/core";
 import Highlight from "@tiptap/extension-highlight";
-import Image from "@tiptap/extension-image";
+import { NodeRange } from "@tiptap/extension-node-range";
+import { ResizableImage } from "./extensions/resizable-image";
+import { Mentions } from "./extensions/mentions";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { TableKit } from "@tiptap/extension-table";
 import Typography from "@tiptap/extension-typography";
@@ -305,14 +307,16 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
         link: { openOnClick: false, autolink: true, defaultProtocol: "https" },
         dropcursor: { color: "#2563eb", width: 2 },
       }),
-      Image.configure({ inline: false, allowBase64: false }),
+      ResizableImage,
+      Mentions(() => OPEN_POST.id),
+      NodeRange.configure({ depth: 0, key: null }),
       Placeholder.configure({
         includeChildren: true,
         placeholder: ({ node }) => {
           if (node.type.name === "heading") return HEADING_PLACEHOLDER[node.attrs.level as number] ?? "Heading";
           if (node.type.name === "detailsSummary") return "Toggle";
           if (node.type.name === "codeBlock") return "";
-          return "Write, or press / for blocks and : for emoji";
+          return "Write, / for blocks, @ for dates and pages, : for emoji";
         },
       }),
       Markdown,
@@ -882,6 +886,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
             {statusLabel(doc)}
           </span>
           <SaveState status={save} at={savedAt} />
+          {doc.parentId ? <a className="editor-parent-link" href={`/admin?post=${doc.parentId}`} target="_blank" rel="noreferrer">Parent page ↗</a> : null}
           {deploy ? <DeployPill key={deploy.updatedAt} deploy={deploy} onDismiss={() => setDeploy(null)} /> : null}
         </div>
         <div className="editor-bar-side">

@@ -16,6 +16,7 @@ import { markdownToTree, outline, setWikiResolver } from "../../../cms/render";
 import AudioPlayer from "../../components/writing/AudioPlayer";
 import AuthorCard from "../../components/writing/AuthorCard";
 import Byline from "../../components/writing/Byline";
+import { MentionSpan } from "../../components/writing/DateMention";
 import FluentText from "../../components/writing/FluentText";
 import ShareRow from "../../components/writing/ShareRow";
 import Tag from "../../components/writing/Tag";
@@ -127,7 +128,7 @@ function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
     Fragment,
     jsx,
     jsxs,
-    components: { "x-embed": EmbedPreview, "x-audio": AudioPreview } as unknown as Partial<Components>,
+    components: { "x-embed": EmbedPreview, "x-audio": AudioPreview, span: MentionSpan } as unknown as Partial<Components>,
   });
   return (
     <div className="flex w-full justify-center bg-white">
@@ -407,7 +408,10 @@ function useTree(body: string, active: boolean) {
         const p = posts.find((x) => x.title.trim().toLowerCase() === key || x.slug === key);
         return p?.slug ? { slug: p.slug } : undefined;
       });
-      const t = await markdownToTree(body);
+      const t = await markdownToTree(body, [], id => {
+        const post = posts.find(p => p.id === id && p.status === "published" && p.page !== false && !p.trashedAt);
+        return post?.liveSlug ? {slug: post.liveSlug, title: post.title} : undefined;
+      });
       if (live) setTree(t);
     })();
     return () => {

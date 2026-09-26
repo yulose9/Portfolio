@@ -364,6 +364,40 @@
   border-radius: 6px;
 }
 
+.editor-body .ProseMirror-selectednoderange {
+  background: rgb(37 99 235 / 0.09);
+  outline: 2px solid rgb(37 99 235 / 0.28);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.editor-body.ProseMirror-noderangeselection ::selection { background: transparent; }
+.bubble-count { padding-inline: 6px; font-size: 12px; white-space: nowrap; }
+.mention-trigger { padding: 0; border: 0; background: none; font: inherit; cursor: pointer; }
+.mention-trigger:focus-visible, .toc summary:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
+.mention-date-editor { display: grid; gap: 12px; padding: 16px; width: min(300px, calc(100vw - 24px)); }
+.mention-date-editor label { display: grid; gap: 5px; font-size: 13px; }
+.mention-date-editor input { min-height: 40px; padding: 8px; border: 1px solid #e4e4e7; border-radius: 6px; font: inherit; }
+.mention-date-editor p { margin: 0; color: #71717a; font-size: 12px; }
+.editor-parent-link, .admin-parent-label { font-size: 12px; color: #71717a; }
+.editor-body [data-resize-container] { max-width: 100%; margin: 1.5rem 0; }
+.editor-body [data-resize-wrapper] { max-width: 100%; }
+.editor-body [data-resize-wrapper] img { max-width: 100%; height: auto !important; margin: 0; }
+.editor-body [data-resize-handle] {
+  width: 16px;
+  height: 16px;
+  border: 2px solid white;
+  border-radius: 4px;
+  background: #2563eb;
+  box-shadow: 0 0 0 1px rgb(37 99 235 / 0.3);
+  opacity: 0;
+  touch-action: none;
+}
+.editor-body [data-resize-handle="bottom-left"] { cursor: nesw-resize; transform: translate(-40%, 40%); }
+.editor-body [data-resize-handle="bottom-right"] { cursor: nwse-resize; transform: translate(40%, 40%); }
+.editor-body [data-resize-container]:hover [data-resize-handle],
+.editor-body [data-resize-container].ProseMirror-selectednode [data-resize-handle],
+.editor-body [data-resize-container][data-resize-state="true"] [data-resize-handle] { opacity: 1; }
+
 /* Callout: the icon cycles its kind when clicked. */
 .editor-body .callout-icon {
   cursor: pointer;

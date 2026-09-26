@@ -1,7 +1,7 @@
 import { DEFAULT_AUTHOR, newId, postToDraft, type Draft } from "../../../../cms/format";
-import { json, readJson, type AdminFunction } from "../../../../cms/server/http";
+import { HttpError, ID, json, readJson, type AdminFunction } from "../../../../cms/server/http";
 import { livePosts } from "../../../../cms/server/publish";
-import { listDrafts, putDraft } from "../../../../cms/server/store";
+import { getDraft, listDrafts, putDraft } from "../../../../cms/server/store";
 import { summarize } from "../../../../cms/server/summary";
 
 /** Every post: the R2 working copies, plus any live file never opened here. */
@@ -18,11 +18,17 @@ export const onRequestGet: AdminFunction = async ({ env }) => {
 
 /** A new, empty draft. */
 export const onRequestPost: AdminFunction = async ({ env, request }) => {
-  type Input = { title?: string; body?: string; tags?: string[]; page?: boolean };
+  type Input = { title?: string; body?: string; tags?: string[]; page?: boolean; parentId?: string };
   const input: Input = await readJson<Input>(request);
+  if (input.parentId !== undefined) {
+    if (typeof input.parentId !== "string" || !ID.test(input.parentId)) throw new HttpError("Invalid parent page.");
+    const parent = await getDraft(env, input.parentId) ?? (await livePosts(env)).find(p => p.id === input.parentId);
+    if (!parent || parent.page === false || ("trashedAt" in parent && parent.trashedAt)) throw new HttpError("Parent page not found.", 404);
+  }
   const now = new Date().toISOString();
   const draft: Draft = {
     id: newId(),
+    parentId: input.parentId ?? null,
     title: String(input.title ?? "").slice(0, 300),
     slug: "",
     dek: "",

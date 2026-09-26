@@ -350,6 +350,7 @@ export default function PostList({ email, onOpen, onSearch }: { email: string; o
                     <span aria-hidden="true">·</span>
                     {p.status === "scheduled" && p.publishAt ? <><span>{relative(p.publishAt)}</span><span aria-hidden="true">·</span></> : null}
                     <UpdatedAt at={p.updatedAt} nested />
+                    {p.parentId ? <span className="admin-parent-label">In {posts?.find(parent => parent.id === p.parentId)?.title || "parent page"}</span> : null}
                     {p.tags.slice(0, 3).map((t) => (
                       <span key={t} className="tag tag-sm" data-tint={tagTint(t)}>
                         {t}

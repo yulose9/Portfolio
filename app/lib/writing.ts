@@ -59,7 +59,7 @@ export async function markdownTree(markdown: string): Promise<Root> {
     const key = name.trim().toLowerCase();
     return pagedPosts().find((p) => p.title.trim().toLowerCase() === key || p.slug === key);
   });
-  return markdownToTree(markdown, [[rehypePrettyCode, { theme: { light: "github-light", dark: "github-dark" }, keepBackground: false }]]);
+  return markdownToTree(markdown, [[rehypePrettyCode, { theme: { light: "github-light", dark: "github-dark" }, keepBackground: false }]], id => pagedPosts().find(p => p.id === id));
 }
 
 /* ── Backlinks, related ──────────────────────────────────────────────── */
@@ -70,7 +70,7 @@ export function backlinks(post: Post): Listed[] {
   return pagedPosts().filter(
     (p) =>
       p.id !== post.id &&
-      (p.body.includes(`/writing/${post.slug}`) || p.body.toLowerCase().includes(`[[${title}`) || p.body.includes(`[[${post.slug}`))
+      (p.body.includes(`#page=${post.id}`) || p.body.includes(`/writing/${post.slug}`) || p.body.toLowerCase().includes(`[[${title}`) || p.body.includes(`[[${post.slug}`))
   );
 }
 

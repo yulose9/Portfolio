@@ -10,6 +10,7 @@ import { unified, type PluggableList } from "unified";
 import { parseEmbed } from "./embeds";
 import { fluentUrl, splitEmoji } from "./emoji";
 import { imageInfo, videoInfo } from "./media";
+import { dateHref, fullMentionDate, pageMentionId, parseDateHref } from "./mentions";
 
 /*
  * Markdown → hast, the way the site renders a post: figures, callouts,
@@ -141,7 +142,8 @@ function decorateText(value: string): ElementContent[] {
  * The editorial pass: figures, callouts, embeds, emoji, highlights, tables,
  * links. One walk, top-down.
  */
-function rehypeEditorial() {
+type PageResolver = (id: string) => { slug: string; title: string } | undefined;
+function rehypeEditorial(options: { resolvePage?: PageResolver } = {}) {
   return (tree: Root) => {
     const walk = (parent: Root | Element, literal: boolean) => {
       const kids = parent.children as (RootContent | ElementContent)[];
@@ -252,6 +254,10 @@ function rehypeEditorial() {
         }
 
         if (node.tagName === "img") {
+          const requestedWidth = Number(node.properties?.width);
+          const displayWidth = Number.isFinite(requestedWidth) && requestedWidth > 0
+            ? Math.min(2400, Math.round(requestedWidth)) : null;
+          const requestedHeight = Number(node.properties?.height);
           // Its size and smaller widths come from the file name: no layout
           // shift while it loads, and a phone downloads the 640px one.
           const info = imageInfo(String(node.properties?.src ?? ""));
@@ -260,10 +266,36 @@ function rehypeEditorial() {
             loading: "lazy",
             decoding: "async",
             ...(info ? { width: info.width, height: info.height, srcSet: info.srcSet, sizes: info.sizes } : {}),
+            ...(displayWidth ? {
+              width: displayWidth,
+              height: info ? Math.round(displayWidth * info.height / info.width)
+                : Number.isFinite(requestedHeight) && requestedHeight > 0 ? Math.round(requestedHeight) : undefined,
+              style: `width: ${displayWidth}px; max-width: 100%; height: auto; margin-inline: auto`,
+            } : {}),
           };
+          // Sized Markdown images are HTML blocks, not paragraph children.
+          const caption = node.properties.title;
+          if (caption && !(parent.type === "element" && parent.tagName === "figure")) {
+            delete node.properties.title;
+            kids[i] = el("figure", { className: ["article-figure"] }, [
+              node, el("figcaption", {}, [{ type: "text", value: String(caption) }]),
+            ]);
+          }
         }
         if (node.tagName === "a") {
           const href = String(node.properties?.href ?? "");
+          const date = parseDateHref(href);
+          const pageId = pageMentionId(href);
+          if (date) {
+            kids[i] = el("span", { dataDateMention: dateHref(date), className: ["date-mention"] }, [{type:"text",value:`@${fullMentionDate(date)}`}]);
+            continue;
+          }
+          if (pageId) {
+            const page = options.resolvePage?.(pageId);
+            kids[i] = page ? el("a", {href:`/writing/${page.slug}`,className:["page-mention"]}, [{type:"text",value:`↗ ${page.title}`}])
+              : el("span", {className:["page-mention","page-mention-unpublished"]}, node.children);
+            continue;
+          }
           if (/^https?:\/\//.test(href) && !/^https:\/\/(www\.)?nazarene\.dev/.test(href)) {
             node.properties = { ...node.properties, target: "_blank", rel: ["noreferrer"] };
           }
@@ -277,7 +309,7 @@ function rehypeEditorial() {
 }
 
 /** Markdown → hast, with every editorial touch. `extra` adds plugins at the end (the site adds Shiki). */
-export async function markdownToTree(markdown: string, extra: PluggableList = []): Promise<Root> {
+export async function markdownToTree(markdown: string, extra: PluggableList = [], resolvePage?: PageResolver): Promise<Root> {
   const pipeline = unified()
     .use(remarkParse)
     .use(remarkGfm)
@@ -299,7 +331,7 @@ export async function markdownToTree(markdown: string, extra: PluggableList = []
       },
       protocols: { ...defaultSchema.protocols, src: ["https", "http"], poster: ["https", "http"] },
     })
-    .use(rehypeEditorial)
+    .use(rehypeEditorial, { resolvePage })
     .use(extra);
   return (await pipeline.run(pipeline.parse(markdown))) as Root;
 }

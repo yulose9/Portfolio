@@ -49,6 +49,8 @@ export type Fonts = { heading?: FontChoice | null; body?: FontChoice | null };
 
 /** What a published file carries. */
 export type PostMeta = {
+  /** Stable parent page ID; absent for top-level posts. */
+  parentId?: string | null;
   /** Stable forever. Slugs can change; the id is how a post is recognised. */
   id: string;
   title: string;
@@ -92,6 +94,7 @@ export type DraftStatus = "draft" | "scheduled" | "published";
  * published snapshot of it.
  */
 export type Draft = {
+  parentId?: string | null;
   id: string;
   title: string;
   slug: string;
@@ -125,6 +128,7 @@ export type Draft = {
 const FENCE = "---";
 const KEY_ORDER: (keyof PostMeta)[] = [
   "id",
+  "parentId",
   "title",
   "slug",
   "dek",
@@ -141,7 +145,7 @@ const KEY_ORDER: (keyof PostMeta)[] = [
 ];
 
 export function serializePost(post: Post): string {
-  const lines = KEY_ORDER.map((key) => `${key}: ${JSON.stringify(post[key])}`);
+  const lines = KEY_ORDER.map((key) => `${key}: ${JSON.stringify(post[key] ?? null)}`);
   return `${FENCE}\n${lines.join("\n")}\n${FENCE}\n\n${post.body.trim()}\n`;
 }
 
@@ -160,6 +164,7 @@ export function parsePost(source: string): Post {
   }
 
   const post: Post = {
+    parentId: typeof meta.parentId === "string" && /^[a-z0-9]{12}$/.test(meta.parentId) ? meta.parentId : null,
     id: String(meta.id ?? ""),
     title: String(meta.title ?? ""),
     slug: String(meta.slug ?? ""),
@@ -259,6 +264,7 @@ export function newId(): string {
 
 export function draftToPost(draft: Draft, now: string): Post {
   return {
+    parentId: draft.parentId ?? null,
     id: draft.id,
     title: draft.title.trim(),
     slug: draft.slug,
@@ -279,6 +285,7 @@ export function draftToPost(draft: Draft, now: string): Post {
 
 export function postToDraft(post: Post): Draft {
   return {
+    parentId: post.parentId ?? null,
     id: post.id,
     title: post.title,
     slug: post.slug,

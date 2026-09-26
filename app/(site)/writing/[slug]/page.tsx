@@ -93,6 +93,7 @@ export default async function ArticlePage({ params }: Props) {
 
   const tree = await markdownTree(post.body);
   const toc = outline(tree);
+  const parent = post.parentId ? pagedPosts().find(p => p.id === post.parentId) : undefined;
   const linksHere = backlinks(post);
   const next = related(post);
   const url = `${SITE_INFO.url}/writing/${post.slug}`;
@@ -160,6 +161,7 @@ export default async function ArticlePage({ params }: Props) {
             <li>
               <Link href="/writing">Writing</Link>
             </li>
+            {parent ? <li><Link href={`/writing/${parent.slug}`}>{parent.title}</Link></li> : null}
             <li aria-current="page">
               <FluentText>{post.title}</FluentText>
             </li>

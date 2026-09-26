@@ -10,7 +10,10 @@ import {
   TextHTwo,
   TextItalic,
   TextStrikethrough,
+  CopySimple,
+  Trash,
 } from "@phosphor-icons/react";
+import { isNodeRangeSelection } from "@tiptap/extension-node-range";
 import type { Editor } from "@tiptap/react";
 import { useEditorState } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
@@ -59,8 +62,8 @@ function Tool({
 const TEXT_OPTIONS = { placement: "top", offset: 10 } as const;
 const IMAGE_OPTIONS = { placement: "bottom", offset: 10 } as const;
 const showForText = ({ editor: e, state: s }: { editor: Editor; state: Editor["state"] }) =>
-  !s.selection.empty && e.isEditable && !e.isActive("codeBlock") && !e.isActive("image") && !e.isActive("embed");
-const showForImage = ({ editor: e }: { editor: Editor }) => e.isEditable && e.isActive("image");
+  !s.selection.empty && e.isEditable && (isNodeRangeSelection(s.selection) || (!e.isActive("codeBlock") && !e.isActive("image") && !e.isActive("embed")));
+const showForImage = ({ editor: e }: { editor: Editor }) => e.isEditable && e.isActive("image") && !isNodeRangeSelection(e.state.selection);
 
 const mod = typeof navigator !== "undefined" && /Mac|iP/.test(navigator.platform) ? "⌘" : "Ctrl ";
 
@@ -81,6 +84,7 @@ export const TextBubble = memo(function TextBubble({ editor, linkRequest }: { ed
       h3: e.isActive("heading", { level: 3 }),
       quote: e.isActive("blockquote"),
       href: (e.getAttributes("link").href as string | undefined) ?? "",
+      blocks: isNodeRangeSelection(e.state.selection) ? e.state.selection.ranges.length : 0,
     }),
   });
 
@@ -148,6 +152,7 @@ export const TextBubble = memo(function TextBubble({ editor, linkRequest }: { ed
         </form>
       ) : (
         <>
+          {state.blocks > 0 ? <span className="bubble-count">{state.blocks} selected</span> : null}
           <Tool label="Bold" shortcut={`${mod}B`} active={state.bold} onClick={() => editor.chain().focus().toggleBold().run()}>
             <TextB size={15} weight="bold" />
           </Tool>
@@ -173,6 +178,14 @@ export const TextBubble = memo(function TextBubble({ editor, linkRequest }: { ed
           <Tool label="Quote" active={state.quote} onClick={() => editor.chain().focus().toggleBlockquote().run()}>
             <Quotes size={15} weight="bold" />
           </Tool>
+          {state.blocks > 0 ? <>
+            <span className="bubble-sep" aria-hidden="true" />
+            <Tool label="Duplicate selected blocks" onClick={() => {
+              const { from, to } = editor.state.selection;
+              editor.chain().focus().insertContentAt(to, editor.state.doc.slice(from, to).content.toJSON()).run();
+            }}><CopySimple size={15} /></Tool>
+            <Tool label="Delete selected blocks" onClick={() => editor.chain().focus().deleteSelection().run()}><Trash size={15} /></Tool>
+          </> : null}
         </>
       )}
     </BubbleMenu>
@@ -184,10 +197,10 @@ export const ImageBubble = memo(function ImageBubble({ editor }: { editor: Edito
   const attrs = useEditorState({
     editor,
     selector: ({ editor: e }) =>
-      e.isActive("image") ? (e.getAttributes("image") as { alt?: string; title?: string; src?: string }) : null,
+      e.isActive("image") ? (e.getAttributes("image") as { alt?: string; title?: string; src?: string; width?: number; height?: number }) : null,
   });
 
-  const set = (patch: { alt?: string; title?: string }) =>
+  const set = (patch: { alt?: string; title?: string; width?: number | null; height?: number | null }) =>
     editor.chain().updateAttributes("image", patch).run();
 
   return (
@@ -200,6 +213,22 @@ export const ImageBubble = memo(function ImageBubble({ editor }: { editor: Edito
     >
       {attrs ? (
         <div className="bubble-fields">
+          <label>
+            <span>Width (px)</span>
+            <input type="number" min="64" max="2400" key={attrs.width ?? "auto"} defaultValue={attrs.width ?? ""} placeholder="Automatic"
+              onBlur={(event) => {
+                const width = Math.round(Number(event.target.value));
+                if (!event.target.value) { set({ width: null, height: null }); return; }
+                if (width >= 64 && width <= 2400) {
+                  const image = editor.view.nodeDOM(editor.state.selection.from);
+                  const img = image instanceof HTMLImageElement ? image : image instanceof HTMLElement ? image.querySelector("img") : null;
+                  const ratio = attrs.width && attrs.height ? attrs.height / attrs.width : img?.naturalWidth ? img.naturalHeight / img.naturalWidth : null;
+                  set({ width, height: ratio ? Math.round(width * ratio) : null });
+                } else event.target.value = String(attrs.width ?? "");
+              }}
+              onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); } }} />
+          </label>
+          <button type="button" className="bubble-tool" onClick={() => set({ width: null, height: null })}>Reset size</button>
           <label>
             <span>Alt text</span>
             <input value={attrs.alt ?? ""} onChange={(e) => set({ alt: e.target.value })} placeholder="What the image shows, for screen readers" />

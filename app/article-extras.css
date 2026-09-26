@@ -80,19 +80,35 @@
   position: relative;
 }
 .toc {
-  margin-top: 2.5rem;
-  padding: 1rem 1.1rem;
-  border-radius: 14px;
-  background: #fafafa;
+  margin-top: 1.5rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: #fff;
   font-size: 14px;
   line-height: 1.45;
 }
 .toc-title {
-  margin: 0 0 0.5rem;
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 32px;
+  list-style: none;
+  cursor: pointer;
   font-size: 12px;
   font-weight: 500;
   color: var(--ink-3);
 }
+.toc-title::-webkit-details-marker { display: none; }
+.toc details[open] > summary { margin-bottom: 0.65rem; }
+.toc details[open] > summary span { transform: rotate(180deg); }
+.toc-rail { position: sticky; top: 12px; z-index: 20; }
+.toc ol { max-height: 45vh; overflow-y: auto; overscroll-behavior: contain; }
+.toc a { min-height: 36px; }
+html:not(.has-smooth-cursor) .article-page a[href],
+html:not(.has-smooth-cursor) .article-page a[href] * { cursor: pointer; }
+.article-body :is(h2, h3, h4) { scroll-margin-top: 100px; }
 .toc ol {
   display: grid;
   gap: 0.15rem;
@@ -139,27 +155,29 @@
     color: var(--ink);
   }
 }
-/* Wide screens: the contents stand in the left margin and follow you down. */
-@media (min-width: 1180px) {
+/* Keep the rail clear of the article's wider images, not just its text. */
+@media (min-width: 1440px) {
   .toc-rail {
     position: absolute;
     top: 0;
     bottom: 0;
-    right: calc(100% + 3rem);
-    width: 220px;
+    left: calc(50% + var(--breakout) / 2 + 2rem);
+    width: 200px;
   }
   .toc {
     position: sticky;
-    top: 6rem;
-    margin-top: 3rem;
+    top: 2rem;
+    margin-top: 2rem;
     padding: 0;
     background: none;
+    border: 0;
     max-height: calc(100vh - 8rem);
     overflow-y: auto;
     /* Room so the scroll box doesn't shave the first letter or the marker. */
     margin-left: -6px;
     padding-left: 6px;
   }
+  .toc ol { max-height: calc(100dvh - 8rem); }
 }
 
 /* Heading links: a quiet # that shows on hover, Notion-style. */

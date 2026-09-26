@@ -5,6 +5,7 @@ import { Tweet } from "react-tweet";
 
 import { parseEmbed, threadsFrame, youtubeFrame, type Embed } from "../../../cms/embeds";
 import AudioPlayer from "./AudioPlayer";
+import { MentionSpan } from "./DateMention";
 
 /*
  * The body of an article, rendered at build time. The Markdown's hast tree
@@ -76,6 +77,6 @@ export default function ArticleBody({ tree }: { tree: Root }) {
     Fragment,
     jsx,
     jsxs,
-    components: { "x-embed": EmbedBlock, "x-audio": AudioBlock, img: ZoomableImage } as unknown as Partial<Components>,
+    components: { "x-embed": EmbedBlock, "x-audio": AudioBlock, img: ZoomableImage, span: MentionSpan } as unknown as Partial<Components>,
   });
 }
