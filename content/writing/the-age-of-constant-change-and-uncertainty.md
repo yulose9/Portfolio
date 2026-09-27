@@ -1,5 +1,6 @@
 ---
 id: "0muicd6md6oa"
+parentId: null
 title: "The age of constant change and uncertainty"
 slug: "the-age-of-constant-change-and-uncertainty"
 dek: "This year has been wild. I mean that in the best, most nerdy way possible."
@@ -10,12 +11,14 @@ page: true
 ogImage: null
 tags: ["AI","Vibe Engineering","AI Safety","Pax Silica","Philippines"]
 cover: null
-publishedAt: "2026-09-26T15:45:59.640Z"
-updatedAt: "2026-09-26T15:45:59.640Z"
+publishedAt: "2026-09-26T23:09:25.239Z"
+updatedAt: "2026-09-27T01:34:28.257Z"
 redirectFrom: []
 ---
 
-On January 2, 2026, I posted an Instagram story about Forrester's predictions for this year. Forrester is a big research firm that tells companies where tech is heading. They said two things that stuck with me: software development would become the number one use of AI, and "vibe coding" would grow up into "vibe engineering."
+On January 2, 2026, I posted an Instagram story about Forrester's predictions for this year. Forrester is a big research firm that tells companies where tech is heading. They said two things that stuck with me: software development would become the number one use of AI, and "vibe coding" would grow up into "vibe engineering." 
+
+![ChatGPT Image Sep 27, 2026, 01 44 38 AM](/media/2026/iojcfsmym8wbb9ym-1254x1254.webp "my instagram story I've posted last January 2026")
 
 We're now in the third quarter of 2026, and honestly, that doesn't feel like a prediction anymore. It feels like my Tuesday. So I want to look back at what actually happened this year: the AI models that shook things up, the security scares that came with them, a big debate here at home, and what I think it all means for the rest of us.
 
@@ -90,7 +93,7 @@ The deal isn't final yet. Either way, it shows that AI isn't just about apps and
 
 ## What this means for the rest of us
 
-If you love tech, this is a great time to be alive. AI is changing how we work, build and solve problems, and it's happening in real time.
+If you love tech, this is a great time to be alive. *AI is changing how we work, build and solve problems, and it's happening in real time.*
 
 ### Building is easy now. Ideas are the hard part.
 
@@ -131,3 +134,7 @@ Back in college, I thought I was watching a fun new app. I was actually watching
 **The future is uncertain. How we meet it doesn't have to be.**
 
 *What surprised you most about AI this year? Tell me in the comments, or send me a message on Instagram.*
+
+
+
+&nbsp;
