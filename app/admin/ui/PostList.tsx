@@ -40,7 +40,7 @@ const FILTERS = [
 ] as const;
 type Filter = (typeof FILTERS)[number]["id"];
 
-export default function PostList({ email, onOpen, onSearch }: { email: string; onOpen: (id: string, panel?: Panel) => void; onSearch: () => void }) {
+export default function PostList({ email, onOpen, onSearch, onTags }: { email: string; onOpen: (id: string, panel?: Panel) => void; onSearch: () => void; onTags: () => void }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [tag, setTag] = useState<string | null>(null);
@@ -265,6 +265,7 @@ export default function PostList({ email, onOpen, onSearch }: { email: string; o
           ))}
         </div>
         <div className="admin-toolbar-end">
+          <button type="button" className="admin-button" onClick={onTags}>Tag pages</button>
           <label className="admin-search">
             <MagnifyingGlass size={14} aria-hidden="true" />
             <input ref={search} type="search" placeholder="Filter" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Filter posts by title" />

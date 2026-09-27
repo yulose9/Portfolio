@@ -61,8 +61,12 @@ export function fontLinks(fonts: Fonts | null | undefined): string[] {
 
 /** CSS custom properties the article's styles read. */
 export function fontVars(fonts: Fonts | null | undefined): Record<string, string> {
-  const vars: Record<string, string> = {};
+  const vars: Record<string, string> = {"--article-ligatures":fonts?.ligatures === false ? "none" : "normal"};
   if (fonts?.heading) vars["--article-heading-font"] = fontStack(fonts.heading);
   if (fonts?.body) vars["--article-body-font"] = fontStack(fonts.body);
   return vars;
+}
+
+export function inlineFontLinks(body: string): string[] {
+  return FONT_SHELF.filter(font=>body.includes(`data-text-font="${font.family}"`)).map(fontHref).filter((href):href is string=>Boolean(href));
 }

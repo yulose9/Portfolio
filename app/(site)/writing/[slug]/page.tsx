@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { fluentUrl } from "../../../../cms/emoji";
 import { tagSlug } from "../../../../cms/format";
-import { fontLinks, fontVars } from "../../../../cms/fonts";
+import { fontLinks, inlineFontLinks, fontVars } from "../../../../cms/fonts";
 import ArticleBody from "../../../components/writing/ArticleBody";
 import ArticleEnhance from "../../../components/writing/ArticleEnhance";
 import ArticleMenu from "../../../components/writing/ArticleMenu";
@@ -144,7 +144,7 @@ export default async function ArticlePage({ params }: Props) {
   return (
     <div className="flex w-full justify-center bg-white">
       {/* A post's own typefaces, if it has any; React hoists these into <head>. */}
-      {fontLinks(post.fonts).map((href) => (
+      {[...new Set([...fontLinks(post.fonts),...inlineFontLinks(post.body)])].map((href) => (
         <link key={href} rel="stylesheet" href={href} precedence="default" />
       ))}
       <div className="reading-progress" aria-hidden="true" />
@@ -224,15 +224,7 @@ export default async function ArticlePage({ params }: Props) {
           </div>
 
           <footer className="article-footer">
-            {post.tags.length ? (
-              <ul className="article-tags" aria-label="Tags">
-                {post.tags.map((tag) => (
-                  <li key={tag}>
-                    <Tag name={tag} href={`/writing/tag/${tagSlug(tag)}`} />
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+
             <ShareRow url={url} title={post.title} />
           </footer>
 

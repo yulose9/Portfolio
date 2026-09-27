@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, X } from "@phosphor-icons/react";
+import { Plus, X, DotsSixVertical } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 
 import { tagTint } from "../../components/writing/Tag";
@@ -27,6 +27,13 @@ export default function TagsInline({ tags, onChange }: { tags: string[]; onChang
   // Enter takes a suggestion only after you've arrowed to it.
   const [navigated, setNavigated] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  const [announcement,setAnnouncement]=useState("");
+  const dragged = useRef<string | null>(null);
+  const reorder = (from: string, to: string) => {
+    const next = [...tags]; const a = next.indexOf(from); const b = next.indexOf(to);
+    if (a < 0 || b < 0 || a === b) return;
+    next.splice(a, 1); next.splice(b, 0, from); onChange(next); setAnnouncement(`${from} moved to position ${b+1} of ${next.length}`);
+  };
 
   useEffect(() => {
     if (!adding) return;
@@ -52,8 +59,13 @@ export default function TagsInline({ tags, onChange }: { tags: string[]; onChang
 
   return (
     <div className="tags-inline" role="group" aria-label="Tags">
+      <span className="sr-only" aria-live="polite">{announcement}</span>
       {tags.map((t) => (
-        <span key={t} className="tag tag-edit" data-tint={tagTint(t)}>
+        <span key={t} className="tag tag-edit" data-tint={tagTint(t)} onDragOver={e => { if (dragged.current) e.preventDefault(); }} onDrop={e => { e.preventDefault(); if (dragged.current) reorder(dragged.current,t); dragged.current=null; }}>
+          <button type="button" className="tag-drag" draggable aria-label={`Move ${t}; use left and right arrow keys`} onDragStart={e => { dragged.current=t; e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("text/plain",t); if(e.currentTarget.parentElement)e.dataTransfer.setDragImage(e.currentTarget.parentElement,8,8); }} onDragEnd={() => {dragged.current=null;}} onKeyDown={e => {
+            const direction=e.key==="ArrowLeft"?-1:e.key==="ArrowRight"?1:0;
+            if(direction){e.preventDefault(); const to=tags[tags.indexOf(t)+direction];if(to)reorder(t,to);}
+          }}><DotsSixVertical size={12}/></button>
           {t}
           <button type="button" aria-label={`Remove ${t}`} onClick={() => onChange(tags.filter((x) => x !== t))}>
             <X size={10} weight="bold" />

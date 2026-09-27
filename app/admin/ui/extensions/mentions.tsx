@@ -40,26 +40,35 @@ function MentionView(props: NodeViewProps) {
   return props.node.attrs.kind === "date" ? <DateEditor {...props}/> :
     <NodeViewWrapper as="span" contentEditable={false}><a className="page-mention" href={`/admin?post=${encodeURIComponent(props.node.attrs.id)}`} target="_blank" rel="noreferrer">↗ {props.node.attrs.label || "Untitled"}</a></NodeViewWrapper>;
 }
-type Item = {kind:"date"; label:string; value:MentionDate} | {kind:"page"; label:string; id:string; status:string} | {kind:"create"; label:string};
+type Item = {kind:"date"; label:string; value:MentionDate} | {kind:"page"; label:string; id:string; status:string} | {kind:"create"; label:string} | {kind:"pick";label:string};
 type Props = SuggestionProps<Item>;
 type Handle = {onKeyDown:(props:SuggestionKeyDownProps)=>boolean};
-const MentionList = forwardRef<Handle, Props>(function MentionList({items,command},ref) {
+const MentionList = forwardRef<Handle, Props>(function MentionList({items,command,editor},ref) {
   const [index,setIndex]=useState(0);
+  const [picking,setPicking]=useState(false);
+  const [pickedDate,setPickedDate]=useState(parseDateQuery("today")!.date);
+  const [pickedTime,setPickedTime]=useState("");
+  const choose=(item:Item)=>{if(item.kind==="pick")setPicking(true);else command(item);};
   const [seen,setSeen]=useState(items);
   if(seen!==items){setSeen(items);setIndex(0);}
   useImperativeHandle(ref,()=>({onKeyDown:({event})=>{
     if(!items.length)return false;
     if(event.key==="ArrowDown"){setIndex(i=>(i+1)%items.length);return true;}
     if(event.key==="ArrowUp"){setIndex(i=>(i-1+items.length)%items.length);return true;}
-    if(event.key==="Enter"||event.key==="Tab"){command(items[index]);return true;}
+    if(event.key==="Enter"||event.key==="Tab"){choose(items[index]);return true;}
     return false;
   }}));
+  if(picking)return <form onKeyDown={e=>{if(e.key==="Escape"){e.preventDefault();setPicking(false);editor.commands.focus();}}} className="slash-menu mention-date-editor" onSubmit={e=>{e.preventDefault();if(validDate(pickedDate)&&(!pickedTime||validTime(pickedTime)))command({kind:"date",label:"Date",value:{date:pickedDate,time:pickedTime||null}});}}>
+    <p>Choose date and time</p><label>Date<input autoFocus type="date" required value={pickedDate} onChange={e=>setPickedDate(e.target.value)}/></label>
+    <label>Time (optional)<input type="time" value={pickedTime} onChange={e=>setPickedTime(e.target.value)}/></label>
+    <p>Manila · UTC+8</p><button type="button" className="admin-button" onClick={()=>setPicking(false)}>Back</button><button type="submit" className="admin-button admin-button-primary">Insert date</button>
+  </form>;
   return <div className="slash-menu" role="listbox" aria-label="Mention a date or page">
     <p className="slash-group">Dates & pages</p>
-    {items.map((item,i)=><button key={`${item.kind}:${item.label}:${i}`} type="button" role="option" aria-selected={index===i} className="slash-item" onMouseEnter={()=>setIndex(i)} onMouseDown={e=>e.preventDefault()} onClick={()=>command(item)}>
+    {items.map((item,i)=><button key={`${item.kind}:${item.label}:${i}`} type="button" role="option" aria-selected={index===i} className="slash-item" onMouseEnter={()=>setIndex(i)} onMouseDown={e=>e.preventDefault()} onClick={()=>choose(item)}>
       <span className="slash-icon">{item.kind==="date"?"@":item.kind==="create"?"+":"↗"}</span>
       <span className="slash-title">{item.label}</span>
-      <span className="slash-hint">{item.kind==="date"?fullMentionDate(item.value):item.kind==="create"?"Create subpage":item.status}</span>
+      <span className="slash-hint">{item.kind==="date"?fullMentionDate(item.value):item.kind==="create"?"Create subpage":item.kind==="pick"?"Calendar":item.status}</span>
     </button>)}
     <p className="slash-empty">Try today, last Monday, Tuesday 14:30, or a page title.</p>
   </div>;
@@ -94,9 +103,10 @@ export function Mentions(currentId:()=>string) {
         const dates:Item[]=parsed?[{kind:"date",label:q,value:parsed}]:["Today","Yesterday","Tomorrow"].filter(s=>s.toLowerCase().startsWith(q.toLowerCase())).map(label=>({kind:"date",label,value:parseDateQuery(label)!}));
         const posts=await (targets ??= api.list().then(result=>result.posts).catch(()=>{targets=null;return [];}));
         const pages:Item[]=posts.filter(p=>p.id!==currentId()&&!p.trashedAt&&p.page!==false&&(!q||p.title.toLowerCase().includes(q.toLowerCase()))).slice(0,6).map(p=>({kind:"page",id:p.id,label:p.title||"Untitled",status:p.status}));
-        return [...dates,...pages,...(q&&!parsed?[{kind:"create" as const,label:q.slice(0,300)}]:[])];
+        return [...dates,{kind:"pick" as const,label:"Choose date and time…"},...pages,...(q&&!parsed?[{kind:"create" as const,label:q.slice(0,300)}]:[])];
       },
       command:({editor,range,props})=>{
+        if(props.kind==="pick")return;
         const insert=(attrs:Attrs)=>editor.chain().focus().insertContentAt(range,[{type:"mention",attrs},{type:"text",text:" "}]).run();
         if(props.kind==="date") {insert({kind:"date",...props.value});return;}
         if(props.kind==="page") {insert({kind:"page",id:props.id,label:props.label});return;}

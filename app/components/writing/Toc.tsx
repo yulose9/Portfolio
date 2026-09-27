@@ -1,4 +1,5 @@
 "use client";
+import { safeInlineUrl } from "../../../cms/inline";
 import { useEffect, useRef } from "react";
 import type { OutlineItem } from "../../lib/writing";
 
@@ -16,22 +17,45 @@ export default function Toc({ items }: { items: OutlineItem[] }) {
     const wide = viewport.matchMedia("(min-width: 1440px)");
     const sync = () => { if (disclosure.current) disclosure.current.open = wide.matches; };
     sync();
+    const doc=disclosure.current!.ownerDocument;
+    let frame=0;
+    const update=()=>{
+      frame=0;
+      const heads=items.map(item=>doc.getElementById(item.id)).filter((h):h is HTMLElement=>Boolean(h));
+      let current=heads[0];for(const head of heads)if(head.getBoundingClientRect().top<viewport.innerHeight*.3)current=head;
+      const list=disclosure.current?.querySelector("ol");
+      disclosure.current?.querySelectorAll<HTMLAnchorElement>("[data-toc-link]").forEach(link=>{
+        const active=link.dataset.tocLink===current?.id;link.toggleAttribute("data-active",active);
+        if(active){link.setAttribute("aria-current","location");if(list && disclosure.current?.open){const r=link.getBoundingClientRect(),lr=list.getBoundingClientRect();if(r.top<lr.top)list.scrollTop-=lr.top-r.top+8;else if(r.bottom>lr.bottom)list.scrollTop+=r.bottom-lr.bottom+8;}}
+        else link.removeAttribute("aria-current");
+      });
+    };
+    const scroll=()=>{if(!frame)frame=viewport.requestAnimationFrame(update);};
+    viewport.addEventListener("scroll",scroll,{passive:true});update();
     wide.addEventListener("change", sync);
-    return () => wide.removeEventListener("change", sync);
-  }, []);
+    return () => {wide.removeEventListener("change", sync);viewport.removeEventListener("scroll",scroll);viewport.cancelAnimationFrame(frame);};
+  }, [items]);
   return (
     <div className="toc-rail">
       <nav className="toc" aria-label="On this page">
         <details ref={disclosure} open>
         <summary className="toc-title">On this page <span aria-hidden="true">⌄</span></summary>
-        <ol>
+        <ol data-lenis-prevent>
           {items.map((item) => (
             <li key={item.id} data-depth={item.depth}>
               <a href={`#${item.id}`} data-toc-link={item.id} onClick={(event) => {
+                event.preventDefault();
+                const doc=event.currentTarget.ownerDocument;
+                const viewport=doc.defaultView;
                 const width = event.currentTarget.ownerDocument.defaultView?.innerWidth ?? 0;
                 if (width < 1440 && disclosure.current) disclosure.current.open = false;
+                viewport?.history.replaceState(null,"",`#${item.id}`);
+                viewport?.requestAnimationFrame(()=>doc.getElementById(item.id)?.scrollIntoView({block:"start",behavior:viewport.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"}));
               }}>
-                {item.text}
+                {item.icon ? <span className="toc-icon" aria-hidden="true">{safeInlineUrl(item.icon,true) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={safeInlineUrl(item.icon,true)} alt="" />
+                ) : item.icon}</span> : null}{item.text}
               </a>
             </li>
           ))}

@@ -216,12 +216,12 @@ export const EmojiSuggest = Extension.create({
         char: ":",
         pluginKey: new PluginKey("emojiSuggest"),
         allowSpaces: false,
-        // ":)" and "12:30" shouldn't open it: letters only, two or more.
+        // ":)" and "12:30" shouldn't open it: show choices for a bare colon; filter by letters after it.
         allow: ({ state, range }) => {
           const before = state.doc.textBetween(Math.max(0, range.from - 1), range.from);
           return (before === "" || /\s/.test(before)) && state.doc.resolve(range.from).parent.type.name !== "codeBlock";
         },
-        items: async ({ query }) => (query.length < 2 || !/^[a-z_+-]+$/i.test(query) ? [] : searchEmoji(await loadEmoji(), query.replace(/_/g, " "), 8)),
+        items: async ({ query }) => (!/^[a-z_+-]*$/i.test(query) ? [] : searchEmoji(await loadEmoji(), query.replace(/_/g, " "), 12)),
         command: ({ editor, range, props }) => {
           rememberEmoji(props[0]);
           editor.chain().focus().deleteRange(range).insertContent(props[0]).run();

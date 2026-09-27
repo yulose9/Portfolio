@@ -34,7 +34,7 @@ export function looksLikeMarkdown(text: string): boolean {
   return score >= 2;
 }
 
-const DROP_ATTRS = /\s(?:style|class|id|dir|lang|data-(?!(?:text-color|inline-logo|logo-href)=)[\w-]+|aria-[\w-]+|role|color|face|size|width|height|align|valign|bgcolor|start)="[^"]*"/gi;
+const DROP_ATTRS = /\s(?:style|class|id|dir|lang|data-(?!(?:text-color|text-font|text-opacity|heading-icon|inline-logo|logo-href)=)[\w-]+|aria-[\w-]+|role|color|face|size|width|height|align|valign|bgcolor|start)="[^"]*"/gi;
 
 /** Clean pasted HTML down to structure. Runs before Tiptap parses it. */
 export function cleanPastedHtml(html: string): string {
@@ -43,9 +43,10 @@ export function cleanPastedHtml(html: string): string {
     const doc = new DOMParser().parseFromString(html, "text/html");
     for (const span of doc.querySelectorAll("span[data-text-color]")) {
       const color = span.getAttribute("data-text-color") ?? "";
-      if (!/^#[0-9a-f]{6}$/i.test(color)) continue;
+      if (!/^(#[0-9a-f]{6}|inherit)$/i.test(color)) continue;
       const mark = doc.createElement("x-editor-color");
       mark.setAttribute("data-text-color", color);
+      for(const attr of ["data-text-font","data-text-opacity"])if(span.hasAttribute(attr))mark.setAttribute(attr,span.getAttribute(attr)!);
       mark.append(...span.childNodes);
       span.replaceWith(mark);
     }

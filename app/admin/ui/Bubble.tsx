@@ -61,7 +61,7 @@ function Tool({
  * menu is open. Inline objects would do that on every keystroke.
  */
 const TEXT_OPTIONS = { placement: "top", offset: 10 } as const;
-const IMAGE_OPTIONS = { placement: "bottom", offset: 10 } as const;
+const IMAGE_OPTIONS = { placement: "top", offset: 16 } as const;
 const showForText = ({ editor: e, state: s }: { editor: Editor; state: Editor["state"] }) =>
   !s.selection.empty && e.isEditable && (isNodeRangeSelection(s.selection) || (!e.isActive("codeBlock") && !e.isActive("image") && !e.isActive("embed")));
 const showForImage = ({ editor: e }: { editor: Editor }) => e.isEditable && e.isActive("image") && !isNodeRangeSelection(e.state.selection);
@@ -230,7 +230,7 @@ export const ImageBubble = memo(function ImageBubble({ editor }: { editor: Edito
               }}
               onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); } }} />
           </label>
-          <button type="button" className="bubble-tool" onClick={() => set({ width: null, height: null })}>Reset size</button>
+          <button type="button" className="admin-button image-reset" onClick={() => set({ width: null, height: null })}>Reset size</button>
           <label>
             <span>Alt text</span>
             <input value={attrs.alt ?? ""} onChange={(e) => set({ alt: e.target.value })} placeholder="What the image shows, for screen readers" />

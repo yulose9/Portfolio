@@ -897,3 +897,12 @@
     rotate: 0deg;
   }
 }
+
+/* Find is a compact panel with an explicit search scope. */
+.editor-root .find-bar{display:flex;flex-wrap:wrap;width:min(560px,calc(100vw - 24px));padding:12px;border-radius:12px;gap:8px;transition-duration:140ms;background:#fff;border:1px solid #e4e4e7;box-shadow:0 8px 30px #00000012}
+.find-heading{display:flex;align-items:center;justify-content:space-between;width:100%;gap:12px;font-size:12px}.find-heading strong{font-weight:500}.find-heading button{font-size:11px}
+.editor-root .find-bar input{min-width:0;height:36px;background:#f7f7f8;border:1px solid #e4e4e7;border-radius:6px;padding:0 9px;font-size:13px}
+.editor-root .find-row{flex-wrap:wrap;gap:5px}.editor-root .find-row input{flex:1 1 180px}.editor-root .find-toggle{margin-top:4px}.editor-root .find-count{font-variant-numeric:tabular-nums;font-size:11px}.editor-root .find-replace{padding-top:8px}.editor-root .find-action{min-height:32px}
+.search-scope{display:flex;justify-content:space-between;gap:12px;padding:8px 16px;color:#71717a;font-size:11px;border-bottom:1px solid #f0f0f2}.search-scope span{white-space:nowrap}
+@media(max-width:480px){.search-scope span{display:none}.editor-root .find-row input{flex-basis:100%}.editor-root .find-count{margin-right:auto}}
+@media(prefers-reduced-motion:reduce){.editor-root .find-bar,.editor-root .find-replace-wrap{transition:none}}

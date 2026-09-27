@@ -1,3 +1,4 @@
+import { readTagPage } from "../../../../lib/tag-pages";
 import UpdatedAt from "../../../../components/UpdatedAt";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -34,12 +35,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const slug = (await params).tag;
   const name = allTags().get(slug);
   if (!name) return { title: "Not found", robots: { index: false } };
-  const description = `Writing by ${SITE_INFO.name} on ${name}.`;
+  const custom=readTagPage(slug);
+  const title=custom.title||name;
+  const description = custom.description || `Writing by ${SITE_INFO.name} on ${name}.`;
   return {
-    title: `${name} · Writing`,
+    title: `${title} · Writing`,
     description,
     alternates: { canonical: `/writing/tag/${slug}`, types: FEED },
-    openGraph: { ...OG_METADATA, title: `${name} · Writing by ${SITE_INFO.name}`, description, url: `${SITE_INFO.url}/writing/tag/${slug}` },
+    openGraph: { ...OG_METADATA, title: `${title} · Writing by ${SITE_INFO.name}`, description, url: `${SITE_INFO.url}/writing/tag/${slug}` },
   };
 }
 
@@ -50,6 +53,7 @@ export default async function TagPage({ params }: Props) {
   const tags = allTags();
   const name = tags.get(slug);
   if (!name) notFound();
+  const custom=readTagPage(slug);
   const posts = publishedPosts().filter((p) => p.tags.some((t) => tagSlug(t) === slug));
 
   const graph = {
@@ -90,7 +94,9 @@ export default async function TagPage({ params }: Props) {
         </nav>
         <header className="article-header">
           <p className="article-eyebrow">Tag</p>
-          <h1 className="article-title">{name}</h1>
+          <h1 className="article-title">{custom.title||name}</h1>
+          {custom.description?<p className="article-dek">{custom.description}</p>:null}
+          {custom.updatedAt?<UpdatedAt at={custom.updatedAt}/>:null}
           <p className="writing-index-meta">
             {posts.length} {posts.length === 1 ? "entry" : "entries"}
           </p>

@@ -269,6 +269,7 @@ export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Edito
   const target = useRef<number | null>(null);
   const grip = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
+  useEffect(() => { if (open) editor.commands.lockDragHandle(); else editor.commands.unlockDragHandle(); return () => { if (!editor.isDestroyed) editor.commands.unlockDragHandle(); }; }, [editor, open]);
   const onNodeChange = useCallback(({ pos }: { pos: number }) => {
     target.current = pos >= 0 ? pos : null;
   }, []);
@@ -320,7 +321,7 @@ export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Edito
       </DragHandle>
       <Menu.Root open={open} onOpenChange={setOpen}>
         <Menu.Portal>
-          <Menu.Positioner className="menu-positioner" anchor={grip} side="left" align="start" sideOffset={6} collisionPadding={8}>
+          <Menu.Positioner className="menu-positioner" anchor={grip} side="right" align="start" sideOffset={6} collisionPadding={8}>
             <Menu.Popup className="menu-popup admin-menu">
               <MLabel>{selectedCount > 1 ? `${selectedCount} selected blocks` : "Block"}</MLabel>
               <MItem
@@ -470,6 +471,7 @@ export function FindBar({ editor, request, onClose }: { editor: Editor; request:
 
   return (
     <div className="find-bar" role="search" data-open={open || undefined} data-replacing={replacing || undefined} inert={!open} onKeyDown={onKey}>
+      <div className="find-heading"><strong>Find in this page</strong><button type="button" className="admin-button admin-button-quiet" onClick={()=>window.dispatchEvent(new CustomEvent("admin:palette",{detail:{query}}))}>Search all writing ↗</button></div>
       <button
         type="button"
         className="admin-icon-button find-toggle"
@@ -537,7 +539,7 @@ export function FindBar({ editor, request, onClose }: { editor: Editor; request:
               Replace
             </button>
             <button type="button" className="admin-button admin-button-quiet find-action" onClick={replaceAll} disabled={!state.count} title={`Replace all  ${keys("⌘↵")}`}>
-              All
+              Replace all
             </button>
           </div>
         </div>

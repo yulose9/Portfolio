@@ -7,6 +7,7 @@ import { toast } from "../../lib/toast";
 import { api, ApiError } from "./api";
 import Editor, { type OpenOptions, type Panel } from "./Editor";
 import { Fluent } from "./extensions/emoji";
+import TagPages from "./TagPages";
 import PostList from "./PostList";
 import { useCommands } from "./registry";
 import SearchPalette from "./SearchPalette";
@@ -39,9 +40,11 @@ function currentOptions(): OpenOptions {
 }
 
 export default function AdminApp() {
+  const [tagsOpen,setTagsOpen]=useState(false);
   const [gate, setGate] = useState<Gate>({ state: "checking" });
   const [postId, setPostId] = useState<string | null>(() => currentPost());
   const [options, setOptions] = useState<OpenOptions>(() => currentOptions());
+  const [searchQuery,setSearchQuery]=useState("");
   const [searching, setSearching] = useState(false);
 
   // ⌘K anywhere: search and actions. Inside the text the editor opens it itself.
@@ -52,7 +55,7 @@ export default function AdminApp() {
         setSearching(true);
       }
     };
-    const onPalette = () => setSearching(true);
+    const onPalette = (event:Event) => {setSearchQuery((event as CustomEvent<{query?:string}>).detail?.query??"");setSearching(true);};
     window.addEventListener("keydown", onKey);
     window.addEventListener("admin:palette", onPalette);
     return () => {
@@ -109,6 +112,7 @@ export default function AdminApp() {
       run: () => create(t.init),
     })),
     ...(postId ? [{ id: "home", group: "Go to" as const, title: "All writing", icon: <House {...CI} />, keywords: ["home", "list", "back", "dashboard"], run: () => open(null) }] : []),
+    {id:"tags",group:"Go to",title:"Edit tag pages",keywords:["tags","topics","description"],icon:<NotePencil {...CI}/>,run:()=>setTagsOpen(true)},
     { id: "site", group: "Go to", title: "View on site", icon: <ArrowSquareOut {...CI} />, keywords: ["live", "nazarene.dev", "writing"], run: () => window.open("/writing", "_blank", "noopener") },
     { id: "signout", group: "Go to", title: "Sign out", icon: <SignOut {...CI} />, keywords: ["logout", "access"], run: () => window.open("/cdn-cgi/access/logout", "_self") },
   ]);
@@ -129,14 +133,16 @@ export default function AdminApp() {
   return (
     <>
       <SessionGuard />
+      <TagPages open={tagsOpen} onClose={()=>setTagsOpen(false)}/>
       {postId ? (
         <Editor key={`${postId}:${options.q ?? ""}:${options.n ?? 0}:${options.panel ?? ""}`} id={postId} options={options} onBack={() => open(null)} />
       ) : (
-        <PostList email={gate.email} onOpen={(id, panel?: Panel) => open(id, { panel })} onSearch={() => setSearching(true)} />
+        <PostList onTags={()=>setTagsOpen(true)} email={gate.email} onOpen={(id, panel?: Panel) => open(id, { panel })} onSearch={() => setSearching(true)} />
       )}
       <SearchPalette
         open={searching}
-        onClose={() => setSearching(false)}
+        initialQuery={searchQuery}
+        onClose={() => {setSearching(false);setSearchQuery("");}}
         onJump={(j) => open(j.id, { q: j.q, n: j.n })}
       />
     </>

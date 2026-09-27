@@ -23,33 +23,6 @@ const COPY_ICON =
   '<svg class="copy-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="8.5" height="8.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3 10.5V4a1.5 1.5 0 0 1 1.5-1.5H11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>' +
   '<svg class="check-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5 6.5 11.5 12.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-function contents(root: HTMLElement) {
-  const links = [...root.querySelectorAll<HTMLAnchorElement>("[data-toc-link]")];
-  if (!links.length) return () => {};
-  const heads = links.map((l) => document.getElementById(l.dataset.tocLink ?? "")).filter((h): h is HTMLElement => Boolean(h));
-  let frame = 0;
-  const update = () => {
-    frame = 0;
-    let current = heads[0];
-    for (const h of heads) if (h.getBoundingClientRect().top < window.innerHeight * 0.3) current = h;
-    for (const l of links) {
-      const active = l.dataset.tocLink === current?.id;
-      l.toggleAttribute("data-active", active);
-      if (active) l.setAttribute("aria-current", "location");
-      else l.removeAttribute("aria-current");
-    }
-  };
-  const onScroll = () => {
-    if (!frame) frame = requestAnimationFrame(update);
-  };
-  update();
-  window.addEventListener("scroll", onScroll, { passive: true });
-  return () => {
-    window.removeEventListener("scroll", onScroll);
-    cancelAnimationFrame(frame);
-  };
-}
-
 function headingLinks(root: HTMLElement) {
   const onClick = (e: MouseEvent) => {
     const a = (e.target as Element).closest<HTMLAnchorElement>(".heading-anchor");
@@ -153,7 +126,7 @@ export default function ArticleEnhance() {
   useEffect(() => {
     const root = document.querySelector<HTMLElement>(".article-page");
     if (!root) return;
-    const off = [contents(root), headingLinks(root), codeCopy(root), imageZoom(root)];
+    const off = [headingLinks(root), codeCopy(root), imageZoom(root)];
     return () => off.forEach((fn) => fn());
   }, []);
   return null;

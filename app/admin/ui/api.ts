@@ -89,6 +89,8 @@ const put = (body: unknown): RequestInit => ({ method: "PUT", body: JSON.stringi
 const post = (body: unknown = {}): RequestInit => ({ method: "POST", body: JSON.stringify(body) });
 
 export const api = {
+  tagPage:(slug:string)=>call<{page:import("../../../cms/tag-pages").TagPage}>(`/tags/${encodeURIComponent(slug)}`),
+  saveTagPage:(slug:string,page:import("../../../cms/tag-pages").TagPage)=>call<{page:import("../../../cms/tag-pages").TagPage}>(`/tags/${encodeURIComponent(slug)}`,put({...page,base:page.updatedAt})),
   me: () => call<{ email: string; github: boolean; storage: boolean }>("/me"),
   list: () => call<{ posts: PostSummary[] }>("/posts"),
   create: (init: { title?: string; body?: string; tags?: string[]; page?: boolean; parentId?: string } = {}) => call<{ post: Draft }>("/posts", post(init)),

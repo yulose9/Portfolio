@@ -5,7 +5,7 @@
  * in ./spring.
  */
 
-export type CursorShape = "arrow" | "text" | "hand";
+export type CursorShape = "arrow" | "text" | "hand" | "zoom";
 
 /** Rendered size of every glyph, in px. Close to a native arrow (~12x19). */
 export const CURSOR_SIZE = { width: 16, height: 19 } as const;
@@ -35,7 +35,7 @@ const INTERACTIVE = [
  * "this is reading material", which is true of the About prose and not of a
  * one-line label that happens to be text.
  */
-const TEXT_REGION = "[data-cursor='text']";
+const TEXT_REGION = "[data-cursor='text'], time, .article-eyebrow, .updated-at";
 
 /** Fields always get the I-beam, wherever they are. */
 const FIELD = "input:not([type='checkbox']):not([type='radio']), textarea, [contenteditable]";
@@ -52,17 +52,18 @@ const LINE_PAD = 4;
  * The cursor layers are pointer-events: none, so elementFromPoint never
  * returns a cursor itself.
  */
-export function shapeAt(x: number, y: number): CursorShape {
-  const el = document.elementFromPoint(x, y);
+export function shapeAt(x: number, y: number, doc: Document = document): CursorShape {
+  const el = doc.elementFromPoint(x, y);
   if (!el) return "arrow";
   if (el.closest(INTERACTIVE)) return "hand";
+  if (el.closest("img[data-zoom]")) return "zoom";
   if (el.closest(FIELD)) return "text";
-  if (el.closest(TEXT_REGION) && overText(x, y)) return "text";
+  if (el.closest(TEXT_REGION) && overText(x, y, doc)) return "text";
   return "arrow";
 }
 
 /** True when the point sits on rendered characters, not the block's margin. */
-function overText(x: number, y: number): boolean {
+function overText(x: number, y: number, document: Document): boolean {
   let node: Node | null = null;
   let offset = 0;
   // caretPositionFromPoint is the standard; caretRangeFromPoint is Safari's.
@@ -97,7 +98,7 @@ export function cursorTransform(x: number, y: number): string {
 }
 
 /**
- * The three glyphs, stacked; CSS cross-fades between them on [data-shape].
+ * The four glyphs, stacked; CSS cross-fades between them on [data-shape].
  *
  * Only the arrow sits inside .cursor-spin, the element that turns to face the
  * direction of travel. A rotating I-beam or hand would read as broken.
@@ -127,6 +128,7 @@ export function cursorMarkup(fill: string): string {
     `<span class="cursor-glyph" data-glyph="hand">` +
     `<svg viewBox="0 0 256 256"><path d="M224,104v50.93c0,46.2-36.85,84.55-83,85.06A83.71,83.71,0,0,1,80.6,215.4C58.79,192.33,34.15,136,34.15,136a16,16,0,0,1,6.53-22.23c7.66-4,17.1-.84,21.4,6.62l21,36.44a6.09,6.09,0,0,0,6,3.09l.12,0A8.19,8.19,0,0,0,96,151.74V32a16,16,0,0,1,16.77-16c8.61.4,15.23,7.82,15.23,16.43V104a8,8,0,0,0,8.53,8,8.17,8.17,0,0,0,7.47-8.25V88a16,16,0,0,1,16.77-16c8.61.4,15.23,7.82,15.23,16.43V112a8,8,0,0,0,8.53,8,8.17,8.17,0,0,0,7.47-8.25v-7.28c0-8.61,6.62-16,15.23-16.43A16,16,0,0,1,224,104Z" fill="${fill}" stroke="#fff" stroke-width="24" stroke-linejoin="round" paint-order="stroke"/></svg>` +
     `</span>` +
+    `<span class="cursor-glyph" data-glyph="zoom"><svg viewBox="0 0 24 24" fill="none" stroke="${fill}" stroke-width="2" stroke-linecap="round"><circle cx="10" cy="10" r="7" fill="white"/><path d="m15 15 7 7M7 10h6M10 7v6"/></svg></span>` +
     `</span>`
   );
 }

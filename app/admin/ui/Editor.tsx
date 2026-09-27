@@ -46,6 +46,9 @@ import { Mentions } from "./extensions/mentions";
 import { InlineLogo } from "./extensions/inline-logo";
 import { TextColor } from "./extensions/text-color";
 import LinkHover from "./LinkHover";
+import BlockMarquee from "./BlockMarquee";
+import { HeadingIcon } from "./extensions/heading-icon";
+import UpdatedAt from "../../components/UpdatedAt";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { TableKit } from "@tiptap/extension-table";
 import Typography from "@tiptap/extension-typography";
@@ -315,6 +318,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
       }),
       ResizableImage,
       InlineLogo,
+      HeadingIcon,
       TextColor,
       Mentions(() => OPEN_POST.id),
       NodeRange.configure({ depth: 0, key: null }),
@@ -996,6 +1000,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
             </div>
             <p className="article-eyebrow">
               <EyebrowDate doc={doc} publishedAt={meta.publishedAt} onDate={(publishedAt) => setMeta((m) => ({ ...m, publishedAt }))} onReschedule={reschedule} />
+              {savedAt ? <UpdatedAt at={savedAt}/> : null}
             </p>
             <textarea
               ref={titleRef}
@@ -1079,6 +1084,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
               )}
               <ImageBubble editor={editor} />
               <LinkHover editor={editor} />
+              <BlockMarquee editor={editor} />
             </>
           ) : null}
         </article>

@@ -39,6 +39,8 @@ async function gh<T>(env: GitHubEnv, path: string, init: RequestInit = {}): Prom
   return (res.status === 204 ? undefined : await res.json()) as T;
 }
 
+export class GitHubConflictError extends Error {}
+
 export class GitHubError extends Error {
   constructor(
     readonly status: number,
@@ -89,10 +91,14 @@ export async function listDir(env: GitHubEnv, path: string): Promise<{ name: str
  * moving the ref is refused as a non-fast-forward; the whole thing is redone
  * on the new head, which is safe because each change names a whole file.
  */
-export async function commit(env: GitHubEnv, message: string, changes: Change[]): Promise<string> {
+export async function commit(env: GitHubEnv, message: string, changes: Change[], expected?: {path:string;content:string|null}[]): Promise<string> {
   for (let attempt = 0; ; attempt++) {
     const ref = await gh<{ object: { sha: string } }>(env, `/git/ref/heads/${env.GITHUB_BRANCH}`);
     const head = ref.object.sha;
+    // Compare against the same immutable head used to create this commit, including retries.
+    for (const file of expected ?? []) {
+      if (await readFile({...env,GITHUB_BRANCH:head},file.path) !== file.content) throw new GitHubConflictError("This page changed in another session. Reload its saved version before publishing.");
+    }
     const headCommit = await gh<{ tree: { sha: string } }>(env, `/git/commits/${head}`);
 
     const tree = await gh<{ sha: string }>(env, "/git/trees", {

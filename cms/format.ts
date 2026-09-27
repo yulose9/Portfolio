@@ -45,7 +45,7 @@ export const DEFAULT_AUTHOR: Author = {
 
 /** A typeface from a free service: Google Fonts or Fontshare. */
 export type FontChoice = { family: string; source: "google" | "fontshare" };
-export type Fonts = { heading?: FontChoice | null; body?: FontChoice | null };
+export type Fonts = { heading?: FontChoice | null; body?: FontChoice | null; ligatures?: boolean };
 
 /** What a published file carries. */
 export type PostMeta = {

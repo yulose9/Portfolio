@@ -5,6 +5,7 @@ export const TEXT_COLORS = [
 export function textColor(value: unknown): string | null {
   return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : null;
 }
+export function textOpacity(value: unknown): number { const n=Number(value);return value==null||!Number.isFinite(n)?100:Math.max(0,Math.min(100,Math.round(n))); }
 export function safeInlineUrl(value: unknown, image = false): string {
   if (typeof value !== "string") return "";
   const s = value.trim();

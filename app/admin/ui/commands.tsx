@@ -110,6 +110,7 @@ export type InsertDef = { id: string; title: string; hint: string; keywords: str
 /** Things that are inserted rather than turned into. `pickImage` and `pickEmoji` come from the editor. */
 export function inserts(pickImage: () => void, pickEmoji?: () => void, pickVoice?: () => void): InsertDef[] {
   return [
+    { id: "heading-icon", title: "Heading with icon", hint: "A heading with an emoji or uploaded icon", keywords: ["heading", "icon", "emoji", "title"], icon: <ImageSquare {...I} />, run: (e: Editor) => { e.chain().focus().setHeading({level:2}).run(); const pos=e.state.selection.$from.start(); const first=e.state.doc.nodeAt(pos); if(first?.type.name!=="headingIcon") e.chain().insertContentAt(pos,{type:"headingIcon",attrs:{icon:"✨"}}).run(); } },
     { id: "inline-logo", title: "Logo and text", hint: "An inline image with text and an optional link", keywords: ["logo", "icon", "inline", "brand", "link"], icon: <ImageSquare {...I} />, run: e => { e.chain().focus().insertContent({type:"inlineLogo",attrs:{label:"Logo and text"}}).run(); } },
     {
       id: "image",

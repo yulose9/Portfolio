@@ -10,7 +10,7 @@ import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 
 import { parseEmbed, threadsFrame, youtubeFrame, type Embed } from "../../../cms/embeds";
 import { fluentUrl } from "../../../cms/emoji";
-import { fontLinks, fontVars } from "../../../cms/fonts";
+import { fontLinks, inlineFontLinks, fontVars } from "../../../cms/fonts";
 import { readingMinutes, tagSlug } from "../../../cms/format";
 import { markdownToTree, outline, setWikiResolver } from "../../../cms/render";
 import AudioPlayer from "../../components/writing/AudioPlayer";
@@ -22,6 +22,7 @@ import ShareRow from "../../components/writing/ShareRow";
 import Tag from "../../components/writing/Tag";
 import Toc from "../../components/writing/Toc";
 import { api, type Draft } from "./api";
+import { cursorMarkup, cursorTransform, shapeAt } from "../../lib/cursor";
 import type { Meta } from "./Editor";
 
 /*
@@ -58,6 +59,14 @@ function Frame({ width, height, children }: { width: number; height: number; chi
     doc.body.style.margin = "0";
     doc.body.style.background = "#fff";
     setBody(doc.body);
+    const viewport=doc.defaultView;
+    if(!viewport?.matchMedia("(any-pointer: fine)").matches || viewport.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+    const cursor=doc.createElement("div");cursor.className="smooth-cursor";cursor.setAttribute("aria-hidden","true");cursor.innerHTML=cursorMarkup("#111");doc.body.appendChild(cursor);
+    doc.documentElement.classList.add("has-smooth-cursor");
+    const move=(event:PointerEvent)=>{cursor.style.opacity="1";cursor.style.transform=cursorTransform(event.clientX,event.clientY);cursor.dataset.shape=shapeAt(event.clientX,event.clientY,doc);};
+    const leave=()=>{cursor.style.opacity="0";};
+    doc.addEventListener("pointermove",move);doc.addEventListener("pointerleave",leave);
+    return()=>{doc.removeEventListener("pointermove",move);doc.removeEventListener("pointerleave",leave);cursor.remove();doc.documentElement.classList.remove("has-smooth-cursor");};
   }, []);
 
   useEffect(() => {
@@ -132,7 +141,7 @@ function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
   });
   return (
     <div className="flex w-full justify-center bg-white">
-      {fontLinks(meta.fonts).map((href) => (
+      {[...new Set([...fontLinks(meta.fonts),...inlineFontLinks(doc.body)])].map((href) => (
         <link key={href} rel="stylesheet" href={href} />
       ))}
       <main className="page-shell article-shell article-page preview-page w-full max-w-[672px] py-16" style={fontVars(meta.fonts) as React.CSSProperties}>
@@ -185,15 +194,7 @@ function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
             <div className="article-body">{body}</div>
           </div>
           <footer className="article-footer">
-            {meta.tags.length ? (
-              <ul className="article-tags">
-                {meta.tags.map((t) => (
-                  <li key={t}>
-                    <Tag name={t} />
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+
             <ShareRow url={url} title={meta.title} />
           </footer>
           <AuthorCard authors={meta.authors} />

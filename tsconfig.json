@@ -40,6 +40,7 @@
     ".audit",
     ".tools",
     ".agents",
+    ".claude",
     "worker",
     "functions",
     "cms/server",

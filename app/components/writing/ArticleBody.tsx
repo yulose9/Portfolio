@@ -70,7 +70,7 @@ function AudioBlock(props: Record<string, unknown>) {
 }
 
 // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
-const ZoomableImage = (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} data-zoom={props.className?.split(" ").includes("inline-logo-image") ? undefined : ""} />;
+const ZoomableImage = (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} data-zoom={props.className?.split(" ").some(c => c === "inline-logo-image" || c === "heading-icon-image") ? undefined : ""} />;
 
 export default function ArticleBody({ tree }: { tree: Root }) {
   return toJsxRuntime(tree, {

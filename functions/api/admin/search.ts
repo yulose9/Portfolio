@@ -17,14 +17,16 @@ export function plainText(md: string): string {
     .replace(/```/g, "")
     .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/<[^>]+>/g, " ")
+    .replace(/<\/?(?:p|div|br|h[1-6]|li|tr|blockquote)\b[^>]*>/gi, " ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&(?:amp|lt|gt|quot|apos|nbsp);/g, e => ({"&amp;":"&","&lt;":"<","&gt;":">","&quot;":'"',"&apos;": "'", "&nbsp;":" "})[e]!)
     .replace(/^\s{0,3}(#{1,6}|>|[-*+]|\d+\.)\s+(\[[ xX]\]\s+)?/gm, "")
     .replace(/\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/g, "")
     .replace(/(\*\*|__|==|~~|`)/g, "")
     .replace(/(^|\s)[*_](\S)/g, "$1$2")
     .replace(/(\S)[*_](\s|$)/g, "$1$2")
     .replace(/\|/g, " ")
-    .replace(/[ \t]+/g, " ");
+    .replace(/\s+/g, " ").trim();
 }
 
 type Hit = { field: "title" | "dek" | "body"; snippet: string; start: number; length: number; occurrence: number };
@@ -68,6 +70,7 @@ export const onRequestGet: AdminFunction = async ({ env, request }) => {
   const all: Draft[] = [...drafts, ...live.filter((p) => !known.has(p.id)).map(postToDraft)];
 
   const results = all
+    .filter(d=>!d.trashedAt)
     .map((d) => {
       const body = plainText(d.body);
       const hits = [...find(d.title, q, "title", 1), ...find(d.dek, q, "dek", 1), ...find(body, q, "body", 3)];

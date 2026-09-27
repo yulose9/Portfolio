@@ -89,8 +89,8 @@ function cleanFont(f: unknown): FontChoice | null {
 function cleanFonts(value: unknown): Fonts | null {
   if (!value || typeof value !== "object") return null;
   const v = value as Fonts;
-  const fonts = { heading: cleanFont(v.heading), body: cleanFont(v.body) };
-  return fonts.heading || fonts.body ? fonts : null;
+  const fonts = { heading: cleanFont(v.heading), body: cleanFont(v.body), ligatures:v.ligatures !== false };
+  return fonts.heading || fonts.body || !fonts.ligatures ? fonts : null;
 }
 
 /*

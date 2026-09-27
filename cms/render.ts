@@ -11,7 +11,8 @@ import { parseEmbed } from "./embeds";
 import { fluentUrl, splitEmoji } from "./emoji";
 import { imageInfo, videoInfo } from "./media";
 import { dateHref, fullMentionDate, pageMentionId, parseDateHref } from "./mentions";
-import { textColor, safeInlineUrl, decodeLogoLabel } from "./inline";
+import { textColor, textOpacity, safeInlineUrl, decodeLogoLabel } from "./inline";
+import { FONT_SHELF, fontStack } from "./fonts";
 
 /*
  * Markdown → hast, the way the site renders a post: figures, callouts,
@@ -161,8 +162,15 @@ function rehypeEditorial(options: { resolvePage?: PageResolver } = {}) {
         }
         if (!isEl(node)) continue;
 
-        if (node.tagName === "span" && textColor(node.properties.dataTextColor)) {
-          node.properties.style = `color:${textColor(node.properties.dataTextColor)}`;
+        if (node.tagName === "img" && typeof node.properties.dataHeadingIcon === "string") {
+          const icon=decodeLogoLabel(node.properties.dataHeadingIcon);
+          const src=safeInlineUrl(icon,true);
+          kids[i]=el("span",{className:["heading-icon"],dataHeadingIcon:encodeURIComponent(icon),ariaHidden:"true"},src?[el("img",{src,alt:"",className:["heading-icon-image"]})]:[{type:"text",value:icon}]);
+          continue;
+        }
+        if (node.tagName === "span" && node.properties.dataTextColor !== undefined) {
+          const font=FONT_SHELF.find(f=>f.family===node.properties.dataTextFont);
+          node.properties.style = `color:${textColor(node.properties.dataTextColor)??"inherit"}${node.properties.dataTextOpacity!==undefined?`;opacity:${textOpacity(node.properties.dataTextOpacity)/100}`:""}${font?`;font-family:${fontStack(font)}`:""}`;
         }
         if (node.tagName === "img" && typeof node.properties.dataInlineLogo === "string") {
           const label = decodeLogoLabel(node.properties.dataInlineLogo);
@@ -179,13 +187,14 @@ function rehypeEditorial(options: { resolvePage?: PageResolver } = {}) {
         if (node.tagName === "p") {
           const content = node.children.filter((k) => !(k.type === "text" && !k.value.trim()));
           const only = content.length === 1 ? content[0] : undefined;
-          if (isEl(only, "img") && only.properties.dataInlineLogo === undefined) {
+          if (isEl(only, "img") && only.properties.dataInlineLogo === undefined && only.properties.dataHeadingIcon === undefined) {
             const caption = only.properties?.title as string | undefined;
             if (only.properties) delete only.properties.title;
             kids[i] = el("figure", { className: ["article-figure"] }, [
               only,
               ...(caption ? [el("figcaption", {}, [{ type: "text", value: caption }])] : []),
             ]);
+            walk(kids[i] as Element, literal);
             continue;
           }
           // A paragraph that is only a link to an embeddable post → the embed.
@@ -340,8 +349,8 @@ export async function markdownToTree(markdown: string, extra: PluggableList = []
       // The editorial pass below builds TOC links from these sanitized IDs.
       attributes: {
         ...defaultSchema.attributes,
-        span: [...(defaultSchema.attributes?.span ?? []), ["dataTextColor", /^#[0-9a-f]{6}$/i]],
-        img: [...(defaultSchema.attributes?.img ?? []), "dataInlineLogo", "dataLogoHref"],
+        span: [...(defaultSchema.attributes?.span ?? []), ["dataTextColor", /^(#[0-9a-f]{6}|inherit)$/i], ["dataTextFont",...FONT_SHELF.map(f=>f.family)], ["dataTextOpacity",/^\d{1,3}$/]],
+        img: [...(defaultSchema.attributes?.img ?? []), "dataInlineLogo", "dataLogoHref", "dataHeadingIcon"],
         video: ["src", "poster", "controls", "muted", "loop", "autoPlay", "playsInline", "preload", "width", "height", "title"],
         audio: ["src", "controls", "preload", "title"],
         source: ["src", "type"],
@@ -354,7 +363,7 @@ export async function markdownToTree(markdown: string, extra: PluggableList = []
 }
 
 
-export type OutlineItem = { id: string; text: string; depth: 2 | 3 };
+export type OutlineItem = { id: string; text: string; depth: 2 | 3; icon?: string };
 
 /** The h2s and h3s, for the table of contents. */
 export function outline(tree: Root): OutlineItem[] {
@@ -364,11 +373,12 @@ export function outline(tree: Root): OutlineItem[] {
       if (!isEl(k)) continue;
       if ((k.tagName === "h2" || k.tagName === "h3") && k.properties?.id) {
         const text = k.children
-          .filter((c) => !(isEl(c) && (c.properties?.className as string[] | undefined)?.includes("heading-anchor")))
+          .filter((c) => !(isEl(c) && (c.properties?.className as string[] | undefined)?.some(c => c === "heading-anchor" || c === "heading-icon")))
           .map(textOf)
           .join("")
           .trim();
-        out.push({ id: String(k.properties.id), text, depth: k.tagName === "h2" ? 2 : 3 });
+        const glyph=k.children.find(c=>isEl(c)&&typeof c.properties.dataHeadingIcon==="string") as Element|undefined;
+        out.push({ icon:glyph?decodeLogoLabel(String(glyph.properties.dataHeadingIcon)):undefined, id: String(k.properties.id), text, depth: k.tagName === "h2" ? 2 : 3 });
       } else walk(k);
     }
   };

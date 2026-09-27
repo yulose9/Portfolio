@@ -172,12 +172,12 @@ html:not(.has-smooth-cursor) .article-page a[href] * { cursor: pointer; }
     background: none;
     border: 0;
     max-height: calc(100vh - 8rem);
-    overflow-y: auto;
+    overflow: visible;
     /* Room so the scroll box doesn't shave the first letter or the marker. */
     margin-left: -6px;
     padding-left: 6px;
   }
-  .toc ol { max-height: calc(100dvh - 8rem); }
+  .toc ol { max-height: calc(100dvh - 10rem); }
 }
 
 /* Heading links: a quiet # that shows on hover, Notion-style. */
@@ -449,3 +449,17 @@ html:not(.has-smooth-cursor) .article-page a[href] * { cursor: pointer; }
     animation: none;
   }
 }
+
+.toc ol { scrollbar-width: thin; scrollbar-color: rgb(0 0 0 / .18) transparent; overscroll-behavior: contain; scroll-behavior: auto; }
+.toc ol::-webkit-scrollbar { width: 4px; height: 4px; }
+.toc ol::-webkit-scrollbar-thumb { background: rgb(0 0 0 / .18); border-radius: 4px; }
+.toc a { transition: color 120ms ease, background-color 120ms ease; }
+.article-eyebrow time { cursor: text; }
+
+.article {font-variant-ligatures:var(--article-ligatures,normal)}
+.heading-icon {display:inline-flex;align-items:center;vertical-align:-.12em;margin-inline-end:.3em;line-height:1}
+.heading-icon-image,.article-body .heading-icon-image {display:inline-block!important;width:1em!important;height:1em!important;object-fit:contain;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+.toc-icon {display:inline-flex;width:1.1em;margin-inline-end:.4em;vertical-align:-.12em}.toc-icon img{width:1em;height:1em;object-fit:contain}
+.has-smooth-cursor .article-eyebrow time {cursor:none!important}
+
+.article-body .heading-icon-image{background:transparent;outline:0}.article-eyebrow .updated-at{margin-inline-start:12px}

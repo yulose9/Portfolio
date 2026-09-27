@@ -38,8 +38,10 @@ export default function SearchPalette({
   open,
   onClose,
   onJump,
+  initialQuery = "",
 }: {
   open: boolean;
+  initialQuery?: string;
   onClose: () => void;
   onJump: (j: Jump) => void;
 }) {
@@ -53,14 +55,21 @@ export default function SearchPalette({
     setWasOpen(open);
     if (open) {
       setCommands(allCommands());
+      setQuery(initialQuery);
       setActive(0);
     }
   }
+  const [error,setError]=useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const list = useRef<HTMLDivElement>(null);
 
+  const [searchKey,setSearchKey]=useState("");
+  const nextKey=`${open}:${query}`;
+  if(searchKey!==nextKey){setSearchKey(nextKey);setResults(null);setError("");}
+
   // Debounced, and a newer query aborts the one in flight.
   useEffect(() => {
+    if(!open)return;
     const q = query.trim();
     // Too short to search (or a ">" command query): the list shows actions instead.
     if (q.length < 2 || q.startsWith(">")) return;
@@ -69,16 +78,17 @@ export default function SearchPalette({
       api
         .search(q, ctrl.signal)
         .then((r) => {
+          if(ctrl.signal.aborted)return;
           setResults(r.results);
           setActive(0);
         })
-        .catch(() => !ctrl.signal.aborted && setResults([]));
+        .catch(error => {if(!ctrl.signal.aborted){setResults([]);setError(error instanceof Error?error.message:"Search failed. Try again.");}});
     }, 160);
     return () => {
       window.clearTimeout(t);
       ctrl.abort();
     };
-  }, [query]);
+  }, [query,open]);
 
   const commandQuery = query.trim().replace(/^>\s*/, "").toLowerCase();
   const onlyCommands = query.trim().startsWith(">");
@@ -140,7 +150,7 @@ export default function SearchPalette({
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search posts and actions, or > for actions only"
+              placeholder="Search words or phrases across all writing"
               aria-label="Search posts and actions"
               onKeyDown={(e) => {
                 if (e.key === "ArrowDown") {
@@ -157,6 +167,8 @@ export default function SearchPalette({
             />
             <kbd className="admin-kbd">Esc</kbd>
           </div>
+          <p className="search-scope">All writing · Titles, descriptions and article text <span>Type &gt; for actions</span></p>
+          {error ? <p className="palette-empty" role="alert">{error}</p> : null}
           <div ref={list} className="palette-results" role="listbox" aria-label="Results">
             {!choices.length && query.trim().length >= 2 && results === null && !onlyCommands ? (
               <p className="palette-empty">Searching…</p>
