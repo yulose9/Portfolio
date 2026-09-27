@@ -34,10 +34,23 @@ export function looksLikeMarkdown(text: string): boolean {
   return score >= 2;
 }
 
-const DROP_ATTRS = /\s(?:style|class|id|dir|lang|data-[\w-]+|aria-[\w-]+|role|color|face|size|width|height|align|valign|bgcolor|start)="[^"]*"/gi;
+const DROP_ATTRS = /\s(?:style|class|id|dir|lang|data-(?!(?:text-color|inline-logo|logo-href)=)[\w-]+|aria-[\w-]+|role|color|face|size|width|height|align|valign|bgcolor|start)="[^"]*"/gi;
 
 /** Clean pasted HTML down to structure. Runs before Tiptap parses it. */
 export function cleanPastedHtml(html: string): string {
+  // Preserve our validated color marks while stripping generic pasted spans.
+  if (typeof DOMParser !== "undefined" && html.includes("data-text-color")) {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    for (const span of doc.querySelectorAll("span[data-text-color]")) {
+      const color = span.getAttribute("data-text-color") ?? "";
+      if (!/^#[0-9a-f]{6}$/i.test(color)) continue;
+      const mark = doc.createElement("x-editor-color");
+      mark.setAttribute("data-text-color", color);
+      mark.append(...span.childNodes);
+      span.replaceWith(mark);
+    }
+    html = doc.body.innerHTML;
+  }
   let h = html
     // Office and Google Docs noise
     .replace(/<!--[\s\S]*?-->/g, "")
@@ -54,7 +67,7 @@ export function cleanPastedHtml(html: string): string {
     // "<br><br>" used as a paragraph break
     .replace(/(?:<br\s*\/?>\s*){2,}/gi, "</p><p>")
     .replace(/<p>\s*<\/p>/gi, "");
-  return h;
+  return h.replace(/<(\/?)x-editor-color\b/g, "<$1span");
 }
 
 /** HTML that's only Markdown wrapped in paragraphs: take the Markdown instead. */

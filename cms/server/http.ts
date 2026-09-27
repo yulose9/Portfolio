@@ -11,7 +11,7 @@ export type AdminEnv = CmsEnv & {
   ADMIN_DEV_BYPASS?: string;
 };
 
-export type AdminData = { email: string };
+export type AdminData = { email: string; sessionExpiresAt?: number };
 
 export type AdminFunction<P extends string = never> = PagesFunction<AdminEnv, P, AdminData>;
 

@@ -1970,3 +1970,7 @@ html.has-smooth-cursor [contenteditable] {
   -webkit-box-decoration-break: clone;
 }
 .page-mention-unpublished { color: #71717a; }
+
+/* A logo stays within the text line, including links and wrapped labels. */
+.article-body .inline-logo { display: inline; color: inherit; }
+.article-body .inline-logo > img { display: inline-block; width: 1em; height: 1em; object-fit: contain; vertical-align: -.14em; margin: 0 .25em 0 0; border-radius: 2px; background: transparent; outline: 1px solid oklch(0 0 0 / .1); }

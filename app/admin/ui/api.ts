@@ -1,4 +1,5 @@
 import type { Draft } from "../../../cms/format";
+import { reportSession, reportExpired } from "./session";
 
 /*
  * The admin's only door to the server. Every call is same-origin, so the
@@ -62,20 +63,24 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
     res = await fetch(`/api/admin${path}`, {
       credentials: "same-origin",
       ...init,
+      signal: init.signal ?? AbortSignal.timeout(path.startsWith("/uploads") ? 120_000 : 15_000),
       headers: { "X-Admin-Request": "1", ...(init.body && typeof init.body === "string" ? { "Content-Type": "application/json" } : {}), ...init.headers },
     });
   } catch {
     throw new ApiError("You're offline, or the server can't be reached.", 0);
   }
   // Access answers an expired session with its own login page, not JSON.
+  reportSession(Number(res.headers.get("X-Admin-Session-Expires")));
   const type = res.headers.get("Content-Type") ?? "";
   if (!type.includes("application/json")) {
+    if (res.redirected || res.status === 401 || res.status === 403 || res.ok) reportExpired();
     throw new ApiError(
       res.redirected || res.status === 302 || res.ok ? "Your sign-in expired. Reload to sign in again." : `The server returned error ${res.status}. Try again.`,
       res.ok ? 401 : res.status
     );
   }
   const body = (await res.json()) as Record<string, unknown>;
+  if (res.status === 401) reportExpired();
   if (!res.ok) throw new ApiError(String(body.error ?? `The server returned error ${res.status}. Try again.`), res.status, body);
   return body as T;
 }

@@ -1,4 +1,5 @@
 "use client";
+import { beginPendingWork } from "./session";
 
 import { ArrowCounterClockwise, Camera, Plus, Shuffle, Smiley, Trash, UserPlus } from "@phosphor-icons/react";
 import { Popover } from "@base-ui/react/popover";
@@ -62,6 +63,7 @@ function AuthorRow({ author, onChange, onRemove }: { author: Author; onChange: (
   const pick = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const upload = async (file: File) => {
+    const finish = beginPendingWork();
     setBusy(true);
     try {
       const blob = await squareImage(file, AVATAR);
@@ -70,6 +72,7 @@ function AuthorRow({ author, onChange, onRemove }: { author: Author; onChange: (
     } catch (error) {
       toast.add({ type: "error", title: "Couldn’t use that photo", description: error instanceof ApiError ? error.message : undefined });
     } finally {
+      finish();
       setBusy(false);
     }
   };
@@ -266,6 +269,7 @@ export function ShareImageField({ ogImage, hasCover, onChange }: { ogImage: stri
   const [busy, setBusy] = useState(false);
   const mode = !ogImage ? "card" : ogImage === "cover" ? "cover" : "custom";
   const upload = async (file: File) => {
+    const finish = beginPendingWork();
     setBusy(true);
     try {
       const blob = await shareImage(file);
@@ -274,6 +278,7 @@ export function ShareImageField({ ogImage, hasCover, onChange }: { ogImage: stri
     } catch (error) {
       toast.add({ type: "error", title: "Couldn’t use that image", description: error instanceof ApiError ? error.message : undefined });
     } finally {
+      finish();
       setBusy(false);
     }
   };

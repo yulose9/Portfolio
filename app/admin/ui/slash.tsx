@@ -54,7 +54,8 @@ export function slashItems(pickImage: () => void, pickEmoji: () => void, pickVoi
       icon: i.icon,
       group: "Insert",
       run: (e, r) => {
-        fresh(e, r);
+        if (i.id === "inline-logo") e.chain().focus().deleteRange(r).run();
+        else fresh(e, r);
         i.run(e);
       },
     })),

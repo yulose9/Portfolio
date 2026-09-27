@@ -11,6 +11,7 @@ import { parseEmbed } from "./embeds";
 import { fluentUrl, splitEmoji } from "./emoji";
 import { imageInfo, videoInfo } from "./media";
 import { dateHref, fullMentionDate, pageMentionId, parseDateHref } from "./mentions";
+import { textColor, safeInlineUrl, decodeLogoLabel } from "./inline";
 
 /*
  * Markdown → hast, the way the site renders a post: figures, callouts,
@@ -145,7 +146,7 @@ function decorateText(value: string): ElementContent[] {
 type PageResolver = (id: string) => { slug: string; title: string } | undefined;
 function rehypeEditorial(options: { resolvePage?: PageResolver } = {}) {
   return (tree: Root) => {
-    const walk = (parent: Root | Element, literal: boolean) => {
+    const walk = (parent: Root | Element, literal: boolean, inLink = false) => {
       const kids = parent.children as (RootContent | ElementContent)[];
       for (let i = 0; i < kids.length; i++) {
         const node = kids[i];
@@ -160,11 +161,25 @@ function rehypeEditorial(options: { resolvePage?: PageResolver } = {}) {
         }
         if (!isEl(node)) continue;
 
+        if (node.tagName === "span" && textColor(node.properties.dataTextColor)) {
+          node.properties.style = `color:${textColor(node.properties.dataTextColor)}`;
+        }
+        if (node.tagName === "img" && typeof node.properties.dataInlineLogo === "string") {
+          const label = decodeLogoLabel(node.properties.dataInlineLogo);
+          const src = safeInlineUrl(node.properties.src, true);
+          const href = inLink ? "" : safeInlineUrl(node.properties.dataLogoHref);
+          kids[i] = el(href ? "a" : "span", {className:["inline-logo"], ...(href ? {href,rel:["noopener", "noreferrer"]} : {})}, [
+            ...(src ? [el("img", {src, alt:"", className:["inline-logo-image"], loading:"lazy", decoding:"async"})] : []),
+            el("span", {}, [{type:"text",value:label}]),
+          ]);
+          continue;
+        }
+
         // A paragraph that is only an image → a figure, its title the caption.
         if (node.tagName === "p") {
           const content = node.children.filter((k) => !(k.type === "text" && !k.value.trim()));
           const only = content.length === 1 ? content[0] : undefined;
-          if (isEl(only, "img")) {
+          if (isEl(only, "img") && only.properties.dataInlineLogo === undefined) {
             const caption = only.properties?.title as string | undefined;
             if (only.properties) delete only.properties.title;
             kids[i] = el("figure", { className: ["article-figure"] }, [
@@ -301,7 +316,7 @@ function rehypeEditorial(options: { resolvePage?: PageResolver } = {}) {
           }
         }
 
-        walk(node, literal || LITERAL.has(node.tagName));
+        walk(node, literal || LITERAL.has(node.tagName), inLink || node.tagName === "a");
       }
     };
     walk(tree, false);
@@ -325,6 +340,8 @@ export async function markdownToTree(markdown: string, extra: PluggableList = []
       // The editorial pass below builds TOC links from these sanitized IDs.
       attributes: {
         ...defaultSchema.attributes,
+        span: [...(defaultSchema.attributes?.span ?? []), ["dataTextColor", /^#[0-9a-f]{6}$/i]],
+        img: [...(defaultSchema.attributes?.img ?? []), "dataInlineLogo", "dataLogoHref"],
         video: ["src", "poster", "controls", "muted", "loop", "autoPlay", "playsInline", "preload", "width", "height", "title"],
         audio: ["src", "controls", "preload", "title"],
         source: ["src", "type"],

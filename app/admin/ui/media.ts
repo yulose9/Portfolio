@@ -66,6 +66,36 @@ async function decodePhoto(file: File): Promise<ImageBitmap> {
   return createImageBitmap(blob, { imageOrientation: "from-image" });
 }
 
+/** Inline assets are decoded as images, then rasterized; no authored SVG markup is served. */
+export async function uploadInlineLogo(file: File): Promise<string> {
+  if (file.size > 20 * 1024 * 1024) throw new ApiError("Choose an image smaller than 20 MB.", 413);
+  let source: ImageBitmap | HTMLImageElement;
+  let objectUrl: string | undefined;
+  try {
+    try { source = await decodePhoto(file); }
+    catch {
+      const blob = /\.svg$/i.test(file.name) ? new Blob([file], {type:"image/svg+xml"}) : file;
+      objectUrl = URL.createObjectURL(blob);
+      const image = new Image(); image.src = objectUrl;
+      await image.decode(); source = image;
+    }
+    const width = source instanceof HTMLImageElement ? source.naturalWidth : source.width;
+    const height = source instanceof HTMLImageElement ? source.naturalHeight : source.height;
+    if (!width || !height) throw new Error("Empty image");
+    const scale = Math.min(1, 256 / Math.max(width, height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(width * scale)); canvas.height = Math.max(1, Math.round(height * scale));
+    const context = canvas.getContext("2d"); if (!context) throw new Error("Canvas unavailable");
+    context.drawImage(source, 0, 0, canvas.width, canvas.height);
+    if ("close" in source) source.close();
+    const blob = await canvasBlob(canvas, "image/webp", 0.95);
+    return (await api.upload(blob, canvas.width, canvas.height)).src;
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError("This browser couldn't read that image. Try PNG, JPG, SVG, WebP, or HEIF.", 415);
+  } finally { if (objectUrl) URL.revokeObjectURL(objectUrl); }
+}
+
 async function uploadPhoto(file: File, progress: Progress): Promise<Uploaded> {
   progress(0.05, "Reading photo");
   const bitmap = await decodePhoto(file);

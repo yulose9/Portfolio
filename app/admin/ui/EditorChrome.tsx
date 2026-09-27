@@ -1,4 +1,5 @@
 "use client";
+import ColorPicker from "./ColorPicker";
 
 import {
   ArrowDown,
@@ -576,7 +577,7 @@ export function MobileToolbar({ editor, ...pick }: { editor: Editor } & Pickers)
 
   useEffect(() => {
     const onFocus = () => setFocused(true);
-    const onBlur = () => window.setTimeout(() => setFocused(editor.isFocused || Boolean(document.activeElement?.closest(".mobile-bar"))), 120);
+    const onBlur = () => window.setTimeout(() => setFocused(editor.isFocused || Boolean(document.activeElement?.closest(".mobile-bar, .color-panel"))), 120);
     editor.on("focus", onFocus);
     editor.on("blur", onBlur);
     const vv = window.visualViewport;
@@ -624,6 +625,7 @@ export function MobileToolbar({ editor, ...pick }: { editor: Editor } & Pickers)
         </form>
       ) : (
         <div className="mobile-bar-scroll">
+          <ColorPicker editor={editor} />
           <button type="button" className="mobile-tool" onPointerDown={tap(() => editor.chain().focus().insertContent("/").run())} aria-label="Insert a block">
             <Plus size={18} weight="bold" />
           </button>

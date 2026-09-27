@@ -11,6 +11,7 @@ import PostList from "./PostList";
 import { useCommands } from "./registry";
 import SearchPalette from "./SearchPalette";
 import { TEMPLATES } from "./templates";
+import SessionGuard from "./SessionGuard";
 
 const CI = { size: 16, "aria-hidden": true } as const;
 
@@ -127,6 +128,7 @@ export default function AdminApp() {
 
   return (
     <>
+      <SessionGuard />
       {postId ? (
         <Editor key={`${postId}:${options.q ?? ""}:${options.n ?? 0}:${options.panel ?? ""}`} id={postId} options={options} onBack={() => open(null)} />
       ) : (

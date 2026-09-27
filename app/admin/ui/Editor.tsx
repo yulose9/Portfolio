@@ -43,6 +43,9 @@ import Highlight from "@tiptap/extension-highlight";
 import { NodeRange } from "@tiptap/extension-node-range";
 import { ResizableImage } from "./extensions/resizable-image";
 import { Mentions } from "./extensions/mentions";
+import { InlineLogo } from "./extensions/inline-logo";
+import { TextColor } from "./extensions/text-color";
+import LinkHover from "./LinkHover";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { TableKit } from "@tiptap/extension-table";
 import Typography from "@tiptap/extension-typography";
@@ -50,6 +53,7 @@ import { Placeholder } from "@tiptap/extensions";
 import { Markdown } from "@tiptap/markdown";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { beginPendingWork, clearRecovery, keepRecovery, readRecovery, registerProtection, leavingForSignIn } from "./session";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { fontVars } from "../../../cms/fonts";
@@ -190,6 +194,7 @@ const imageFiles = (list: FileList | null | undefined) => mediaFiles(list).filte
 
 /** An upload with a toast that shows how far along it is, then what happened. */
 async function withProgress(label: string, run: (progress: (f: number, text: string) => void) => Promise<Uploaded>): Promise<Uploaded | null> {
+  const finish = beginPendingWork();
   const id = toast.add({ type: "loading", title: label, description: "Preparing…", timeout: 0 });
   try {
     const result = await run((f, text) => toast.update(id, { description: `${text} · ${Math.round(f * 100)}%` }));
@@ -198,7 +203,7 @@ async function withProgress(label: string, run: (progress: (f: number, text: str
   } catch (error) {
     toast.update(id, { type: "error", title: "Upload failed", description: error instanceof Error ? error.message : undefined, timeout: 5000 });
     return null;
-  }
+  } finally { finish(); }
 }
 
 /** Where an upload lands in the document. */
@@ -255,6 +260,7 @@ const MARK_ICONS: Record<string, React.ReactNode> = {
 type View = "edit" | "page";
 
 function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => void; options?: OpenOptions }) {
+  const [recovery, setRecovery] = useState(() => readRecovery<Meta & { body: string }>(initial.id));
   const fine = useFinePointer();
   const [doc, setDoc] = useState<Draft>(initial);
   const [meta, setMeta] = useState<Meta>(() => metaOf(initial));
@@ -269,6 +275,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
   const [view, setView] = useState<View>("edit");
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [recording, setRecording] = useState(false);
+  useEffect(() => { if (recording) return beginPendingWork(); }, [recording]);
   const plainPaste = useRef(false);
   const [modes, setModes] = useState<Modes>(readModes);
   const [deploy, setDeploy] = useState<Deploy | null>(() => recallDeploy(initial.id));
@@ -291,7 +298,6 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
   }, [meta]);
   const timer = useRef<number | undefined>(undefined);
   const inflight = useRef<Promise<boolean> | null>(null);
-  const queued = useRef(false);
   const saveRef = useRef<(snapshot?: boolean) => Promise<boolean>>(async () => true);
   const bodyPick = useRef<HTMLInputElement>(null);
   const coverPick = useRef<HTMLInputElement>(null);
@@ -308,6 +314,8 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
         dropcursor: { color: "#2563eb", width: 2 },
       }),
       ResizableImage,
+      InlineLogo,
+      TextColor,
       Mentions(() => OPEN_POST.id),
       NodeRange.configure({ depth: 0, key: null }),
       Placeholder.configure({
@@ -511,12 +519,10 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
   const flush = useCallback(
     async (snapshot = false): Promise<boolean> => {
       window.clearTimeout(timer.current);
-      if (inflight.current) {
-        queued.current = true;
-        await inflight.current;
-        if (!snapshot) return true;
-      }
+      while (inflight.current) await inflight.current;
       const sent = payload();
+      if (recovery) return false;
+      keepRecovery(server.current.id, server.current.updatedAt, sent);
       setSave("saving");
       const run = api
         .save(server.current.id, { ...sent, base: server.current.updatedAt, snapshot })
@@ -526,6 +532,8 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
           setDoc(post);
           setSavedAt(post.updatedAt);
           setSave(JSON.stringify(payload()) === JSON.stringify(sent) ? "saved" : "unsaved");
+          if (JSON.stringify(payload()) === JSON.stringify(sent)) clearRecovery(post.id);
+          else keepRecovery(post.id, post.updatedAt, payload());
           if (snapshot && snapshotted) toast.add({ type: "success", title: "Revision saved", timeout: 1800 });
           return true;
         })
@@ -552,15 +560,13 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
         })
         .finally(() => {
           inflight.current = null;
-          if (queued.current) {
-            queued.current = false;
-            void saveRef.current();
-          }
         });
       inflight.current = run;
-      return run;
+      const succeeded = await run;
+      if (succeeded && JSON.stringify(payload()) !== JSON.stringify(sent)) return saveRef.current(snapshot);
+      return succeeded;
     },
-    [payload]
+    [payload, recovery]
   );
   useEffect(() => {
     saveRef.current = flush;
@@ -572,20 +578,37 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
     timer.current = window.setTimeout(() => void saveRef.current(), 900);
   }
 
-  const first = useRef(true);
+  useEffect(() => {
+    if (!editor || recovery) return;
+    const persist = () => {
+      if (JSON.stringify(payload()) === JSON.stringify({...metaOf(server.current), body:server.current.body})) clearRecovery(server.current.id);
+      else keepRecovery(server.current.id, server.current.updatedAt, payload());
+    };
+    editor.on("update", persist);
+    window.addEventListener("pagehide", persist);
+    return () => { editor.off("update", persist); window.removeEventListener("pagehide", persist); };
+  }, [editor, payload, recovery]);
+
+  useEffect(() => registerProtection(async () => {
+    if (recovery) return { saved: false, recoverable: true };
+    keepRecovery(server.current.id, server.current.updatedAt, payload());
+    const saved = await saveRef.current();
+    return { saved, recoverable: saved || keepRecovery(server.current.id, server.current.updatedAt, payload()) };
+  }), [payload, recovery]);
+
+  const lastMeta = useRef(meta);
   const applyingRemote = useRef(false);
   useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      return;
-    }
+    if (lastMeta.current === meta) return;
+    lastMeta.current = meta;
     // A change that came from another device is already saved.
     if (applyingRemote.current) {
       applyingRemote.current = false;
       return;
     }
+    if (!recovery) keepRecovery(server.current.id, server.current.updatedAt, payload());
     scheduleSave();
-  }, [meta]);
+  }, [meta, payload, recovery]);
 
   /* ── Live: another device saved this post ───────────────────────────── */
 
@@ -596,7 +619,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
 
   const onPulse = useCallback(
     async (p: Pulse) => {
-      if (!editor || !p.version || p.version === server.current.updatedAt) return;
+      if (!editor || recovery || !p.version || p.version === server.current.updatedAt) return;
       // Unsaved words here win; if both sides edited, the next save reports the conflict.
       if (inflight.current || saveStatus.current !== "saved") return;
       try {
@@ -619,14 +642,14 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
         /* next pulse */
       }
     },
-    [editor]
+    [editor, recovery]
   );
   usePulse(onPulse, initial.id);
 
   // Leaving with unsaved words asks first.
   useEffect(() => {
     const onUnload = (e: BeforeUnloadEvent) => {
-      if (save !== "saved") e.preventDefault();
+      if (save !== "saved" && !leavingForSignIn) e.preventDefault();
     };
     window.addEventListener("beforeunload", onUnload);
     return () => window.removeEventListener("beforeunload", onUnload);
@@ -1055,6 +1078,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
                 <MobileToolbar editor={editor} {...pickers} />
               )}
               <ImageBubble editor={editor} />
+              <LinkHover editor={editor} />
             </>
           ) : null}
         </article>
@@ -1112,6 +1136,19 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
         />
       </Sheet>
 
+      <Sheet open={Boolean(recovery)} onClose={() => {}} title="Restore your unsaved changes?" variant="center">
+        <p>A recovery copy is available from this browser tab.{recovery?.base !== initial.updatedAt ? " The server also has a newer version. Restoring will bring your recovery copy into the editor; it won't publish it." : " Restore it to continue where you left off."}</p>
+        <div className="session-actions">
+          <button type="button" className="admin-button" onClick={() => { clearRecovery(initial.id); setRecovery(null); }}>Use server version</button>
+          <button type="button" className="admin-button admin-button-primary" onClick={() => {
+            if (!recovery || !editor) return;
+            setMeta(metaOf({...initial,...recovery.edit}));
+            editor.commands.setContent(recovery.edit.body, {contentType:"markdown",emitUpdate:false} as never);
+            setWords(countWords(editor.getText()));
+            setSave("unsaved"); setRecovery(null); scheduleSave();
+          }}>Restore changes</button>
+        </div>
+      </Sheet>
       <PreviewSheet
         open={panel === "preview"}
         onClose={() => setPanel(null)}

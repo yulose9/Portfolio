@@ -18,6 +18,7 @@ import type { Editor } from "@tiptap/react";
 import { useEditorState } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { memo, useEffect, useRef, useState } from "react";
+import ColorPicker from "./ColorPicker";
 
 /*
  * The selection toolbar. It only appears over selected text (never in code,
@@ -169,6 +170,7 @@ export const TextBubble = memo(function TextBubble({ editor, linkRequest }: { ed
             <LinkSimple size={15} weight="bold" />
           </Tool>
           <span className="bubble-sep" aria-hidden="true" />
+          <ColorPicker editor={editor} />
           <Tool label="Heading 1" active={state.h2} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
             <TextHOne size={15} weight="bold" />
           </Tool>

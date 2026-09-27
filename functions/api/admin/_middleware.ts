@@ -50,6 +50,7 @@ const handle: AdminFunction = async (ctx) => {
       const allowed = env.ADMIN_EMAIL.split(",").map((e) => e.trim().toLowerCase());
       if (!email || !allowed.includes(email)) return fail("This account can't use the admin.", 403);
       ctx.data.email = email;
+      ctx.data.sessionExpiresAt = payload.exp! * 1000;
     } catch {
       return fail("Your sign-in couldn't be verified. Reload to sign in again.", 401);
     }
@@ -87,6 +88,7 @@ export const onRequest: AdminFunction = async (ctx) => {
   const response = await handle(ctx);
   const out = new Response(response.body, response);
   out.headers.set("Cache-Control", "no-store");
+  if (ctx.data.sessionExpiresAt) out.headers.set("X-Admin-Session-Expires", String(ctx.data.sessionExpiresAt));
   out.headers.set("X-Robots-Tag", "noindex, nofollow");
   out.headers.set("X-Content-Type-Options", "nosniff");
   out.headers.set("X-Frame-Options", "DENY");
