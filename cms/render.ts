@@ -292,6 +292,7 @@ function rehypeEditorial(options: { resolvePage?: PageResolver } = {}) {
             ...(info ? { width: info.width, height: info.height, srcSet: info.srcSet, sizes: info.sizes } : {}),
             ...(displayWidth ? {
               width: displayWidth,
+              sizes: `(max-width: ${displayWidth + 32}px) calc(100vw - 2rem), ${displayWidth}px`,
               height: info ? Math.round(displayWidth * info.height / info.width)
                 : Number.isFinite(requestedHeight) && requestedHeight > 0 ? Math.round(requestedHeight) : undefined,
               style: `width: ${displayWidth}px; max-width: 100%; height: auto; margin-inline: auto`,

@@ -1,4 +1,5 @@
 import Image from "@tiptap/extension-image";
+import { decodeInline } from "../../../../cms/inline";
 
 const escape = (value: unknown) => String(value ?? "")
   .replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -11,9 +12,11 @@ export const ResizableImage = Image.extend({
     return (props) => {
       const view = createView(props);
       const update = view.update?.bind(view);
+      let width = props.node.attrs.width;
+      let height = props.node.attrs.height;
       view.update = (node, decorations, innerDecorations) => {
         const accepted = update?.(node, decorations, innerDecorations) ?? false;
-        if (accepted) {
+        if (accepted && (node.attrs.width !== width || node.attrs.height !== height)) {
           // The upstream view sizes during dragging, but does not apply later
           // attribute changes (numeric input, reset and undo) to its image.
           const img = (view.dom as HTMLElement).querySelector("img");
@@ -21,11 +24,27 @@ export const ResizableImage = Image.extend({
             img.style.width = node.attrs.width ? `${Number(node.attrs.width)}px` : "";
             img.style.height = node.attrs.height ? `${Number(node.attrs.height)}px` : "";
           }
+          width = node.attrs.width;
+          height = node.attrs.height;
         }
         return accepted;
       };
       return view;
     };
+  },
+  // Parse our persisted size explicitly, including in DOM-free draft tooling.
+  // Ordinary Markdown images still use the parent image parser.
+  markdownTokenizer: {
+    name: "image", level: "block",
+    start: source => source.indexOf('<img src="'),
+    tokenize: source => {
+      const match = /^<img src="([^"]*)" alt="([^"]*)"(?: title="([^"]*)")? width="(\d+)"(?: height="(\d+)")?\s*\/?>(?:[ \t]*\n)?/.exec(source);
+      if (!match) return undefined;
+      return {type:"image",raw:match[0],href:decodeInline(match[1]),text:decodeInline(match[2]),title:decodeInline(match[3]??""),width:Number(match[4]),height:match[5]?Number(match[5]):null};
+    },
+  },
+  parseMarkdown(token) {
+    return {type:"image",attrs:{src:token.href,alt:token.text??null,title:token.title??null,width:token.width??null,height:token.height??null}};
   },
   renderMarkdown(node) {
     const { src, alt, title, width, height } = node.attrs ?? {};

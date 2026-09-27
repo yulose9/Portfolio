@@ -63,10 +63,10 @@ export function MLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-/* Let Base UI own submenu hover intent, keyboard navigation and collision handling. */
+/* Click-open submenus stay put while crossing the gap or using touch. */
 export function MSub({ icon, label, children }: { icon?: React.ReactNode; label: string; children: React.ReactNode }) {
   return <Menu.SubmenuRoot>
-    <Menu.SubmenuTrigger className="menu-item" delay={100} closeDelay={350}>
+    <Menu.SubmenuTrigger className="menu-item" openOnHover={false}>
       {icon ? <span className="menu-item-icon" aria-hidden="true">{icon}</span> : null}
       <span className="menu-item-text">{label}</span><CaretRight size={12} className="menu-caret" aria-hidden="true" />
     </Menu.SubmenuTrigger>

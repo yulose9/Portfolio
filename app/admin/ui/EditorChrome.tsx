@@ -288,7 +288,7 @@ export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Edito
   };
 
   return (
-    <>
+    <Menu.Root open={open} onOpenChange={setOpen}>
       <DragHandle
         editor={editor}
         onNodeChange={onNodeChange}
@@ -311,19 +311,20 @@ export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Edito
           >
             <Plus size={14} weight="bold" />
           </button>
-          <button
+          <Menu.Trigger
             ref={grip}
             type="button"
             className="block-button block-grip"
             aria-label="Drag to move, click for options"
             title="Drag to move, click for options"
-            onClick={() => setOpen(true)}
+            // Keep the native drag gesture available; let Base UI open on click.
+            onPointerDown={event => event.preventBaseUIHandler()}
+            onMouseDown={event => event.preventBaseUIHandler()}
           >
             <DotsSixVertical size={16} weight="bold" />
-          </button>
+          </Menu.Trigger>
         </div>
       </DragHandle>
-      <Menu.Root open={open} onOpenChange={setOpen}>
         <Menu.Portal>
           <Menu.Positioner className="menu-positioner" anchor={grip} side="right" align="start" sideOffset={6} collisionPadding={8}>
             <Menu.Popup className="menu-popup admin-menu">
@@ -378,8 +379,7 @@ export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Edito
             </Menu.Popup>
           </Menu.Positioner>
         </Menu.Portal>
-      </Menu.Root>
-    </>
+    </Menu.Root>
   );
 });
 

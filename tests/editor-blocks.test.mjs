@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { getSchema } from "@tiptap/core";
+import { MarkdownManager } from "@tiptap/markdown";
 import StarterKit from "@tiptap/starter-kit";
 import { NodeRangeSelection } from "@tiptap/extension-node-range";
 import { EditorState } from "@tiptap/pm/state";
@@ -74,7 +75,7 @@ test("numeric size edits, reset and undo synchronize the image node view", () =>
   const create = ResizableImage.config.addNodeView.call({
     parent: () => () => ({dom:{querySelector:()=>img},update:()=>true}),
   });
-  const view = create({});
+  const view = create({node:{attrs:{width:240,height:120}}});
   view.update({attrs:{width:320,height:160}});
   assert.equal(img.style.width,"320px");
   view.update({attrs:{width:null,height:null}});
@@ -82,4 +83,30 @@ test("numeric size edits, reset and undo synchronize the image node view", () =>
   assert.equal(img.style.height,"");
   view.update({attrs:{width:240,height:120}});
   assert.equal(img.style.width,"240px");
+});
+
+test("resized images survive repeated save/reopen and render at the saved width", async () => {
+  const manager = new MarkdownManager({extensions:[StarterKit,ResizableImage]});
+  let document = {type:"doc",content:[{type:"image",attrs:{src:"/media/2026/example-1254x1254.webp",alt:'A "quote" & more',title:"Caption",width:280,height:280}}]};
+  for (let i=0;i<3;i++) {
+    const markdown = manager.serialize(document);
+    document = manager.parse(markdown);
+    assert.equal(document.content[0].type,"image");
+    assert.equal(document.content[0].attrs.width,280);
+    assert.equal(document.content[0].attrs.alt,'A "quote" & more');
+    const [img] = images(await markdownToTree(markdown));
+    assert.equal(img.properties.width,280);
+    assert.match(img.properties.style,/width: 280px/);
+  }
+  assert.equal(manager.parse("![Original](/photo.png)").content[0].type,"image");
+});
+
+test("selection-only updates do not erase a resize gesture before it commits", () => {
+  const img = {style:{width:"180px",height:"90px"}};
+  const create = ResizableImage.config.addNodeView.call({parent:()=>()=>({dom:{querySelector:()=>img},update:()=>true})});
+  const view = create({node:{attrs:{width:null,height:null}}});
+  view.update({attrs:{width:null,height:null}});
+  assert.equal(img.style.width,"180px");
+  view.update({attrs:{width:180,height:90}});
+  assert.equal(img.style.width,"180px");
 });

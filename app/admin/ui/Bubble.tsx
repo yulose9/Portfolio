@@ -3,7 +3,6 @@
 import {
   Code,
   LinkSimple,
-  LinkBreak,
   Quotes,
   TextB,
   TextHOne,
@@ -17,13 +16,13 @@ import { isNodeRangeSelection } from "@tiptap/extension-node-range";
 import type { Editor } from "@tiptap/react";
 import { useEditorState } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef } from "react";
 import ColorPicker from "./ColorPicker";
 
 /*
  * The selection toolbar. It only appears over selected text (never in code,
- * never over an image — images get their own below), and ⌘K turns it into a
- * link field in place instead of opening a prompt.
+ * never over an image — images get their own below). Link actions share the
+ * persistent link editor so editor blur cannot dismiss its form.
  */
 
 function Tool({
@@ -69,9 +68,6 @@ const showForImage = ({ editor: e }: { editor: Editor }) => e.isEditable && e.is
 const mod = typeof navigator !== "undefined" && /Mac|iP/.test(navigator.platform) ? "⌘" : "Ctrl ";
 
 export const TextBubble = memo(function TextBubble({ editor, linkRequest }: { editor: Editor; linkRequest: number }) {
-  const [editingLink, setEditingLink] = useState(false);
-  const [href, setHref] = useState("");
-  const input = useRef<HTMLInputElement>(null);
 
   const state = useEditorState({
     editor,
@@ -90,31 +86,16 @@ export const TextBubble = memo(function TextBubble({ editor, linkRequest }: { ed
   });
 
   const startLink = () => {
-    setHref(state.href);
-    setEditingLink(true);
+    editor.view.dom.dispatchEvent(new CustomEvent("writing:edit-link"));
   };
 
   // ⌘K from the editor's keymap lands here, as a new request number.
-  const [seenRequest, setSeenRequest] = useState(linkRequest);
-  if (linkRequest !== seenRequest) {
-    setSeenRequest(linkRequest);
-    if (!editor.state.selection.empty) {
-      setHref(state.href);
-      setEditingLink(true);
-    }
-  }
-
+  const seenRequest = useRef(linkRequest);
   useEffect(() => {
-    if (editingLink) input.current?.focus();
-  }, [editingLink]);
-
-  const applyLink = () => {
-    const value = href.trim();
-    const chain = editor.chain().focus().extendMarkRange("link");
-    if (!value) chain.unsetLink().run();
-    else chain.setLink({ href: /^(https?:|mailto:|\/|#)/.test(value) ? value : `https://${value}` }).run();
-    setEditingLink(false);
-  };
+    if (linkRequest === seenRequest.current) return;
+    seenRequest.current = linkRequest;
+    editor.view.dom.dispatchEvent(new CustomEvent("writing:edit-link"));
+  }, [editor, linkRequest]);
 
   return (
     <BubbleMenu
@@ -123,35 +104,6 @@ export const TextBubble = memo(function TextBubble({ editor, linkRequest }: { ed
       options={TEXT_OPTIONS}
       shouldShow={showForText}
     >
-      {editingLink ? (
-        <form
-          className="bubble-link"
-          onSubmit={(e) => {
-            e.preventDefault();
-            applyLink();
-          }}
-        >
-          <input
-            ref={input}
-            value={href}
-            onChange={(e) => setHref(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                e.preventDefault();
-                setEditingLink(false);
-                editor.commands.focus();
-              }
-            }}
-            placeholder="Paste a link, Enter to apply"
-            aria-label="Link address"
-          />
-          {state.link ? (
-            <Tool label="Remove link" onClick={() => { editor.chain().focus().extendMarkRange("link").unsetLink().run(); setEditingLink(false); }}>
-              <LinkBreak size={15} />
-            </Tool>
-          ) : null}
-        </form>
-      ) : (
         <>
           {state.blocks > 0 ? <span className="bubble-count">{state.blocks} selected</span> : null}
           <Tool label="Bold" shortcut={`${mod}B`} active={state.bold} onClick={() => editor.chain().focus().toggleBold().run()}>
@@ -189,21 +141,38 @@ export const TextBubble = memo(function TextBubble({ editor, linkRequest }: { ed
             <Tool label="Delete selected blocks" onClick={() => editor.chain().focus().deleteSelection().run()}><Trash size={15} /></Tool>
           </> : null}
         </>
-      )}
     </BubbleMenu>
   );
 });
 
 /** Over a selected image: its alt text and caption, edited where it sits. */
 export const ImageBubble = memo(function ImageBubble({ editor }: { editor: Editor }) {
+  const widthInput = useRef<HTMLInputElement>(null);
+  const imagePos = useEditorState({editor,selector:({editor:e}) => e.isActive("image") ? e.state.selection.from : null});
   const attrs = useEditorState({
     editor,
     selector: ({ editor: e }) =>
       e.isActive("image") ? (e.getAttributes("image") as { alt?: string; title?: string; src?: string; width?: number; height?: number }) : null,
   });
 
-  const set = (patch: { alt?: string; title?: string; width?: number | null; height?: number | null }) =>
-    editor.chain().updateAttributes("image", patch).run();
+  const set = (patch: { alt?: string; title?: string; width?: number | null; height?: number | null }) => {
+    if (imagePos === null) return;
+    const node = editor.state.doc.nodeAt(imagePos);
+    if (node?.type.name !== "image" || node.attrs.src !== attrs?.src) return;
+    editor.view.dispatch(editor.state.tr.setNodeMarkup(imagePos,undefined,{...node.attrs,...patch}));
+  };
+  useEffect(() => {
+    if (widthInput.current && document.activeElement !== widthInput.current) widthInput.current.value = String(attrs?.width ?? "");
+  }, [attrs?.width, attrs?.src]);
+  const resize = (value:string) => {
+    const width = Math.round(Number(value));
+    if (!attrs || width < 64 || width > 2400 || !Number.isFinite(width)) return false;
+    const element = imagePos === null ? null : editor.view.nodeDOM(imagePos);
+    const img = element instanceof HTMLImageElement ? element : element instanceof HTMLElement ? element.querySelector("img") : null;
+    const ratio = attrs.width && attrs.height ? attrs.height / attrs.width : img?.naturalWidth ? img.naturalHeight / img.naturalWidth : null;
+    set({width,height:ratio?Math.round(width*ratio):null});
+    return true;
+  };
 
   return (
     <BubbleMenu
@@ -217,16 +186,11 @@ export const ImageBubble = memo(function ImageBubble({ editor }: { editor: Edito
         <div className="bubble-fields">
           <label>
             <span>Width (px)</span>
-            <input type="number" min="64" max="2400" key={attrs.width ?? "auto"} defaultValue={attrs.width ?? ""} placeholder="Automatic"
+            <input ref={widthInput} type="number" min="64" max="2400" defaultValue={attrs.width ?? ""} placeholder="Automatic"
+              onChange={event => { resize(event.target.value); }}
               onBlur={(event) => {
-                const width = Math.round(Number(event.target.value));
                 if (!event.target.value) { set({ width: null, height: null }); return; }
-                if (width >= 64 && width <= 2400) {
-                  const image = editor.view.nodeDOM(editor.state.selection.from);
-                  const img = image instanceof HTMLImageElement ? image : image instanceof HTMLElement ? image.querySelector("img") : null;
-                  const ratio = attrs.width && attrs.height ? attrs.height / attrs.width : img?.naturalWidth ? img.naturalHeight / img.naturalWidth : null;
-                  set({ width, height: ratio ? Math.round(width * ratio) : null });
-                } else event.target.value = String(attrs.width ?? "");
+                if (!resize(event.target.value)) event.target.value = String(attrs.width ?? "");
               }}
               onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); } }} />
           </label>

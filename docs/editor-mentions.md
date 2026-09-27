@@ -77,6 +77,23 @@ Verification: automated Markdown/rendering, search, selection geometry, emoji, t
 
 Approve
 
+## Image sizing and editing panels — September 27 follow-up
+
+Design direction: preserve the editor's white (#ffffff), zinc ink (#18181b), secondary zinc (#52525b), divider (#e4e4e7), and blue focus (#2563eb). Inter remains the controls' typeface; font choices preview themselves. The appearance panel reads top to bottom: font, color swatches and hex, opacity, reset. No decorative entrance was added.
+
+| Severity | Location | Before | After | Why |
+| --- | --- | --- | --- | --- |
+| HIGH, addressed in code | app/admin/ui/LinkHover.tsx; app/admin/ui/Bubble.tsx | Focus-related scrolling dismissed editing; toolbar and hover used different forms | Shared persistent form with text and address, explicit Save/Cancel, outside-click and Escape dismissal | Keep an editing interaction stable while the user types |
+| HIGH, addressed in code | app/admin/ui/menu.tsx; app/admin/ui/EditorChrome.tsx | Hover intent could dismiss Turn into while crossing to its submenu; grip wasn't a registered trigger | Click-open submenu and registered trigger that leaves pointer-down available for dragging | Stable targets and keyboard ownership |
+| HIGH, addressed in code | app/admin/ui/Bubble.tsx; app/admin/ui/extensions/resizable-image.ts | Width committed only on blur; any node-view update reapplied old dimensions | Valid numeric edits commit immediately; only changed size attributes synchronize the image; explicit sized-image Markdown parsing | Persist dimensions instead of relying on temporary DOM styles |
+| MEDIUM, addressed in code | app/admin/ui/ColorPicker.tsx; app/admin/admin-editor.css | Dense native font select, long color list, squeezed opacity row | Searchable font previews, compact swatches, hex field, full-width labeled opacity slider and reset | Group related controls and make their current values readable |
+
+The public renderer uses the saved width for layout and responsive image selection. Default image size remains automatic; the existing article has no saved resized width, and the author requested keeping its default rather than inventing one. Publishing a resized draft updates the public article through the normal publishing workflow.
+
+Verification: 43 automated tests pass, including three image save/reopen/render cycles, an interrupted resize update, safe link text/address edits and undo. Changed-file lint passes. Code review covers focus, pressed/selected and empty font-search states, viewport constraints and inherited reduced-motion rules. Not verified: actual browser pointer/keyboard/touch flows, native color chooser, live appearance, and animation replay; prior browser restrictions remain in effect. The approval below applies only to inspected code and automated coverage, not end-to-end acceptance.
+
+Approve
+
 
 ## Follow-up verification: session, links, mentions and media
 
