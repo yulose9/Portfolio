@@ -9,10 +9,10 @@ authors: [{"name":"John Nazarene Dela Pisa","email":"jannazarene09@gmail.com","a
 fonts: null
 page: true
 ogImage: null
-tags: ["AI","Vibe Engineering","AI Safety","Pax Silica","Philippines"]
+tags: ["AI","AI Safety","Pax Silica","Vibe Engineering","Philippines"]
 cover: null
 publishedAt: "2026-09-26T23:09:25.239Z"
-updatedAt: "2026-09-27T09:23:31.985Z"
+updatedAt: "2026-09-27T16:02:51.213Z"
 redirectFrom: []
 ---
 
@@ -134,7 +134,3 @@ Back in college, I thought I was watching a fun new app. I was actually watching
 **The future is uncertain. How we meet it doesn't have to be.**
 
 *What surprised you most about AI this year? Tell me in the comments, or send me a message on Instagram.*
-
-
-
-&nbsp;
