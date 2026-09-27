@@ -1,5 +1,6 @@
 "use client";
 import ColorPicker from "./ColorPicker";
+import { setDragHandleLocked } from "./drag-handle-lock";
 
 import {
   ArrowDown,
@@ -269,7 +270,10 @@ export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Edito
   const target = useRef<number | null>(null);
   const grip = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  useEffect(() => { if (open) editor.commands.lockDragHandle(); else editor.commands.unlockDragHandle(); return () => { if (!editor.isDestroyed) editor.commands.unlockDragHandle(); }; }, [editor, open]);
+  useEffect(() => {
+    setDragHandleLocked(editor, open);
+    return () => setDragHandleLocked(editor, false);
+  }, [editor, open]);
   const onNodeChange = useCallback(({ pos }: { pos: number }) => {
     target.current = pos >= 0 ? pos : null;
   }, []);
