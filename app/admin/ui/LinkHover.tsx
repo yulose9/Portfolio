@@ -3,6 +3,7 @@ import { getMarkRange } from "@tiptap/core";
 import type { Editor } from "@tiptap/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { safeInlineUrl } from "../../../cms/inline";
+import { editableLink } from "./editable-link";
 
 type Target = {from:number; to:number; href:string; left:number; top:number};
 export default function LinkHover({editor}: {editor:Editor}) {
@@ -22,8 +23,8 @@ export default function LinkHover({editor}: {editor:Editor}) {
   useEffect(() => {
     const dom = editor.view.dom;
     const show = (event: Event) => {
-      const a = (event.target as Element)?.closest?.("a[href]");
-      if (!(a instanceof HTMLAnchorElement) || !dom.contains(a) || a.closest('[contenteditable="false"]')) return;
+      const a = editableLink(dom, event.target);
+      if (!a) return;
       const pos = editor.view.posAtDOM(a, 0);
       const range = getMarkRange(editor.state.doc.resolve(pos), editor.schema.marks.link);
       if (!range) return;
@@ -32,7 +33,7 @@ export default function LinkHover({editor}: {editor:Editor}) {
       const rect = a.getBoundingClientRect();
       setTarget(current => current?.from === range.from && current?.to === range.to ? current : {...range,href:a.getAttribute("href") ?? "",left:Math.max(12,Math.min(rect.left,window.innerWidth-332)),top:Math.max(12,Math.min(rect.bottom+6,window.innerHeight-200))});
     };
-    const click = (event: MouseEvent) => { if ((event.target as Element)?.closest?.("a[href]")) { event.preventDefault(); show(event); } };
+    const click = (event: MouseEvent) => { if (editableLink(dom, event.target)) { event.preventDefault(); show(event); } };
     const hide = () => { setTarget(null); setEditing(false); };
     const update = ({transaction}: {transaction:{docChanged:boolean}}) => { if(transaction.docChanged) hide(); };
     const key = (event:KeyboardEvent) => { if(event.key==="Escape") hide(); };

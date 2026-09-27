@@ -76,3 +76,18 @@ Existing Inter controls, white/zinc surfaces, blue focus rings, and compact spac
 Verification: automated Markdown/rendering, search, selection geometry, emoji, tag validation, and concurrent-write checks. Code inspection covers hover/focus/press, loading/empty/error states, responsive bounds and reduced motion. **Not verified:** real pointer dragging, native date/file pickers, submenu hover trajectories, mobile keyboards, iframe cursor transitions, visual layout or 10% animation replay. Browser access was declined earlier and was not retried. Approval below applies only to inspected code and automated coverage.
 
 Approve
+
+
+## Follow-up verification: session, links, mentions and media
+
+The requested flows were audited against the source and 39 passing regression tests. Autosave includes the Markdown body and post metadata, waits for in-flight saves, retries newer edits, and preserves a current-tab recovery copy on failure. SessionGuard uses the verified Access JWT expiry, warns two minutes before it, checks protection again on confirmation, and only then invokes logout and returns to the current admin URL. Uploads/recordings block that navigation while pending. Cloudflare enforces expiry independently; 24 hours is its default application duration, not a universal maximum.
+
+Inline logo/text nodes support links and browser-decodable images, including SVG rasterization and a HEIF decoding fallback. Color marks and image dimensions survive Markdown round trips. Date tests cover the requested Today → Yesterday → Last weekday → full date progression, Manila midnight, weekday aliases, optional 24-hour time, and saved page IDs. Mixed text/image selections support deletion, moving and undo. Source inspection confirms custom hand cursors for article links, responsive TOC placement, and an opacity-only date/byline entrance.
+
+| Severity | Location | Before | After | Why |
+| --- | --- | --- | --- | --- |
+| HIGH, resolved in code | app/admin/ui/LinkHover.tsx:35 | The ordinary link click handler also cancelled navigation from page mentions | Hover and click share a boundary that excludes non-editable node views | Interaction ownership: a page mention can follow its own link while ordinary links remain editable |
+
+The new boundary regression test passes; changed files pass lint and the helper passes TypeScript. No new visual design was introduced. Not verified: actual Cloudflare logout/OTP, browser media decoding, real drag/hover/touch interactions, mobile visual sharpness or animation replay. Earlier browser-access restrictions were respected. Approval applies to code inspection and automated tests only.
+
+Approve
