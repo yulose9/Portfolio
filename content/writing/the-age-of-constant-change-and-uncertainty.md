@@ -12,7 +12,7 @@ ogImage: null
 tags: ["AI","Vibe Engineering","AI Safety","Pax Silica","Philippines"]
 cover: null
 publishedAt: "2026-09-26T23:09:25.239Z"
-updatedAt: "2026-09-27T01:34:28.257Z"
+updatedAt: "2026-09-27T09:23:31.985Z"
 redirectFrom: []
 ---
 
