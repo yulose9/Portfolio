@@ -2,20 +2,22 @@ import { postToDraft } from "../format";
 import { indexDocument, type DocumentIndex } from "../research";
 import { livePosts, type CmsEnv } from "./publish";
 import { getDraft } from "./store";
+import { applyParent, readHierarchy } from "./hierarchy";
 
 /** Per-document indexes are disposable: compare source versions and repair lazily. */
 export async function researchIndex(env: CmsEnv): Promise<DocumentIndex[]> {
+  const hierarchy=(await readHierarchy(env)).value;
   const keys: { id: string; updatedAt?: string }[] = [];
   let cursor: string | undefined;
   do {
     const page = await env.WRITING.list({
       prefix: "drafts/",
       cursor,
-      include: ["customMetadata"],
+      delimiter: "/",
     });
-    for (const o of page.objects) {
-      const m = /^drafts\/([a-z0-9]{12})\/current.json$/.exec(o.key);
-      if (m) keys.push({ id: m[1], updatedAt: o.customMetadata?.updatedAt });
+    for (const prefix of page.delimitedPrefixes) {
+      const m = /^drafts\/([a-z0-9]{12})\/$/.exec(prefix);
+      if (m) keys.push({ id: m[1] });
     }
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor);
@@ -24,15 +26,18 @@ export async function researchIndex(env: CmsEnv): Promise<DocumentIndex[]> {
   for (let start = 0; start < keys.length; start += 12)
     await Promise.all(
       keys.slice(start, start + 12).map(async (key) => {
+        const current = await env.WRITING.head(`drafts/${key.id}/current.json`);
+        if (!current) return;
+        key.updatedAt = current.customMetadata?.updatedAt;
         const cached = await env.WRITING.get(`indexes/private/${key.id}.json`);
         const value = cached
           ? await cached.json<DocumentIndex & { deleted?: boolean }>()
           : null;
-        if (value && value.updatedAt === key.updatedAt) {
+        if (value?.version === 2 && typeof value.searchText==="string" && key.updatedAt && value.updatedAt === key.updatedAt) {
           if (!value.deleted) rows.push(value);
           return;
         }
-        const d = await getDraft(env, key.id);
+        const d = await getDraft(env, key.id,hierarchy);
         if (!d) return;
         const index = { ...indexDocument(d), deleted: Boolean(d.trashedAt) };
         await env.WRITING.put(
@@ -45,5 +50,5 @@ export async function researchIndex(env: CmsEnv): Promise<DocumentIndex[]> {
   const known = new Set(keys.map((k) => k.id));
   for (const p of await livePosts(env))
     if (!known.has(p.id)) rows.push(indexDocument(postToDraft(p)));
-  return rows;
+  return rows.map(row=>applyParent(row,hierarchy));
 }

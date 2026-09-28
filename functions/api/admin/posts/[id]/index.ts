@@ -1,5 +1,6 @@
 import { normalizeAuthors, type Cover, type Draft, type FontChoice, type Fonts } from "../../../../../cms/format";
 import { cleanEditorDocument } from "../../../../../cms/editor-document";
+import { cleanEditorial } from "../../../../../cms/editorial";
 import { HttpError, json, param, readJson, type AdminFunction } from "../../../../../cms/server/http";
 import { loadDraft } from "../../../../../cms/server/load";
 import { removeLive } from "../../../../../cms/server/publish";
@@ -9,7 +10,7 @@ export const onRequestGet: AdminFunction<"id"> = async ({ env, params }) =>
   json({ post: await loadDraft(env, param(params.id)) });
 
 /** The fields the editor may change. Status and what's live belong to the server. */
-const EDITABLE = ["title", "slug", "dek", "icon", "authors", "fonts", "page", "ogImage", "pinned", "tags", "cover", "body", "publishedAt", "editorDocument"] as const;
+const EDITABLE = ["title", "slug", "dek", "icon", "authors", "fonts", "page", "ogImage", "pinned", "tags", "cover", "body", "publishedAt", "editorDocument", "editorial"] as const;
 type Edit = Partial<Pick<Draft, (typeof EDITABLE)[number]>> & {
   /** The updatedAt the editor last saw. A mismatch means another tab saved in between. */
   base?: string;
@@ -25,6 +26,7 @@ export const onRequestPut: AdminFunction<"id"> = async ({ env, params, request }
   }
 
   const next: Draft = { ...draft };
+  if(edit.editorial!==undefined){try{next.editorial=cleanEditorial(edit.editorial);}catch(error){throw new HttpError(error instanceof Error?error.message:"Invalid editorial metadata.");}}
   if (edit.title !== undefined) next.title = String(edit.title).slice(0, 300);
   if (edit.slug !== undefined) next.slug = String(edit.slug).slice(0, 80);
   if (edit.dek !== undefined) next.dek = String(edit.dek).slice(0, 600);
@@ -54,7 +56,7 @@ export const onRequestPut: AdminFunction<"id"> = async ({ env, params, request }
   if (changed) {
     if(!draft.editorDocument && next.editorDocument) await snapshot(env,draft,true,"Before structured editor migration");
     next.updatedAt = new Date(Math.max(Date.now(),(Date.parse(draft.updatedAt)||0)+1)).toISOString();
-    next.dirty = true;
+    next.dirty = draft.dirty || EDITABLE.some(k=>k!=="editorial"&&JSON.stringify(next[k])!==JSON.stringify(draft[k]));
     await putDraftIfVersion(env, next, draft.updatedAt);
   }
   const snapshotted = await snapshot(env, next, Boolean(edit.snapshot));

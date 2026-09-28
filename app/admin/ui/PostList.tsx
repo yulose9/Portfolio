@@ -1,4 +1,6 @@
 "use client";
+import PageTree from "./PageTree";
+import MediaLibrary from "./MediaLibrary";
 
 import { ArrowSquareOut, CalendarBlank, CaretDown, Checks, FileText, MagnifyingGlass, PaperPlaneTilt, PushPin, Tag as TagIcon, TextAlignLeft, Trash, Tray } from "@phosphor-icons/react";
 import { Menu } from "@base-ui/react/menu";
@@ -42,6 +44,7 @@ const FILTERS = [
 type Filter = (typeof FILTERS)[number]["id"];
 
 export default function PostList({ email, onOpen, onSearch, onTags }: { email: string; onOpen: (id: string, panel?: Panel) => void; onSearch: () => void; onTags: () => void }) {
+  const [mediaOpen,setMediaOpen]=useState(false);
   const [workspace,setWorkspace]=useState(false);
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
@@ -213,6 +216,7 @@ export default function PostList({ email, onOpen, onSearch, onTags }: { email: s
   return (
     <main className="admin-shell" data-selecting={selecting || undefined}>
       <ResearchWorkspace open={workspace} onClose={()=>setWorkspace(false)} onOpen={onOpen}/>
+      <MediaLibrary open={mediaOpen} onClose={()=>setMediaOpen(false)}/>
       <header className="admin-list-header">
         <div>
           <p className="admin-eyebrow">nazarene.dev · {email}</p>
@@ -220,6 +224,7 @@ export default function PostList({ email, onOpen, onSearch, onTags }: { email: s
         </div>
         <div className="admin-list-actions">
         <button className="admin-button" type="button" onClick={()=>setWorkspace(true)}>Workspace</button>
+        <button className="admin-button" type="button" onClick={()=>setMediaOpen(true)}>Media</button>
         <a className="admin-button admin-button-quiet" href="/writing" target="_blank" rel="noopener" title="Open nazarene.dev/writing in a new tab">
           <ArrowSquareOut size={14} aria-hidden="true" />
           <span className="admin-hide-sm">View on site</span>
@@ -251,6 +256,7 @@ export default function PostList({ email, onOpen, onSearch, onTags }: { email: s
       </header>
 
       <div className="admin-toolbar">
+        <PageTree pages={posts??[]} onOpen={onOpen}/>
         <div className="admin-segments" role="tablist" aria-label="Filter posts">
           {FILTERS.map((f) => (
             <button

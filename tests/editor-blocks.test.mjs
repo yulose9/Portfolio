@@ -71,7 +71,7 @@ test("moving selected text and image blocks keeps their order and selection", ()
 });
 
 test("numeric size edits, reset and undo synchronize the image node view", () => {
-  const img = {style:{width:"240px",height:"120px"}};
+  const img = {style:{width:"240px",height:"120px"},setAttribute(){},removeAttribute(){}};
   const create = ResizableImage.config.addNodeView.call({
     parent: () => () => ({dom:{querySelector:()=>img},update:()=>true}),
   });
@@ -102,7 +102,7 @@ test("resized images survive repeated save/reopen and render at the saved width"
 });
 
 test("selection-only updates do not erase a resize gesture before it commits", () => {
-  const img = {style:{width:"180px",height:"90px"}};
+  const img = {style:{width:"180px",height:"90px"},setAttribute(){},removeAttribute(){}};
   const create = ResizableImage.config.addNodeView.call({parent:()=>()=>({dom:{querySelector:()=>img},update:()=>true})});
   const view = create({node:{attrs:{width:null,height:null}}});
   view.update({attrs:{width:null,height:null}});

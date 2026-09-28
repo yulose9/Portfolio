@@ -1,11 +1,17 @@
 import type { Draft } from "./format";
 import { editorContent, type EditorNode } from "./editor-document";
+import { normalizeSearch } from "./search";
 
 export type Reference = { target: string; blockId?: string; snippet: string };
 export type DocumentIndex = Pick<
   Draft,
   "id" | "title" | "dek" | "status" | "dirty" | "updatedAt" | "icon"
 > & {
+  version: 2;
+  searchText?:string;
+  searchTitle?:string;
+  tags: string[];
+  parentId: string | null;
   text: string;
   references: Reference[];
   blocks: { id: string; text: string }[];
@@ -66,7 +72,13 @@ export function indexDocument(d: Draft): DocumentIndex {
         ),
       });
   }
+  const bodyText=root ? text(root).replace(/\s+/g," ").trim() : readable(d.body);
   return {
+    version: 2,
+    searchText:normalizeSearch(`${d.title} ${d.dek} ${bodyText}`),
+    searchTitle:normalizeSearch(d.title),
+    tags: d.tags,
+    parentId: d.parentId ?? null,
     id: d.id,
     title: d.title,
     dek: d.dek,
@@ -74,7 +86,7 @@ export function indexDocument(d: Draft): DocumentIndex {
     status: d.status,
     dirty: d.dirty,
     updatedAt: d.updatedAt,
-    text: readable(d.body),
+    text: bodyText,
     references,
     blocks,
   };
@@ -89,6 +101,8 @@ export type CollectionRules = {
   include?: string[];
 };
 export type ResearchItem = {
+  sourceFingerprint?: string;
+  lastCheckedAt?: string;
   id: string;
   kind: "collection" | "template" | "capture" | "excerpt" | "review";
   title: string;
@@ -153,6 +167,8 @@ export function cleanResearchItem(
   return {
     id,
     kind: v.kind,
+    sourceFingerprint:previous?.sourceFingerprint,
+    lastCheckedAt:typeof v.lastCheckedAt==="string"&&Number.isFinite(Date.parse(v.lastCheckedAt))?new Date(v.lastCheckedAt).toISOString():previous?.lastCheckedAt,
     title,
     body: v.body,
     url: v.url || undefined,

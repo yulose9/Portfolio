@@ -1,5 +1,6 @@
 import type { Draft } from "../../../cms/format";
 import { reportSession, reportExpired } from "./session";
+import { preparedMediaPart } from "./media-journal";
 
 /*
  * The admin's only door to the server. Every call is same-origin, so the
@@ -10,6 +11,7 @@ import { reportSession, reportExpired } from "./session";
 export type { Draft };
 
 export type PostSummary = {
+  editorial?: Draft["editorial"];
   parentId?: string | null;
   id: string;
   title: string;
@@ -63,10 +65,11 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
     res = await fetch(`/api/admin${path}`, {
       credentials: "same-origin",
       ...init,
-      signal: init.signal ?? AbortSignal.timeout(path.startsWith("/uploads") ? 120_000 : 15_000),
+      signal: init.signal ? AbortSignal.any([init.signal,AbortSignal.timeout(path.startsWith("/uploads") ? 120_000 : 15_000)]) : AbortSignal.timeout(path.startsWith("/uploads") ? 120_000 : 15_000),
       headers: { "X-Admin-Request": "1", ...(init.body && typeof init.body === "string" ? { "Content-Type": "application/json" } : {}), ...init.headers },
     });
   } catch {
+    if(init.signal?.aborted)throw new DOMException("Request cancelled","AbortError");
     throw new ApiError("You're offline, or the server can't be reached.", 0);
   }
   // Access answers an expired session with its own login page, not JSON.
@@ -89,6 +92,8 @@ const put = (body: unknown): RequestInit => ({ method: "PUT", body: JSON.stringi
 const post = (body: unknown = {}): RequestInit => ({ method: "POST", body: JSON.stringify(body) });
 
 export const api = {
+  media:(cursor?:string)=>call<{assets:import("./MediaLibrary").Asset[];cursor:string|null}>(`/media${cursor?`?cursor=${encodeURIComponent(cursor)}`:""}`),
+  movePage:(id:string,parentId:string|null,previousParentId:string|null)=>call<{parentId:string|null}>(`/posts/${id}/parent`,put({parentId,previousParentId})),
   publishedSource:(id:string)=>call<{source:string|null;post:import("../../../cms/format").Post|null;fingerprint:string|null;base:string}>(`/posts/${id}/published-source`),
   reconcileSource:(id:string,input:{base:string;fingerprint:string|null;choice:"keep"|"import"})=>call<{post:Draft}>(`/posts/${id}/published-source`,post(input)),
   research: () => call<{items:import("../../../cms/research").ResearchItem[]}>("/research"),
@@ -102,11 +107,11 @@ export const api = {
   get: (id: string) => call<{ post: Draft }>(`/posts/${id}`),
   save: (
     id: string,
-    edit: Partial<Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover" | "body" | "icon" | "authors" | "fonts" | "page" | "ogImage" | "pinned" | "publishedAt" | "editorDocument">> & { base?: string; snapshot?: boolean }
+    edit: Partial<Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover" | "body" | "icon" | "authors" | "fonts" | "page" | "ogImage" | "pinned" | "publishedAt" | "editorDocument" | "editorial">> & { base?: string; snapshot?: boolean }
   ) =>
     call<{ post: Draft; snapshotted: boolean }>(`/posts/${id}`, put(edit)),
   duplicate: (id: string) => call<{ post: Draft }>(`/posts/${id}/duplicate`, post()),
-  search: (q: string, signal?: AbortSignal) => call<{ q: string; results: SearchResult[] }>(`/search?q=${encodeURIComponent(q)}`, { signal }),
+  search: (q: string, signal?: AbortSignal, filters: import("../../../cms/search").SearchOptions = {}) => call<{ q: string; results: SearchResult[] }>(`/search?${new URLSearchParams({q,...filters})}`, { signal }),
   /** To the trash; `forever` deletes it and its history. */
   remove: (id: string, forever = false) => call<{ ok: true; post?: Draft }>(`/posts/${id}${forever ? "?forever=1" : ""}`, { method: "DELETE" }),
   untrash: (id: string) => call<{ post: Draft }>(`/posts/${id}/restore`, post()),
@@ -118,8 +123,11 @@ export const api = {
   revision: (id: string, at: string) => call<{ revision: Draft }>(`/posts/${id}/revisions/${encodeURIComponent(at)}`),
   restore: (id: string, at: string) => call<{ post: Draft }>(`/posts/${id}/revisions/${encodeURIComponent(at)}`, post()),
   /** Upload an already-prepared file under a name from cms/media.ts. */
-  uploadNamed: (blob: Blob, name: string) =>
-    call<{ src: string }>(`/uploads?name=${encodeURIComponent(name)}`, { method: "POST", body: blob, headers: { "Content-Type": blob.type } }),
+  uploadNamed: async (blob: Blob, name: string, signal?:AbortSignal,year?:number) => {
+    const bytes=signal&&year?await preparedMediaPart(name,year,blob):blob;
+    signal?.throwIfAborted();
+    return call<{ src: string }>(`/uploads?name=${encodeURIComponent(name)}${year?`&year=${year}`:""}`, { method: "POST", body: bytes,signal, headers: { "Content-Type": bytes.type } });
+  },
   upload: async (blob: Blob, width?: number, height?: number) => {
     const q = new URLSearchParams();
     if (width) q.set("w", String(width));

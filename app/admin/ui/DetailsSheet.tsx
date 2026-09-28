@@ -9,6 +9,7 @@ import { PageSwitch } from "./bits";
 import type { Meta } from "./Editor";
 import { FontsEditor, ShareImageField } from "./MetaEditors";
 import Sheet from "./Sheet";
+import AdminSelect from "./AdminSelect";
 
 /*
  * Everything about a post that isn't its words: the URL, tags, the cover's
@@ -72,6 +73,12 @@ export default function DetailsSheet({
 
   return (
     <Sheet open={open} onClose={onClose} title="Details" description="URL, tags, fonts, cover and previews.">
+      <section className="editorial-fields">
+        <AdminSelect label="Editorial stage" value={meta.editorial?.stage??"drafting"} options={[{value:"idea",label:"Idea"},{value:"drafting",label:"Drafting"},{value:"review",label:"In review"},{value:"ready",label:"Ready"}]} onValueChange={stage=>onChange({editorial:{stage:stage as import("../../../cms/editorial").Editorial["stage"],reviewAt:meta.editorial?.reviewAt??null,timezone:"UTC"}})}/>
+        <label className="field"><span className="field-label">Review due (UTC)</span><input className="field-input" type="datetime-local" value={meta.editorial?.reviewAt?.slice(0,16)??""} onChange={e=>{const value=e.target.value;if(!value||Number.isFinite(Date.parse(value+"Z")))onChange({editorial:{stage:meta.editorial?.stage??"drafting",reviewAt:value?new Date(value+"Z").toISOString():null,timezone:"UTC"}});}}/></label>
+        <p className="field-help">Private review date. Publication is scheduled separately.</p>
+        {doc.publicationReceipt?<p className="field-help" title={doc.publicationReceipt.publishedAt}>Published source {doc.publicationReceipt.sourceUpdatedAt} · Git {doc.publicationReceipt.commit.slice(0,8)}</p>:null}
+      </section>
       <section className="field">
         <label className="field-label" htmlFor="slug">
           URL

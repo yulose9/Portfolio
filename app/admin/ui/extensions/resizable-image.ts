@@ -14,16 +14,21 @@ export const ResizableImage = Image.extend({
       const update = view.update?.bind(view);
       let width = props.node.attrs.width;
       let height = props.node.attrs.height;
+      const applySize = (w: unknown,h: unknown) => {
+        const img=(view.dom as HTMLElement).querySelector("img");
+        if(!img)return;
+        for(const [key,value] of [["width",w],["height",h]] as const){
+          if(Number(value)>0){img.setAttribute(key,String(Math.round(Number(value))));img.style[key]=`${Number(value)}px`;}
+          else {img.removeAttribute(key);img.style[key]="";}
+        }
+      };
+      if(Number(width)>0)applySize(width,height);
       view.update = (node, decorations, innerDecorations) => {
         const accepted = update?.(node, decorations, innerDecorations) ?? false;
         if (accepted && (node.attrs.width !== width || node.attrs.height !== height)) {
           // The upstream view sizes during dragging, but does not apply later
           // attribute changes (numeric input, reset and undo) to its image.
-          const img = (view.dom as HTMLElement).querySelector("img");
-          if (img) {
-            img.style.width = node.attrs.width ? `${Number(node.attrs.width)}px` : "";
-            img.style.height = node.attrs.height ? `${Number(node.attrs.height)}px` : "";
-          }
+          applySize(node.attrs.width,node.attrs.height);
           width = node.attrs.width;
           height = node.attrs.height;
         }

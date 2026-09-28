@@ -1,4 +1,236 @@
 /* Shared form controls use the same material and density as admin menus. */
+.import-preview {
+  white-space: pre-wrap;
+  max-height: 45vh;
+  overflow: auto;
+  background: var(--a-fill-2);
+  border: 1px solid var(--a-line);
+  border-radius: 8px;
+  padding: 14px;
+  font: inherit;
+  margin: 16px 0;
+}
+.media-library article {
+  display: flex;
+  gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--a-line);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.media-library article > div {
+  min-width: 0;
+}
+.media-library img {
+  width: 96px;
+  height: 72px;
+  object-fit: contain;
+  flex: none;
+  background: var(--a-fill-2);
+  border-radius: 6px;
+  outline: 1px solid #0000001a;
+}
+.media-library small {
+  display: block;
+  color: var(--a-ink-2);
+  margin: 6px 0;
+}
+.research-diff > div {
+  white-space: pre-wrap;
+  max-height: 280px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--a-line);
+  border-radius: 8px;
+}
+.research-diff ins {
+  background: #dcfce7;
+  text-decoration: none;
+}
+.research-diff del {
+  background: #fee2e2;
+}
+.writing-search-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--a-line);
+}
+.writing-search-filters .field {
+  margin: 0;
+  font-size: 12px;
+  gap: 7px;
+}
+.writing-search-filters input,
+.page-tree input {
+  min-height: 38px;
+  border: 1px solid var(--a-line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  color: var(--a-ink);
+  width: 100%;
+}
+.page-tree {
+  font-size: 13px;
+  max-width: 360px;
+  position: relative;
+}
+.page-tree > summary {
+  cursor: pointer;
+  padding: 9px 12px;
+  border: 1px solid var(--a-line);
+  border-radius: 8px;
+}
+.page-tree nav {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(360px, 85vw);
+  max-height: 60vh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  z-index: 35;
+  background: #fff;
+  border: 1px solid var(--a-line);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 8px 28px #00000014;
+}
+.page-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 12px;
+}
+.page-tree nav > ul {
+  padding: 10px 0 0;
+}
+.page-tree li {
+  margin: 2px 0;
+}
+.page-tree summary {
+  min-height: 36px;
+  padding: 8px;
+  cursor: pointer;
+}
+.page-tree small {
+  margin-left: 8px;
+  color: var(--a-ink-2);
+}
+.page-tree-link {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 38px;
+  width: 100%;
+  padding: 8px;
+  text-align: left;
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+.page-tree-link:focus-visible,
+.page-location button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+.page-location {
+  max-width: 880px;
+  margin: 16px auto;
+  padding: 12px 20px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--a-line);
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.page-location nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+.page-location nav button {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.page-location summary {
+  cursor: pointer;
+}
+.page-move {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+  padding: 12px 0;
+}
+.page-location p {
+  flex-basis: 100%;
+}
+.media-jobs {
+  max-width: 880px;
+  margin: 24px auto;
+  padding: 18px 20px;
+  border: 1px solid var(--a-line);
+  border-radius: 12px;
+  font-size: 13px;
+}
+.media-jobs h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.media-jobs > p {
+  color: var(--a-ink-2);
+}
+.media-job {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 14px 0;
+  border-top: 1px solid var(--a-line);
+  margin-top: 12px;
+}
+.media-job > span {
+  flex: 1;
+  min-width: 160px;
+  overflow-wrap: anywhere;
+}
+.media-job small {
+  display: block;
+  margin-top: 4px;
+  color: var(--a-ink-2);
+}
+.editorial-fields {
+  display: grid;
+  gap: 14px;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--a-line);
+}
+.sheet-body > .field {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (hover: hover) and (pointer: fine) {
+  .page-tree-link:hover {
+    background: var(--a-fill);
+  }
+}
+@media (max-width: 600px) {
+  .media-jobs {
+    margin: 16px 12px;
+  }
+  .page-location {
+    padding: 12px;
+  }
+  .page-tree-link,
+  .page-tree summary,
+  .media-job button {
+    min-height: 44px;
+  }
+}
 .admin-select-field {
   display: grid;
   gap: 7px;

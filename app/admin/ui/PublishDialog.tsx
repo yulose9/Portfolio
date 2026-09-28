@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Warning } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useState,useEffect } from "react";
 
 import { isValidSlug } from "../../../cms/format";
 import { toast } from "../../lib/toast";
@@ -10,6 +10,7 @@ import { exactTime, PageSwitch } from "./bits";
 import type { Meta } from "./Editor";
 import DateTimePicker from "./DateTimePicker";
 import Sheet from "./Sheet";
+import { publicationChecks } from "../../../cms/editorial";
 
 /*
  * Publish, with the checks in front of you rather than as errors after:
@@ -57,18 +58,28 @@ export default function PublishDialog({
   const [when, setWhen] = useState<"now" | "later">("now");
   const [at, setAt] = useState<Date>(tomorrowMorning);
   const [busy, setBusy] = useState(false);
+  const [review,setReview]=useState<{notes:number;missing:number;error:string}|null>(null);
+  useEffect(()=>{
+    if(!open)return;let live=true;
+    void Promise.all([api.research(),api.references(doc.id)]).then(([research,refs])=>{if(live)setReview({notes:research.items.filter(i=>i.kind==="review"&&i.pageId===doc.id&&!i.resolved).length,missing:refs.outgoing.filter(r=>r.missing).length,error:""});}).catch(()=>{if(live)setReview({notes:0,missing:0,error:"Could not load reference and review checks. Reopen this panel to retry."});});
+    return()=>{live=false;};
+  },[open,doc.id]);
 
   // Each time it opens, start from the post's own state.
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
     if (open) {
+      setReview(null);
       setWhen(scheduled ? "later" : "now");
       if (scheduled && doc.publishAt) setAt(new Date(doc.publishAt));
     }
   }
 
   const checks: Check[] = [
+    {label:"Reference checks",ok:!!review&&!review.error&&!review.missing,blocking:true,hint:review?.error||(review?.missing?"Resolve unavailable page references before publishing.":!review?"Checking private references…":undefined)},
+    {label:"Review notes resolved",ok:!!review&&!review.notes,blocking:false,hint:review?.notes?`${review.notes} unresolved private review notes.`:undefined},
+    ...publicationChecks({body}),
     { label: "Title", ok: Boolean(meta.title.trim()), blocking: true },
     { label: "Standfirst", ok: Boolean(meta.dek.trim()), blocking: false, hint: "Recommended: it's what search and link previews show." },
     ...(meta.cover ? [{ label: "Cover alt text", ok: Boolean(meta.cover.alt.trim()), blocking: true }] : []),

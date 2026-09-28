@@ -4,6 +4,7 @@ import { livePosts } from "../../../../cms/server/publish";
 import { createDraft, getDraft, listDrafts } from "../../../../cms/server/store";
 import { summarize } from "../../../../cms/server/summary";
 import { publishedFingerprint } from "../../../../cms/published-fingerprint";
+import { applyParent, readHierarchy } from "../../../../cms/server/hierarchy";
 
 /** Every post: the R2 working copies, plus any live file never opened here. */
 export const onRequestGet: AdminFunction = async ({ env }) => {
@@ -11,7 +12,9 @@ export const onRequestGet: AdminFunction = async ({ env }) => {
   // Reading the list must never permanently delete content.
   const drafts = all;
   const known = new Set(drafts.map((d) => d.id));
+  const hierarchy=(await readHierarchy(env)).value;
   const posts = [...drafts, ...live.filter((p) => !known.has(p.id)).map(postToDraft)]
+    .map(p=>applyParent(p,hierarchy))
     .map(summarize)
     .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
   return json({ posts });

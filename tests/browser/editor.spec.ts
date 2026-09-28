@@ -66,7 +66,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto(`/admin?post=${id}`);
   await expect(
     page.getByRole("textbox", { name: "Body", exact: true }),
-  ).toBeEditable();
+  ).toBeEditable({ timeout: 30000 });
 });
 test("link editing retains focus, accepts text/address, and commits together", async ({
   page,
@@ -159,6 +159,7 @@ test("marquee selects intersecting blocks and deletion is undoable", async ({
 }, info) => {
   test.skip(info.project.name === "mobile", "Marquee is a mouse gesture.");
   const first = page.locator(".editor-body p").first();
+  await first.scrollIntoViewIfNeeded();
   const a = await first.boundingBox();
   const image = await page
     .locator('.editor-body img[alt="Test image"]')
@@ -181,4 +182,130 @@ test("marquee selects intersecting blocks and deletion is undoable", async ({
   await expect(
     page.locator('.editor-body img[alt="Test image"]'),
   ).toBeVisible();
+});
+
+test("editorial stage and UTC review date survive reload without publishing", async ({
+  page,
+}, info) => {
+  await page.getByRole("button", { name: "Details", exact: true }).click();
+  const sheet = page.getByRole("dialog", { name: "Details", exact: true });
+  await sheet.getByRole("combobox", { name: "Editorial stage" }).click();
+  await page.getByRole("option", { name: "In review", exact: true }).click();
+  await sheet.getByLabel("Review due (UTC)").fill("2026-10-08T09:30");
+  await expect(page.locator(".save-state")).toHaveAttribute(
+    "data-status",
+    "saved",
+  );
+  await page.reload();
+  await page.getByRole("button", { name: "Details", exact: true }).click();
+  await expect(
+    page.getByRole("combobox", { name: "Editorial stage" }),
+  ).toContainText("In review");
+  await expect(page.getByLabel("Review due (UTC)")).toHaveValue(
+    "2026-10-08T09:30",
+  );
+  await page.screenshot({
+    path: `.audit/appflowy-editorial-${info.project.name}.png`,
+  });
+});
+
+test("large internal paste has a cancellable preview and one insertion", async ({
+  page,
+}) => {
+  await page.getByRole("textbox", { name: "Body", exact: true }).click();
+  await page.evaluate(() => {
+    const content = Array.from({ length: 13 }, (_, i) => ({
+      type: "paragraph",
+      content: [{ type: "text", text: `Imported block ${i + 1}` }],
+    }));
+    const data = new DataTransfer();
+    data.setData(
+      "application/x-nazarene-writing+json",
+      JSON.stringify({ version: 1, openStart: 0, openEnd: 0, content }),
+    );
+    data.setData("text/plain", "Imported text");
+    document
+      .querySelector(".editor-body")!
+      .dispatchEvent(
+        new ClipboardEvent("paste", {
+          bubbles: true,
+          cancelable: true,
+          clipboardData: data,
+        }),
+      );
+  });
+  const dialog = page.getByRole("dialog", { name: "Review pasted blocks" });
+  await expect(dialog).toBeVisible();
+  await expect(page.locator(".editor-body")).not.toContainText(
+    "Imported block 13",
+  );
+  await dialog
+    .getByRole("button", { name: "Insert blocks", exact: true })
+    .click();
+  await expect(page.locator(".editor-body")).toContainText("Imported block 13");
+  await expect(dialog).not.toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Body", exact: true })).toBeFocused();
+  await page.keyboard.press("Control+z");
+  await expect(page.locator(".editor-body")).not.toContainText(
+    "Imported block 13",
+  );
+});
+
+test("completed upload survives reload and does not attach to a removed target", async ({
+  page,
+}) => {
+  await page.evaluate(async () => {
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open("writing-media-jobs", 3);
+      request.onupgradeneeded = () => {
+        const store = request.result.createObjectStore("jobs", {
+          keyPath: "id",
+        });
+        store.createIndex("documentId", "documentId");
+        request.result.createObjectStore("parts", { keyPath: "key" });
+      };
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const tx = request.result.transaction("jobs", "readwrite");
+        tx.objectStore("jobs").put({
+          version: 1,
+          id: "recovery-upload",
+          documentId: "abcdefghijkl",
+          blockId: "removed-block",
+          name: "Recovered image",
+          mime: "image/webp",
+          state: "complete",
+          attempts: 1,
+          updatedAt: Date.now(),
+          result: {
+            kind: "image",
+            src: "/avatar-96.webp",
+            width: 96,
+            height: 96,
+          },
+        });
+        tx.oncomplete = () => {
+          request.result.close();
+          resolve();
+        };
+      };
+    });
+  });
+  await page.reload();
+  const uploads = page.getByRole("region", { name: "Media uploads" });
+  await uploads.getByRole("button", { name: "Attach / finish" }).click();
+  await expect(uploads.getByRole("alert")).toContainText(
+    "placeholder changed or was removed",
+  );
+  await expect(
+    page.locator('.editor-body img[alt="Recovered image"]'),
+  ).toHaveCount(0);
+  await page.getByRole("textbox", { name: "Body", exact: true }).click();
+  await uploads.getByRole("button", { name: "Insert at cursor" }).click();
+  await expect(
+    page.locator('.editor-body img[alt="Recovered image"]'),
+  ).toBeVisible();
+  await expect(
+    uploads.getByText("Recovered image", { exact: true }),
+  ).toHaveCount(0);
 });

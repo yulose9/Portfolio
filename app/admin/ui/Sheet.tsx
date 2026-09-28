@@ -15,6 +15,7 @@ export default function Sheet({
   description,
   variant = "side",
   className = "",
+  finalFocus,
   children,
 }: {
   open: boolean;
@@ -23,13 +24,14 @@ export default function Sheet({
   description?: string;
   variant?: "side" | "center";
   className?: string;
+  finalFocus?: React.ComponentProps<typeof Dialog.Popup>["finalFocus"];
   children: React.ReactNode;
 }) {
   return (
     <Dialog.Root open={open} onOpenChange={(next) => !next && onClose()}>
       <Dialog.Portal>
         <Dialog.Backdrop className="sheet-backdrop" data-variant={variant} />
-        <Dialog.Popup className={`sheet ${className}`} data-variant={variant}>
+        <Dialog.Popup className={`sheet ${className}`} data-variant={variant} finalFocus={finalFocus}>
           <header className="sheet-header">
             <div>
               <Dialog.Title className="sheet-title">{title}</Dialog.Title>

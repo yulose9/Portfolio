@@ -118,6 +118,7 @@ export default function ResearchWorkspace({
         {p.status}
         {p.dirty ? " · Unpublished edits" : ""}
         {p.publishAt ? ` · ${new Date(p.publishAt).toLocaleString()}` : ""}
+        {p.editorial?.reviewAt ? ` · Review due ${new Date(p.editorial.reviewAt).toLocaleDateString()}` : ""}
       </span>
     </button>
   );
@@ -313,18 +314,14 @@ export default function ResearchWorkspace({
         ) : null}
         {loaded && view === "board" ? (
           <div className="research-board">
-            {(["draft", "scheduled", "published"] as const).map((status) => (
+            {(["idea", "drafting", "review", "ready"] as const).map((status) => (
               <section key={status} data-status={status}>
                 <h3>
-                  {status === "draft"
-                    ? "Drafts"
-                    : status === "scheduled"
-                      ? "Scheduled"
-                      : "Published"}{" "}
-                  <span>{posts.filter((p) => p.status === status).length}</span>
+                  {{idea:"Ideas",drafting:"Drafting",review:"In review",ready:"Ready"}[status]}{" "}
+                  <span>{posts.filter((p) => (p.editorial?.stage??"drafting") === status).length}</span>
                 </h3>
-                {posts.filter((p) => p.status === status).map(postRow)}
-                {!posts.some((p) => p.status === status) ? (
+                {posts.filter((p) => (p.editorial?.stage??"drafting") === status).map(postRow)}
+                {!posts.some((p) => (p.editorial?.stage??"drafting") === status) ? (
                   <p className="research-help">No {status} pages.</p>
                 ) : null}
               </section>

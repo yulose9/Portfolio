@@ -94,6 +94,8 @@ export type DraftStatus = "draft" | "scheduled" | "published";
  * published snapshot of it.
  */
 export type Draft = {
+  editorial?: import("./editorial").Editorial;
+  publicationReceipt?: {commit:string;sourceUpdatedAt:string;fingerprint:string|null;publishedAt:string};
   /** Canonical editing tree, with its derived Markdown checkpoint. Private, never front matter. */
   editorDocument?: import("./editor-document").EditorDocument | null;
   /** SHA-256 of the last observed public file, to detect edits made in GitHub. */

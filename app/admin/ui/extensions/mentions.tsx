@@ -84,8 +84,8 @@ export function Mentions(currentId:()=>string) {
     renderHTML:({node})=>node.attrs.kind==="date"
       ? ["a",{href:dateHref(node.attrs as MentionDate)},`@${fullMentionDate(node.attrs as MentionDate)}`]
       : ["a",{href:`#page=${node.attrs.id}`},`@${node.attrs.label}`],
-    markdownTokenizer:{name:"mention",level:"inline",start:src=>src.indexOf("[@"),tokenize:src=>{
-      const match=/^\[@([^\]\n]*)\]\((#(?:date|page)=[^)\s]+)\)/.exec(src);
+    markdownTokenizer:{name:"mention",level:"inline",start:src=>src.search(/\[@?[^\]\n]*\]\(#(?:date|page)=/),tokenize:src=>{
+      const match=/^\[@?([^\]\n]*)\]\((#(?:date|page)=[^)\s]+)\)/.exec(src);
       const attrs=match?fromHref(match[2],match[1]):null;
       return match&&attrs?{type:"mention",raw:match[0],mentionAttrs:attrs}:undefined;
     }},

@@ -12,6 +12,7 @@
     "start": "next start",
     "lint": "eslint app --quiet",
     "typecheck": "tsc --noEmit",
+    "typecheck:api": "tsc -p functions/tsconfig.json",
     "test": "node --loader ./tests/typescript-loader.mjs --test tests/*.test.mjs",
     "test:browser": "playwright test"
   },

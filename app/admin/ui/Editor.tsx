@@ -97,6 +97,13 @@ import PreviewSheet, { PageView } from "./PreviewSheet";
 import TagsInline from "./TagsInline";
 import Sheet from "./Sheet";
 import ResearchPanel from "./ResearchPanel";
+import MediaJobs from "./MediaJobs";
+import MediaLibrary from "./MediaLibrary";
+import PageLocation from "./PageLocation";
+import { CLIPBOARD_TYPE, readClipboard } from "../../../cms/clipboard";
+import ImportReview from "./ImportReview";
+import { WritingClipboard, pasteWritingClipboard } from "./extensions/clipboard";
+import { saveMediaJob, pendingMediaLabel } from "./media-journal";
 import { InteractionHighlight } from "./extensions/interaction-highlight";
 import { SlashCommand, slashItems, type SlashItem } from "./slash";
 
@@ -114,9 +121,10 @@ import { SlashCommand, slashItems, type SlashItem } from "./slash";
  * touches git until Publish.
  */
 
-export type Meta = Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover" | "icon" | "authors" | "fonts" | "page" | "ogImage" | "publishedAt">;
+export type Meta = Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover" | "icon" | "authors" | "fonts" | "page" | "ogImage" | "publishedAt" | "editorial">;
 
 const metaOf = (d: Draft): Meta => ({
+  editorial:d.editorial??{stage:"drafting",reviewAt:null,timezone:"UTC"},
   title: d.title,
   slug: d.slug,
   dek: d.dek,
@@ -130,7 +138,7 @@ const metaOf = (d: Draft): Meta => ({
   publishedAt: d.publishedAt,
 });
 
-export type Panel = null | "details" | "revisions" | "publish" | "preview" | "research";
+export type Panel = null | "details" | "revisions" | "publish" | "preview" | "research" | "media";
 
 export type OpenOptions = { q?: string; n?: number; panel?: Panel; block?:string };
 
@@ -359,6 +367,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
         },
       }),
       Markdown,
+      WritingClipboard,
       TaskList,
       TaskItem.configure({ nested: true }),
       TableKit.configure({ table: { resizable: false } }),
@@ -427,6 +436,9 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
       transformPastedHTML: cleanPastedHtml,
       handlePaste: (view, event) => {
         const data = event.clipboardData;
+        const internal=data?.getData(CLIPBOARD_TYPE);
+        if(!plainPaste.current&&internal){const parsed=readClipboard(internal);if(parsed&&parsed.content.length>12){view.dom.dispatchEvent(new CustomEvent("writing:review-import",{detail:internal}));return true;}}
+        if(!plainPaste.current&&internal&&pasteWritingClipboard(view,internal))return true;
         const files = mediaFiles(data?.files);
         if (files.length) {
           void insertImages.current(files);
@@ -480,13 +492,20 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
   useEffect(() => {
     insertImages.current = async (files, pos) => {
       if (!editor) return;
-      for (const file of files) {
-        const kind = kindOf(file);
-        const up = await withProgress(kind === "video" ? "Adding video" : kind === "audio" ? "Adding audio" : file.type === "image/gif" ? "Adding GIF" : "Adding image", (p) => uploadMedia(file, p));
-        if (up) editor.chain().focus().insertContentAt(pos ?? editor.state.selection.to, mediaNode(up, file.name)).run();
-      }
+      let insertion=pos??editor.state.selection.to;
+      const map=({transaction}:{transaction:import("@tiptap/pm/state").Transaction})=>{insertion=transaction.mapping.map(insertion,1);};
+      editor.on("transaction",map);
+      try {for (const file of files) {
+        const blockId=crypto.randomUUID(), jobId=crypto.randomUUID();
+        try {
+          if(file.size>128*1024*1024)throw new Error("Choose a file below 128 MB for recoverable uploads.");
+          await saveMediaJob({version:1,id:jobId,documentId:initial.id,blockId,name:file.name,mime:file.type,file,state:"queued",attempts:0,updatedAt:Date.now()});
+          if(editor.isDestroyed)return;
+          editor.chain().focus().insertContentAt(insertion,{type:"paragraph",attrs:{blockId},content:[{type:"text",text:pendingMediaLabel(file.name)}]}).run();
+        } catch(error) {toast.add({type:"error",title:"Could not preserve this upload",description:error instanceof Error?error.message:"Local storage unavailable. Choose the file again."});}
+      }}finally{editor.off("transaction",map);}
     };
-  }, [editor]);
+  }, [editor,initial.id]);
 
   useEffect(() => {
     openFind.current = (query, replace) => {
@@ -804,6 +823,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
       { id: "save", group: "Post", title: "Keep a revision", keys: "⌘S", icon: <FloppyDisk {...CI} />, keywords: ["save", "snapshot", "version"], run: () => void flush(true) },
       { id: "history", group: "Post", title: "History", icon: <ClockCounterClockwise {...CI} />, keywords: ["revisions", "versions", "restore", "undo"], run: () => setPanel("revisions") },
       { id: "details", group: "Post", title: "Details", keys: "⌘.", icon: <SlidersHorizontal {...CI} />, keywords: ["slug", "url", "cover", "fonts", "seo", "settings"], run: () => setPanel("details") },
+      { id: "media-library", group: "Post", title: "Media library", icon: <ImageSquare {...CI} />, keywords: ["assets", "images", "uploads"], run: () => setPanel("media") },
       {
         id: "page",
         group: "Post",
@@ -991,6 +1011,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
                 History
               </MItem>
               <MLabel>View</MLabel>
+              <MItem onSelect={()=>setPanel("media")}>Media library</MItem>
               <MItem icon={modes.focus ? <Check size={15} weight="bold" /> : <span className="menu-check-space" />} onSelect={() => toggleMode("focus")} closeOnClick={false}>
                 Focus mode
               </MItem>
@@ -1032,6 +1053,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
           </button>
         </div>
       </header>
+      <PageLocation id={initial.id} editor={editor} beforeSave={()=>flush()}/>
 
       {editor ? <FindBar editor={editor} request={view === "edit" ? find : null} onClose={() => setFind(null)} /> : null}
 
@@ -1209,6 +1231,13 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
         </div>
       </Sheet>
       <ResearchPanel open={panel==="research"} onClose={()=>setPanel(null)} doc={doc} editor={editor} beforeSave={()=>flush()}/>
+      <MediaJobs documentId={initial.id} editor={editor} beforeSave={()=>flush()} enabled={recoveryReady&&!recovery}/>
+      <ImportReview editor={editor}/>
+      <MediaLibrary open={panel==="media"} onClose={()=>setPanel(null)} onInsert={asset=>{
+        if(!editor)return;
+        editor.chain().focus().insertContent(asset.type.startsWith("image/")?{type:"image",attrs:{src:asset.src,alt:""}}:{type:"media",attrs:{src:asset.src,kind:asset.type.startsWith("video/")?"video":"audio",caption:""}}).run();setPanel(null);
+      }}/>
+
       <PreviewSheet
         open={panel === "preview"}
         onClose={() => setPanel(null)}

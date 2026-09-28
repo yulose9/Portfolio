@@ -18,6 +18,7 @@ export default function BlockMarquee({editor}:{editor:Editor}) {
       const bounds=editor.view.dom.getBoundingClientRect();
       if(e.clientY<bounds.top || e.clientY>bounds.bottom+40)return;
       if(!e.altKey && e.clientX>bounds.left && e.clientX<bounds.right && e.target!==editor.view.dom)return;
+      if(e.altKey)e.preventDefault();
       cleanup();
       const start={x:e.pageX,y:e.pageY};let point={x:e.clientX,y:e.clientY};let active=false;let frame=0;
       const box=document.createElement("div");box.className="block-marquee";box.setAttribute("aria-hidden","true");
@@ -48,8 +49,8 @@ export default function BlockMarquee({editor}:{editor:Editor}) {
       editor.on("transaction",map);window.addEventListener("scroll",draw,{passive:true});
       window.addEventListener("pointermove",move,{passive:false});window.addEventListener("pointerup",end,{once:true});window.addEventListener("pointercancel",end,{once:true});window.addEventListener("keydown",key);frame=requestAnimationFrame(tick);
     };
-    root.addEventListener("pointerdown",down);
-    return()=>{cleanup();root.removeEventListener("pointerdown",down);};
+    root.addEventListener("pointerdown",down,true);
+    return()=>{cleanup();root.removeEventListener("pointerdown",down,true);};
   },[editor]);
   return null;
 }

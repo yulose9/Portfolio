@@ -8,6 +8,7 @@ import { replaceLink } from "./replace-link";
 import { mapInteractionRange } from "./interaction-range";
 import type { Transaction } from "@tiptap/pm/state";
 import { interactionHighlight } from "./extensions/interaction-highlight";
+import { ownInteraction } from "./editor-interactions";
 
 type Target = {from:number; to:number; href:string; left:number; top:number};
 export default function LinkHover({editor}: {editor:Editor}) {
@@ -20,6 +21,7 @@ export default function LinkHover({editor}: {editor:Editor}) {
   const input = useRef<HTMLInputElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const editingRef = useRef(false);
+  useEffect(()=>{if(!editing)return;const lease=ownInteraction(editor,()=>{editingRef.current=false;setEditing(false);setTarget(null);});return()=>lease.release();},[editor,editing]);
   useEffect(() => { editingRef.current = editing; }, [editing]);
   const cancel = useCallback(() => clearTimeout(timer.current), []);
   const closeLater = useCallback(() => {

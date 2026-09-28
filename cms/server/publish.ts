@@ -16,7 +16,8 @@
 
 import { draftToPost, isValidSlug, parsePost, postPath, serializePost, CONTENT_DIR, type Draft, type Post } from "../format";
 import { commit, listDir, readFile, type Change, type GitHubEnv } from "./github";
-import { putDraft, setScheduled, snapshot, type StoreEnv } from "./store";
+import { getDraft, putDraft, putDraftIfVersion, setScheduled, snapshot, type StoreEnv } from "./store";
+import { publicationChecks } from "../editorial";
 import { publishedFingerprint } from "../published-fingerprint";
 import { indexDocument } from "../research";
 
@@ -76,6 +77,7 @@ function slugOwner(posts: Post[], slug: string, self: string): Post | undefined 
 }
 
 function validate(draft: Draft) {
+  if(publicationChecks(draft).some(c=>c.blocking&&!c.ok))throw new PublishError("Finish or remove pending media before publishing.");
   if (!draft.title.trim()) throw new PublishError("Give it a title first.");
   if (!isValidSlug(draft.slug))
     throw new PublishError("The URL can only use lowercase letters, numbers and single hyphens.");
@@ -133,9 +135,16 @@ function preparePublish(posts: Post[], draft: Draft, now: string, taken: Set<str
   return { draft, next, changes, summary };
 }
 
-async function settle(env: CmsEnv, prepared: Prepared[], label: string) {
+async function settle(env: CmsEnv, prepared: Prepared[], label: string, commitId:string) {
   for (const p of prepared) {
-    await putDraft(env, p.next);
+    p.next.publicationReceipt={commit:commitId,sourceUpdatedAt:p.draft.updatedAt,fingerprint:p.next.publishedFingerprint??null,publishedAt:p.next.updatedAt};
+    await env.WRITING.put(`receipts/${p.draft.id}/${commitId}.json`,JSON.stringify(p.next.publicationReceipt));
+    const current=await getDraft(env,p.draft.id);
+    if(!current)throw new PublishError("Git was updated, but the draft was removed concurrently. The publication receipt was retained.",409);
+    if(current.updatedAt!==p.draft.updatedAt){
+      p.next={...current,status:"published",liveSlug:p.next.liveSlug,publishedAt:p.next.publishedAt,publishAt:null,redirectFrom:p.next.redirectFrom,publishedFingerprint:p.next.publishedFingerprint,publicationReceipt:p.next.publicationReceipt,dirty:true,updatedAt:new Date(Math.max(Date.now(),Date.parse(current.updatedAt)+1)).toISOString()};
+    }
+    await putDraftIfVersion(env,p.next,current.updatedAt);
     await setScheduled(env, p.draft.id, null);
     await snapshot(env, p.next, true, label);
   }
@@ -146,9 +155,9 @@ export async function publish(env: CmsEnv, draft: Draft, label = "Published"): P
   const now = new Date().toISOString();
   const prepared = preparePublish(await livePosts(env), draft, now, new Set());
   await guardPublishedSource(env,prepared);
-  await commit(env, prepared.summary, prepared.changes, prepared.expected);
+  const commitId=await commit(env, prepared.summary, prepared.changes, prepared.expected);
   await forgetLive(env);
-  await settle(env, [prepared], label);
+  await settle(env, [prepared], label,commitId);
   return prepared.next;
 }
 
@@ -174,9 +183,9 @@ export async function publishMany(env: CmsEnv, drafts: Draft[]): Promise<{ done:
   }
   if (prepared.length) {
     const message = prepared.length === 1 ? prepared[0].summary : `writing: publish ${prepared.length} posts\n\n${prepared.map((p) => `- ${p.summary.replace(/^writing: /, "")}`).join("\n")}`;
-    await commit(env, message, prepared.flatMap((p) => p.changes),prepared.flatMap(p=>p.expected??[]));
+    const commitId=await commit(env, message, prepared.flatMap((p) => p.changes),prepared.flatMap(p=>p.expected??[]));
     await forgetLive(env);
-    await settle(env, prepared, "Published");
+    await settle(env, prepared, "Published",commitId);
   }
   return { done: prepared.map((p) => p.next), failed };
 }

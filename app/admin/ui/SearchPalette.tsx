@@ -9,6 +9,7 @@ import { relative, StatusDot, statusLabel } from "./bits";
 import { Fluent } from "./extensions/emoji";
 import { keys } from "./menu";
 import { allCommands, matches, type Command } from "./registry";
+import AdminSelect from "./AdminSelect";
 
 /*
  * ⌘K: search every post, drafts and live, by title, standfirst and full text.
@@ -49,6 +50,10 @@ export default function SearchPalette({
   const [commands, setCommands] = useState<Command[]>([]);
   const refresh = () => setCommands(allCommands());
   const [active, setActive] = useState(0);
+  const [mode,setMode]=useState("phrase");
+  const [status,setStatus]=useState("");
+  const [tag,setTag]=useState("");
+  const [scope,setScope]=useState("");
   const [query, setQuery] = useState("");
   const [wasOpen, setWasOpen] = useState(false);
   if (open !== wasOpen) {
@@ -64,7 +69,7 @@ export default function SearchPalette({
   const list = useRef<HTMLDivElement>(null);
 
   const [searchKey,setSearchKey]=useState("");
-  const nextKey=`${open}:${query}`;
+  const nextKey=`${open}:${query}:${mode}:${status}:${tag}:${scope}`;
   if(searchKey!==nextKey){setSearchKey(nextKey);setResults(null);setError("");}
 
   // Debounced, and a newer query aborts the one in flight.
@@ -76,7 +81,7 @@ export default function SearchPalette({
     const ctrl = new AbortController();
     const t = window.setTimeout(() => {
       api
-        .search(q, ctrl.signal)
+        .search(q, ctrl.signal, {mode:mode as "phrase"|"words",status,tag,root:scope ? new URLSearchParams(window.location.search).get("post") ?? "" : ""})
         .then((r) => {
           if(ctrl.signal.aborted)return;
           setResults(r.results);
@@ -88,7 +93,7 @@ export default function SearchPalette({
       window.clearTimeout(t);
       ctrl.abort();
     };
-  }, [query,open]);
+  }, [query,open,mode,status,tag,scope]);
 
   const commandQuery = query.trim().replace(/^>\s*/, "").toLowerCase();
   const onlyCommands = query.trim().startsWith(">");
@@ -106,7 +111,7 @@ export default function SearchPalette({
         { key: `${r.id}`, command: null, jump: { id: r.id, q: query.trim(), n: 0 }, result: r, hit: null },
         ...r.hits
           .filter((h) => h.field === "body")
-          .map((h) => ({ key: `${r.id}:${h.occurrence}`, command: null, jump: { id: r.id, q: query.trim(), n: h.occurrence,block:h.blockId }, result: r, hit: h })),
+          .map((h) => ({ key: `${r.id}:${h.occurrence}`, command: null, jump: { id: r.id, q: h.snippet.slice(h.start,h.start+h.length), n: h.occurrence,block:h.blockId }, result: r, hit: h })),
       ]),
     ],
     [results, query, shownCommands, onlyCommands]
@@ -168,6 +173,12 @@ export default function SearchPalette({
             <kbd className="admin-kbd">Esc</kbd>
           </div>
           <p className="search-scope">All writing · Titles, descriptions and article text <span>Type &gt; for actions</span></p>
+          <div className="writing-search-filters">
+            <AdminSelect label="Match" value={mode} onValueChange={setMode} options={[{value:"phrase",label:"Exact phrase"},{value:"words",label:"All words"}]}/>
+            <AdminSelect label="Status" value={status} onValueChange={setStatus} options={[{value:"",label:"Any status"},...['draft','scheduled','published'].map(value=>({value,label:value}))]}/>
+            <AdminSelect label="Scope" value={scope} onValueChange={setScope} options={[{value:"",label:"All pages"},{value:"page",label:"Current page and children",disabled:typeof window==="undefined" || !new URLSearchParams(window.location.search).get("post")}]}/>
+            <label className="field">Tag<input aria-label="Search tag" value={tag} onChange={e=>setTag(e.target.value)} placeholder="Any tag" maxLength={80}/></label>
+          </div>
           {error ? <p className="palette-empty" role="alert">{error}</p> : null}
           <div ref={list} className="palette-results" role="listbox" aria-label="Results">
             {!choices.length && query.trim().length >= 2 && results === null && !onlyCommands ? (

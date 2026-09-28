@@ -1,4 +1,5 @@
 "use client";
+import { ownInteraction } from "./editor-interactions";
 import ColorPicker from "./ColorPicker";
 import { setDragHandleLocked } from "./drag-handle-lock";
 
@@ -272,7 +273,16 @@ export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Edito
   const [open, setOpen] = useState(false);
   useEffect(() => {
     setDragHandleLocked(editor, open);
-    return () => setDragHandleLocked(editor, false);
+    const lease=open?ownInteraction(editor,()=>setOpen(false)):null;
+    const id=open&&target.current!==null?editor.state.doc.nodeAt(target.current)?.attrs.blockId:null;
+    const map=({transaction}:{transaction:import("@tiptap/pm/state").Transaction})=>{
+      if(!transaction.docChanged||!open)return;
+      if(id){target.current=null;transaction.doc.descendants((node,pos)=>{if(node.attrs.blockId===id){target.current=pos;return false;}});}
+      else if(target.current!==null){const next=transaction.mapping.mapResult(target.current,1);target.current=next.deleted?null:next.pos;}
+      if(target.current===null)setOpen(false);
+    };
+    editor.on("transaction",map);
+    return () => {setDragHandleLocked(editor, false);lease?.release();editor.off("transaction",map);};
   }, [editor, open]);
   const onNodeChange = useCallback(({ pos }: { pos: number }) => {
     target.current = pos >= 0 ? pos : null;

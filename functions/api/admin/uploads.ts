@@ -49,13 +49,21 @@ export const onRequestPost: AdminFunction = async ({ env, request }) => {
   } else {
     file = `${newId()}.${exts[0]}`;
   }
-  const key = `media/${new Date().getUTCFullYear()}/${file}`;
+  const year=Number(url.searchParams.get("year")??new Date().getUTCFullYear());
+  if(!Number.isInteger(year)||year<2020||year>new Date().getUTCFullYear())return fail("Invalid upload year.");
+  const key = `media/${year}/${file}`;
+  const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",new Uint8Array(bytes))),b=>b.toString(16).padStart(2,"0")).join("");
 
   const stored = await env.WRITING.put(key, bytes, {
     // Never replace an immutable public URL, even with a forged upload name.
     onlyIf: { etagDoesNotMatch: "*" },
     httpMetadata: { contentType: type, cacheControl: "public, max-age=31536000, immutable" },
+    customMetadata: {sha256:digest},
   });
-  if (!stored) return fail("That media name already exists. Upload it with a new name.", 409);
+  if (!stored) {
+    const previous=await env.WRITING.head(key);
+    if(previous?.customMetadata?.sha256===digest && previous.httpMetadata?.contentType===type)return json({src:`/${key}`});
+    return fail("That media name already exists with different content. Choose the file again to start a new upload.",409);
+  }
   return json({ src: `/${key}` }, 201);
 };

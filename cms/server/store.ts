@@ -14,6 +14,7 @@
 import { upgradeDraft, type Draft } from "../format";
 import { HttpError, ID } from "./http";
 import { indexDocument } from "../research";
+import { applyParent, readHierarchy, type Hierarchy } from "./hierarchy";
 
 export type StoreEnv = { WRITING: R2Bucket };
 
@@ -58,9 +59,9 @@ export async function draftVersion(env: StoreEnv, id: string): Promise<string | 
 const MAX_REVISIONS = 60;
 const AUTOSNAPSHOT_MS = 10 * 60 * 1000;
 
-export async function getDraft(env: StoreEnv, id: string): Promise<Draft | null> {
+export async function getDraft(env: StoreEnv, id: string, hierarchy?:Hierarchy): Promise<Draft | null> {
   const obj = await env.WRITING.get(current(id));
-  return obj ? upgradeDraft((await obj.json()) as Draft) : null;
+  return obj ? applyParent(upgradeDraft((await obj.json()) as Draft),hierarchy??(await readHierarchy(env)).value) : null;
 }
 
 export async function putDraft(env: StoreEnv, draft: Draft): Promise<void> {
@@ -102,8 +103,13 @@ export async function listDrafts(env: StoreEnv): Promise<Draft[]> {
     for (const p of page.delimitedPrefixes) ids.push(p.slice("drafts/".length, -1));
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor);
-  const drafts = await Promise.all(ids.map((id) => getDraft(env, id)));
-  return drafts.filter((d): d is Draft => d !== null);
+  const hierarchy=(await readHierarchy(env)).value;
+  const drafts:Draft[]=[];
+  for(let start=0;start<ids.length;start+=12){
+    const batch=await Promise.all(ids.slice(start,start+12).map(id=>getDraft(env,id,hierarchy)));
+    drafts.push(...batch.filter((d):d is Draft=>d!==null));
+  }
+  return drafts;
 }
 
 /**

@@ -24,6 +24,7 @@
 import { mediaName, newMediaId, type MediaKind } from "../../../cms/media";
 import { api, ApiError } from "./api";
 
+type UploadOptions = { signal?: AbortSignal; year?: number };
 export type Progress = (fraction: number, label: string) => void;
 
 export type Uploaded =
@@ -96,12 +97,11 @@ export async function uploadInlineLogo(file: File): Promise<string> {
   } finally { if (objectUrl) URL.revokeObjectURL(objectUrl); }
 }
 
-async function uploadPhoto(file: File, progress: Progress): Promise<Uploaded> {
+async function uploadPhoto(file: File, progress: Progress, id = newMediaId(), options: UploadOptions = {}): Promise<Uploaded> {
   progress(0.05, "Reading photo");
   const bitmap = await decodePhoto(file);
   const top = Math.min(bitmap.width, WIDTHS[WIDTHS.length - 1]);
   const widths = [...WIDTHS.filter((w) => w < top), top];
-  const id = newMediaId();
   // Screenshots and graphics keep more quality so text stays crisp.
   const quality = file.type === "image/png" ? 0.9 : 0.82;
   let main: { src: string; width: number; height: number } | null = null;
@@ -120,7 +120,7 @@ async function uploadPhoto(file: File, progress: Progress): Promise<Uploaded> {
     const largest = i === widths.length - 1;
     progress(0.15 + (0.8 * (i + 1)) / widths.length, `Uploading ${width}px`);
     const name = mediaName(id, largest ? { width, height } : { variant: width });
-    const res = await api.uploadNamed(blob, name);
+    const res = await api.uploadNamed(blob, name, options.signal, options.year);
     if (largest) main = { src: res.src, width, height };
   }
   bitmap.close();
@@ -130,7 +130,7 @@ async function uploadPhoto(file: File, progress: Progress): Promise<Uploaded> {
 
 /* ── GIF → looping video ─────────────────────────────────────────────── */
 
-async function gifToVideo(file: File, progress: Progress): Promise<Uploaded | null> {
+async function gifToVideo(file: File, progress: Progress, id = newMediaId(), options: UploadOptions = {}): Promise<Uploaded | null> {
   if (typeof ImageDecoder === "undefined" || typeof VideoEncoder === "undefined") return null;
   const decoder = new ImageDecoder({ data: await file.arrayBuffer(), type: "image/gif" });
   await decoder.tracks.ready;
@@ -173,17 +173,16 @@ async function gifToVideo(file: File, progress: Progress): Promise<Uploaded | nu
   await output.finalize();
   decoder.close();
 
-  const id = newMediaId();
   const ext = codec === "avc" ? "mp4" : "webm";
   progress(0.85, "Uploading");
-  const video = await api.uploadNamed(new Blob([target.buffer!], { type: `video/${ext}` }), mediaName(id, { width, height }, ext));
-  const poster = posterBlob ? (await api.uploadNamed(posterBlob, mediaName(id, "poster"))).src : null;
+  const video = await api.uploadNamed(new Blob([target.buffer!], { type: `video/${ext}` }), mediaName(id, { width, height }, ext), options.signal, options.year);
+  const poster = posterBlob ? (await api.uploadNamed(posterBlob, mediaName(id, "poster"), options.signal, options.year)).src : null;
   return { kind: "video", src: video.src, poster, width, height, loop: true };
 }
 
 /* ── Video and audio ─────────────────────────────────────────────────── */
 
-async function uploadVideo(file: File, progress: Progress): Promise<Uploaded> {
+async function uploadVideo(file: File, progress: Progress, id = newMediaId(), options: UploadOptions = {}): Promise<Uploaded> {
   const mb = await import("mediabunny");
   progress(0.02, "Reading video");
   const input = new mb.Input({ source: new mb.BlobSource(file), formats: mb.ALL_FORMATS });
@@ -224,15 +223,14 @@ async function uploadVideo(file: File, progress: Progress): Promise<Uploaded> {
   }
   input.dispose();
 
-  const id = newMediaId();
   const ext = avc ? "mp4" : "webm";
   progress(0.85, "Uploading video");
-  const video = await api.uploadNamed(new Blob([target.buffer!], { type: `video/${ext}` }), mediaName(id, { width, height }, ext));
-  const poster = posterBlob ? (await api.uploadNamed(posterBlob, mediaName(id, "poster"))).src : null;
+  const video = await api.uploadNamed(new Blob([target.buffer!], { type: `video/${ext}` }), mediaName(id, { width, height }, ext), options.signal, options.year);
+  const poster = posterBlob ? (await api.uploadNamed(posterBlob, mediaName(id, "poster"), options.signal, options.year)).src : null;
   return { kind: "video", src: video.src, poster, width, height, loop: false };
 }
 
-export async function uploadAudio(file: Blob, progress: Progress, voice = true): Promise<Uploaded> {
+export async function uploadAudio(file: Blob, progress: Progress, voice = true, id = newMediaId(), options: UploadOptions = {}): Promise<Uploaded> {
   const mb = await import("mediabunny");
   progress(0.05, "Reading audio");
   const duration = await (async () => {
@@ -243,7 +241,6 @@ export async function uploadAudio(file: Blob, progress: Progress, voice = true):
       probe.dispose();
     }
   })().catch(() => 0);
-  const id = newMediaId();
   const name = (ext: string) => mediaName(id, { seconds: Math.round(duration) }, ext);
 
   // AAC in .m4a plays everywhere; Opus in WebM where there's no AAC encoder.
@@ -269,7 +266,7 @@ export async function uploadAudio(file: Blob, progress: Progress, voice = true):
     input.dispose();
     progress(0.9, "Uploading audio");
     const ext = codec === "aac" ? "m4a" : "webm";
-    const res = await api.uploadNamed(new Blob([target.buffer!], { type: codec === "aac" ? "audio/mp4" : "audio/webm" }), name(ext));
+    const res = await api.uploadNamed(new Blob([target.buffer!], { type: codec === "aac" ? "audio/mp4" : "audio/webm" }), name(ext), options.signal, options.year);
     return { kind: "audio", src: res.src, duration };
   }
 
@@ -278,26 +275,26 @@ export async function uploadAudio(file: Blob, progress: Progress, voice = true):
   const type = /mp4|m4a|aac/.test(file.type) ? "audio/mp4" : /mpeg|mp3/.test(file.type) ? "audio/mpeg" : /ogg/.test(file.type) ? "audio/ogg" : "audio/webm";
   const ext = { "audio/mp4": "m4a", "audio/mpeg": "mp3", "audio/ogg": "ogg", "audio/webm": "webm" }[type]!;
   progress(0.9, "Uploading audio");
-  const res = await api.uploadNamed(new Blob([file], { type }), name(ext));
+  const res = await api.uploadNamed(new Blob([file], { type }), name(ext), options.signal, options.year);
   return { kind: "audio", src: res.src, duration };
 }
 
 /** Any file → compressed, stripped, uploaded. */
-export async function uploadMedia(file: File, progress: Progress = () => {}): Promise<Uploaded> {
+export async function uploadMedia(file: File, progress: Progress = () => {}, id = newMediaId(), options: UploadOptions = {}): Promise<Uploaded> {
   const kind = kindOf(file);
   if (!kind) throw new ApiError("That file type can't be added. Try a photo, GIF, video or audio file.", 415);
   if (file.type === "image/svg+xml") throw new ApiError("SVGs can't be uploaded; export it as PNG or WebP.", 415);
   if (file.size > 1024 * 1024 * 1024) throw new ApiError("That file is over 1 GB.", 413);
-  if (kind === "video") return uploadVideo(file, progress);
-  if (kind === "audio") return uploadAudio(file, progress, true);
+  if (kind === "video") return uploadVideo(file, progress, id, options);
+  if (kind === "audio") return uploadAudio(file, progress, true, id, options);
   if (file.type === "image/gif") {
-    const asVideo = await gifToVideo(file, progress).catch(() => null);
+    const asVideo = await gifToVideo(file, progress, id, options).catch(e => {if(e instanceof ApiError)throw e;return null;});
     if (asVideo) return asVideo;
     if (file.size > 12 * 1024 * 1024) throw new ApiError("That GIF is too big to upload as it is, and this browser can't convert it.", 413);
-    const res = await api.uploadNamed(file, mediaName(newMediaId(), { width: 0, height: 0 }, "gif"));
+    const res = await api.uploadNamed(file, mediaName(id, { width: 0, height: 0 }, "gif"), options.signal, options.year);
     return { kind: "image", src: res.src, width: 0, height: 0 };
   }
-  return uploadPhoto(file, progress);
+  return uploadPhoto(file, progress, id, options);
 }
 
 /** Square-crop and resize, for avatars. */

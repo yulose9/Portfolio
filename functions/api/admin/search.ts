@@ -1,5 +1,6 @@
 import { fail, json, type AdminFunction } from "../../../cms/server/http";
 import { researchIndex } from "../../../cms/server/research";
+import { searchDocuments } from "../../../cms/search";
 
 /*
  * Full-text search across every post: titles, standfirsts and bodies, drafts
@@ -27,61 +28,16 @@ export function plainText(md: string): string {
     .replace(/\s+/g, " ").trim();
 }
 
-type Hit = { field: "title" | "dek" | "body"; snippet: string; start: number; length: number; occurrence: number; blockId?:string };
-
-function find(text: string, q: string, field: Hit["field"], limit: number): Hit[] {
-  const hay = text.toLowerCase();
-  const needle = q.toLowerCase();
-  const hits: Hit[] = [];
-  let from = 0;
-  let occurrence = 0;
-  while (hits.length < limit) {
-    const at = hay.indexOf(needle, from);
-    if (at === -1) break;
-    const lo = Math.max(0, at - 60);
-    const hi = Math.min(text.length, at + needle.length + 80);
-    const prefix = lo > 0 ? "…" : "";
-    const snippet = prefix + text.slice(lo, hi).replace(/\s+/g, " ") + (hi < text.length ? "…" : "");
-    const start = prefix.length + text.slice(lo, at).replace(/\s+/g, " ").length;
-    hits.push({ field, snippet, start, length: needle.length, occurrence });
-    occurrence++;
-    from = at + needle.length;
-  }
-  return hits;
-}
-
-function count(text: string, q: string): number {
-  const hay = text.toLowerCase();
-  const needle = q.toLowerCase();
-  let n = 0;
-  for (let at = hay.indexOf(needle); at !== -1; at = hay.indexOf(needle, at + needle.length)) n++;
-  return n;
-}
-
 export const onRequestGet: AdminFunction = async ({ env, request }) => {
   const q = (new URL(request.url).searchParams.get("q") ?? "").trim();
   if (q.length < 2) return fail("Type at least two characters.");
   if (q.length > 100) return fail("That search is too long.");
 
+  const params = new URL(request.url).searchParams;
+  const status=params.get("status") || "", tag=params.get("tag") || "", root=params.get("root") || "";
+  if (status && !["draft","scheduled","published"].includes(status)) return fail("Invalid search status.");
+  if (tag.length>80 || (root && !/^[a-z0-9]{12}$/.test(root))) return fail("Invalid search scope.");
   const all = await researchIndex(env);
-
-  const results = all
-    .map((d) => {
-      const body = d.text;
-      const blockHits=d.blocks.flatMap(block=>find(block.text,q,"body",3).map(hit=>({...hit,blockId:block.id}))).slice(0,3).map((hit,occurrence)=>({...hit,occurrence}));
-      const hits = [...find(d.title, q, "title", 1), ...find(d.dek, q, "dek", 1), ...(blockHits.length?blockHits:find(body, q, "body", 3))];
-      const total = count(d.title, q) + count(d.dek, q) + count(body, q);
-      return { id: d.id, title: d.title, icon: d.icon ?? null, status: d.status, dirty: d.dirty, updatedAt: d.updatedAt, total, hits };
-    })
-    .filter((r) => r.total > 0)
-    // Title matches first, then the most mentions, then the most recent.
-    .sort(
-      (a, b) =>
-        Number(b.hits.some((h) => h.field === "title")) - Number(a.hits.some((h) => h.field === "title")) ||
-        b.total - a.total ||
-        (a.updatedAt < b.updatedAt ? 1 : -1)
-    )
-    .slice(0, 30);
-
-  return json({ q, results });
+  const results = searchDocuments(all,q,{status,tag,root,mode:params.get("mode")==="words"?"words":"phrase"});
+  return json({q,results,indexVersion:2});
 };

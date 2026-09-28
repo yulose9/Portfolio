@@ -24,6 +24,7 @@ import {
   DotsThree,
 } from "@phosphor-icons/react";
 import { MenuSurface, MItem } from "./menu";
+import { diffWords } from "./diff";
 
 export const PEEK_EVENT = "writing:peek";
 type Refs = Awaited<ReturnType<typeof api.references>>;
@@ -620,6 +621,7 @@ export default function ResearchPanel({
                           }
                         />
                       </label>
+                      {items.some(i=>i.id===edit.id&&i.body!==edit.body)?<details className="research-diff"><summary>Review content changes before saving</summary><div>{diffWords(items.find(i=>i.id===edit.id)!.body,edit.body).map((piece,index)=>piece.op==="ins"?<ins key={index}>{piece.text}</ins>:piece.op==="del"?<del key={index}>{piece.text}</del>:<span key={index}>{piece.text}</span>)}</div><p>Existing article insertions stay unchanged.</p></details>:null}
                       <div className="research-actions">
                         <button
                           type="submit"
@@ -665,6 +667,7 @@ export default function ResearchPanel({
                           </span>
                         </div>
                         <p>{item.body.slice(0, 240) || "No content yet"}</p>
+                        <small title={item.lastCheckedAt??item.createdAt}>Captured {new Date(item.createdAt).toLocaleDateString()}{item.lastCheckedAt?` · Checked ${new Date(item.lastCheckedAt).toLocaleDateString()}`:" · Not checked yet"}</small>
                         {item.url ? (
                           <a
                             href={item.url}
@@ -720,6 +723,7 @@ export default function ResearchPanel({
                               <DotsThree size={20} weight="bold" aria-hidden />
                             </Menu.Trigger>
                             <MenuSurface align="end">
+                              {item.kind!=="review"?<MItem onSelect={()=>void run(async()=>{await api.saveResearch({...item,lastCheckedAt:new Date().toISOString()});await refresh();})}>Mark source checked</MItem>:null}
                               <MItem
                                 icon={<NotePencil size={16} />}
                                 onSelect={() => setEdit(item)}

@@ -1,4 +1,5 @@
 import { cleanResearchItem, type ResearchItem } from "../../../../cms/research";
+import { publishedFingerprint } from "../../../../cms/published-fingerprint";
 import {
   HttpError,
   json,
@@ -22,6 +23,7 @@ export const onRequestPut: AdminFunction<"id"> = async ({
     if (!input.base) {
       try {
         const same = cleanResearchItem(input, id, previous.updatedAt, previous);
+        same.sourceFingerprint=await publishedFingerprint(same.body)??undefined;
         if (JSON.stringify(same) === JSON.stringify(previous))
           return json({ item: previous });
       } catch {
@@ -41,6 +43,7 @@ export const onRequestPut: AdminFunction<"id"> = async ({
       e instanceof Error ? e.message : "Invalid research item.",
     );
   }
+  item.sourceFingerprint=await publishedFingerprint(item.body)??undefined;
   const written = await env.WRITING.put(key, JSON.stringify(item), {
     onlyIf: old
       ? { etagMatches: old.etag }

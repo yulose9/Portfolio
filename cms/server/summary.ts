@@ -4,6 +4,7 @@ import { readingMinutes, type Draft } from "../format";
 export function summarize(d: Draft) {
   return {
     id: d.id,
+    editorial:d.editorial??{stage:"drafting",reviewAt:null,timezone:"UTC"},
     parentId: d.parentId ?? null,
     title: d.title,
     slug: d.slug,
