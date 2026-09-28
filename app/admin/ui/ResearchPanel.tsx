@@ -10,6 +10,20 @@ import { selectionMarkdown, currentBlock } from "./commands";
 import { toast } from "../../lib/toast";
 import { usePulse } from "./live";
 import { useResearchForm } from "./use-research-form";
+import { Tabs } from "@base-ui/react/tabs";
+import { Menu } from "@base-ui/react/menu";
+import {
+  BookOpenText,
+  LinkSimple,
+  NotePencil,
+  Plus,
+  CaretDown,
+  Copy,
+  ArrowSquareOut,
+  MagnifyingGlass,
+  DotsThree,
+} from "@phosphor-icons/react";
+import { MenuSurface, MItem } from "./menu";
 
 export const PEEK_EVENT = "writing:peek";
 type Refs = Awaited<ReturnType<typeof api.references>>;
@@ -36,6 +50,18 @@ export default function ResearchPanel({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [edit, setEdit] = useResearchForm<EditItem>(`research-form:${doc.id}`);
+  const formTitle = useRef<HTMLInputElement>(null);
+  const editId = edit?.id;
+  const editKind = edit?.kind;
+  useEffect(() => {
+    if (!open || !editId || (editKind === "review" ? tab !== "review" : tab !== "library")) return;
+    const frame = requestAnimationFrame(() => {
+      formTitle.current?.focus({ preventScroll: true });
+      formTitle.current?.scrollIntoView({ block: "nearest", behavior: "instant" });
+    });
+    return () => cancelAnimationFrame(frame);
+    // Only move focus when a form opens; typing must keep its current selection.
+  }, [open, editId, editKind, tab]);
   const [peek, setPeekId] = useState<string | null>(null);
   const [preview, setPreview] = useState<Draft | null>(null);
   const [previewError, setPreviewError] = useState("");
@@ -77,13 +103,13 @@ export default function ResearchPanel({
     };
     editor.on("selectionUpdate", update);
     editor.on("transaction", map);
-    editor.on("focus",capture);
-    editor.on("update",update);
+    editor.on("focus", capture);
+    editor.on("update", update);
     return () => {
       editor.off("selectionUpdate", update);
       editor.off("transaction", map);
-      editor.off("focus",capture);
-      editor.off("update",update);
+      editor.off("focus", capture);
+      editor.off("update", update);
     };
   }, [editor]);
   const refresh = useCallback(async () => {
@@ -238,7 +264,9 @@ export default function ResearchPanel({
       const original = editor.state.doc;
       const body = selectionMarkdown(editor, range);
       if (body !== selection.current.body)
-        throw new Error("The selected text changed. Select the blocks again before extracting.");
+        throw new Error(
+          "The selected text changed. Select the blocks again before extracting.",
+        );
       if (extraction.current?.body !== body)
         extraction.current = { body, requestId: crypto.randomUUID() };
       const { post } = await api.create({
@@ -304,26 +332,32 @@ export default function ResearchPanel({
         open={open}
         onClose={onClose}
         title="Research"
+        className="research-sheet"
         description="Private references and reusable writing material."
       >
-        <div className="research-panel">
-          <div className="research-tabs" aria-label="Research sections">
+        <Tabs.Root
+          className="research-panel"
+          value={tab}
+          onValueChange={(value) => setTab(value as typeof tab)}
+        >
+          <Tabs.List className="research-tabs" aria-label="Research sections">
             {(["links", "library", "review"] as const).map((t) => (
-              <button
-                type="button"
-                className="admin-button"
-                aria-pressed={tab === t}
-                key={t}
-                onClick={() => setTab(t)}
-              >
+              <Tabs.Tab className="research-tab" value={t} key={t}>
+                {t === "links" ? (
+                  <LinkSimple size={16} aria-hidden />
+                ) : t === "library" ? (
+                  <BookOpenText size={16} aria-hidden />
+                ) : (
+                  <NotePencil size={16} aria-hidden />
+                )}
                 {t === "links"
                   ? "References"
                   : t === "library"
                     ? "Library"
                     : "Review notes"}
-              </button>
+              </Tabs.Tab>
             ))}
-          </div>
+          </Tabs.List>
           {error ? (
             <p role="alert" className="research-error">
               {error}{" "}
@@ -332,8 +366,14 @@ export default function ResearchPanel({
               </button>
             </p>
           ) : null}
-          {tab === "links" ? (
-            <>
+          <Tabs.Panel value="links" className="research-tab-panel">
+            <div className="research-block-tools">
+              <div>
+                <h3>Work with this page</h3>
+                <p className="research-help">
+                  Link to a block or give a selection its own page.
+                </p>
+              </div>
               <div className="research-actions">
                 <button
                   type="button"
@@ -341,357 +381,410 @@ export default function ResearchPanel({
                   disabled={busy}
                   onClick={copyLink}
                 >
-                  Copy block link
+                  <Copy size={15} aria-hidden /> Copy block link
                 </button>
                 <button
                   type="button"
                   className="admin-button"
-                  disabled={busy}
+                  disabled={busy || !hasSelection}
                   onClick={extract}
                 >
-                  Extract selection to child page
+                  <ArrowSquareOut size={15} aria-hidden /> Extract selection
                 </button>
               </div>
-              {doc.liveSlug ? (
-                <button
-                  type="button"
-                  className="admin-button"
-                  disabled={busy}
-                  onClick={() =>
-                    void run(async () => {
-                      if (!(await beforeSave()))
-                        throw new Error("Save your draft before comparing.");
-                      setPublished(await api.publishedSource(doc.id));
-                    })
-                  }
-                >
-                  Compare published source
-                </button>
+              {!hasSelection ? (
+                <p className="research-help">
+                  Select text in your draft to extract it.
+                </p>
               ) : null}
-              {published ? (
-                <section className="research-form">
-                  <h3>Review the GitHub version</h3>
-                  <p className="research-help">
-                    Choose explicitly before publishing. A revision of the
-                    current draft is kept with either choice.
-                  </p>
-                  <details open>
-                    <summary>Published Markdown</summary>
-                    <pre className="research-compare">
-                      {published.post?.body ?? "The file is missing."}
-                    </pre>
-                  </details>
-                  <details>
-                    <summary>Current draft</summary>
-                    <pre className="research-compare">
-                      {editor?.getMarkdown() ?? doc.body}
-                    </pre>
-                  </details>
-                  <div className="research-actions">
-                    {(["keep", "import"] as const).map((choice) => (
-                      <button
-                        key={choice}
-                        type="button"
-                        className="admin-button"
-                        disabled={
-                          busy || (choice === "import" && !published.post)
-                        }
-                        onClick={() =>
-                          void run(async () => {
-                            await api.reconcileSource(doc.id, {
-                              base: published.base,
-                              fingerprint: published.fingerprint,
-                              choice,
-                            });
-                            window.location.reload();
-                          })
-                        }
-                      >
-                        {choice === "keep"
-                          ? "Keep draft for next publish"
-                          : "Import published version"}
-                      </button>
-                    ))}
+            </div>
+            {doc.liveSlug ? (
+              <button
+                type="button"
+                className="admin-button"
+                disabled={busy}
+                onClick={() =>
+                  void run(async () => {
+                    if (!(await beforeSave()))
+                      throw new Error("Save your draft before comparing.");
+                    setPublished(await api.publishedSource(doc.id));
+                  })
+                }
+              >
+                Compare published source
+              </button>
+            ) : null}
+            {published ? (
+              <section className="research-form">
+                <h3>Review the GitHub version</h3>
+                <p className="research-help">
+                  Choose explicitly before publishing. A revision of the current
+                  draft is kept with either choice.
+                </p>
+                <details open>
+                  <summary>Published Markdown</summary>
+                  <pre className="research-compare">
+                    {published.post?.body ?? "The file is missing."}
+                  </pre>
+                </details>
+                <details>
+                  <summary>Current draft</summary>
+                  <pre className="research-compare">
+                    {editor?.getMarkdown() ?? doc.body}
+                  </pre>
+                </details>
+                <div className="research-actions">
+                  {(["keep", "import"] as const).map((choice) => (
                     <button
+                      key={choice}
                       type="button"
                       className="admin-button"
-                      onClick={() => setPublished(null)}
+                      disabled={
+                        busy || (choice === "import" && !published.post)
+                      }
+                      onClick={() =>
+                        void run(async () => {
+                          await api.reconcileSource(doc.id, {
+                            base: published.base,
+                            fingerprint: published.fingerprint,
+                            choice,
+                          });
+                          window.location.reload();
+                        })
+                      }
                     >
-                      Cancel
+                      {choice === "keep"
+                        ? "Keep draft for next publish"
+                        : "Import published version"}
                     </button>
-                  </div>
-                </section>
-              ) : null}
-              <p className="research-help">
-                Block links open this private editor. Extraction creates the
-                child first, then replaces the selected content with a page
-                mention.
-              </p>
-              {!refs && !error ? (
-                <p role="status">Loading references…</p>
-              ) : null}
-              {(["incoming", "outgoing"] as const).map((direction) => (
-                <section key={direction}>
-                  <h3>
-                    {direction === "incoming"
-                      ? "Pages linking here"
-                      : "Referenced pages"}
-                  </h3>
-                  {!refs?.[direction].length ? (
-                    <p className="research-help">
+                  ))}
+                  <button
+                    type="button"
+                    className="admin-button"
+                    onClick={() => setPublished(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </section>
+            ) : null}
+            {!refs && !error ? <p role="status">Loading references…</p> : null}
+            {refs
+              ? (["incoming", "outgoing"] as const).map((direction) => (
+                  <section
+                    className="research-reference-section"
+                    key={direction}
+                  >
+                    <h3>
                       {direction === "incoming"
-                        ? "Mention this page with @ from another draft to connect your notes."
-                        : "Use @ to reference a page while writing."}
+                        ? "Pages linking here"
+                        : "Referenced pages"}
+                      <span className="research-count">
+                        {refs[direction].length}
+                      </span>
+                    </h3>
+                    {!refs?.[direction].length ? (
+                      <p className="research-empty">
+                        {direction === "incoming"
+                          ? "Mention this page with @ from another draft to connect your notes."
+                          : "Use @ to reference a page while writing."}
+                      </p>
+                    ) : (
+                      refs[direction].map((r, i) => (
+                        <button
+                          className="research-row"
+                          type="button"
+                          key={`${r.id}:${i}`}
+                          onClick={() => setPeek(r.id)}
+                        >
+                          <strong>{r.title || "Untitled"}</strong>
+                          <span>{r.snippet || "Page reference"}</span>
+                        </button>
+                      ))
+                    )}
+                  </section>
+                ))
+              : null}
+          </Tabs.Panel>
+          {(["library", "review"] as const).map((section) => (
+            <Tabs.Panel
+              key={section}
+              value={section}
+              className="research-tab-panel"
+            >
+              {tab === section ? (
+                <>
+                  <div className="research-actions research-library-tools">
+                    <button
+                      className="admin-button admin-button-primary"
+                      type="button"
+                      disabled={busy}
+                      onClick={() =>
+                        make(tab === "review" ? "review" : "capture")
+                      }
+                    >
+                      <Plus size={15} aria-hidden />{" "}
+                      {tab === "review"
+                        ? "Add review note"
+                        : "Capture a source"}
+                    </button>
+                    {tab === "library" ? (
+                      <Menu.Root>
+                        <Menu.Trigger className="admin-button" disabled={busy}>
+                          Save from page <CaretDown size={13} aria-hidden />
+                        </Menu.Trigger>
+                        <MenuSurface align="end">
+                          <MItem
+                            icon={<Copy size={16} />}
+                            disabled={!hasSelection}
+                            onSelect={() => make("excerpt")}
+                          >
+                            Save selected excerpt
+                          </MItem>
+                          <MItem
+                            icon={<BookOpenText size={16} />}
+                            onSelect={() => make("template")}
+                          >
+                            Save page as template
+                          </MItem>
+                        </MenuSurface>
+                      </Menu.Root>
+                    ) : null}
+                  </div>
+                  <label className="research-search">
+                    <span className="sr-only">
+                      Find in {tab === "review" ? "notes" : "library"}
+                    </span>
+                    <MagnifyingGlass size={17} aria-hidden />
+                    <input
+                      value={filter}
+                      onChange={(e) => setFilter(e.target.value)}
+                      type="search"
+                      placeholder={
+                        tab === "review"
+                          ? "Find a review note…"
+                          : "Search sources, excerpts and templates…"
+                      }
+                    />
+                  </label>
+                  {edit && (tab === "review" ? edit.kind === "review" : edit.kind !== "review") ? (
+                    <form
+                      className="research-form"
+                      aria-busy={busy}
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        void run(async () => {
+                          await api.saveResearch(edit);
+                          setEdit(null);
+                          await refresh();
+                        });
+                      }}
+                    >
+                      <h3>
+                        {edit.kind === "review"
+                          ? "Private review note"
+                          : `Edit ${edit.kind}`}
+                      </h3>
+                      <label>
+                        Title
+                        <input
+                          ref={formTitle}
+                          required
+                          maxLength={200}
+                          value={edit.title}
+                          onChange={(e) =>
+                            setEdit({ ...edit, title: e.target.value })
+                          }
+                        />
+                      </label>
+                      {edit.kind === "capture" ? (
+                        <label>
+                          Source address
+                          <input
+                            type="url"
+                            value={edit.url ?? ""}
+                            onChange={(e) =>
+                              setEdit({ ...edit, url: e.target.value })
+                            }
+                          />
+                        </label>
+                      ) : null}
+                      <label>
+                        {edit.kind === "review" ? "Note" : "Content (Markdown)"}
+                        <textarea
+                          rows={7}
+                          maxLength={100000}
+                          value={edit.body}
+                          onChange={(e) =>
+                            setEdit({ ...edit, body: e.target.value })
+                          }
+                        />
+                      </label>
+                      <div className="research-actions">
+                        <button
+                          type="submit"
+                          className="admin-button admin-button-primary"
+                          disabled={busy}
+                        >
+                        {busy ? "Saving…" : `Save ${edit.kind === "review" ? "note" : edit.kind}`}
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-button"
+                          onClick={() => setEdit(null)}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  ) : null}
+                  {!refs && !error ? (
+                    <p className="research-help" role="status">
+                      Loading saved material…
+                    </p>
+                  ) : !library.length ? (
+                    <p className="research-empty">
+                      {filter
+                        ? "No matches. Try another word or clear your search."
+                        : tab === "review"
+                          ? "Keep editorial notes here. They never appear in the published article."
+                          : "Save useful sources, selections, or a whole page template to reuse later."}
                     </p>
                   ) : (
-                    refs[direction].map((r, i) => (
-                      <button
-                        className="research-row"
-                        type="button"
-                        key={`${r.id}:${i}`}
-                        onClick={() => setPeek(r.id)}
+                    library.map((item) => (
+                      <article
+                        key={item.id}
+                        className="research-item"
+                        data-resolved={item.resolved || undefined}
                       >
-                        <strong>{r.title || "Untitled"}</strong>
-                        <span>{r.snippet || "Page reference"}</span>
-                      </button>
+                        <div className="research-item-heading">
+                          <strong>{item.title}</strong>
+                          <span>
+                            {item.kind}
+                            {item.resolved ? " · Resolved" : ""}
+                          </span>
+                        </div>
+                        <p>{item.body.slice(0, 240) || "No content yet"}</p>
+                        {item.url ? (
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Open source
+                          </a>
+                        ) : null}
+                        <div className="research-actions research-item-actions">
+                          {item.kind === "review" ? (
+                            <>
+                              <button
+                                className="admin-button"
+                                type="button"
+                                onClick={() => jump(item.blockId)}
+                              >
+                                Go to block
+                              </button>
+                              <button
+                                className="admin-button"
+                                type="button"
+                                disabled={busy}
+                                onClick={() =>
+                                  void run(async () => {
+                                    await api.saveResearch({
+                                      ...item,
+                                      resolved: !item.resolved,
+                                    });
+                                    await refresh();
+                                  })
+                                }
+                              >
+                                {item.resolved ? "Reopen" : "Resolve note"}
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              className="admin-button"
+                              type="button"
+                              disabled={busy || !item.body}
+                              onClick={() => insert(item)}
+                            >
+                              <Copy size={14} aria-hidden /> Insert a copy
+                            </button>
+                          )}
+                          <Menu.Root>
+                            <Menu.Trigger
+                              className="admin-icon-button research-more"
+                              aria-label={`Actions for ${item.title || "Untitled"}`}
+                              disabled={busy}
+                            >
+                              <DotsThree size={20} weight="bold" aria-hidden />
+                            </Menu.Trigger>
+                            <MenuSurface align="end">
+                              <MItem
+                                icon={<NotePencil size={16} />}
+                                onSelect={() => setEdit(item)}
+                              >
+                                Edit{" "}
+                                {item.kind === "review" ? "note" : item.kind}
+                              </MItem>
+                              {item.kind === "template" ? (
+                                <MItem
+                                  icon={<Plus size={16} />}
+                                  onSelect={() =>
+                                    void run(async () => {
+                                      const { post } = await api.create({
+                                        title: item.title,
+                                        body: item.body,
+                                      });
+                                      setPeek(post.id);
+                                    })
+                                  }
+                                >
+                                  New draft from template
+                                </MItem>
+                              ) : null}
+                              {item.pageId && item.kind !== "review" ? (
+                                <MItem
+                                  icon={<ArrowSquareOut size={16} />}
+                                  onSelect={() => setPeek(item.pageId!)}
+                                >
+                                  View original page
+                                </MItem>
+                              ) : null}
+                              {item.kind === "excerpt" ? (
+                                <MItem
+                                  icon={<Copy size={16} />}
+                                  disabled={!hasSelection}
+                                  onSelect={() =>
+                                    setEdit({
+                                      ...item,
+                                      body: selection.current.body,
+                                      pageId: doc.id,
+                                      blockId: selection.current.blockId,
+                                      sourceUpdatedAt: doc.updatedAt,
+                                    })
+                                  }
+                                >
+                                  Update from selection
+                                </MItem>
+                              ) : null}
+                            </MenuSurface>
+                          </Menu.Root>
+                        </div>
+                      </article>
                     ))
                   )}
-                </section>
-              ))}
-            </>
-          ) : (
-            <>
-              <div className="research-actions">
-                {(tab === "review"
-                  ? ["review"]
-                  : ["capture", "excerpt", "template"]
-                ).map((kind) => (
-                  <button
-                    className="admin-button"
-                    type="button"
-                    key={kind}
-                    onClick={() => make(kind as ResearchItem["kind"])}
-                  >
-                    {kind === "review"
-                      ? "Add note to this block"
-                      : kind === "template"
-                        ? "Save page as template"
-                        : kind === "excerpt"
-                          ? "Save selected excerpt"
-                          : "Capture a source"}
-                  </button>
-                ))}
-              </div>
-              <label className="research-field">
-                Find in {tab === "review" ? "notes" : "library"}
-                <input
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                  type="search"
-                />
-              </label>
-              {edit ? (
-                <form
-                  className="research-form"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    void run(async () => {
-                      await api.saveResearch(edit);
-                      setEdit(null);
-                      await refresh();
-                    });
-                  }}
-                >
-                  <h3>
-                    {edit.kind === "review"
-                      ? "Private review note"
-                      : `Edit ${edit.kind}`}
-                  </h3>
-                  <label>
-                    Title
-                    <input
-                      required
-                      maxLength={200}
-                      value={edit.title}
-                      onChange={(e) =>
-                        setEdit({ ...edit, title: e.target.value })
-                      }
-                    />
-                  </label>
-                  {edit.kind === "capture" ? (
-                    <label>
-                      Source address
-                      <input
-                        type="url"
-                        value={edit.url ?? ""}
-                        onChange={(e) =>
-                          setEdit({ ...edit, url: e.target.value })
-                        }
-                      />
-                    </label>
-                  ) : null}
-                  <label>
-                    {edit.kind === "review" ? "Note" : "Content (Markdown)"}
-                    <textarea
-                      rows={7}
-                      maxLength={100000}
-                      value={edit.body}
-                      onChange={(e) =>
-                        setEdit({ ...edit, body: e.target.value })
-                      }
-                    />
-                  </label>
-                  <div className="research-actions">
-                    <button
-                      type="submit"
-                      className="admin-button admin-button-primary"
-                      disabled={busy}
-                    >
-                      Save {edit.kind === "review" ? "note" : edit.kind}
-                    </button>
-                    <button
-                      type="button"
-                      className="admin-button"
-                      onClick={() => setEdit(null)}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
+                </>
               ) : null}
-              {!library.length ? (
-                <p className="research-help">
-                  {tab === "review"
-                    ? "Keep editorial notes here. They never appear in the published article."
-                    : "Save useful sources, selections, or a whole page template to reuse later."}
-                </p>
-              ) : (
-                library.map((item) => (
-                  <article
-                    key={item.id}
-                    className="research-item"
-                    data-resolved={item.resolved || undefined}
-                  >
-                    <div className="research-item-heading">
-                      <strong>{item.title}</strong>
-                      <span>
-                        {item.kind}
-                        {item.resolved ? " · Resolved" : ""}
-                      </span>
-                    </div>
-                    <p>{item.body.slice(0, 240) || "No content yet"}</p>
-                    {item.url ? (
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Open source
-                      </a>
-                    ) : null}
-                    <div className="research-actions">
-                      <button
-                        className="admin-button"
-                        type="button"
-                        onClick={() => setEdit(item)}
-                      >
-                        Edit
-                      </button>
-                      {item.kind === "review" ? (
-                        <>
-                          <button
-                            className="admin-button"
-                            type="button"
-                            onClick={() => jump(item.blockId)}
-                          >
-                            Go to block
-                          </button>
-                          <button
-                            className="admin-button"
-                            type="button"
-                            disabled={busy}
-                            onClick={() =>
-                              void run(async () => {
-                                await api.saveResearch({
-                                  ...item,
-                                  resolved: !item.resolved,
-                                });
-                                await refresh();
-                              })
-                            }
-                          >
-                            {item.resolved ? "Reopen" : "Resolve"}
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            className="admin-button"
-                            type="button"
-                            onClick={() => insert(item)}
-                            disabled={!item.body}
-                          >
-                            Insert a copy
-                          </button>
-                          {item.kind === "template" ? (
-                            <button
-                              className="admin-button"
-                              type="button"
-                              disabled={busy}
-                              onClick={() =>
-                                void run(async () => {
-                                  const { post } = await api.create({
-                                    title: item.title,
-                                    body: item.body,
-                                  });
-                                  setPeek(post.id);
-                                })
-                              }
-                            >
-                              New draft from template
-                            </button>
-                          ) : null}
-                          {item.pageId ? (
-                            <button
-                              className="admin-button"
-                              type="button"
-                              onClick={() => setPeek(item.pageId!)}
-                            >
-                              View original
-                            </button>
-                          ) : null}
-                          {item.kind === "excerpt" ? (
-                            <button
-                              className="admin-button"
-                              type="button"
-                              disabled={!hasSelection}
-                              onClick={() =>
-                                setEdit({
-                                  ...item,
-                                  body: selection.current.body,
-                                  pageId: doc.id,
-                                  blockId: selection.current.blockId,
-                                  sourceUpdatedAt: doc.updatedAt,
-                                })
-                              }
-                            >
-                              Update from selection
-                            </button>
-                          ) : null}
-                        </>
-                      )}
-                    </div>
-                  </article>
-                ))
-              )}
-            </>
-          )}
-        </div>
+            </Tabs.Panel>
+          ))}
+        </Tabs.Root>
       </Sheet>
       <Sheet
         open={!!peek}
         onClose={() => setPeek(null)}
         title={preview?.id === peek ? preview.title : "Page preview"}
+        className="research-sheet"
         description="Private preview · Your writing position is preserved."
       >
         {previewError ? (

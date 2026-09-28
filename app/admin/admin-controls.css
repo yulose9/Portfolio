@@ -1,0 +1,151 @@
+/* Shared form controls use the same material and density as admin menus. */
+.admin-select-field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+.admin-select-label {
+  color: var(--a-ink-2);
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1.4;
+}
+.admin-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  padding: 8px 11px;
+  border: 1px solid var(--a-line);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--a-ink);
+  font: inherit;
+  font-size: 13px;
+  text-align: start;
+  cursor: pointer;
+  outline: none;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+.admin-select-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-select-icon {
+  display: flex;
+  flex: none;
+  color: var(--a-ink-3);
+}
+.admin-select-trigger[data-popup-open] {
+  border-color: var(--a-ink-3);
+  background: var(--a-fill-2);
+}
+.admin-select-trigger:focus-visible {
+  outline: 2px solid var(--a-ink);
+  outline-offset: 3px;
+}
+.admin-select-trigger[data-disabled] {
+  cursor: not-allowed;
+  color: var(--a-ink-3);
+  background: var(--a-fill);
+}
+.admin-select-positioner {
+  z-index: 100;
+  outline: none;
+}
+.admin-select-popup {
+  min-width: var(--anchor-width);
+  max-width: min(420px, calc(100vw - 24px));
+  padding: 5px;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--a-ink);
+  box-shadow: var(--pop-shadow);
+  outline: none;
+  transform-origin: var(--transform-origin);
+  /* Repeated keyboard/typeahead use should remain instant. */
+}
+.admin-select-list {
+  max-height: min(320px, calc(var(--available-height) - 10px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c4c4ca transparent;
+  scroll-padding: 5px;
+  outline: none;
+}
+.admin-select-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 16px;
+  min-height: 36px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: 13px;
+  line-height: 1.4;
+  outline: none;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  user-select: none;
+}
+.admin-select-option[data-selected] {
+  font-weight: 550;
+}
+.admin-select-option[data-highlighted] {
+  background: var(--a-fill);
+}
+.admin-select-option[data-disabled] {
+  color: var(--a-ink-3);
+  cursor: not-allowed;
+}
+.admin-select-check {
+  display: flex;
+  grid-column: 2;
+}
+.admin-body .menu-positioner:has(.admin-menu) {
+  z-index: 100;
+}
+.admin-body .admin-menu {
+  max-width: calc(100vw - 24px);
+  max-height: var(--available-height);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.dtp-clock .admin-select-field {
+  width: 64px;
+}
+.dtp-time > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.dtp-clock .admin-select-trigger {
+  padding-inline: 9px;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+@media (hover: hover) and (pointer: fine) {
+  .admin-select-trigger:not([data-disabled]):hover {
+    background: var(--a-fill-2);
+    border-color: #c4c4ca;
+  }
+}
+@media (pointer: coarse) {
+  .admin-select-trigger,
+  .admin-select-option {
+    min-height: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-select-trigger {
+    transition: none;
+  }
+}

@@ -14,6 +14,7 @@ export default function Sheet({
   title,
   description,
   variant = "side",
+  className = "",
   children,
 }: {
   open: boolean;
@@ -21,13 +22,14 @@ export default function Sheet({
   title: string;
   description?: string;
   variant?: "side" | "center";
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
     <Dialog.Root open={open} onOpenChange={(next) => !next && onClose()}>
       <Dialog.Portal>
         <Dialog.Backdrop className="sheet-backdrop" data-variant={variant} />
-        <Dialog.Popup className="sheet" data-variant={variant}>
+        <Dialog.Popup className={`sheet ${className}`} data-variant={variant}>
           <header className="sheet-header">
             <div>
               <Dialog.Title className="sheet-title">{title}</Dialog.Title>

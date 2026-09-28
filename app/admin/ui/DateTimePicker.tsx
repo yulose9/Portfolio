@@ -2,6 +2,7 @@
 
 import { CalendarBlank, CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { Popover } from "@base-ui/react/popover";
+import AdminSelect from "./AdminSelect";
 import { useState } from "react";
 import { DayPicker } from "react-day-picker";
 
@@ -82,24 +83,12 @@ export function DateTimeFields({
         }}
       />
       <div className="dtp-time">
-        <label>
+        <div>
           <span className="field-label">Time</span>
-          <span className="dtp-clock">
-            <select value={h12} onChange={(e) => setClock(Number(e.target.value), value.getMinutes(), pm)} aria-label="Hour">
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-                <option key={h} value={h}>
-                  {h}
-                </option>
-              ))}
-            </select>
+          <div className="dtp-clock">
+            <AdminSelect label="Hour" hideLabel value={String(h12)} onValueChange={hour=>setClock(Number(hour),value.getMinutes(),pm)} options={Array.from({length:12},(_,i)=>({value:String(i+1),label:String(i+1)}))}/>
             <span aria-hidden="true">:</span>
-            <select value={value.getMinutes() - (value.getMinutes() % 5)} onChange={(e) => setClock(h12, Number(e.target.value), pm)} aria-label="Minute">
-              {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
-                <option key={m} value={m}>
-                  {String(m).padStart(2, "0")}
-                </option>
-              ))}
-            </select>
+            <AdminSelect label="Minute" hideLabel value={String(value.getMinutes())} onValueChange={minute=>setClock(h12,Number(minute),pm)} options={Array.from({length:60},(_,i)=>({value:String(i),label:String(i).padStart(2,"0")}))}/>
             <span className="admin-segments dtp-ampm" role="radiogroup" aria-label="AM or PM">
               <button type="button" role="radio" aria-checked={!pm} className="admin-segment" onClick={() => setClock(h12, value.getMinutes(), false)}>
                 AM
@@ -108,8 +97,8 @@ export function DateTimeFields({
                 PM
               </button>
             </span>
-          </span>
-        </label>
+          </div>
+        </div>
         <p className="field-help">
           {formatDateTime(value)} · {zone()}
         </p>

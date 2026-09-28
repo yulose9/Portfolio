@@ -38,6 +38,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { Menu } from "@base-ui/react/menu";
+import AdminSelect from "./AdminSelect";
 import { Extension } from "@tiptap/core";
 import UniqueID from "@tiptap/extension-unique-id";
 import { editorContent, type EditorDocument } from "../../../cms/editor-document";
@@ -1192,7 +1193,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
       </Sheet>
 
       <Sheet open={Boolean(recovery)} onClose={() => {}} title="Restore your unsaved changes?" variant="center">
-        {recoveryCopies.length>1?<label className="research-field">Recovery copy<select value={recoveryCopies.indexOf(recovery!)} onChange={event=>setRecovery(recoveryCopies[Number(event.target.value)])}>{recoveryCopies.map((entry,i)=><option key={entry.key??i} value={i}>{new Date(entry.at).toLocaleString()} — {entry.edit.title||"Untitled"}</option>)}</select></label>:null}
+        {recoveryCopies.length>1?<AdminSelect label="Recovery copy" value={String(recoveryCopies.indexOf(recovery!))} onValueChange={value=>setRecovery(recoveryCopies[Number(value)])} options={recoveryCopies.map((entry,i)=>({value:String(i),label:`${new Date(entry.at).toLocaleString()} — ${entry.edit.title||"Untitled"}`}))}/>:null}
         <p>A recovery copy is available on this device.{recovery?.base !== initial.updatedAt ? " The server also has a different version. Review both before restoring; restoring changes the draft, not the published page." : " Restore it to continue where you left off."}</p>
         <details><summary>Compare recovery and server text</summary><h3>Recovery</h3><pre className="research-compare">{recovery?.edit.body}</pre><h3>Server</h3><pre className="research-compare">{initial.body}</pre></details>
         <div className="session-actions">

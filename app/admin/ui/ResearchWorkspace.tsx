@@ -10,6 +10,8 @@ import {
 import type { Panel } from "./Editor";
 import { todayDate } from "../../../cms/mentions";
 import { useResearchForm } from "./use-research-form";
+import AdminSelect from "./AdminSelect";
+import { Plus, SlidersHorizontal } from "@phosphor-icons/react";
 
 /** Saved metadata views; publication remains an explicit action in the editor. */
 export default function ResearchWorkspace({
@@ -26,6 +28,7 @@ export default function ResearchWorkspace({
   const [view, setView] = useState("board");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [editing, setEditing] = useResearchForm<ResearchItem>(
     "research:collection-form",
   );
@@ -52,6 +55,7 @@ export default function ResearchWorkspace({
     setError("");
     setItems(a.items);
     setPosts(b.posts.filter((p) => !p.trashedAt));
+    setLoaded(true);
   };
   useEffect(() => {
     let alive = true;
@@ -62,6 +66,7 @@ export default function ResearchWorkspace({
             setError("");
             setItems(a.items);
             setPosts(b.posts.filter((p) => !p.trashedAt));
+            setLoaded(true);
           }
         })
         .catch((e) => {
@@ -125,59 +130,74 @@ export default function ResearchWorkspace({
       open={open}
       onClose={onClose}
       title="Writing workspace"
+      className="research-workspace-sheet"
       description="Organize drafts, collect sources and plan publication."
     >
       <div className="research-panel">
-        <label className="research-field">
-          View
-          <select value={view} onChange={(e) => setView(e.target.value)}>
-            <option value="board">Editorial board</option>
-            <option value="calendar">Publication calendar</option>
-            <option value="inbox">Capture inbox</option>
-            <option value="templates">Templates</option>
-            {collections.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title}
-              </option>
-            ))}
-          </select>
-        </label>
-        {error ? (
-          <p role="alert" className="research-error">
-            {error}
-          </p>
-        ) : null}
-        <div className="research-actions">
-          <button
-            type="button"
-            className="admin-button"
-            onClick={() =>
-              setEditing({
-                id: crypto.randomUUID(),
-                kind: "collection",
-                title: "",
-                body: "",
-                rules: { sort: "updated" },
-                createdAt: "",
-                updatedAt: "",
-              })
-            }
-          >
-            New collection
-          </button>
-          {collection ? (
+        <div className="research-workspace-toolbar">
+          <AdminSelect
+            label="Workspace view"
+            value={view}
+            onValueChange={setView}
+            options={[
+              { value: "board", label: "Editorial board" },
+              { value: "calendar", label: "Publication calendar" },
+              { value: "inbox", label: "Capture inbox" },
+              { value: "templates", label: "Templates" },
+              ...collections.map((c) => ({ value: c.id, label: c.title })),
+            ]}
+          />
+          <div className="research-actions">
             <button
               type="button"
               className="admin-button"
-              onClick={() => setEditing(collection)}
+              disabled={busy || !loaded}
+              onClick={() =>
+                setEditing({
+                  id: crypto.randomUUID(),
+                  kind: "collection",
+                  title: "",
+                  body: "",
+                  rules: { sort: "updated" },
+                  createdAt: "",
+                  updatedAt: "",
+                })
+              }
             >
-              Edit collection
+              <Plus size={15} aria-hidden /> New collection
             </button>
-          ) : null}
+            {collection ? (
+              <button
+                type="button"
+                className="admin-button"
+                onClick={() => setEditing(collection)}
+              >
+                <SlidersHorizontal size={15} aria-hidden /> Edit collection
+              </button>
+            ) : null}
+          </div>
         </div>
+        {error ? (
+          <p role="alert" className="research-error">
+            {error}{" "}
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void run(load)}
+            >
+              Retry loading
+            </button>
+          </p>
+        ) : null}
+        {!loaded && !error ? (
+          <p className="research-help" role="status">
+            Loading workspace…
+          </p>
+        ) : null}
         {editing ? (
           <form
             className="research-form"
+            aria-busy={busy}
             onSubmit={(e) => {
               e.preventDefault();
               void run(async () => {
@@ -207,49 +227,44 @@ export default function ResearchWorkspace({
                 onChange={(e) => patchRules({ query: e.target.value })}
               />
             </label>
-            <label>
-              Tag
-              <select
+            <div className="research-form-grid">
+              <AdminSelect
+                label="Tag"
                 value={editing.rules?.tag ?? ""}
-                onChange={(e) => patchRules({ tag: e.target.value })}
-              >
-                <option value="">Any tag</option>
-                {[...new Set(posts.flatMap((p) => p.tags))].sort().map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Status
-              <select
+                onValueChange={(tag) => patchRules({ tag })}
+                options={[
+                  { value: "", label: "Any tag" },
+                  ...[...new Set(posts.flatMap((p) => p.tags))]
+                    .sort()
+                    .map((t) => ({ value: t, label: t })),
+                ]}
+              />
+              <AdminSelect
+                label="Status"
                 value={editing.rules?.status ?? ""}
-                onChange={(e) =>
-                  patchRules({
-                    status: e.target.value as CollectionRules["status"],
-                  })
+                onValueChange={(status) =>
+                  patchRules({ status: status as CollectionRules["status"] })
                 }
-              >
-                <option value="">Any status</option>
-                <option value="draft">Draft</option>
-                <option value="scheduled">Scheduled</option>
-                <option value="published">Published</option>
-              </select>
-            </label>
-            <label>
-              Sort
-              <select
-                value={editing.rules?.sort ?? "updated"}
-                onChange={(e) =>
-                  patchRules({
-                    sort: e.target.value as CollectionRules["sort"],
-                  })
-                }
-              >
-                <option value="updated">Recently edited</option>
-                <option value="title">Title</option>
-                <option value="scheduled">Scheduled date</option>
-              </select>
-            </label>
+                options={[
+                  { value: "", label: "Any status" },
+                  { value: "draft", label: "Draft" },
+                  { value: "scheduled", label: "Scheduled" },
+                  { value: "published", label: "Published" },
+                ]}
+              />
+            </div>
+            <AdminSelect
+              label="Sort pages by"
+              value={editing.rules?.sort ?? "updated"}
+              onValueChange={(sort) =>
+                patchRules({ sort: sort as CollectionRules["sort"] })
+              }
+              options={[
+                { value: "updated", label: "Recently edited" },
+                { value: "title", label: "Title" },
+                { value: "scheduled", label: "Scheduled date" },
+              ]}
+            />
             <label className="research-check">
               <input
                 type="checkbox"
@@ -284,7 +299,7 @@ export default function ResearchWorkspace({
                 className="admin-button admin-button-primary"
                 disabled={busy}
               >
-                Save collection
+                {busy ? "Saving…" : "Save collection"}
               </button>
               <button
                 className="admin-button"
@@ -296,10 +311,10 @@ export default function ResearchWorkspace({
             </div>
           </form>
         ) : null}
-        {view === "board" ? (
+        {loaded && view === "board" ? (
           <div className="research-board">
             {(["draft", "scheduled", "published"] as const).map((status) => (
-              <section key={status}>
+              <section key={status} data-status={status}>
                 <h3>
                   {status === "draft"
                     ? "Drafts"
@@ -316,7 +331,7 @@ export default function ResearchWorkspace({
             ))}
           </div>
         ) : null}
-        {view === "calendar" ? (
+        {loaded && view === "calendar" ? (
           <>
             <label className="research-field">
               Month
@@ -333,50 +348,60 @@ export default function ResearchWorkspace({
               Dates follow Manila time. Open a page and use Publish to change
               its schedule.
             </p>
-            <div className="research-calendar">
-              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                <span key={day}>{day}</span>
-              ))}
-              {Array.from(
-                { length: new Date(`${month}-01T00:00:00Z`).getUTCDay() },
-                (_, i) => (
-                  <span key={`pad:${i}`} aria-hidden />
-                ),
-              )}
-              {Array.from(
-                {
-                  length: new Date(
-                    Number(month.slice(0, 4)),
-                    Number(month.slice(5, 7)),
-                    0,
-                  ).getDate(),
-                },
-                (_, i) => {
-                  const date = `${month}-${String(i + 1).padStart(2, "0")}`;
-                  const scheduled = posts.filter((p) => {
-                    const at = p.publishAt ?? p.publishedAt;
-                    return at && todayDate(Date.parse(at)) === date;
-                  });
-                  return (
-                    <section
-                      key={date}
-                      data-today={date === todayDate() || undefined}
-                    >
-                      <time dateTime={date}>{i + 1}</time>
-                      {scheduled.map(postRow)}
-                    </section>
-                  );
-                },
-              )}
+            <div
+              className="research-calendar-scroll"
+              role="region"
+              aria-label="Publication calendar"
+              tabIndex={0}
+            >
+              <div className="research-calendar">
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+                  (day) => (
+                    <span key={day}>{day}</span>
+                  ),
+                )}
+                {Array.from(
+                  { length: new Date(`${month}-01T00:00:00Z`).getUTCDay() },
+                  (_, i) => (
+                    <span key={`pad:${i}`} aria-hidden />
+                  ),
+                )}
+                {Array.from(
+                  {
+                    length: new Date(
+                      Number(month.slice(0, 4)),
+                      Number(month.slice(5, 7)),
+                      0,
+                    ).getDate(),
+                  },
+                  (_, i) => {
+                    const date = `${month}-${String(i + 1).padStart(2, "0")}`;
+                    const scheduled = posts.filter((p) => {
+                      const at = p.publishAt ?? p.publishedAt;
+                      return at && todayDate(Date.parse(at)) === date;
+                    });
+                    return (
+                      <section
+                        key={date}
+                        data-today={date === todayDate() || undefined}
+                      >
+                        <time dateTime={date}>{i + 1}</time>
+                        {scheduled.map(postRow)}
+                      </section>
+                    );
+                  },
+                )}
+              </div>
             </div>
             <h3>Unscheduled drafts</h3>
             {posts.filter((p) => p.status === "draft").map(postRow)}
           </>
         ) : null}
-        {view === "inbox" ? (
+        {loaded && view === "inbox" ? (
           <>
             <form
               className="research-form"
+              aria-busy={busy}
               onSubmit={(e) => {
                 e.preventDefault();
                 void run(async () => {
@@ -427,9 +452,15 @@ export default function ResearchWorkspace({
                 className="admin-button admin-button-primary"
                 disabled={busy}
               >
-                Save to inbox
+                {busy ? "Saving…" : "Save to inbox"}
               </button>
             </form>
+            {!items.some((i) => i.kind === "capture") ? (
+              <p className="research-empty">
+                Your inbox is empty. Save a source above to keep its link and
+                your notes together.
+              </p>
+            ) : null}
             {items
               .filter((i) => i.kind === "capture")
               .map((i) => (
@@ -445,12 +476,18 @@ export default function ResearchWorkspace({
               ))}
           </>
         ) : null}
-        {view === "templates" ? (
+        {loaded && view === "templates" ? (
           <>
             <p className="research-help">
-              Save a page as a template from its Research panel. A new draft
-              gets its own block identities.
+              Save a page as a template from its Research panel. Start a new
+              draft without changing the original.
             </p>
+            {!items.some((i) => i.kind === "template") ? (
+              <p className="research-empty">
+                No templates yet. Open a page, then choose Research → Library →
+                Save from page.
+              </p>
+            ) : null}
             {items
               .filter((i) => i.kind === "template")
               .map((i) => (
