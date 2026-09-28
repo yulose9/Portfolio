@@ -265,9 +265,9 @@
   color: var(--ink-3);
 }
 .article-body .embed-youtube {
-  width: var(--breakout, 100%);
-  max-width: none;
-  margin-left: calc(50% - var(--breakout, 100%) / 2);
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
 }
 .article-body .embed-youtube iframe {
   width: 100%;

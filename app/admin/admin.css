@@ -625,12 +625,12 @@
   outline: 2px solid var(--a-ink);
   outline-offset: 2px;
 }
-/* An image in the editor has no figure wrapper; give it the figure's breakout. */
+/* An image in the editor sits on the text's column, as it will on the page. */
 .editor-body > img,
 .editor-body > p > img:only-child {
-  width: var(--breakout);
-  max-width: none;
-  margin-left: calc(50% - var(--breakout) / 2);
+  width: auto;
+  max-width: 100%;
+  margin-inline: auto;
 }
 .editor-body ::selection {
   background: rgb(37 99 235 / 0.16);

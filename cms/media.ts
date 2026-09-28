@@ -37,6 +37,8 @@ export function mediaName(id: string, shape: Shape, ext = "webp"): string {
 }
 
 const IMAGE_LADDER = [640, 1280];
+/** The article's text column, which figures share (app/article.css). */
+const COLUMN = 576;
 
 /** From an image src, its size and the smaller widths uploaded beside it. */
 export function imageInfo(src: string): { width: number; height: number; srcSet: string; sizes: string } | null {
@@ -51,8 +53,11 @@ export function imageInfo(src: string): { width: number; height: number; srcSet:
     width,
     height,
     srcSet: [...smaller, `${src} ${width}w`].join(", "),
-    // Figures break out to ~880px; on a phone they're the screen's width.
-    sizes: "(min-width: 920px) 880px, calc(100vw - 2rem)",
+    // The slot the browser should expect: the text column (576px, or the
+    // screen less its gutters on a phone), and never wider than the picture.
+    // With a srcset, `sizes` also sets the image's natural size, so a slot
+    // wider than the file would stretch a small image.
+    sizes: `(min-width: ${Math.min(width, COLUMN) + 48}px) ${Math.min(width, COLUMN)}px, calc(100vw - 3rem)`,
   };
 }
 

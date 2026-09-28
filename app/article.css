@@ -3,9 +3,10 @@
    writing looks like reading.
 
    The text keeps the site's column (672px less the shell's gutters, about
-   576px: ~64 characters at 18px). Figures and the cover break out wider, to
-   --breakout, while captions stay on the text's measure: Apple Newsroom's
-   width mismatch, which gives a long page its rhythm.
+   576px: ~64 characters at 18px). Figures, video and the cover sit on that
+   same column, the width you see while writing in the admin, so a picture
+   never outweighs the words around it. --breakout (the wider 880px frame)
+   only places the contents rail now.
 
    Motion: one orchestrated entrance per article. Back link, eyebrow,
    headline, standfirst, byline, cover and body resolve in sequence, 70ms
@@ -117,12 +118,12 @@
   font-weight: 500;
 }
 
-/* Cover and figures: wider than the text, centred on it. */
+/* Cover and figures: the text's width, not wider. */
 .article-cover,
 .article-body .article-figure {
-  width: var(--breakout);
-  max-width: none;
-  margin-left: calc(50% - var(--breakout) / 2);
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
   margin-right: 0;
 }
 .article-cover {
@@ -134,15 +135,32 @@
   display: block;
   width: 100%;
   height: auto;
+  /* A tall (portrait) picture stops at most of a screen instead of towering. */
+  max-height: min(80vh, 760px);
   border-radius: 14px;
   outline: 1px solid oklch(0 0 0 / 0.1);
   outline-offset: -1px;
   background: #f4f4f5;
 }
+/* In the body the box shrinks to the picture: a portrait shot capped by
+   max-height narrows and centres rather than showing bars, and a small
+   image isn't stretched past its own size. The cover always spans the
+   column and crops instead. */
+.article-body img {
+  width: auto;
+  max-width: 100%;
+  margin-inline: auto;
+}
+.article-cover img {
+  object-fit: cover;
+}
+/* A size chosen in the editor (the resize handles) is kept exactly; the
+   height cap would squash it, so it doesn't apply. */
+.article-body img[style*="width"] {
+  max-height: none;
+}
 .article-cover figcaption,
 .article-body figcaption {
-  /* Back on the text's measure, under a picture that isn't. */
-  width: min(576px, calc(100vw - 3rem));
   margin: 0.75rem auto 0;
   font-size: 13px;
   line-height: 20px;
