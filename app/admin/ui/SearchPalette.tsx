@@ -16,7 +16,7 @@ import { allCommands, matches, type Command } from "./registry";
  * find-in-page already on that passage.
  */
 
-export type Jump = { id: string; q: string; n: number };
+export type Jump = { id: string; q: string; n: number; block?:string };
 
 function Snippet({ text, start, length }: { text: string; start: number; length: number }) {
   return (
@@ -106,7 +106,7 @@ export default function SearchPalette({
         { key: `${r.id}`, command: null, jump: { id: r.id, q: query.trim(), n: 0 }, result: r, hit: null },
         ...r.hits
           .filter((h) => h.field === "body")
-          .map((h) => ({ key: `${r.id}:${h.occurrence}`, command: null, jump: { id: r.id, q: query.trim(), n: h.occurrence }, result: r, hit: h })),
+          .map((h) => ({ key: `${r.id}:${h.occurrence}`, command: null, jump: { id: r.id, q: query.trim(), n: h.occurrence,block:h.blockId }, result: r, hit: h })),
       ]),
     ],
     [results, query, shownCommands, onlyCommands]

@@ -2,6 +2,10 @@ import { postToDraft, type Draft } from "../format";
 import { HttpError, ID } from "./http";
 import { livePosts, type CmsEnv } from "./publish";
 import { getDraft, putDraft } from "./store";
+import { putDraftIfVersion } from "./store";
+import { publishedFingerprint } from "../published-fingerprint";
+import { postPath } from "../format";
+import { readFile } from "./github";
 
 /**
  * The working copy for `id`. A post that only exists in git (written by hand,
@@ -10,10 +14,17 @@ import { getDraft, putDraft } from "./store";
 export async function loadDraft(env: CmsEnv, id: string): Promise<Draft> {
   if (!ID.test(id)) throw new HttpError("This post doesn’t exist or was deleted forever.", 400);
   const draft = await getDraft(env, id);
-  if (draft) return draft;
+  if (draft) {
+    if(draft.liveSlug && draft.publishedFingerprint===undefined) {
+      draft.publishedFingerprint=await publishedFingerprint(await readFile(env,postPath(draft.liveSlug)));
+      await putDraftIfVersion(env,draft,draft.updatedAt);
+    }
+    return draft;
+  }
   const post = (await livePosts(env)).find((p) => p.id === id);
   if (!post) throw new HttpError("This post doesn’t exist or was deleted forever.", 404);
   const adopted = postToDraft(post);
+  adopted.publishedFingerprint=await publishedFingerprint(await readFile(env,postPath(post.slug)));
   await putDraft(env, adopted);
   return adopted;
 }

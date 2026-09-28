@@ -34,8 +34,9 @@ function currentOptions(): OpenOptions {
   const panel = p.get("panel");
   return {
     q: p.get("q") ?? undefined,
+    block:p.get("block")??undefined,
     n: Number(p.get("n")) || 0,
-    panel: panel === "details" || panel === "revisions" || panel === "publish" ? panel : null,
+    panel: panel === "details" || panel === "revisions" || panel === "publish" || panel === "research" ? panel : null,
   };
 }
 
@@ -88,6 +89,7 @@ export default function AdminApp() {
     if (opts.q) params.set("q", opts.q);
     if (opts.n) params.set("n", String(opts.n));
     if (opts.panel) params.set("panel", opts.panel);
+    if (opts.block) params.set("block",opts.block);
     const qs = params.toString();
     window.history.pushState(null, "", qs ? `/admin?${qs}` : "/admin");
     setPostId(id);
@@ -143,7 +145,7 @@ export default function AdminApp() {
         open={searching}
         initialQuery={searchQuery}
         onClose={() => {setSearching(false);setSearchQuery("");}}
-        onJump={(j) => open(j.id, { q: j.q, n: j.n })}
+        onJump={(j) => open(j.id, { q: j.q, n: j.n,block:j.block })}
       />
     </>
   );

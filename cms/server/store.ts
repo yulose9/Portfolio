@@ -13,6 +13,7 @@
 
 import { upgradeDraft, type Draft } from "../format";
 import { HttpError, ID } from "./http";
+import { indexDocument } from "../research";
 
 export type StoreEnv = { WRITING: R2Bucket };
 
@@ -23,6 +24,11 @@ function validId(id: string): string {
 const current = (id: string) => `drafts/${validId(id)}/current.json`;
 const revPrefix = (id: string) => `drafts/${validId(id)}/rev/`;
 const marker = (id: string) => `scheduled/${validId(id)}`;
+
+async function cacheIndex(env:StoreEnv,draft:Draft) {
+  try {await env.WRITING.put(`indexes/private/${draft.id}.json`,JSON.stringify({...indexDocument(draft),deleted:Boolean(draft.trashedAt)}));}
+  catch { /* Disposable: researchIndex checks source versions and repairs misses. */ }
+}
 
 /*
  * The pulse: one tiny object rewritten on every change to any draft. Open
@@ -63,6 +69,29 @@ export async function putDraft(env: StoreEnv, draft: Draft): Promise<void> {
     customMetadata: { title: draft.title.slice(0, 200), status: draft.status, updatedAt: draft.updatedAt },
   });
   await beat(env, draft.id);
+  await cacheIndex(env,draft);
+}
+
+export async function createDraft(env:StoreEnv,draft:Draft):Promise<boolean> {
+  const created=await env.WRITING.put(current(draft.id),JSON.stringify(draft),{
+    onlyIf:new Headers({"If-None-Match":"*"}),httpMetadata:{contentType:"application/json"},
+    customMetadata:{title:draft.title.slice(0,200),status:draft.status,updatedAt:draft.updatedAt},
+  });
+  if(created){await beat(env,draft.id);await cacheIndex(env,draft);}
+  return !!created;
+}
+
+/** Compare and write the same object version; a timestamp check alone races. */
+export async function putDraftIfVersion(env: StoreEnv, draft: Draft, base: string): Promise<void> {
+  const old=await env.WRITING.head(current(draft.id));
+  if (!old || old.customMetadata?.updatedAt !== base) throw new HttpError("This page changed while saving. Reload to compare the versions.",409);
+  const written=await env.WRITING.put(current(draft.id),JSON.stringify(draft),{
+    onlyIf:{etagMatches:old.etag},httpMetadata:{contentType:"application/json"},
+    customMetadata:{title:draft.title.slice(0,200),status:draft.status,updatedAt:draft.updatedAt},
+  });
+  if(!written)throw new HttpError("This page changed while saving. Reload to compare the versions.",409);
+  await beat(env,draft.id);
+  await cacheIndex(env,draft);
 }
 
 export async function listDrafts(env: StoreEnv): Promise<Draft[]> {
@@ -125,7 +154,7 @@ export async function getRevision(env: StoreEnv, id: string, at: string): Promis
 }
 
 export async function deleteDraft(env: StoreEnv, id: string): Promise<void> {
-  const keys: string[] = [marker(id)];
+  const keys: string[] = [marker(id),`indexes/private/${validId(id)}.json`];
   let cursor: string | undefined;
   do {
     const page = await env.WRITING.list({ prefix: `drafts/${id}/`, cursor });

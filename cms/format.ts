@@ -94,6 +94,12 @@ export type DraftStatus = "draft" | "scheduled" | "published";
  * published snapshot of it.
  */
 export type Draft = {
+  /** Canonical editing tree, with its derived Markdown checkpoint. Private, never front matter. */
+  editorDocument?: import("./editor-document").EditorDocument | null;
+  /** SHA-256 of the last observed public file, to detect edits made in GitHub. */
+  publishedFingerprint?: string | null;
+  /** Idempotency token for a retried create/extract request; never published. */
+  creationRequestId?: string;
   parentId?: string | null;
   id: string;
   title: string;

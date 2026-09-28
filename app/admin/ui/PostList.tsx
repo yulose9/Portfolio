@@ -17,6 +17,7 @@ import { keys, MenuSurface, MItem, MLabel } from "./menu";
 import { useCommands } from "./registry";
 import { PostRow } from "./PostActions";
 import { TEMPLATES, type Template } from "./templates";
+import ResearchWorkspace from "./ResearchWorkspace";
 
 const CI = { size: 16, "aria-hidden": true } as const;
 
@@ -41,6 +42,7 @@ const FILTERS = [
 type Filter = (typeof FILTERS)[number]["id"];
 
 export default function PostList({ email, onOpen, onSearch, onTags }: { email: string; onOpen: (id: string, panel?: Panel) => void; onSearch: () => void; onTags: () => void }) {
+  const [workspace,setWorkspace]=useState(false);
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [tag, setTag] = useState<string | null>(null);
@@ -210,12 +212,14 @@ export default function PostList({ email, onOpen, onSearch, onTags }: { email: s
 
   return (
     <main className="admin-shell" data-selecting={selecting || undefined}>
+      <ResearchWorkspace open={workspace} onClose={()=>setWorkspace(false)} onOpen={onOpen}/>
       <header className="admin-list-header">
         <div>
           <p className="admin-eyebrow">nazarene.dev · {email}</p>
           <h1 className="admin-list-title">Writing</h1>
         </div>
         <div className="admin-list-actions">
+        <button className="admin-button" type="button" onClick={()=>setWorkspace(true)}>Workspace</button>
         <a className="admin-button admin-button-quiet" href="/writing" target="_blank" rel="noopener" title="Open nazarene.dev/writing in a new tab">
           <ArrowSquareOut size={14} aria-hidden="true" />
           <span className="admin-hide-sm">View on site</span>

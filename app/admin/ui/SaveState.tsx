@@ -20,7 +20,7 @@ const LABEL: Record<SaveStatus, string> = {
   error: "Not saved",
 };
 
-export default function SaveState({ status, at }: { status: SaveStatus; at: string | null }) {
+export default function SaveState({ status, at, local }: { status: SaveStatus; at: string | null; local?:import("./draft-journal").LocalState }) {
   const label = LABEL[status];
 
   return (
@@ -32,7 +32,7 @@ export default function SaveState({ status, at }: { status: SaveStatus; at: stri
         <path className="save-slash" d="M3.8 12.2 L12.2 3.8" pathLength="100" />
       </svg>
       <span key={label} className="save-label">
-        {status === "saved" && at ? <UpdatedAt at={at} /> : label}
+        {status === "saved" && at ? <>Cloud saved <UpdatedAt at={at} /></> : <>{label}{local === "saved" ? " · Saved on this device" : local === "unavailable" ? " · Local recovery unavailable" : ""}</>}
       </span>
     </span>
   );

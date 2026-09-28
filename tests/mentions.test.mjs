@@ -56,7 +56,7 @@ test("subpage creation validates the parent and keeps the child unpublished", as
   const parent = {id:"0muicd6md6ob",page:true,title:"Parent",authors:[],trashedAt:null};
   const env = {WRITING:{
     get:async()=>({json:async()=>parent}),
-    put:async(key,value)=>{stored.set(key,JSON.parse(value));},
+    put:async(key,value)=>{stored.set(key,JSON.parse(value));return {etag:"created"};},
   }};
   const request = (body) => new Request("https://example.test/api/admin/posts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
   await assert.rejects(()=>onRequestPost({env,request:request({parentId:"../invalid"})}),/Invalid parent/);

@@ -42,3 +42,9 @@ test("unexpected save errors block navigation instead of reporting success", asy
   assert.equal(result.saved,false); assert.equal(result.recoverable,false);
   unregister();
 });
+test("session protection waits for editor and research forms together",async()=>{
+  const editor=registerProtection(async()=>({saved:true,recoverable:true}));
+  const form=registerProtection(async()=>({saved:false,recoverable:true}));
+  assert.deepEqual(await protectWork(),{saved:false,recoverable:true});
+  form();assert.deepEqual(await protectWork(),{saved:true,recoverable:true});editor();
+});

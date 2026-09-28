@@ -21,7 +21,9 @@ export default function BlockMarquee({editor}:{editor:Editor}) {
       cleanup();
       const start={x:e.pageX,y:e.pageY};let point={x:e.clientX,y:e.clientY};let active=false;let frame=0;
       const box=document.createElement("div");box.className="block-marquee";box.setAttribute("aria-hidden","true");
-      const original=editor.state.selection;
+      let original=editor.state.selection.getBookmark();
+      const map=({transaction}:{transaction:import("@tiptap/pm/state").Transaction})=>{original=original.map(transaction.mapping);};
+      const restore=()=>{try{editor.view.dispatch(editor.state.tr.setSelection(original.resolve(editor.state.doc)));}catch{/* the original parent was deleted */}};
       const draw=()=>{
         const x=start.x-window.scrollX,y=start.y-window.scrollY;
         if(!active && Math.hypot(point.x-x,point.y-y)<5)return;
@@ -35,14 +37,15 @@ export default function BlockMarquee({editor}:{editor:Editor}) {
           if(intersectsBlock({left,top,right,bottom},r)){from??=pos;to=pos+node.nodeSize;}
         });
         if(from!==null)editor.view.dispatch(editor.state.tr.setSelection(NodeRangeSelection.create(editor.state.doc,from,to,0)));
-        else if(original.$from.doc===editor.state.doc)editor.view.dispatch(editor.state.tr.setSelection(original));
+        else restore();
       };
       const move=(ev:PointerEvent)=>{if(ev.pointerId!==e.pointerId)return;point={x:ev.clientX,y:ev.clientY};ev.preventDefault();draw();};
       const tick=()=>{if(active){const delta=point.y<64?-12:point.y>innerHeight-64?12:0;if(delta){window.scrollBy(0,delta);draw();}}frame=requestAnimationFrame(tick);};
       const end=()=>{cleanup();if(active)editor.view.focus();};
-      const key=(ev:KeyboardEvent)=>{if(ev.key==="Escape"){editor.view.dispatch(editor.state.tr.setSelection(original));cleanup();}};
-      cleanup=()=>{box.remove();cancelAnimationFrame(frame);document.body.classList.remove("is-block-selecting");window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",end);window.removeEventListener("pointercancel",end);window.removeEventListener("keydown",key);};
+      const key=(ev:KeyboardEvent)=>{if(ev.key==="Escape"){restore();cleanup();}};
+      cleanup=()=>{box.remove();cancelAnimationFrame(frame);editor.off("transaction",map);window.removeEventListener("scroll",draw);document.body.classList.remove("is-block-selecting");window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",end);window.removeEventListener("pointercancel",end);window.removeEventListener("keydown",key);};
       document.body.classList.add("is-block-selecting");
+      editor.on("transaction",map);window.addEventListener("scroll",draw,{passive:true});
       window.addEventListener("pointermove",move,{passive:false});window.addEventListener("pointerup",end,{once:true});window.addEventListener("pointercancel",end,{once:true});window.addEventListener("keydown",key);frame=requestAnimationFrame(tick);
     };
     root.addEventListener("pointerdown",down);

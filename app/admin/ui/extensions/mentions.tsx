@@ -38,7 +38,7 @@ function DateEditor({node, updateAttributes}: NodeViewProps) {
 }
 function MentionView(props: NodeViewProps) {
   return props.node.attrs.kind === "date" ? <DateEditor {...props}/> :
-    <NodeViewWrapper as="span" contentEditable={false}><a className="page-mention" href={`/admin?post=${encodeURIComponent(props.node.attrs.id)}`} target="_blank" rel="noreferrer">↗ {props.node.attrs.label || "Untitled"}</a></NodeViewWrapper>;
+    <NodeViewWrapper as="span" contentEditable={false}><a className="page-mention" href={`/admin?post=${encodeURIComponent(props.node.attrs.id)}`} onClick={event=>{if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();window.dispatchEvent(new CustomEvent("writing:peek",{detail:{id:props.node.attrs.id}}));}} target="_blank" rel="noreferrer">↗ {props.node.attrs.label || "Untitled"}</a></NodeViewWrapper>;
 }
 type Item = {kind:"date"; label:string; value:MentionDate} | {kind:"page"; label:string; id:string; status:string} | {kind:"create"; label:string} | {kind:"pick";label:string};
 type Props = SuggestionProps<Item>;

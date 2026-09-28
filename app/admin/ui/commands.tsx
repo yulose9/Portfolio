@@ -215,8 +215,8 @@ export function moveBlock(editor: Editor, pos: number, direction: -1 | 1) {
 }
 
 /** The selection as Markdown, via Tiptap's own serializer. */
-export function selectionMarkdown(editor: Editor): string {
-  const { from, to, empty } = editor.state.selection;
+export function selectionMarkdown(editor: Editor, selection = editor.state.selection): string {
+  const { from, to, empty } = selection;
   const doc = empty ? editor.state.doc : editor.state.doc.cut(from, to);
   const manager = (editor as unknown as { markdown?: { serialize: (json: unknown) => string } }).markdown;
   return manager ? manager.serialize(doc.toJSON()) : editor.state.doc.textBetween(from, to, "\n\n");

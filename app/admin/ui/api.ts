@@ -35,7 +35,7 @@ export type BulkAction = "publish" | "unpublish" | "schedule" | "trash" | "resto
 
 export type Revision = { at: string; label: string; words: number };
 
-export type SearchHit = { field: "title" | "dek" | "body"; snippet: string; start: number; length: number; occurrence: number };
+export type SearchHit = { field: "title" | "dek" | "body"; snippet: string; start: number; length: number; occurrence: number; blockId?:string };
 export type SearchResult = {
   id: string;
   title: string;
@@ -89,15 +89,20 @@ const put = (body: unknown): RequestInit => ({ method: "PUT", body: JSON.stringi
 const post = (body: unknown = {}): RequestInit => ({ method: "POST", body: JSON.stringify(body) });
 
 export const api = {
+  publishedSource:(id:string)=>call<{source:string|null;post:import("../../../cms/format").Post|null;fingerprint:string|null;base:string}>(`/posts/${id}/published-source`),
+  reconcileSource:(id:string,input:{base:string;fingerprint:string|null;choice:"keep"|"import"})=>call<{post:Draft}>(`/posts/${id}/published-source`,post(input)),
+  research: () => call<{items:import("../../../cms/research").ResearchItem[]}>("/research"),
+  saveResearch: (item: Partial<import("../../../cms/research").ResearchItem> & {id:string;kind:import("../../../cms/research").ResearchItem["kind"];title:string;body:string}) => call<{item:import("../../../cms/research").ResearchItem}>(`/research/${encodeURIComponent(item.id)}`,put({...item,base:item.updatedAt})),
+  references: (id:string) => call<{incoming:{id:string;title:string;icon:string|null;blockId?:string;snippet:string}[];outgoing:{id:string;title:string;snippet:string;missing:boolean}[]}>(`/posts/${id}/references`),
   tagPage:(slug:string)=>call<{page:import("../../../cms/tag-pages").TagPage}>(`/tags/${encodeURIComponent(slug)}`),
   saveTagPage:(slug:string,page:import("../../../cms/tag-pages").TagPage)=>call<{page:import("../../../cms/tag-pages").TagPage}>(`/tags/${encodeURIComponent(slug)}`,put({...page,base:page.updatedAt})),
   me: () => call<{ email: string; github: boolean; storage: boolean }>("/me"),
   list: () => call<{ posts: PostSummary[] }>("/posts"),
-  create: (init: { title?: string; body?: string; tags?: string[]; page?: boolean; parentId?: string } = {}) => call<{ post: Draft }>("/posts", post(init)),
+  create: (init: { title?: string; body?: string; tags?: string[]; page?: boolean; parentId?: string; requestId?:string } = {}) => call<{ post: Draft }>("/posts", post({requestId:crypto.randomUUID(),...init})),
   get: (id: string) => call<{ post: Draft }>(`/posts/${id}`),
   save: (
     id: string,
-    edit: Partial<Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover" | "body" | "icon" | "authors" | "fonts" | "page" | "ogImage" | "pinned" | "publishedAt">> & { base?: string; snapshot?: boolean }
+    edit: Partial<Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover" | "body" | "icon" | "authors" | "fonts" | "page" | "ogImage" | "pinned" | "publishedAt" | "editorDocument">> & { base?: string; snapshot?: boolean }
   ) =>
     call<{ post: Draft; snapshotted: boolean }>(`/posts/${id}`, put(edit)),
   duplicate: (id: string) => call<{ post: Draft }>(`/posts/${id}/duplicate`, post()),

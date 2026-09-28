@@ -13,6 +13,7 @@ import "./admin-modes.css";
 import "./admin-preview.css";
 import "react-day-picker/style.css";
 import "./admin-bulk.css";
+import "./admin-research.css";
 
 /*
  * The admin's own root layout, separate from the site's on purpose.

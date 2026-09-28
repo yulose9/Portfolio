@@ -1,14 +1,15 @@
 import { normalizeAuthors, type Cover, type Draft, type FontChoice, type Fonts } from "../../../../../cms/format";
+import { cleanEditorDocument } from "../../../../../cms/editor-document";
 import { HttpError, json, param, readJson, type AdminFunction } from "../../../../../cms/server/http";
 import { loadDraft } from "../../../../../cms/server/load";
 import { removeLive } from "../../../../../cms/server/publish";
-import { deleteDraft, putDraft, setScheduled, snapshot } from "../../../../../cms/server/store";
+import { deleteDraft, putDraft, putDraftIfVersion, setScheduled, snapshot } from "../../../../../cms/server/store";
 
 export const onRequestGet: AdminFunction<"id"> = async ({ env, params }) =>
   json({ post: await loadDraft(env, param(params.id)) });
 
 /** The fields the editor may change. Status and what's live belong to the server. */
-const EDITABLE = ["title", "slug", "dek", "icon", "authors", "fonts", "page", "ogImage", "pinned", "tags", "cover", "body", "publishedAt"] as const;
+const EDITABLE = ["title", "slug", "dek", "icon", "authors", "fonts", "page", "ogImage", "pinned", "tags", "cover", "body", "publishedAt", "editorDocument"] as const;
 type Edit = Partial<Pick<Draft, (typeof EDITABLE)[number]>> & {
   /** The updatedAt the editor last saw. A mismatch means another tab saved in between. */
   base?: string;
@@ -31,6 +32,10 @@ export const onRequestPut: AdminFunction<"id"> = async ({ env, params, request }
     next.tags = (Array.isArray(edit.tags) ? edit.tags : []).map((t) => String(t).trim().slice(0, 80)).filter(Boolean).slice(0, 8);
   if (edit.cover !== undefined) next.cover = cleanCover(edit.cover);
   if (edit.body !== undefined) next.body = String(edit.body);
+  if (edit.editorDocument !== undefined) {
+    try { next.editorDocument = cleanEditorDocument(edit.editorDocument,next.body); }
+    catch(e) { throw new HttpError(e instanceof Error?e.message:"Invalid editor document."); }
+  } else if (next.body !== draft.body) next.editorDocument = null;
   if (edit.icon !== undefined) next.icon = typeof edit.icon === "string" && edit.icon.trim() ? [...edit.icon.trim()].slice(0, 8).join("") : null;
   if (edit.authors !== undefined) next.authors = normalizeAuthors(edit.authors);
   if (edit.fonts !== undefined) next.fonts = cleanFonts(edit.fonts);
@@ -47,9 +52,10 @@ export const onRequestPut: AdminFunction<"id"> = async ({ env, params, request }
 
   const changed = EDITABLE.some((k) => JSON.stringify(next[k]) !== JSON.stringify(draft[k]));
   if (changed) {
-    next.updatedAt = new Date().toISOString();
+    if(!draft.editorDocument && next.editorDocument) await snapshot(env,draft,true,"Before structured editor migration");
+    next.updatedAt = new Date(Math.max(Date.now(),(Date.parse(draft.updatedAt)||0)+1)).toISOString();
     next.dirty = true;
-    await putDraft(env, next);
+    await putDraftIfVersion(env, next, draft.updatedAt);
   }
   const snapshotted = await snapshot(env, next, Boolean(edit.snapshot));
   return json({ post: next, snapshotted });

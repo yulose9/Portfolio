@@ -5,6 +5,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { safeInlineUrl } from "../../../cms/inline";
 import { editableLink } from "./editable-link";
 import { replaceLink } from "./replace-link";
+import { mapInteractionRange } from "./interaction-range";
+import type { Transaction } from "@tiptap/pm/state";
+import { interactionHighlight } from "./extensions/interaction-highlight";
 
 type Target = {from:number; to:number; href:string; left:number; top:number};
 export default function LinkHover({editor}: {editor:Editor}) {
@@ -49,14 +52,20 @@ export default function LinkHover({editor}: {editor:Editor}) {
       setTarget({from:range.from,to:range.to,href:address,left:Math.max(12,Math.min(rect.left,window.innerWidth-332)),top:Math.max(12,Math.min(rect.bottom+6,window.innerHeight-300))});
       setHref(address); setLabel(editor.state.doc.textBetween(range.from,range.to," ")); setError(""); setEditing(true);
     };
-    const hide = () => { setTarget(null); setEditing(false); };
-    const scroll = () => { if (!editingRef.current) hide(); };
+    const hide = () => { editingRef.current=false; setTarget(null); setEditing(false); };
+    const scroll = () => {
+      if (!editingRef.current) {hide();return;}
+      setTarget(current=>{if(!current)return null;const rect=editor.view.coordsAtPos(current.from);return {...current,left:Math.max(12,Math.min(rect.left,window.innerWidth-332)),top:Math.max(12,Math.min(rect.bottom+6,window.innerHeight-300))};});
+    };
     const resize = () => setTarget(current => current ? {...current,left:Math.max(12,Math.min(current.left,window.innerWidth-332)),top:Math.max(12,Math.min(current.top,window.innerHeight-300))} : null);
     const outside = (event: PointerEvent) => {
       if (!panel.current?.contains(event.target as Node)) hide();
     };
-    const update = ({transaction}: {transaction:{docChanged:boolean}}) => { if(transaction.docChanged) hide(); };
-    const key = (event:KeyboardEvent) => { if(event.key==="Escape") hide(); };
+    const update = ({transaction}: {transaction:Transaction}) => {
+      if(!transaction.docChanged)return;
+      setTarget(current=>{if(!current)return null;const mapped=mapInteractionRange(current,transaction);if(!mapped){editingRef.current=false;setEditing(false);return null;}return {...current,...mapped};});
+    };
+    const key = (event:KeyboardEvent) => { if(event.key==="Escape") {hide();editor.commands.focus();} };
     dom.addEventListener("mouseover",show); dom.addEventListener("focusin",show); dom.addEventListener("click",click);
     dom.addEventListener("mouseout",closeLater);
     dom.addEventListener("writing:edit-link",editSelection);
@@ -66,15 +75,21 @@ export default function LinkHover({editor}: {editor:Editor}) {
     return () => { cancel(); dom.removeEventListener("writing:edit-link",editSelection); dom.removeEventListener("mouseover",show); dom.removeEventListener("focusin",show); dom.removeEventListener("click",click); dom.removeEventListener("mouseout",closeLater); window.removeEventListener("scroll",scroll,true); window.removeEventListener("resize",resize); window.removeEventListener("keydown",key); document.removeEventListener("pointerdown",outside); editor.off("transaction",update); };
   }, [editor, cancel, closeLater]);
   useEffect(() => { if(editing) input.current?.focus({preventScroll:true}); }, [editing]);
+  const from=target?.from,to=target?.to;
+  useEffect(()=>{
+    if(editor.isDestroyed)return;
+    editor.view.dispatch(editor.state.tr.setMeta(interactionHighlight,editing&&from!==undefined&&to!==undefined?{from,to}:null));
+    return ()=>{if(!editor.isDestroyed)editor.view.dispatch(editor.state.tr.setMeta(interactionHighlight,null));};
+  },[editor,editing,from,to]);
   if (!target) return null;
-  return <div ref={panel} className="link-hover menu-popup" role="dialog" aria-label="Link" style={{left:target.left,top:target.top}} onMouseEnter={cancel} onMouseLeave={closeLater}>
+  return <div ref={panel} className="link-hover menu-popup" role="dialog" aria-label="Link" style={{left:target.left,top:target.top}} onMouseEnter={cancel} onMouseLeave={closeLater} onCopy={e=>e.stopPropagation()} onCut={e=>e.stopPropagation()} onPaste={e=>e.stopPropagation()} onKeyDown={e=>{if(e.key!=="Escape")e.stopPropagation();}}>
     {editing ? <form onSubmit={event => {
       event.preventDefault();
       const value = safeInlineUrl(href);
       if (!value) { setError("Enter a valid link, including https:// for websites."); return; }
       if (!label.trim()) { setError("Enter the text to display."); return; }
-      replaceLink(editor, target, value, label);
-      setTarget(null); setEditing(false);
+      if(!replaceLink(editor, target, value, label)){setError("This link changed. Select it again before editing.");return;}
+      editingRef.current=false;setTarget(null); setEditing(false);editor.commands.focus();
     }}><label>Text<input value={label} onChange={e => setLabel(e.target.value)} /></label>
       <label>Link address<input ref={input} value={href} onChange={e => setHref(e.target.value)} /></label>
       {error ? <p role="alert">{error}</p> : null}<div className="session-actions"><button className="admin-button" type="button" onClick={() => {setTarget(null);setEditing(false);}}>Cancel</button><button className="admin-button" type="submit">Save link</button></div></form> : <>

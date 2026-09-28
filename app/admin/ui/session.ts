@@ -15,20 +15,21 @@ export function beginPendingWork() {
   let ended = false;
   return () => { if (!ended) { ended = true; pendingWork--; } };
 }
-let protect: (() => Promise<Protection>) | null = null;
+const protections=new Set<()=>Promise<Protection>>();
 export function registerProtection(handler: () => Promise<Protection>) {
-  protect = handler;
-  return () => { if (protect === handler) protect = null; };
+  protections.add(handler);
+  return () => { protections.delete(handler); };
 }
 export async function protectWork(): Promise<Protection> {
   try {
-    const result = protect ? await protect() : { saved: true, recoverable: true };
+    const results=await Promise.all([...protections].map(protect=>protect()));
+    const result={saved:results.every(r=>r.saved),recoverable:results.every(r=>r.saved||r.recoverable),...(results.some(r=>r.pending)?{pending:true}:{})};
     return pendingWork ? {...result, pending:true} : result;
   } catch { return {saved:false, recoverable:false, pending:pendingWork > 0}; }
 }
 export function markLeaving() { leavingForSignIn = true; }
 
-export type Recovery<T = Record<string, unknown>> = { id: string; base: string; edit: T; at: number };
+export type Recovery<T = Record<string, unknown>> = { id: string; base: string; edit: T; at: number; key?:string; token?:string };
 const key = (id: string) => `admin:recovery:${id}`;
 export function keepRecovery<T>(id: string, base: string, edit: T): boolean {
   try { sessionStorage.setItem(key(id), JSON.stringify({ id, base, edit, at: Date.now() })); return true; }

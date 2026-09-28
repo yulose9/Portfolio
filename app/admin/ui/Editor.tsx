@@ -39,6 +39,9 @@ import {
 } from "@phosphor-icons/react";
 import { Menu } from "@base-ui/react/menu";
 import { Extension } from "@tiptap/core";
+import UniqueID from "@tiptap/extension-unique-id";
+import { editorContent, type EditorDocument } from "../../../cms/editor-document";
+import { journalWrite, journalRead, journalClear, journalFlush, journalOwnKey, JOURNAL_EVENT, type LocalState } from "./draft-journal";
 import Highlight from "@tiptap/extension-highlight";
 import { NodeRange } from "@tiptap/extension-node-range";
 import { ResizableImage } from "./extensions/resizable-image";
@@ -92,6 +95,8 @@ import DeployPill, { recallDeploy, rememberDeploy, type Deploy } from "./DeployP
 import PreviewSheet, { PageView } from "./PreviewSheet";
 import TagsInline from "./TagsInline";
 import Sheet from "./Sheet";
+import ResearchPanel from "./ResearchPanel";
+import { InteractionHighlight } from "./extensions/interaction-highlight";
 import { SlashCommand, slashItems, type SlashItem } from "./slash";
 
 /*
@@ -124,9 +129,9 @@ const metaOf = (d: Draft): Meta => ({
   publishedAt: d.publishedAt,
 });
 
-export type Panel = null | "details" | "revisions" | "publish" | "preview";
+export type Panel = null | "details" | "revisions" | "publish" | "preview" | "research";
 
-export type OpenOptions = { q?: string; n?: number; panel?: Panel };
+export type OpenOptions = { q?: string; n?: number; panel?: Panel; block?:string };
 
 export default function EditorScreen({ id, onBack, options }: { id: string; onBack: () => void; options?: OpenOptions }) {
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -263,7 +268,27 @@ const MARK_ICONS: Record<string, React.ReactNode> = {
 type View = "edit" | "page";
 
 function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => void; options?: OpenOptions }) {
-  const [recovery, setRecovery] = useState(() => readRecovery<Meta & { body: string }>(initial.id));
+  type EditCopy = Meta & { body:string; editorDocument?:EditorDocument|null };
+  const [recovery, setRecovery] = useState(() => readRecovery<EditCopy>(initial.id));
+  const [recoveryCopies,setRecoveryCopies]=useState<import("./session").Recovery<EditCopy>[]>([]);
+  const [recoveryReady, setRecoveryReady] = useState(false);
+  const [localState,setLocalState] = useState<LocalState>("writing");
+  useEffect(()=> {
+    let alive=true;
+    void journalRead<EditCopy>(initial.id).then(entries=> {
+      if(!alive) return;
+      const saved=JSON.stringify({...metaOf(initial),body:initial.body,editorDocument:initial.editorDocument??null});
+      const copies:import("./session").Recovery<EditCopy>[]=entries.filter(e=>JSON.stringify(e.edit)!==saved);
+      const session=readRecovery<EditCopy>(initial.id);
+      if(session&&JSON.stringify(session.edit)!==saved&&!copies.some(e=>JSON.stringify(e.edit)===JSON.stringify(session.edit)))copies.push(session);
+      copies.sort((a,b)=>b.at-a.at);
+      setRecoveryCopies(copies);setRecovery(copies[0]??null);
+      setRecoveryReady(true);
+    });
+    const status=(event:Event)=>{const detail=(event as CustomEvent<{id:string;state:LocalState}>).detail;if(detail.id===initial.id)setLocalState(detail.state);};
+    window.addEventListener(JOURNAL_EVENT,status);
+    return ()=>{alive=false;window.removeEventListener(JOURNAL_EVENT,status);};
+  },[initial]);
   const fine = useFinePointer();
   const [doc, setDoc] = useState<Draft>(initial);
   const [meta, setMeta] = useState<Meta>(() => metaOf(initial));
@@ -311,6 +336,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
+      UniqueID.configure({attributeName:"blockId",types:["paragraph","heading","blockquote","codeBlock","bulletList","orderedList","listItem","taskList","taskItem","image","horizontalRule","table","tableRow","tableCell","tableHeader","callout","details","detailsSummary","detailsContent","embed","media"]}),
       StarterKit.configure({
         heading: { levels: [2, 3, 4] },
         link: { openOnClick: false, autolink: true, defaultProtocol: "https" },
@@ -346,6 +372,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
       FluentEmoji,
       Find,
       CurrentBlock,
+      InteractionHighlight,
       EmojiSuggest,
       PostLinks(() => OPEN_POST.id),
       SlashCommand(() => SLASH_ITEMS),
@@ -392,10 +419,10 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
         }),
       }),
     ],
-    content: initial.body,
-    contentType: "markdown",
+    content: editorContent(initial) ?? initial.body,
+    contentType: editorContent(initial) ? "json" : "markdown",
     editorProps: {
-      attributes: { class: "article-body editor-body", "aria-label": "Body", "data-cursor": "text" },
+      attributes: { class: "article-body editor-body", role:"textbox", "aria-multiline":"true", "aria-label": "Body", "data-cursor": "text" },
       transformPastedHTML: cleanPastedHtml,
       handlePaste: (view, event) => {
         const data = event.clipboardData;
@@ -472,6 +499,13 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
     OPEN_POST.id = initial.id;
   }, [initial.id]);
 
+  useEffect(()=> {
+    if(!editor||!options?.block||!recoveryReady)return;
+    let found=false;
+    editor.state.doc.descendants((node,pos)=>{if(node.attrs.blockId===options.block){found=true;editor.chain().setTextSelection(Math.min(pos+1,editor.state.doc.content.size)).scrollIntoView().run();return false;}});
+    if(!found)toast.add({type:"info",title:"This block is no longer in the page",description:"The rest of the page is still available."});
+  },[editor,options?.block,recoveryReady]);
+
   useEffect(() => {
     editor?.view.dom.setAttribute("spellcheck", String(modes.spellcheck));
     document.querySelectorAll(".editor-field").forEach((el) => el.setAttribute("spellcheck", String(modes.spellcheck)));
@@ -518,15 +552,26 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
 
   /* ── Saving ─────────────────────────────────────────────────────────── */
 
-  const payload = useCallback(() => ({ ...metaRef.current, body: editor?.getMarkdown() ?? server.current.body }), [editor]);
+  const payload = useCallback(() => {
+    const body=editor?.getMarkdown() ?? server.current.body;
+    return {...metaRef.current,body,editorDocument:editor ? {version:1 as const,markdown:body,doc:editor.getJSON() as import("../../../cms/editor-document").EditorNode} : server.current.editorDocument??null};
+  }, [editor]);
+
+  const persistCopy = useCallback((base:string,edit:EditCopy) => {
+    const immediate=keepRecovery(initial.id,base,edit);
+    void journalWrite(initial.id,base,edit);
+    return immediate;
+  },[initial.id]);
+  const removeCopy = useCallback(()=>{clearRecovery(initial.id);void journalClear(initial.id);},[initial.id]);
+  useEffect(()=>{editor?.setEditable(recoveryReady&&!recovery);},[editor,recoveryReady,recovery]);
 
   const flush = useCallback(
     async (snapshot = false): Promise<boolean> => {
       window.clearTimeout(timer.current);
       while (inflight.current) await inflight.current;
       const sent = payload();
-      if (recovery) return false;
-      keepRecovery(server.current.id, server.current.updatedAt, sent);
+      if (recovery || !recoveryReady) return false;
+      persistCopy(server.current.updatedAt, sent);
       setSave("saving");
       const run = api
         .save(server.current.id, { ...sent, base: server.current.updatedAt, snapshot })
@@ -536,8 +581,8 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
           setDoc(post);
           setSavedAt(post.updatedAt);
           setSave(JSON.stringify(payload()) === JSON.stringify(sent) ? "saved" : "unsaved");
-          if (JSON.stringify(payload()) === JSON.stringify(sent)) clearRecovery(post.id);
-          else keepRecovery(post.id, post.updatedAt, payload());
+          if (JSON.stringify(payload()) === JSON.stringify(sent)) removeCopy();
+          else persistCopy(post.updatedAt, payload());
           if (snapshot && snapshotted) toast.add({ type: "success", title: "Revision saved", timeout: 1800 });
           return true;
         })
@@ -570,7 +615,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
       if (succeeded && JSON.stringify(payload()) !== JSON.stringify(sent)) return saveRef.current(snapshot);
       return succeeded;
     },
-    [payload, recovery]
+    [payload, recovery, recoveryReady, persistCopy, removeCopy]
   );
   useEffect(() => {
     saveRef.current = flush;
@@ -583,22 +628,24 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
   }
 
   useEffect(() => {
-    if (!editor || recovery) return;
+    if (!editor || recovery || !recoveryReady) return;
     const persist = () => {
-      if (JSON.stringify(payload()) === JSON.stringify({...metaOf(server.current), body:server.current.body})) clearRecovery(server.current.id);
-      else keepRecovery(server.current.id, server.current.updatedAt, payload());
+      if (JSON.stringify(payload()) === JSON.stringify({...metaOf(server.current), body:server.current.body,editorDocument:server.current.editorDocument??null})) removeCopy();
+      else persistCopy(server.current.updatedAt, payload());
     };
     editor.on("update", persist);
     window.addEventListener("pagehide", persist);
     return () => { editor.off("update", persist); window.removeEventListener("pagehide", persist); };
-  }, [editor, payload, recovery]);
+  }, [editor, payload, recovery, recoveryReady, persistCopy, removeCopy]);
 
   useEffect(() => registerProtection(async () => {
     if (recovery) return { saved: false, recoverable: true };
-    keepRecovery(server.current.id, server.current.updatedAt, payload());
+    if(!recoveryReady) return {saved:false,recoverable:false};
+    persistCopy(server.current.updatedAt, payload());
     const saved = await saveRef.current();
-    return { saved, recoverable: saved || keepRecovery(server.current.id, server.current.updatedAt, payload()) };
-  }), [payload, recovery]);
+    const durable=await journalFlush(initial.id);
+    return { saved, recoverable: saved || durable || keepRecovery(server.current.id, server.current.updatedAt, payload()) };
+  }), [payload, recovery, recoveryReady, persistCopy, initial.id]);
 
   const lastMeta = useRef(meta);
   const applyingRemote = useRef(false);
@@ -610,9 +657,9 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
       applyingRemote.current = false;
       return;
     }
-    if (!recovery) keepRecovery(server.current.id, server.current.updatedAt, payload());
+    if (!recovery && recoveryReady) persistCopy(server.current.updatedAt, payload());
     scheduleSave();
-  }, [meta, payload, recovery]);
+  }, [meta, payload, recovery, recoveryReady, persistCopy]);
 
   /* ── Live: another device saved this post ───────────────────────────── */
 
@@ -636,7 +683,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
         setMeta(metaOf(post));
         if (post.body !== editor.getMarkdown()) {
           const { from, to } = editor.state.selection;
-          editor.commands.setContent(post.body, { contentType: "markdown", emitUpdate: false } as never);
+          editor.commands.setContent(editorContent(post) ?? post.body, { contentType: editorContent(post)?"json":"markdown", emitUpdate: false } as never);
           const max = editor.state.doc.content.size;
           editor.commands.setTextSelection({ from: Math.min(from, max), to: Math.min(to, max) });
           setWords(countWords(editor.getText()));
@@ -750,6 +797,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
   useCommands((): Command[] => {
     if (!editor) return [];
     const post: Command[] = [
+      {id:"research",group:"Post",title:"Research, backlinks and review notes",icon:<BookOpenText {...CI}/>,keywords:["references","peek","template","excerpt","capture","block link"],run:()=>setPanel("research")},
       { id: "publish", group: "Post", title: doc.liveSlug ? "Publish changes…" : "Publish…", keys: "⌘⇧P", icon: <PaperPlaneTilt {...CI} />, keywords: ["schedule", "live", "ship"], run: () => setPanel("publish") },
       { id: "preview", group: "Post", title: "Preview page and share cards", icon: <Eye {...CI} />, keywords: ["og", "social", "twitter", "card", "phone"], run: () => setPanel("preview") },
       { id: "save", group: "Post", title: "Keep a revision", keys: "⌘S", icon: <FloppyDisk {...CI} />, keywords: ["save", "snapshot", "version"], run: () => void flush(true) },
@@ -912,7 +960,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
             <StatusDot status={doc.status} dirty={doc.dirty} />
             {statusLabel(doc)}
           </span>
-          <SaveState status={save} at={savedAt} />
+          <SaveState status={save} at={savedAt} local={localState} />
           {doc.parentId ? <a className="editor-parent-link" href={`/admin?post=${doc.parentId}`} target="_blank" rel="noreferrer">Parent page ↗</a> : null}
           {deploy ? <DeployPill key={deploy.updatedAt} deploy={deploy} onDismiss={() => setDeploy(null)} /> : null}
         </div>
@@ -965,6 +1013,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
               </MItem>
             </MenuSurface>
           </Menu.Root>
+          <button type="button" className="admin-icon-button" aria-label="Research and references" title="Research and references" onClick={() => setPanel("research")}><BookOpenText size={16}/></button>
           <button type="button" className="admin-icon-button admin-hide-sm" aria-label="History" title="History" onClick={() => setPanel("revisions")}>
             <ClockCounterClockwise size={16} weight="bold" />
           </button>
@@ -988,7 +1037,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
       {view === "page" ? <PageView meta={meta} body={editor?.getMarkdown() ?? doc.body} doc={doc} /> : null}
 
       <main hidden={view === "page"} className="page-shell editor-canvas article-shell w-full max-w-[672px]" style={fontVars(meta.fonts) as React.CSSProperties}>
-        <article className="article">
+        <article className="article" inert={!recoveryReady||Boolean(recovery)}>
           <header className="article-header">
             <div className="editor-page-tools" data-has-icon={meta.icon ? "" : undefined}>
               <IconPicker icon={meta.icon} onChange={(icon) => setMeta((m) => ({ ...m, icon }))} />
@@ -1143,18 +1192,22 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
       </Sheet>
 
       <Sheet open={Boolean(recovery)} onClose={() => {}} title="Restore your unsaved changes?" variant="center">
-        <p>A recovery copy is available from this browser tab.{recovery?.base !== initial.updatedAt ? " The server also has a newer version. Restoring will bring your recovery copy into the editor; it won't publish it." : " Restore it to continue where you left off."}</p>
+        {recoveryCopies.length>1?<label className="research-field">Recovery copy<select value={recoveryCopies.indexOf(recovery!)} onChange={event=>setRecovery(recoveryCopies[Number(event.target.value)])}>{recoveryCopies.map((entry,i)=><option key={entry.key??i} value={i}>{new Date(entry.at).toLocaleString()} — {entry.edit.title||"Untitled"}</option>)}</select></label>:null}
+        <p>A recovery copy is available on this device.{recovery?.base !== initial.updatedAt ? " The server also has a different version. Review both before restoring; restoring changes the draft, not the published page." : " Restore it to continue where you left off."}</p>
+        <details><summary>Compare recovery and server text</summary><h3>Recovery</h3><pre className="research-compare">{recovery?.edit.body}</pre><h3>Server</h3><pre className="research-compare">{initial.body}</pre></details>
         <div className="session-actions">
-          <button type="button" className="admin-button" onClick={() => { clearRecovery(initial.id); setRecovery(null); }}>Use server version</button>
+          <button type="button" className="admin-button" onClick={() => { removeCopy();if(recovery?.key) void journalClear(initial.id,recovery.key,recovery.token); setRecovery(null); }}>Use server version</button>
           <button type="button" className="admin-button admin-button-primary" onClick={() => {
             if (!recovery || !editor) return;
             setMeta(metaOf({...initial,...recovery.edit}));
-            editor.commands.setContent(recovery.edit.body, {contentType:"markdown",emitUpdate:false} as never);
+            editor.commands.setContent(editorContent(recovery.edit) ?? recovery.edit.body, {contentType:editorContent(recovery.edit)?"json":"markdown",emitUpdate:false} as never);
+            void journalWrite(initial.id,initial.updatedAt,recovery.edit).then(ok=>{if(ok&&recovery.key&&recovery.key!==journalOwnKey(initial.id))void journalClear(initial.id,recovery.key,recovery.token);});
             setWords(countWords(editor.getText()));
             setSave("unsaved"); setRecovery(null); scheduleSave();
           }}>Restore changes</button>
         </div>
       </Sheet>
+      <ResearchPanel open={panel==="research"} onClose={()=>setPanel(null)} doc={doc} editor={editor} beforeSave={()=>flush()}/>
       <PreviewSheet
         open={panel === "preview"}
         onClose={() => setPanel(null)}

@@ -1,7 +1,5 @@
-import { postToDraft, type Draft } from "../../../cms/format";
 import { fail, json, type AdminFunction } from "../../../cms/server/http";
-import { livePosts } from "../../../cms/server/publish";
-import { listDrafts } from "../../../cms/server/store";
+import { researchIndex } from "../../../cms/server/research";
 
 /*
  * Full-text search across every post: titles, standfirsts and bodies, drafts
@@ -29,7 +27,7 @@ export function plainText(md: string): string {
     .replace(/\s+/g, " ").trim();
 }
 
-type Hit = { field: "title" | "dek" | "body"; snippet: string; start: number; length: number; occurrence: number };
+type Hit = { field: "title" | "dek" | "body"; snippet: string; start: number; length: number; occurrence: number; blockId?:string };
 
 function find(text: string, q: string, field: Hit["field"], limit: number): Hit[] {
   const hay = text.toLowerCase();
@@ -65,15 +63,13 @@ export const onRequestGet: AdminFunction = async ({ env, request }) => {
   if (q.length < 2) return fail("Type at least two characters.");
   if (q.length > 100) return fail("That search is too long.");
 
-  const [drafts, live] = await Promise.all([listDrafts(env), livePosts(env)]);
-  const known = new Set(drafts.map((d) => d.id));
-  const all: Draft[] = [...drafts, ...live.filter((p) => !known.has(p.id)).map(postToDraft)];
+  const all = await researchIndex(env);
 
   const results = all
-    .filter(d=>!d.trashedAt)
     .map((d) => {
-      const body = plainText(d.body);
-      const hits = [...find(d.title, q, "title", 1), ...find(d.dek, q, "dek", 1), ...find(body, q, "body", 3)];
+      const body = d.text;
+      const blockHits=d.blocks.flatMap(block=>find(block.text,q,"body",3).map(hit=>({...hit,blockId:block.id}))).slice(0,3).map((hit,occurrence)=>({...hit,occurrence}));
+      const hits = [...find(d.title, q, "title", 1), ...find(d.dek, q, "dek", 1), ...(blockHits.length?blockHits:find(body, q, "body", 3))];
       const total = count(d.title, q) + count(d.dek, q) + count(body, q);
       return { id: d.id, title: d.title, icon: d.icon ?? null, status: d.status, dirty: d.dirty, updatedAt: d.updatedAt, total, hits };
     })

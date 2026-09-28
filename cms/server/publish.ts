@@ -17,6 +17,8 @@
 import { draftToPost, isValidSlug, parsePost, postPath, serializePost, CONTENT_DIR, type Draft, type Post } from "../format";
 import { commit, listDir, readFile, type Change, type GitHubEnv } from "./github";
 import { putDraft, setScheduled, snapshot, type StoreEnv } from "./store";
+import { publishedFingerprint } from "../published-fingerprint";
+import { indexDocument } from "../research";
 
 export type CmsEnv = GitHubEnv & StoreEnv;
 
@@ -83,11 +85,25 @@ function validate(draft: Draft) {
   if (draft.cover && !draft.cover.alt.trim()) throw new PublishError("The cover image needs alt text.");
 }
 
-type Prepared = { draft: Draft; next: Draft; changes: Change[]; summary: string };
+type Prepared = { draft: Draft; next: Draft; changes: Change[]; summary: string; expected?:{path:string;content:string|null}[] };
+
+async function guardPublishedSource(env:CmsEnv,prepared:Prepared) {
+  const draft=prepared.draft;
+  const path=postPath(draft.liveSlug??draft.slug);
+  const source=await readFile(env,path);
+  if(draft.liveSlug && draft.publishedFingerprint!==undefined && await publishedFingerprint(source)!==draft.publishedFingerprint) throw new PublishError("The published file changed in GitHub. Open Research → References → Compare published source before publishing.",409);
+  if(!draft.liveSlug&&source!==null)throw new PublishError("A published file already uses this URL. Choose another URL.",409);
+  prepared.expected=[{path,content:source}];
+  if(draft.liveSlug&&draft.liveSlug!==draft.slug)prepared.expected.push({path:postPath(draft.slug),content:null});
+  const file=prepared.changes.find(c=>c.path===postPath(prepared.next.slug)&&!("delete" in c));
+  if(file&&"content" in file)prepared.next.publishedFingerprint=await publishedFingerprint(file.content);
+}
 
 /** Everything a publish will do, without doing it: checks, the file, a rename. */
 function preparePublish(posts: Post[], draft: Draft, now: string, taken: Set<string>): Prepared {
   validate(draft);
+  const unavailable=indexDocument(draft).references.find(r=>r.target!==draft.id&&!posts.some(p=>p.id===r.target&&p.page!==false));
+  if(unavailable)throw new PublishError("This draft mentions an unpublished or unavailable page. Publish that page first or remove its mention before publishing this article.");
   const owner = slugOwner(posts, draft.slug, draft.id);
   if (owner) throw new PublishError(`“${owner.title}” already uses /writing/${draft.slug}.`, 409);
   if (taken.has(draft.slug)) throw new PublishError(`Two selected posts use /writing/${draft.slug}. Change one URL.`, 409);
@@ -129,7 +145,8 @@ async function settle(env: CmsEnv, prepared: Prepared[], label: string) {
 export async function publish(env: CmsEnv, draft: Draft, label = "Published"): Promise<Draft> {
   const now = new Date().toISOString();
   const prepared = preparePublish(await livePosts(env), draft, now, new Set());
-  await commit(env, prepared.summary, prepared.changes);
+  await guardPublishedSource(env,prepared);
+  await commit(env, prepared.summary, prepared.changes, prepared.expected);
   await forgetLive(env);
   await settle(env, [prepared], label);
   return prepared.next;
@@ -148,14 +165,16 @@ export async function publishMany(env: CmsEnv, drafts: Draft[]): Promise<{ done:
   const failed: { id: string; error: string }[] = [];
   for (const d of drafts) {
     try {
-      prepared.push(preparePublish(posts, d, now, taken));
+      const p=preparePublish(posts,d,now,taken);
+      await guardPublishedSource(env,p);
+      prepared.push(p);
     } catch (error) {
       failed.push({ id: d.id, error: error instanceof Error ? error.message : "Couldn't publish" });
     }
   }
   if (prepared.length) {
     const message = prepared.length === 1 ? prepared[0].summary : `writing: publish ${prepared.length} posts\n\n${prepared.map((p) => `- ${p.summary.replace(/^writing: /, "")}`).join("\n")}`;
-    await commit(env, message, prepared.flatMap((p) => p.changes));
+    await commit(env, message, prepared.flatMap((p) => p.changes),prepared.flatMap(p=>p.expected??[]));
     await forgetLive(env);
     await settle(env, prepared, "Published");
   }

@@ -1,4 +1,5 @@
 import { newId, type Draft } from "../../../../../cms/format";
+import { copyEditorDocument } from "../../../../../cms/editor-document";
 import { json, param, type AdminFunction } from "../../../../../cms/server/http";
 import { loadDraft } from "../../../../../cms/server/load";
 import { putDraft, snapshot } from "../../../../../cms/server/store";
@@ -9,6 +10,9 @@ export const onRequestPost: AdminFunction<"id"> = async ({ env, params }) => {
   const now = new Date().toISOString();
   const copy: Draft = {
     ...source,
+    editorDocument: copyEditorDocument(source.editorDocument),
+    publishedFingerprint:null,
+    creationRequestId:undefined,
     id: newId(),
     title: source.title.trim() ? `${source.title.trim()} (copy)` : "",
     slug: "",
