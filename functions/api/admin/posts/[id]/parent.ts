@@ -49,6 +49,7 @@ export const onRequestPut: AdminFunction<"id"> = async ({
       "A page cannot move inside itself, its descendants or an unavailable page.",
     );
   const next = {
+    ...value,
     version: 1,
     parents: { ...value.parents, [id]: input.parentId },
   };

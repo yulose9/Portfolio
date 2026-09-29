@@ -256,7 +256,7 @@ export default function PostList({ email, onOpen, onSearch, onTags }: { email: s
       </header>
 
       <div className="admin-toolbar">
-        <PageTree pages={posts??[]} onOpen={onOpen}/>
+        <PageTree pages={posts??[]} onOpen={onOpen} onRefresh={()=>setVersion(v=>v+1)}/>
         <div className="admin-segments" role="tablist" aria-label="Filter posts">
           {FILTERS.map((f) => (
             <button

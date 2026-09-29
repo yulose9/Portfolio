@@ -1,9 +1,14 @@
 import type { StoreEnv } from "./store";
+import type { PageOrders } from "../page-order";
 export const HIERARCHY_KEY = "meta/page-hierarchy.json";
-export type Hierarchy = { version: 1; parents: Record<string, string | null> };
+export type Hierarchy = {
+  version: 1;
+  parents: Record<string, string | null>;
+  orders?: PageOrders;
+};
 export async function readHierarchy(env: StoreEnv) {
   const object = await env.WRITING.get(HIERARCHY_KEY);
-  const value = object
+  const value: Hierarchy = object
     ? await object.json<Hierarchy>()
     : { version: 1 as const, parents: {} };
   if (
@@ -19,6 +24,23 @@ export async function readHierarchy(env: StoreEnv) {
     )
   )
     throw new Error("Unsupported page hierarchy. Your pages remain stored.");
+  if (
+    value.orders !== undefined &&
+    (!value.orders ||
+      typeof value.orders !== "object" ||
+      Array.isArray(value.orders) ||
+      Object.entries(value.orders).some(
+        ([parent, ids]) =>
+          (parent !== "root" && !/^[a-z0-9]{12}$/.test(parent)) ||
+          !Array.isArray(ids) ||
+          ids.length > 5000 ||
+          new Set(ids).size !== ids.length ||
+          ids.some(
+            (id) => typeof id !== "string" || !/^[a-z0-9]{12}$/.test(id),
+          ),
+      ))
+  )
+    throw new Error("Unsupported page order. Your pages remain stored.");
   return { value, etag: object?.etag };
 }
 export function applyParent<T extends { id: string; parentId?: string | null }>(

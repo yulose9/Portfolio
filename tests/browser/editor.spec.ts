@@ -1,5 +1,47 @@
 import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
 const id = "abcdefghijkl";
+async function navigatorFixture(page: Page) {
+  const { post: current } = await page.evaluate(async () =>
+    (await fetch("/api/admin/posts/abcdefghijkl")).json(),
+  );
+  const pages = [
+    { ...current, parentId: null, navigationOrder: 0, pinned: true },
+    {
+      ...current,
+      id: "123456789abc",
+      title: "Related page",
+      parentId: null,
+      navigationOrder: 1,
+      pinned: false,
+    },
+    {
+      ...current,
+      id: "cccccccccccc",
+      title: "Café research",
+      parentId: id,
+      navigationOrder: 0,
+      pinned: false,
+    },
+  ];
+  await page.route("**/api/admin/posts", (route) =>
+    route.request().method() === "GET"
+      ? route.fulfill({ json: { posts: pages } })
+      : route.fallback(),
+  );
+  return { current, pages };
+}
+async function openNavigator(page: Page) {
+  await page.getByRole("button", { name: "View", exact: true }).click();
+  await page
+    .getByRole("menuitem", { name: "Browse pages", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Pages", exact: true });
+  await expect(
+    dialog.getByRole("navigation", { name: "Page navigator" }),
+  ).toBeVisible();
+  return dialog;
+}
 test.beforeEach(async ({ page }) => {
   let draft = {
     id,
@@ -224,15 +266,13 @@ test("large internal paste has a cancellable preview and one insertion", async (
       JSON.stringify({ version: 1, openStart: 0, openEnd: 0, content }),
     );
     data.setData("text/plain", "Imported text");
-    document
-      .querySelector(".editor-body")!
-      .dispatchEvent(
-        new ClipboardEvent("paste", {
-          bubbles: true,
-          cancelable: true,
-          clipboardData: data,
-        }),
-      );
+    document.querySelector(".editor-body")!.dispatchEvent(
+      new ClipboardEvent("paste", {
+        bubbles: true,
+        cancelable: true,
+        clipboardData: data,
+      }),
+    );
   });
   const dialog = page.getByRole("dialog", { name: "Review pasted blocks" });
   await expect(dialog).toBeVisible();
@@ -244,7 +284,9 @@ test("large internal paste has a cancellable preview and one insertion", async (
     .click();
   await expect(page.locator(".editor-body")).toContainText("Imported block 13");
   await expect(dialog).not.toBeVisible();
-  await expect(page.getByRole("textbox", { name: "Body", exact: true })).toBeFocused();
+  await expect(
+    page.getByRole("textbox", { name: "Body", exact: true }),
+  ).toBeFocused();
   await page.keyboard.press("Control+z");
   await expect(page.locator(".editor-body")).not.toContainText(
     "Imported block 13",
@@ -254,6 +296,13 @@ test("large internal paste has a cancellable preview and one insertion", async (
 test("completed upload survives reload and does not attach to a removed target", async ({
   page,
 }) => {
+  const saved = page.waitForResponse(
+    (response) =>
+      response.url().endsWith(`/api/admin/posts/${id}`) &&
+      response.request().method() === "PUT",
+  );
+  await page.keyboard.press("Control+s");
+  await saved;
   await page.evaluate(async () => {
     await new Promise<void>((resolve, reject) => {
       const request = indexedDB.open("writing-media-jobs", 3);
@@ -308,4 +357,227 @@ test("completed upload survives reload and does not attach to a removed target",
   await expect(
     uploads.getByText("Recovered image", { exact: true }),
   ).toHaveCount(0);
+});
+
+test("navigator preserves expansion, filters with ancestors and saves sibling order", async ({
+  page,
+}, info) => {
+  const { pages } = await navigatorFixture(page);
+  const orders: string[][] = [];
+  await page.route("**/api/admin/page-order", async (route) => {
+    const input = route.request().postDataJSON();
+    orders.push(input.ids);
+    for (const p of pages)
+      if (p.parentId === input.parentId)
+        p.navigationOrder = input.ids.indexOf(p.id);
+    await route.fulfill({ json: { ids: input.ids } });
+  });
+  let dialog = await openNavigator(page);
+  await expect(
+    dialog.getByRole("region", { name: "Pinned pages" }),
+  ).toBeVisible();
+  await dialog
+    .getByRole("button", { name: "Expand Editor regression", exact: true })
+    .click();
+  await expect(dialog.locator('[data-page-id="cccccccccccc"]')).toBeVisible();
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  dialog = await openNavigator(page);
+  await expect(dialog.locator('[data-page-id="cccccccccccc"]')).toBeVisible();
+  await dialog.getByRole("searchbox").fill("cafe");
+  await expect(dialog.locator(".page-tree-row")).toHaveCount(2);
+  await expect(dialog.locator('[data-page-id="abcdefghijkl"]')).toBeVisible();
+  await dialog.getByRole("searchbox").fill("");
+  await dialog
+    .getByRole("button", { name: "Actions for Editor regression", exact: true })
+    .click();
+  await page.getByRole("menuitem", { name: "Move down", exact: true }).click();
+  await expect(dialog.getByRole("status")).toContainText("position 2 of 2");
+  expect(orders).toEqual([["123456789abc", id]]);
+  await dialog.getByRole("button", { name: "Refresh", exact: true }).click();
+  await expect(
+    dialog.locator("nav > ul > li > .page-tree-row").first(),
+  ).toHaveAttribute("data-page-id", "123456789abc");
+  await page.screenshot({
+    path: `.audit/notion-navigator-${info.project.name}.png`,
+  });
+});
+
+test("navigator supports native dragging and keyboard sibling moves", async ({
+  page,
+}, info) => {
+  test.skip(
+    info.project.name === "mobile",
+    "Touch uses the separately tested row move actions.",
+  );
+  await navigatorFixture(page);
+  const orders: string[][] = [];
+  await page.route("**/api/admin/page-order", async (route) => {
+    const input = route.request().postDataJSON();
+    orders.push(input.ids);
+    await route.fulfill({ json: { ids: input.ids } });
+  });
+  const dialog = await openNavigator(page);
+  const grip = dialog.getByRole("button", {
+    name: "Reorder Editor regression",
+    exact: true,
+  });
+  await grip.dragTo(dialog.locator('[data-page-id="123456789abc"]'));
+  await expect(dialog.getByRole("status")).toContainText("position 2 of 2");
+  await grip.focus();
+  await page.keyboard.press("Alt+ArrowUp");
+  await expect(dialog.getByRole("status")).toContainText("position 1 of 2");
+  expect(orders).toEqual([
+    ["123456789abc", id],
+    [id, "123456789abc"],
+  ]);
+  await expect(grip).toBeFocused();
+});
+
+test("pinning the current page advances the next edit save version", async ({
+  page,
+}) => {
+  const { current, pages } = await navigatorFixture(page);
+  let stored = { ...current, pinned: true };
+  let version = 0;
+  const conflicts: string[] = [];
+  await page.route(`**/api/admin/posts/${id}`, async (route) => {
+    if (route.request().method() === "PUT") {
+      const input = route.request().postDataJSON();
+      if (input.base !== stored.updatedAt) {
+        conflicts.push(input.base);
+        return route.fulfill({ status: 409, json: { error: "Stale base" } });
+      }
+      stored = {
+        ...stored,
+        ...input,
+        updatedAt: new Date(
+          Date.UTC(2026, 8, 29, 0, 0, ++version),
+        ).toISOString(),
+      };
+      pages[0].pinned = stored.pinned;
+    }
+    await route.fulfill({ json: { post: stored, snapshotted: false } });
+  });
+  const dialog = await openNavigator(page);
+  await dialog
+    .getByRole("button", { name: "Actions for Editor regression", exact: true })
+    .click();
+  await page.getByRole("menuitem", { name: "Unpin page", exact: true }).click();
+  await expect(dialog.getByRole("status")).toContainText("Page pin updated");
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await page.getByRole("textbox", { name: "Body", exact: true }).click();
+  await page.keyboard.press("Control+End");
+  await page.keyboard.type(" Edit after pinning");
+  await page.keyboard.press("Control+s");
+  await expect.poll(() => stored.body).toContain("Edit after pinning");
+  expect(stored.pinned).toBe(false);
+  expect(conflicts).toEqual([]);
+});
+
+test("navigator refuses to leave when saving fails", async ({ page }) => {
+  await navigatorFixture(page);
+  await page.route(`**/api/admin/posts/${id}`, (route) =>
+    route.request().method() === "PUT"
+      ? route.fulfill({
+          status: 503,
+          json: { error: "Fixture save unavailable" },
+        })
+      : route.fallback(),
+  );
+  const body = page.getByRole("textbox", { name: "Body", exact: true });
+  await body.click();
+  await page.keyboard.press("Control+End");
+  await page.keyboard.type(" Unsaved note");
+  const dialog = await openNavigator(page);
+  await dialog
+    .locator('[data-page-id="123456789abc"]')
+    .getByRole("button", { name: "Related page", exact: true })
+    .click();
+  await expect(dialog.getByRole("alert")).toContainText("Save or recover");
+  await expect(page).toHaveURL(/post=abcdefghijkl/);
+  await expect(page.locator(".editor-body")).toContainText("Unsaved note");
+});
+
+test("new subpage retries use one identity and open only after success", async ({
+  page,
+}) => {
+  const { current } = await navigatorFixture(page),
+    requests: string[] = [];
+  const child = {
+    ...current,
+    id: "dddddddddddd",
+    title: "New subpage",
+    body: "",
+    parentId: id,
+  };
+  await page.route("**/api/admin/posts", async (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    const data = route.request().postDataJSON();
+    expect(data.parentId).toBe(id);
+    requests.push(data.requestId);
+    if (requests.length === 1)
+      await route.fulfill({ status: 503, json: { error: "Retry the create" } });
+    else await route.fulfill({ json: { post: child } });
+  });
+  await page.route("**/api/admin/posts/dddddddddddd", (route) =>
+    route.fulfill({ json: { post: child } }),
+  );
+  const dialog = await openNavigator(page);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await dialog
+      .getByRole("button", {
+        name: "Actions for Editor regression",
+        exact: true,
+      })
+      .click();
+    await page
+      .getByRole("menuitem", { name: "New subpage", exact: true })
+      .click();
+    if (attempt === 0) {
+      await expect(dialog.getByRole("alert")).toContainText("Retry the create");
+      await expect(page).toHaveURL(/post=abcdefghijkl/);
+    }
+  }
+  await expect(page).toHaveURL(/post=dddddddddddd/);
+  await expect(page).toHaveTitle("New subpage · Writing admin");
+  expect(requests).toHaveLength(2);
+  expect(requests[1]).toBe(requests[0]);
+});
+
+test("slash previews follow keyboard choices and restore editor accessibility", async ({
+  page,
+}, info) => {
+  const body = page.getByRole("textbox", { name: "Body", exact: true });
+  await body.click();
+  await page.keyboard.press("Control+End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("/hea");
+  const list = page.getByRole("listbox", { name: "Insert block", exact: true });
+  await expect(list).toBeVisible();
+  await page.keyboard.press("ArrowDown");
+  await expect(list.getByRole("option", { selected: true })).toContainText(
+    "Heading 2",
+  );
+  await expect(
+    page.getByRole("complementary", { name: "Block preview" }),
+  ).toContainText("Subsection");
+  const popup = await page.locator(".slash-menu").boundingBox(),
+    viewport = page.viewportSize()!;
+  expect(popup!.x).toBeGreaterThanOrEqual(0);
+  expect(popup!.x + popup!.width).toBeLessThanOrEqual(viewport.width);
+  expect(popup!.y).toBeGreaterThanOrEqual(0);
+  expect(popup!.y + popup!.height).toBeLessThanOrEqual(viewport.height);
+  await page.screenshot({
+    path: `.audit/notion-block-preview-${info.project.name}.png`,
+  });
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("A subsection");
+  await expect(body.locator("h3")).toContainText("A subsection");
+  await expect(body).not.toHaveAttribute("aria-controls", /.+/);
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("/");
+  await expect(list).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(list).not.toBeVisible();
+  await expect(body).toBeFocused();
 });

@@ -3,10 +3,22 @@
 import { Extension, type Editor, type Range } from "@tiptap/core";
 import { PluginKey } from "@tiptap/pm/state";
 import { ReactRenderer } from "@tiptap/react";
-import Suggestion, { type SuggestionKeyDownProps, type SuggestionProps } from "@tiptap/suggestion";
-import { Fragment, forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import Suggestion, {
+  type SuggestionKeyDownProps,
+  type SuggestionProps,
+} from "@tiptap/suggestion";
+import {
+  Fragment,
+  forwardRef,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 
-import { BLOCKS, inserts, turnInto } from "./commands";
+import { BLOCKS, inserts, turnInto, type BlockKind } from "./commands";
+import BlockExample from "./BlockExample";
 
 /*
  * "/" at the start of a line (or after a space) opens the block menu: type to
@@ -16,6 +28,8 @@ import { BLOCKS, inserts, turnInto } from "./commands";
  */
 
 export type SlashItem = {
+  example?: BlockKind;
+  shortcut?: string;
   title: string;
   hint: string;
   keywords: string[];
@@ -31,43 +45,76 @@ export type SlashItem = {
  */
 function fresh(e: Editor, r: Range) {
   e.chain().focus().deleteRange(r).run();
-  if (e.state.selection.$from.parent.textContent.trim()) e.chain().splitBlock().run();
+  if (e.state.selection.$from.parent.textContent.trim())
+    e.chain().splitBlock().run();
 }
 
-export function slashItems(pickImage: () => void, pickEmoji: () => void, pickVoice: () => void): SlashItem[] {
+export function slashItems(
+  pickImage: () => void,
+  pickEmoji: () => void,
+  pickVoice: () => void,
+): SlashItem[] {
   return [
-    ...BLOCKS.map((b): SlashItem => ({
-      title: b.title,
-      hint: b.md || b.hint,
-      keywords: b.keywords,
-      icon: b.icon,
-      group: "Blocks",
-      run: (e, r) => {
-        fresh(e, r);
-        turnInto(e, b.kind);
-      },
-    })),
-    ...inserts(pickImage, pickEmoji, pickVoice).map((i): SlashItem => ({
-      title: i.title,
-      hint: i.hint,
-      keywords: i.keywords,
-      icon: i.icon,
-      group: "Insert",
-      run: (e, r) => {
-        if (i.id === "inline-logo") e.chain().focus().deleteRange(r).run();
-        else fresh(e, r);
-        i.run(e);
-      },
-    })),
+    ...BLOCKS.map(
+      (b): SlashItem => ({
+        title: b.title,
+        hint: b.hint,
+        shortcut: b.md,
+        example: b.kind,
+        keywords: b.keywords,
+        icon: b.icon,
+        group: "Blocks",
+        run: (e, r) => {
+          fresh(e, r);
+          turnInto(e, b.kind);
+        },
+      }),
+    ),
+    ...inserts(pickImage, pickEmoji, pickVoice).map(
+      (i): SlashItem => ({
+        title: i.title,
+        hint: i.hint,
+        keywords: i.keywords,
+        icon: i.icon,
+        group: "Insert",
+        run: (e, r) => {
+          if (i.id === "inline-logo") e.chain().focus().deleteRange(r).run();
+          else fresh(e, r);
+          i.run(e);
+        },
+      }),
+    ),
   ];
 }
 
 type ListProps = SuggestionProps<SlashItem>;
 type ListHandle = { onKeyDown: (props: SuggestionKeyDownProps) => boolean };
 
-const SlashList = forwardRef<ListHandle, ListProps>(function SlashList({ items, command }, ref) {
+const SlashList = forwardRef<ListHandle, ListProps>(function SlashList(
+  { items, command, editor },
+  ref,
+) {
   const [index, setIndex] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
+  const listId = useId();
+  useEffect(() => {
+    const element = editor.view.dom;
+    const previousControls = element.getAttribute("aria-controls"),
+      previousActive = element.getAttribute("aria-activedescendant");
+    element.setAttribute("aria-controls", listId);
+    if (items[index])
+      element.setAttribute("aria-activedescendant", `${listId}-${index}`);
+    else element.removeAttribute("aria-activedescendant");
+    return () => {
+      if (element.getAttribute("aria-controls") !== listId) return;
+      if (previousControls)
+        element.setAttribute("aria-controls", previousControls);
+      else element.removeAttribute("aria-controls");
+      if (previousActive)
+        element.setAttribute("aria-activedescendant", previousActive);
+      else element.removeAttribute("aria-activedescendant");
+    };
+  }, [editor, index, items, listId]);
 
   // A new query is a new list: start from the top of it.
   const [shownItems, setShownItems] = useState(items);
@@ -76,12 +123,18 @@ const SlashList = forwardRef<ListHandle, ListProps>(function SlashList({ items, 
     setIndex(0);
   }
   useEffect(() => {
-    listRef.current?.querySelector(`[data-index="${index}"]`)?.scrollIntoView({ block: "nearest" });
+    listRef.current
+      ?.querySelector(`[data-index="${index}"]`)
+      ?.scrollIntoView({ block: "nearest" });
   }, [index]);
 
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }) => {
       if (!items.length) return false;
+      if (event.key === "Home" || event.key === "End") {
+        setIndex(event.key === "Home" ? 0 : items.length - 1);
+        return true;
+      }
       if (event.key === "ArrowDown") {
         setIndex((i) => (i + 1) % items.length);
         return true;
@@ -99,44 +152,67 @@ const SlashList = forwardRef<ListHandle, ListProps>(function SlashList({ items, 
   }));
 
   return (
-    <div ref={listRef} className="slash-menu" role="listbox" aria-label="Insert block">
-      {items.length ? (
-        items.map((item, i) => (
-          <Fragment key={item.title}>
-          {i === 0 || items[i - 1].group !== item.group ? <p className="slash-group">{item.group}</p> : null}
-          <button
-            type="button"
-            role="option"
-            aria-selected={i === index}
-            data-index={i}
-            className="slash-item"
-            onMouseEnter={() => setIndex(i)}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => command(item)}
-          >
-            <span className="slash-icon">{item.icon}</span>
-            <span className="slash-title">{item.title}</span>
-            <span className="slash-hint">{item.hint}</span>
-          </button>
-          </Fragment>
-        ))
-      ) : (
-        <p className="slash-empty">No blocks match</p>
-      )}
+    <div className="slash-menu">
+      <div
+        ref={listRef}
+        id={listId}
+        className="slash-options"
+        role="listbox"
+        aria-label="Insert block"
+      >
+        {items.length ? (
+          items.map((item, i) => (
+            <Fragment key={item.title}>
+              {i === 0 || items[i - 1].group !== item.group ? (
+                <p className="slash-group">{item.group}</p>
+              ) : null}
+              <button
+                type="button"
+                role="option"
+                id={`${listId}-${i}`}
+                tabIndex={-1}
+                aria-selected={i === index}
+                data-index={i}
+                className="slash-item"
+                onMouseEnter={() => setIndex(i)}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => command(item)}
+              >
+                <span className="slash-icon">{item.icon}</span>
+                <span className="slash-title">
+                  {item.title}
+                  {item.shortcut ? <kbd>{item.shortcut}</kbd> : null}
+                </span>
+                <span className="slash-hint">{item.hint}</span>
+              </button>
+            </Fragment>
+          ))
+        ) : (
+          <p className="slash-empty">No blocks match</p>
+        )}
+      </div>
+      {items[index] ? (
+        <aside className="slash-preview" aria-label="Block preview">
+          <div>
+            <strong>{items[index].title}</strong>
+            <p>{items[index].hint}</p>
+          </div>
+          {items[index].example ? (
+            <BlockExample kind={items[index].example} />
+          ) : (
+            <div
+              className="block-example block-example-icon"
+              aria-hidden="true"
+            >
+              {items[index].icon}
+            </div>
+          )}
+          <small>↑ ↓ to browse · Enter to insert · Esc to close</small>
+        </aside>
+      ) : null}
     </div>
   );
 });
-
-/** Keep the menu under the caret, flipping above it near the bottom of the window. */
-function place(el: HTMLElement, rect: DOMRect | null | undefined) {
-  if (!rect) return;
-  const gap = 8;
-  const height = el.offsetHeight || 320;
-  const below = rect.bottom + gap + height < window.innerHeight;
-  el.style.left = `${Math.max(12, Math.min(rect.left, window.innerWidth - el.offsetWidth - 12))}px`;
-  el.style.top = `${below ? rect.bottom + gap : rect.top - gap - height}px`;
-  el.dataset.side = below ? "bottom" : "top";
-}
 
 export function SlashCommand(getItems: () => SlashItem[]) {
   return Extension.create({
@@ -146,6 +222,9 @@ export function SlashCommand(getItems: () => SlashItem[]) {
         Suggestion<SlashItem>({
           editor: this.editor,
           char: "/",
+          placement: "bottom-start",
+          offset: { mainAxis: 8 },
+          floatingUi: { strategy: "fixed" },
           pluginKey: new PluginKey("slashCommand"),
           startOfLine: false,
           allowSpaces: false,
@@ -153,41 +232,71 @@ export function SlashCommand(getItems: () => SlashItem[]) {
           allow: ({ state, range }) => {
             const $from = state.doc.resolve(range.from);
             if ($from.parent.type.name === "codeBlock") return false;
-            const before = state.doc.textBetween(Math.max(0, range.from - 1), range.from);
+            const before = state.doc.textBetween(
+              Math.max(0, range.from - 1),
+              range.from,
+            );
             return before === "" || /\s/.test(before);
           },
           items: ({ query }) => {
             const q = query.toLowerCase();
-            return getItems().filter((i) => !q || i.title.toLowerCase().includes(q) || i.keywords.some((k) => k.startsWith(q)));
+            return getItems().filter(
+              (i) =>
+                !q ||
+                i.title.toLowerCase().includes(q) ||
+                i.keywords.some((k) => k.startsWith(q)),
+            );
           },
           command: ({ editor, range, props }) => props.run(editor, range),
           render: () => {
             let renderer: ReactRenderer<ListHandle, ListProps> | null = null;
+            let unmount: (() => void) | undefined;
+            const close = () => {
+              unmount?.();
+              unmount = undefined;
+              renderer?.destroy();
+              renderer = null;
+            };
             return {
               onStart: (props) => {
-                renderer = new ReactRenderer(SlashList, { props, editor: props.editor });
+                renderer = new ReactRenderer(SlashList, {
+                  props,
+                  editor: props.editor,
+                });
                 const el = renderer.element as HTMLElement;
                 el.classList.add("slash-layer");
-                document.body.appendChild(el);
-                requestAnimationFrame(() => place(el, props.clientRect?.()));
+                unmount = props.mount(el, {
+                  onPosition: ({ x, y, placement, strategy }) => {
+                    const viewport = window.visualViewport,
+                      top = viewport?.offsetTop ?? 0,
+                      left = viewport?.offsetLeft ?? 0;
+                    const height = viewport?.height ?? window.innerHeight,
+                      width = viewport?.width ?? window.innerWidth;
+                    el.style.setProperty(
+                      "--slash-height",
+                      `${Math.max(80, height - 24)}px`,
+                    );
+                    el.style.position = strategy;
+                    el.style.left = `${Math.max(left + 12, Math.min(x, left + width - el.offsetWidth - 12))}px`;
+                    el.style.top = `${Math.max(top + 12, Math.min(y, top + height - el.offsetHeight - 12))}px`;
+                    el.dataset.side = placement.startsWith("top")
+                      ? "top"
+                      : "bottom";
+                  },
+                });
               },
               onUpdate: (props) => {
                 renderer?.updateProps(props);
-                if (renderer) place(renderer.element as HTMLElement, props.clientRect?.());
               },
               onKeyDown: (props) => {
                 if (props.event.key === "Escape") {
-                  renderer?.destroy();
-                  (renderer?.element as HTMLElement | undefined)?.remove();
-                  renderer = null;
+                  close();
                   return true;
                 }
                 return renderer?.ref?.onKeyDown(props) ?? false;
               },
               onExit: () => {
-                (renderer?.element as HTMLElement | undefined)?.remove();
-                renderer?.destroy();
-                renderer = null;
+                close();
               },
             };
           },

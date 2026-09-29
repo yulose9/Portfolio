@@ -5,6 +5,7 @@ import { createDraft, getDraft, listDrafts } from "../../../../cms/server/store"
 import { summarize } from "../../../../cms/server/summary";
 import { publishedFingerprint } from "../../../../cms/published-fingerprint";
 import { applyParent, readHierarchy } from "../../../../cms/server/hierarchy";
+import { withPageOrder } from "../../../../cms/page-order";
 
 /** Every post: the R2 working copies, plus any live file never opened here. */
 export const onRequestGet: AdminFunction = async ({ env }) => {
@@ -17,7 +18,7 @@ export const onRequestGet: AdminFunction = async ({ env }) => {
     .map(p=>applyParent(p,hierarchy))
     .map(summarize)
     .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
-  return json({ posts });
+  return json({ posts: withPageOrder(posts, hierarchy.orders) });
 };
 
 /** A new, empty draft. */

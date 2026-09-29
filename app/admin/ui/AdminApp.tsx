@@ -137,7 +137,7 @@ export default function AdminApp() {
       <SessionGuard />
       <TagPages open={tagsOpen} onClose={()=>setTagsOpen(false)}/>
       {postId ? (
-        <Editor key={`${postId}:${options.q ?? ""}:${options.n ?? 0}:${options.panel ?? ""}`} id={postId} options={options} onBack={() => open(null)} />
+        <Editor key={`${postId}:${options.q ?? ""}:${options.n ?? 0}:${options.panel ?? ""}`} id={postId} options={options} onBack={() => open(null)} onOpen={id => open(id)} />
       ) : (
         <PostList onTags={()=>setTagsOpen(true)} email={gate.email} onOpen={(id, panel?: Panel) => open(id, { panel })} onSearch={() => setSearching(true)} />
       )}

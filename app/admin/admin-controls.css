@@ -213,6 +213,66 @@
   min-width: 0;
   grid-template-columns: minmax(0, 1fr);
 }
+
+/* Page navigation shares the same controls in the list and editor sheet. */
+.page-tree-embedded nav { position: static; width: 100%; max-height: none; padding: 0; border: 0; border-radius: 0; box-shadow: none; overflow: visible; }
+.page-tree nav { scrollbar-width: thin; scrollbar-color: var(--a-line) transparent; }
+.page-tree-search { display: grid; gap: 7px; font-size: 12px; color: var(--a-ink-3); }
+.page-tree-search input { width: 100%; min-width: 0; min-height: 38px; padding: 8px 10px; color: var(--a-ink); border: 1px solid var(--a-line); border-radius: 8px; font: inherit; font-size: 14px; }
+.page-tree h3 { margin: 18px 4px 6px; color: var(--a-ink-3); font-size: 11px; font-weight: 600; letter-spacing: .04em; }
+.page-tree-row { display: flex; align-items: center; min-width: 0; border-radius: 8px; gap: 2px; position: relative; }
+.page-tree-row[data-current], .page-tree-link[aria-current="page"] { background: var(--a-fill); font-weight: 600; }
+.page-tree-row[data-drop] { box-shadow: 0 -2px 0 var(--a-ink); background: var(--a-fill); }
+.page-tree-row .page-tree-link { flex: 1; min-width: 0; width: auto; padding: 8px 4px; }
+.page-tree-link > span:first-child { flex: 0 0 18px; display: grid; place-items: center; }
+.page-tree-link > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page-tree-toggle, .page-tree-grip { display: grid; place-items: center; flex: 0 0 20px; width: 20px; height: 32px; color: var(--a-ink-3); border-radius: 4px; }
+.page-tree-grip { cursor: grab; }
+.page-tree-grip:active { cursor: grabbing; }
+.page-tree-toggle:focus-visible, .page-tree-grip:focus-visible, .page-tree-tools button:focus-visible { outline: 2px solid var(--a-ink); outline-offset: 2px; }
+.page-tree-tools { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0; font-size: 11px; color: var(--a-ink-2); }
+.page-tree-tools button { min-height: 28px; }
+.page-tree-tools button:last-child { margin-left: auto; }
+.page-tree button:disabled { cursor: default; opacity: .45; }
+.page-tree-help, .page-tree-status, .page-tree-error { font-size: 12px; line-height: 1.5; margin: 12px 4px; color: var(--a-ink-3); }
+.page-tree-status:empty { display: none; }
+.page-tree-error { color: var(--a-red, #b42318); }
+@media (hover: hover) and (pointer: fine) {
+  .page-tree-grip, .page-tree-actions { opacity: 0; transition: opacity 100ms ease; }
+  .page-tree-row:hover .page-tree-grip, .page-tree-row:hover .page-tree-actions, .page-tree-row:focus-within .page-tree-grip, .page-tree-row:focus-within .page-tree-actions { opacity: 1; }
+}
+@media (pointer: coarse) {
+  .page-tree-row .admin-icon-button, .page-tree-toggle { min-width: 32px; min-height: 44px; }
+  .page-tree-grip { display: none; }
+  .page-tree-tools button { min-height: 44px; }
+}
+
+/* Examples stay beside the options on desktop; mobile keeps the description. */
+.slash-menu { width: min(510px, calc(100vw - 24px)); max-height: min(360px, var(--slash-height, calc(100dvh - 24px))); padding: 6px; grid-template-columns: minmax(0, 280px) minmax(0, 1fr); overflow: hidden; }
+.slash-options { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.slash-title { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+.slash-title kbd { color: var(--a-ink-3); font-size: 10px; font-weight: 400; white-space: nowrap; }
+.slash-preview { display: flex; flex-direction: column; gap: 16px; padding: 12px; border-left: 1px solid var(--a-line); margin-left: 6px; color: var(--a-ink); font-size: 13px; overflow: auto; }
+.slash-preview p { font-size: 12px; color: var(--a-ink-3); margin: 6px 0 0; line-height: 1.5; }
+.slash-preview small { color: var(--a-ink-3); font-size: 10px; line-height: 1.5; margin-top: auto; }
+.block-example { padding: 12px; border-radius: 8px; background: var(--a-fill); overflow: hidden; font-size: 12px; line-height: 1.6; }
+.block-example p { margin: 0; color: var(--a-ink-2); }
+.block-example ul, .block-example ol { padding-left: 16px; margin: 0; }
+.block-example ul { list-style: disc; }
+.block-example ol { list-style: decimal; }
+.block-example-h1 { font-size: 21px; line-height: 1.25; display: block; }
+.block-example-h2 { font-size: 17px; display: block; }
+.block-example-h3 { font-size: 14px; display: block; }
+.block-example blockquote { border-left: 2px solid currentColor; margin: 0; padding-left: 8px; }
+.block-example pre { font-size: 10px; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.block-example-icon { display: grid; place-items: center; min-height: 90px; }
+.block-example-icon svg { width: 28px; height: 28px; }
+@media (max-width: 600px), (max-height: 450px) {
+  .slash-menu { width: min(330px, calc(100vw - 24px)); grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .slash-preview { border-left: 0; border-top: 1px solid var(--a-line); margin: 4px 0 0; padding: 8px; gap: 0; }
+  .slash-preview .block-example, .slash-preview small, .slash-preview strong { display: none; }
+  .slash-preview p { margin: 0; }
+}
 @media (hover: hover) and (pointer: fine) {
   .page-tree-link:hover {
     background: var(--a-fill);

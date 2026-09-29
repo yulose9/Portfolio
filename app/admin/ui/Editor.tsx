@@ -100,6 +100,7 @@ import ResearchPanel from "./ResearchPanel";
 import MediaJobs from "./MediaJobs";
 import MediaLibrary from "./MediaLibrary";
 import PageLocation from "./PageLocation";
+import PageNavigator from "./PageNavigator";
 import { CLIPBOARD_TYPE, readClipboard } from "../../../cms/clipboard";
 import ImportReview from "./ImportReview";
 import { WritingClipboard, pasteWritingClipboard } from "./extensions/clipboard";
@@ -142,7 +143,7 @@ export type Panel = null | "details" | "revisions" | "publish" | "preview" | "re
 
 export type OpenOptions = { q?: string; n?: number; panel?: Panel; block?:string };
 
-export default function EditorScreen({ id, onBack, options }: { id: string; onBack: () => void; options?: OpenOptions }) {
+export default function EditorScreen({ id, onBack, onOpen, options }: { id: string; onBack: () => void; onOpen: (id: string) => void; options?: OpenOptions }) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
 
@@ -164,7 +165,7 @@ export default function EditorScreen({ id, onBack, options }: { id: string; onBa
       </main>
     );
   }
-  return draft ? <Composer initial={draft} onBack={onBack} options={options} /> : <div className="admin-loading" aria-busy="true" />;
+  return draft ? <Composer initial={draft} onBack={onBack} onOpen={onOpen} options={options} /> : <div className="admin-loading" aria-busy="true" />;
 }
 
 /**
@@ -276,7 +277,7 @@ const MARK_ICONS: Record<string, React.ReactNode> = {
 /** Edit, or read it as the page (the site's renderer, in place). */
 type View = "edit" | "page";
 
-function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => void; options?: OpenOptions }) {
+function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack: () => void; onOpen: (id: string) => void; options?: OpenOptions }) {
   type EditCopy = Meta & { body:string; editorDocument?:EditorDocument|null };
   const [recovery, setRecovery] = useState(() => readRecovery<EditCopy>(initial.id));
   const [recoveryCopies,setRecoveryCopies]=useState<import("./session").Recovery<EditCopy>[]>([]);
@@ -301,6 +302,21 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
   const fine = useFinePointer();
   const [doc, setDoc] = useState<Draft>(initial);
   const [meta, setMeta] = useState<Meta>(() => metaOf(initial));
+  const [navigatorOpen, setNavigatorOpen] = useState(false);
+  useEffect(() => {
+    const previous = document.title;
+    document.title = `${meta.icon ? `${meta.icon} ` : ""}${meta.title.trim() || "Untitled"} · Writing admin`;
+    return () => { document.title = previous; };
+  }, [meta.title, meta.icon]);
+  useEffect(() => {
+    const toggle = (event: KeyboardEvent) => {
+      if (!event.defaultPrevented && (event.ctrlKey || event.metaKey) && event.key === "\\" && !event.shiftKey && !event.altKey) {
+        event.preventDefault(); setNavigatorOpen(value => !value);
+      }
+    };
+    window.addEventListener("keydown", toggle);
+    return () => window.removeEventListener("keydown", toggle);
+  }, []);
   const [slugTouched, setSlugTouched] = useState(() => Boolean(initial.slug) && initial.slug !== slugify(initial.title));
   const [save, setSave] = useState<SaveStatus>("saved");
   const [savedAt, setSavedAt] = useState<string | null>(initial.updatedAt);
@@ -817,6 +833,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
   useCommands((): Command[] => {
     if (!editor) return [];
     const post: Command[] = [
+      {id:"page-navigator",group:"Post",title:"Browse pages",icon:<BookOpenText {...CI}/>,keywords:["navigator","tree","pinned","recent","subpage"],run:()=>setNavigatorOpen(true)},
       {id:"research",group:"Post",title:"Research, backlinks and review notes",icon:<BookOpenText {...CI}/>,keywords:["references","peek","template","excerpt","capture","block link"],run:()=>setPanel("research")},
       { id: "publish", group: "Post", title: doc.liveSlug ? "Publish changes…" : "Publish…", keys: "⌘⇧P", icon: <PaperPlaneTilt {...CI} />, keywords: ["schedule", "live", "ship"], run: () => setPanel("publish") },
       { id: "preview", group: "Post", title: "Preview page and share cards", icon: <Eye {...CI} />, keywords: ["og", "social", "twitter", "card", "phone"], run: () => setPanel("preview") },
@@ -1011,6 +1028,7 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
                 History
               </MItem>
               <MLabel>View</MLabel>
+              <MItem icon={<BookOpenText size={15} />} onSelect={() => setNavigatorOpen(true)}>Browse pages</MItem>
               <MItem onSelect={()=>setPanel("media")}>Media library</MItem>
               <MItem icon={modes.focus ? <Check size={15} weight="bold" /> : <span className="menu-check-space" />} onSelect={() => toggleMode("focus")} closeOnClick={false}>
                 Focus mode
@@ -1231,6 +1249,10 @@ function Composer({ initial, onBack, options }: { initial: Draft; onBack: () => 
         </div>
       </Sheet>
       <ResearchPanel open={panel==="research"} onClose={()=>setPanel(null)} doc={doc} editor={editor} beforeSave={()=>flush()}/>
+      <PageNavigator open={navigatorOpen} onClose={()=>setNavigatorOpen(false)} currentId={initial.id} onOpen={onOpen} beforeNavigate={async()=>recoveryReady&&!recovery&&await flush()} onPinCurrent={async()=>{
+        if (!recoveryReady || recovery || !await flush()) throw new Error("Save or recover this page before pinning it.");
+        const {post}=await api.save(initial.id,{pinned:!server.current.pinned,base:server.current.updatedAt});adopt(post);
+      }}/>
       <MediaJobs documentId={initial.id} editor={editor} beforeSave={()=>flush()} enabled={recoveryReady&&!recovery}/>
       <ImportReview editor={editor}/>
       <MediaLibrary open={panel==="media"} onClose={()=>setPanel(null)} onInsert={asset=>{

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { onRequestPut as move } from "../functions/api/admin/posts/[id]/parent.ts";
 import { onRequestPost as upload } from "../functions/api/admin/uploads.ts";
 import { publish } from "../cms/server/publish.ts";
+import { onRequestPut as reorder } from "../functions/api/admin/page-order.ts";
 
 function bucket(initial = {}) {
   const objects = new Map(
@@ -96,6 +97,111 @@ const envFor = (WRITING) => ({
   GITHUB_TOKEN: "fixture",
   GITHUB_REPO: "fixture/repo",
   GITHUB_BRANCH: "main",
+});
+const orderRequest = (
+  ids,
+  previousIds = ["aaaaaaaaaaaa", "bbbbbbbbbbbb"],
+  parentId = null,
+) =>
+  new Request("https://example.test/api/admin/page-order", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids, previousIds, parentId }),
+  });
+test("sibling order persists privately and a later reparent retains it", async () => {
+  const a = "aaaaaaaaaaaa",
+    b = "bbbbbbbbbbbb",
+    WRITING = bucket({
+      [`drafts/${a}/current.json`]: draft(a),
+      [`drafts/${b}/current.json`]: draft(b),
+    });
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => Response.json([]);
+  try {
+    await reorder({ env: envFor(WRITING), request: orderRequest([b, a]) });
+    assert.deepEqual(
+      JSON.parse(WRITING.objects.get("meta/page-hierarchy.json").value).orders
+        .root,
+      [b, a],
+    );
+    assert.equal(
+      JSON.parse(WRITING.objects.get(`drafts/${a}/current.json`).value)
+        .updatedAt,
+      draft(a).updatedAt,
+    );
+    await move({
+      env: envFor(WRITING),
+      params: { id: b },
+      request: new Request("https://example.test/api/admin/posts/x/parent", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ parentId: a, previousParentId: null }),
+      }),
+    });
+    assert.deepEqual(
+      JSON.parse(WRITING.objects.get("meta/page-hierarchy.json").value).orders
+        .root,
+      [b, a],
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+test("reordering rejects duplicate, foreign and stale sibling lists", async () => {
+  const a = "aaaaaaaaaaaa",
+    b = "bbbbbbbbbbbb",
+    c = "cccccccccccc",
+    WRITING = bucket({
+      [`drafts/${a}/current.json`]: draft(a),
+      [`drafts/${b}/current.json`]: draft(b),
+      [`drafts/${c}/current.json`]: { ...draft(c), parentId: a },
+    });
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => Response.json([]);
+  try {
+    for (const ids of [[a, a], [a, c], [a]])
+      await assert.rejects(
+        reorder({ env: envFor(WRITING), request: orderRequest(ids) }),
+      );
+    await assert.rejects(
+      reorder({ env: envFor(WRITING), request: orderRequest([b, a], [b, a]) }),
+      (e) => e.status === 409,
+    );
+    assert.equal(WRITING.objects.has("meta/page-hierarchy.json"), false);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+test("concurrent reorder and reparent cannot overwrite the shared graph", async () => {
+  const a = "aaaaaaaaaaaa",
+    b = "bbbbbbbbbbbb",
+    WRITING = bucket({
+      [`drafts/${a}/current.json`]: draft(a),
+      [`drafts/${b}/current.json`]: draft(b),
+    });
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => Response.json([]);
+  try {
+    const results = await Promise.allSettled([
+      reorder({ env: envFor(WRITING), request: orderRequest([b, a]) }),
+      move({
+        env: envFor(WRITING),
+        params: { id: b },
+        request: new Request("https://example.test/api/admin/posts/x/parent", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ parentId: a, previousParentId: null }),
+        }),
+      }),
+    ]);
+    assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
+    assert.equal(
+      results.find((r) => r.status === "rejected").reason.status,
+      409,
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
 });
 test("simultaneous opposite page moves cannot commit a parent cycle", async () => {
   const a = "aaaaaaaaaaaa",
