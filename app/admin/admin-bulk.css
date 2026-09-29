@@ -881,7 +881,8 @@
   .admin-row-skeleton {
     animation: none;
   }
-  .admin-body :active {
+  /* Do not transform layout/portal ancestors when a descendant is pressed. */
+  .admin-body :is(button, a, [role="button"], [role="checkbox"]):active {
     scale: 1 !important;
   }
   .sheet[data-variant="full"][data-starting-style],

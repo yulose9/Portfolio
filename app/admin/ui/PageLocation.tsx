@@ -3,7 +3,15 @@ import { useEffect, useState } from "react";
 import type { Editor } from "@tiptap/core";
 import { ancestors, canParent } from "../../../cms/page-tree";
 import { api, type PostSummary } from "./api";
-import AdminSelect from "./AdminSelect";
+import Sheet from "./Sheet";
+import {
+  FolderSimple,
+  FolderOpen,
+  ArrowRight,
+  Check,
+  CaretRight,
+  MagnifyingGlass,
+} from "@phosphor-icons/react";
 import { recordRecentPage } from "./recent-pages";
 export default function PageLocation({
   id,
@@ -18,6 +26,9 @@ export default function PageLocation({
     [error, setError] = useState(""),
     [moving, setMoving] = useState(false),
     [parent, setParent] = useState("");
+  const [open, setOpen] = useState(false),
+    [query, setQuery] = useState(""),
+    [message, setMessage] = useState("");
   useEffect(() => {
     let live = true;
     void api
@@ -93,13 +104,12 @@ export default function PageLocation({
     else setError("Save or recover this page before navigating away.");
   };
   const move = async () => {
-    if (!(await beforeSave())) {
-      setError("Save this page before moving it.");
-      return;
-    }
+    if (moving) return;
     setMoving(true);
     setError("");
     try {
+      if (!(await beforeSave()))
+        throw new Error("Save or recover this page before moving it.");
       const current = pages.find((p) => p.id === id);
       await api.movePage(id, parent || null, current?.parentId ?? null);
       setPages((p) =>
@@ -107,47 +117,136 @@ export default function PageLocation({
           row.id === id ? { ...row, parentId: parent || null } : row,
         ),
       );
+      setOpen(false);
+      setMessage(
+        `Moved to ${parent ? pages.find((p) => p.id === parent)?.title || "page" : "All writing"}.`,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not move page.");
     } finally {
       setMoving(false);
     }
   };
+  const current = pages.find((p) => p.id === id),
+    currentParent = current?.parentId ?? "";
+  const destinations = pages.filter(
+    (p) =>
+      canParent(pages, id, p.id) &&
+      p.title.toLowerCase().includes(query.trim().toLowerCase()),
+  );
   return (
     <div className="page-location">
       <nav aria-label="Page breadcrumbs">
         {ancestors(pages, id).map((p) => (
           <button key={p.id} type="button" onClick={() => void go(p.id)}>
-            {p.title || "Untitled"} /
+            {p.title || "Untitled"}
+            <CaretRight size={12} aria-hidden />
           </button>
         ))}
-        <span>{pages.find((p) => p.id === id)?.title || "Current page"}</span>
+        <span title={current?.title}>{current?.title || "Current page"}</span>
       </nav>
-      <details>
-        <summary>Move page</summary>
-        <div className="page-move">
-          <AdminSelect
-            label="Parent page"
-            value={parent}
-            onValueChange={setParent}
-            options={[
-              { value: "", label: "Top level" },
-              ...pages
-                .filter((p) => canParent(pages, id, p.id))
-                .map((p) => ({ value: p.id, label: p.title || "Untitled" })),
-            ]}
+      <button
+        type="button"
+        className="admin-button admin-button-quiet page-move-trigger"
+        disabled={!current}
+        onClick={() => {
+          setParent(currentParent);
+          setQuery("");
+          setError("");
+          setOpen(true);
+        }}
+      >
+        <FolderSimple size={15} />
+        Move page
+      </button>
+      {!open && error ? <p role="alert">{error}</p> : null}
+      {message ? (
+        <p className="page-location-status" role="status">
+          {message}
+        </p>
+      ) : null}
+      <Sheet
+        open={open}
+        onClose={() => {
+          if (!moving) setOpen(false);
+        }}
+        title="Move page"
+        description="Choose where this page belongs. Its subpages move with it."
+        variant="center"
+        className="page-move-dialog"
+      >
+        <label className="picker-search">
+          <MagnifyingGlass size={16} />
+          <input
+            type="search"
+            aria-label="Find destination"
+            placeholder="Find a page…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            disabled={moving}
           />
+        </label>
+        <div
+          className="page-destinations"
+          role="group"
+          aria-label="Destination"
+          data-lenis-prevent
+        >
+          {[{ id: "", title: "All writing" }, ...destinations].map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className="page-destination"
+              aria-pressed={parent === p.id}
+              disabled={moving}
+              onClick={() => setParent(p.id)}
+            >
+              {p.id ? <FolderSimple size={18} /> : <FolderOpen size={18} />}
+              <span>
+                <strong>{p.title || "Untitled"}</strong>
+                <small>
+                  {p.id
+                    ? ancestors(pages, p.id)
+                        .map((a) => a.title || "Untitled")
+                        .join(" / ") || "All writing"
+                    : "Top level"}
+                  {p.id === currentParent ? " · Current location" : ""}
+                </small>
+              </span>
+              {parent === p.id ? <Check size={16} /> : null}
+            </button>
+          ))}
+          {!destinations.length && query ? (
+            <p className="field-help">
+              No matching pages. You can still move to All writing.
+            </p>
+          ) : null}
+        </div>
+        {error ? (
+          <p role="alert" className="field-error">
+            {error}
+          </p>
+        ) : null}
+        <div className="picker-footer">
           <button
             type="button"
-            className="admin-button"
+            className="admin-button admin-button-quiet"
             disabled={moving}
+            onClick={() => setOpen(false)}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="admin-button admin-button-primary"
+            disabled={moving || parent === currentParent}
             onClick={() => void move()}
           >
-            Move
+            {moving ? "Moving…" : "Move here"}
+            <ArrowRight size={14} />
           </button>
         </div>
-      </details>
-      {error ? <p role="alert">{error}</p> : null}
+      </Sheet>
     </div>
   );
 }

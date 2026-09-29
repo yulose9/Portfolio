@@ -581,3 +581,343 @@ test("slash previews follow keyboard choices and restore editor accessibility", 
   await expect(list).not.toBeVisible();
   await expect(body).toBeFocused();
 });
+
+test("writing dashboard groups workspace tools and keeps filtering accessible", async ({
+  page,
+}, info) => {
+  await page.goto("/admin");
+  await expect(
+    page.getByRole("heading", { name: "Writing", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Workspace", exact: true }).click();
+  await expect(
+    page.getByRole("menuitem", { name: "Media library", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("menuitem", { name: "Tag pages", exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page
+    .getByRole("searchbox", { name: "Filter posts by title" })
+    .fill("regression");
+  await expect(
+    page.getByRole("button", { name: /Editor regression Draft/ }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: `.audit/polish-dashboard-${info.project.name}.png`,
+  });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.getByRole("button", { name: "Pages", exact: true }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Pages", exact: true }),
+  ).toBeVisible();
+});
+
+test("move page chooses a destination and saves before the move", async ({
+  page,
+}, info) => {
+  const { pages } = await navigatorFixture(page);
+  // PageLocation fetched before the fixture was installed. Reopen with the same saved content.
+  await page.keyboard.press("Control+s");
+  await expect(page.locator(".save-state")).toHaveAttribute(
+    "data-status",
+    "saved",
+  );
+  await page.reload();
+  const moves: unknown[] = [];
+  await page.route(`**/api/admin/posts/${id}/parent`, async (route) => {
+    moves.push(route.request().postDataJSON());
+    pages[0].parentId = "123456789abc";
+    await route.fulfill({ json: { parentId: "123456789abc" } });
+  });
+  await page.getByRole("button", { name: "Move page", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Move page", exact: true });
+  await expect(
+    dialog.getByRole("button", { name: /Editor regression/ }),
+  ).toHaveCount(0);
+  await expect(
+    dialog.getByRole("button", { name: /Café research/ }),
+  ).toHaveCount(0);
+  await dialog
+    .getByRole("searchbox", { name: "Find destination" })
+    .fill("Related");
+  await dialog.getByRole("button", { name: /Related page/ }).click();
+  await page.screenshot({
+    path: `.audit/polish-move-${info.project.name}.png`,
+  });
+  await dialog.getByRole("button", { name: "Move here", exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(
+    page.getByRole("navigation", { name: "Page breadcrumbs" }),
+  ).toContainText("Related page");
+  expect(moves).toHaveLength(1);
+});
+
+test("slash options scroll independently and pointer previews keep their size", async ({
+  page,
+}, info) => {
+  const body = page.getByRole("textbox", { name: "Body", exact: true });
+  await body.click();
+  await page.keyboard.press("Control+End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("/");
+  const list = page.getByRole("listbox", { name: "Insert block", exact: true });
+  await expect(list).toBeVisible();
+  const box = await page.locator(".block-suggestion").boundingBox();
+  await list.hover();
+  const y = await page.evaluate(() => scrollY);
+  await page.mouse.wheel(0, 600);
+  await expect
+    .poll(() => list.evaluate((el) => el.scrollTop))
+    .toBeGreaterThan(100);
+  expect(await page.evaluate(() => scrollY)).toBe(y);
+  const scrolled = await list.evaluate((el) => el.scrollTop);
+  await page.mouse.move(
+    (await list.boundingBox())!.x + 80,
+    (await list.boundingBox())!.y + 80,
+  );
+  await expect.poll(() => list.evaluate((el) => el.scrollTop)).toBe(scrolled);
+  expect((await page.locator(".block-suggestion").boundingBox())!.height).toBe(
+    box!.height,
+  );
+  await page.screenshot({
+    path: `.audit/polish-slash-${info.project.name}.png`,
+  });
+  await page.keyboard.press("End");
+  await expect(list.getByRole("option").last()).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await page.keyboard.type("h");
+  await expect.poll(() => list.evaluate((el) => el.scrollTop)).toBe(0);
+  await expect(list.getByRole("option").first()).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("Escape");
+});
+
+test("mention options stay contained after scrolling and open the date form", async ({
+  page,
+}, info) => {
+  const { current } = await navigatorFixture(page);
+  const posts = Array.from({ length: 6 }, (_, i) => ({
+    ...current,
+    id: `abcdefghijk${i}`,
+    title: `Reference ${i + 1}`,
+    page: true,
+  }));
+  await page.route("**/api/admin/posts", (route) =>
+    route.fulfill({ json: { posts } }),
+  );
+  const body = page.getByRole("textbox", { name: "Body", exact: true });
+  await body.click();
+  await page.keyboard.press("Control+End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("@");
+  const list = page.getByRole("listbox", { name: "Mention a date or page" });
+  await expect(list).toBeVisible();
+  await list.hover();
+  const y = await page.evaluate(() => scrollY);
+  await page.mouse.wheel(0, 500);
+  await expect
+    .poll(() => list.evaluate((el) => el.scrollTop))
+    .toBeGreaterThan(0);
+  expect(await page.evaluate(() => scrollY)).toBe(y);
+  await page.setViewportSize({
+    width: info.project.name === "mobile" ? 390 : 1000,
+    height: 500,
+  });
+  const menu = page.locator(".mention-suggestion");
+  await page.evaluate(() => window.scrollBy(0, -100));
+  await expect.poll(async () => (await menu.boundingBox())!.y).toBeGreaterThanOrEqual(0);
+  await expect
+    .poll(async () => {
+      const b = await menu.boundingBox();
+      return b!.y + b!.height;
+    })
+    .toBeLessThanOrEqual(500);
+  await page.screenshot({
+    path: `.audit/polish-mention-${info.project.name}.png`,
+  });
+  await list.getByRole("option", { name: /Choose date and time/ }).click();
+  await page.getByLabel("Date", { exact: true }).fill("2026-10-12");
+  await page.getByLabel("Time (optional)", { exact: true }).fill("14:30");
+  await page.getByRole("button", { name: "Insert date", exact: true }).click();
+  await expect(body.locator(".mention-trigger")).toHaveAttribute(
+    "aria-label",
+    /14:30|2:30/,
+  );
+});
+
+test("text appearance preserves selection through font color and opacity", async ({
+  page,
+}, info) => {
+  await page.locator(".editor-body p").first().click();
+  await page.keyboard.press("Home");
+  await page.keyboard.press("Control+Shift+ArrowRight");
+  await page
+    .getByRole("button", { name: "Text appearance: font, color and opacity" })
+    .filter({ visible: true })
+    .first()
+    .click();
+  const panel = page.locator(".color-panel");
+  await expect(panel).toBeVisible();
+  const height = await panel.evaluate((el) => el.clientHeight);
+  await panel.getByRole("combobox", { name: "Font", exact: true }).click();
+  await page.getByRole("option", { name: "Geist", exact: true }).click();
+  await expect(panel).toBeVisible();
+  expect(await panel.evaluate((el) => el.clientHeight)).toBe(height);
+  await panel.getByRole("button", { name: "Blue", exact: true }).click();
+  await panel.getByRole("slider").focus();
+  await page.keyboard.press("Home");
+  for (let i = 0; i < 6; i++) await page.keyboard.press("PageUp");
+  await panel.getByLabel("Hex text color").fill("#166534");
+  await panel.getByLabel("Hex text color").press("Enter");
+  await expect
+    .poll(async () => (await panel.boundingBox())!.y)
+    .toBeGreaterThanOrEqual(0);
+  await expect
+    .poll(async () => {
+      const box = (await panel.boundingBox())!;
+      return box.y + box.height;
+    })
+    .toBeLessThanOrEqual(page.viewportSize()!.height);
+  await page.screenshot({
+    path: `.audit/polish-appearance-${info.project.name}.png`,
+  });
+  await panel.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(
+    page.locator(
+      '.editor-body [style*="166534"], .editor-body [style*="22, 101, 52"]',
+    ),
+  ).toBeVisible();
+  await expect(
+    page.locator('.editor-body [style*="opacity: 0.6"]'),
+  ).toBeVisible();
+});
+
+test("heading icon has a staged preview and explicit completion", async ({
+  page,
+}, info) => {
+  const body = page.getByRole("textbox", { name: "Body", exact: true });
+  await body.click();
+  await page.keyboard.press("Control+End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("/heading");
+  await page.getByRole("option", { name: /Heading with icon/ }).click();
+  await page.keyboard.type("A heading");
+  await page
+    .getByRole("button", { name: "Edit heading icon", exact: true })
+    .click();
+  const panel = page.locator(".heading-icon-panel");
+  await panel.getByLabel("Emoji or symbol").fill("★");
+  await expect(panel.locator(".heading-icon-preview")).toContainText("★");
+  await expect(body.locator(".heading-icon-trigger")).not.toContainText("★");
+  await page.screenshot({
+    path: `.audit/polish-heading-${info.project.name}.png`,
+  });
+  await panel.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(body.locator(".heading-icon-trigger")).toContainText("★");
+  await body.locator(".heading-icon-trigger").click();
+  await panel.getByRole("button", { name: "Remove", exact: true }).click();
+  await expect(body.locator(".heading-icon-trigger")).toHaveCount(0);
+  await expect(body).toContainText("A heading");
+});
+
+test("outline exposes a heading icon upload and preserves the heading", async ({
+  page,
+}, info) => {
+  test.skip(
+    info.project.name === "mobile",
+    "The outline is shown in the desktop margin; mobile tests the same icon picker in the heading.",
+  );
+  const body = page.getByRole("textbox", { name: "Body", exact: true });
+  await body.click();
+  await page.keyboard.press("Control+End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("## First section");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("## Second section");
+  const outline = page.getByRole("navigation", {
+    name: "Outline",
+    exact: true,
+  });
+  await expect(outline).toBeVisible();
+  await outline
+    .getByRole("button", { name: "First section", exact: true })
+    .hover();
+  const trigger = outline.getByRole("button", {
+    name: "Customize icon for First section",
+    exact: true,
+  });
+  await expect(trigger).toHaveCSS("opacity", "1");
+  await trigger.click();
+  await page.route("**/api/admin/uploads?*", (route) =>
+    route.fulfill({ json: { src: "/avatar-96.webp", width: 96, height: 96 } }),
+  );
+  const panel = page.locator(".heading-icon-panel");
+  await panel
+    .getByLabel("Upload heading icon")
+    .setInputFiles("public/avatar-96.webp");
+  await expect(panel.locator(".heading-icon-preview img")).toHaveAttribute(
+    "src",
+    "/avatar-96.webp",
+  );
+  await panel.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(outline.locator("img")).toHaveAttribute(
+    "src",
+    "/avatar-96.webp",
+  );
+  await expect(
+    body.locator("h2").filter({ hasText: "First section" }),
+  ).toContainText("First section");
+  await expect(panel).not.toBeVisible();
+  await page.screenshot({ path: ".audit/polish-outline-desktop.png" });
+});
+
+test("move failure retains the destination and reduced motion removes popup transforms", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await navigatorFixture(page);
+  await page.keyboard.press("Control+s");
+  await expect(page.locator(".save-state")).toHaveAttribute(
+    "data-status",
+    "saved",
+  );
+  await page.reload();
+  await page.route(`**/api/admin/posts/${id}/parent`, (route) =>
+    route.fulfill({
+      status: 409,
+      json: { error: "Another tab moved this page. Refresh and retry." },
+    }),
+  );
+  await page.getByRole("button", { name: "Move page", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Move page", exact: true });
+  await dialog.getByRole("button", { name: /Related page/ }).click();
+  await dialog.getByRole("button", { name: "Move here", exact: true }).click();
+  await expect(dialog.getByRole("alert")).toContainText("Another tab moved");
+  await expect(
+    dialog.getByRole("button", { name: /Related page/ }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.locator(".editor-body p").first().click();
+  await page.keyboard.press("Home");
+  await page.keyboard.press("Control+Shift+ArrowRight");
+  await page
+    .getByRole("button", { name: "Text appearance: font, color and opacity" })
+    .filter({ visible: true })
+    .first()
+    .click();
+  await expect(page.locator(".color-panel")).toHaveCSS(
+    "transition-duration",
+    "0s",
+  );
+  await page
+    .locator(".color-panel")
+    .getByRole("button", { name: "Done", exact: true })
+    .click();
+});

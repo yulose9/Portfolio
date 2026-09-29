@@ -19,6 +19,7 @@ import {
 
 import { BLOCKS, inserts, turnInto, type BlockKind } from "./commands";
 import BlockExample from "./BlockExample";
+import { mountSuggestion, revealOption } from "./suggestion-surface";
 
 /*
  * "/" at the start of a line (or after a space) opens the block menu: type to
@@ -97,6 +98,10 @@ const SlashList = forwardRef<ListHandle, ListProps>(function SlashList(
   const [index, setIndex] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
   const listId = useId();
+  const keyboardSelection = useRef(false);
+  useEffect(() => {
+    if (listRef.current) listRef.current.scrollTop = 0;
+  }, [items]);
   useEffect(() => {
     const element = editor.view.dom;
     const previousControls = element.getAttribute("aria-controls"),
@@ -123,14 +128,14 @@ const SlashList = forwardRef<ListHandle, ListProps>(function SlashList(
     setIndex(0);
   }
   useEffect(() => {
-    listRef.current
-      ?.querySelector(`[data-index="${index}"]`)
-      ?.scrollIntoView({ block: "nearest" });
+    if (keyboardSelection.current) revealOption(listRef.current, index);
+    keyboardSelection.current = false;
   }, [index]);
 
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }) => {
       if (!items.length) return false;
+      keyboardSelection.current = true;
       if (event.key === "Home" || event.key === "End") {
         setIndex(event.key === "Home" ? 0 : items.length - 1);
         return true;
@@ -152,7 +157,7 @@ const SlashList = forwardRef<ListHandle, ListProps>(function SlashList(
   }));
 
   return (
-    <div className="slash-menu">
+    <div className="slash-menu block-suggestion" data-lenis-prevent>
       <div
         ref={listRef}
         id={listId}
@@ -174,7 +179,12 @@ const SlashList = forwardRef<ListHandle, ListProps>(function SlashList(
                 aria-selected={i === index}
                 data-index={i}
                 className="slash-item"
-                onMouseEnter={() => setIndex(i)}
+                onPointerMove={(e) => {
+                  if (e.pointerType === "mouse") {
+                    keyboardSelection.current = false;
+                    setIndex(i);
+                  }
+                }}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => command(item)}
               >
@@ -263,27 +273,10 @@ export function SlashCommand(getItems: () => SlashItem[]) {
                   props,
                   editor: props.editor,
                 });
-                const el = renderer.element as HTMLElement;
-                el.classList.add("slash-layer");
-                unmount = props.mount(el, {
-                  onPosition: ({ x, y, placement, strategy }) => {
-                    const viewport = window.visualViewport,
-                      top = viewport?.offsetTop ?? 0,
-                      left = viewport?.offsetLeft ?? 0;
-                    const height = viewport?.height ?? window.innerHeight,
-                      width = viewport?.width ?? window.innerWidth;
-                    el.style.setProperty(
-                      "--slash-height",
-                      `${Math.max(80, height - 24)}px`,
-                    );
-                    el.style.position = strategy;
-                    el.style.left = `${Math.max(left + 12, Math.min(x, left + width - el.offsetWidth - 12))}px`;
-                    el.style.top = `${Math.max(top + 12, Math.min(y, top + height - el.offsetHeight - 12))}px`;
-                    el.dataset.side = placement.startsWith("top")
-                      ? "top"
-                      : "bottom";
-                  },
-                });
+                unmount = mountSuggestion(
+                  props,
+                  renderer.element as HTMLElement,
+                );
               },
               onUpdate: (props) => {
                 renderer?.updateProps(props);
