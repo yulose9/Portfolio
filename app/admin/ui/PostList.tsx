@@ -317,7 +317,10 @@ export default function PostList({
     <main className="admin-shell" data-selecting={selecting || undefined}>
       <ResearchWorkspace
         open={workspace}
-        onClose={() => setWorkspace(false)}
+        onClose={() => {
+          setWorkspace(false);
+          setVersion((v) => v + 1);
+        }}
         onOpen={onOpen}
       />
       <MediaLibrary open={mediaOpen} onClose={() => setMediaOpen(false)} />

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Sheet from "./Sheet";
+import ReviewQueue from "./ReviewQueue";
 import { api, type PostSummary } from "./api";
 import {
   inCollection,
@@ -87,8 +88,12 @@ export default function ResearchWorkspace({
       setBusy(false);
     }
   };
-  const navigate = (id: string, panel?: Panel) => {
+  const close = () => {
+    setLoaded(false);
     onClose();
+  };
+  const navigate = (id: string, panel?: Panel) => {
+    close();
     onOpen(id, panel);
   };
   const collections = items.filter((i) => i.kind === "collection");
@@ -129,7 +134,7 @@ export default function ResearchWorkspace({
   return (
     <Sheet
       open={open}
-      onClose={onClose}
+      onClose={close}
       title="Writing workspace"
       className="research-workspace-sheet"
       description="Organize drafts, collect sources and plan publication."
@@ -142,6 +147,7 @@ export default function ResearchWorkspace({
             onValueChange={setView}
             options={[
               { value: "board", label: "Editorial board" },
+              { value: "reviews", label: "Review queue" },
               { value: "calendar", label: "Publication calendar" },
               { value: "inbox", label: "Capture inbox" },
               { value: "templates", label: "Templates" },
@@ -311,6 +317,18 @@ export default function ResearchWorkspace({
               </button>
             </div>
           </form>
+        ) : null}
+        {open && loaded && view === "reviews" ? (
+          <ReviewQueue
+            posts={posts}
+            onReload={load}
+            onOpen={navigate}
+            onChange={(id, patch) =>
+              setPosts((current) =>
+                current.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+              )
+            }
+          />
         ) : null}
         {loaded && view === "board" ? (
           <div className="research-board">
