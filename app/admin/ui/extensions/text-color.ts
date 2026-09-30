@@ -1,7 +1,7 @@
 import { Mark } from "@tiptap/core";
 import { textColor, textOpacity } from "../../../../cms/inline";
-import { FONT_SHELF, fontStack } from "../../../../cms/fonts";
-const font=(value:unknown)=>FONT_SHELF.find(f=>f.family===value);
+import { findFont, fontStack } from "../../../../cms/fonts";
+const font=findFont;
 
 export const TextColor = Mark.create({
   name: "textColor",

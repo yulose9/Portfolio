@@ -15,6 +15,7 @@ import "react-day-picker/style.css";
 import "./admin-bulk.css";
 import "./admin-research.css";
 import "./admin-controls.css";
+import "./admin-workspace.css";
 
 /*
  * The admin's own root layout, separate from the site's on purpose.

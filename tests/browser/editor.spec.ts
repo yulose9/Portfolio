@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
+import { changeFolders, type Folders } from "../../cms/folders";
 const id = "abcdefghijkl";
 async function navigatorFixture(page: Page) {
   const { post: current } = await page.evaluate(async () =>
@@ -85,6 +86,8 @@ test.beforeEach(async ({ page }) => {
         outgoing: [],
       };
     else if (url.pathname.endsWith("/research")) body = { items: [] };
+    else if (url.pathname.endsWith("/folders"))
+      body = { value: { folders: [], assignments: {} }, base: null };
     else if (url.pathname.endsWith("/posts")) body = { posts: [draft] };
     else if (url.pathname.endsWith(`/posts/${id}`)) {
       if (req.method() === "PUT")
@@ -694,7 +697,10 @@ test("slash options scroll independently and pointer previews keep their size", 
   );
   await page.keyboard.type("h");
   await expect.poll(() => list.evaluate((el) => el.scrollTop)).toBe(0);
-  await expect(list.getByRole("option").first()).toHaveAttribute("aria-selected", "true");
+  await expect(list.getByRole("option").first()).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
   await page.keyboard.press("Escape");
 });
 
@@ -731,7 +737,9 @@ test("mention options stay contained after scrolling and open the date form", as
   });
   const menu = page.locator(".mention-suggestion");
   await page.evaluate(() => window.scrollBy(0, -100));
-  await expect.poll(async () => (await menu.boundingBox())!.y).toBeGreaterThanOrEqual(0);
+  await expect
+    .poll(async () => (await menu.boundingBox())!.y)
+    .toBeGreaterThanOrEqual(0);
   await expect
     .poll(async () => {
       const b = await menu.boundingBox();
@@ -754,9 +762,22 @@ test("mention options stay contained after scrolling and open the date form", as
 test("text appearance preserves selection through font color and opacity", async ({
   page,
 }, info) => {
-  await page.locator(".editor-body p").first().click();
-  await page.keyboard.press("Home");
-  await page.keyboard.press("Control+Shift+ArrowRight");
+  if(info.project.name === "mobile") {
+    // Mobile Chromium does not emulate desktop word-selection keys reliably.
+    // Seed the native range that touch selection would create; exercise the UI below.
+    await page.locator(".editor-body").evaluate((body)=>{
+      (body as HTMLElement).focus();
+      const text=body.querySelector("p")!.firstChild!;
+      const range=document.createRange();range.setStart(text,0);range.setEnd(text,1);
+      const selection=window.getSelection()!;selection.removeAllRanges();selection.addRange(range);
+      document.dispatchEvent(new Event("selectionchange"));
+    });
+  } else {
+    await page.locator(".editor-body p").first().click({position:{x:4,y:8}});
+    await page.keyboard.press("Home");
+    await page.keyboard.press("Control+Shift+ArrowRight");
+  }
+  await expect.poll(()=>page.evaluate(()=>window.getSelection()?.toString().trim())).toBe("A");
   await page
     .getByRole("button", { name: "Text appearance: font, color and opacity" })
     .filter({ visible: true })
@@ -770,7 +791,7 @@ test("text appearance preserves selection through font color and opacity", async
   await expect(panel).toBeVisible();
   expect(await panel.evaluate((el) => el.clientHeight)).toBe(height);
   await panel.getByRole("button", { name: "Blue", exact: true }).click();
-  await panel.getByRole("slider").focus();
+  await panel.getByRole("slider", { name: "Text opacity" }).focus();
   await page.keyboard.press("Home");
   for (let i = 0; i < 6; i++) await page.keyboard.press("PageUp");
   await panel.getByLabel("Hex text color").fill("#166534");
@@ -920,4 +941,189 @@ test("move failure retains the destination and reduced motion removes popup tran
     .locator(".color-panel")
     .getByRole("button", { name: "Done", exact: true })
     .click();
+});
+
+test("search sidebar exposes clickable references and replaces the selected match", async ({
+  page,
+}, info) => {
+  const body = page.getByRole("textbox", { name: "Body", exact: true });
+  await body.click();
+  await page.keyboard.press("Control+End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("Needle first.");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("Needle second.");
+  await page.keyboard.press("Control+h");
+  const search = page.getByRole("search", { name: "Find and replace" });
+  await expect(search).toBeVisible();
+  await search
+    .getByRole("textbox", { name: "Find in this post", exact: true })
+    .fill("Needle");
+  const results = search.locator(".find-results button");
+  await expect(results).toHaveCount(2);
+  await results.last().click();
+  await expect(results.last()).toHaveAttribute("aria-current", "true");
+  await search
+    .getByRole("textbox", { name: "Replace with", exact: true })
+    .fill("Thread");
+  await search.getByRole("button", { name: "Replace", exact: true }).click();
+  await expect(body).toContainText("Needle first.");
+  await expect(body).toContainText("Thread second.");
+  await page.screenshot({
+    path: `.audit/workspace-search-${info.project.name}.png`,
+  });
+});
+
+test("folder CRUD supports page moves without changing its parent hierarchy", async ({
+  page,
+}, info) => {
+  await navigatorFixture(page);
+  let value: Folders = { folders: [], assignments: {} };
+  let base = 0;
+  await page.route("**/api/admin/folders", (route) => {
+    if (route.request().method() === "PUT") {
+      value = changeFolders(value, route.request().postDataJSON().action);
+      base++;
+    }
+    return route.fulfill({ json: { value, base: String(base) } });
+  });
+  const dialog = await openNavigator(page);
+  await dialog.getByText("Folders", { exact: true }).click();
+  const folders = dialog.getByRole("region", { name: "Folders" });
+  await folders.getByRole("textbox", { name: "Folder name" }).fill("Research");
+  await folders.getByRole("button", { name: "Create", exact: true }).click();
+  await expect(
+    folders.getByRole("button", { name: "Research", exact: true }),
+  ).toBeVisible();
+  if (info.project.name === "desktop")
+    await folders
+      .locator(".folder-page")
+      .filter({ hasText: "Related page" })
+      .dragTo(folders.getByRole("button", { name: "Research", exact: true }));
+  else {
+    await folders
+      .getByRole("combobox", { name: "Folder for Related page", exact: true })
+      .click();
+    await page.getByRole("option", { name: "Research", exact: true }).click();
+  }
+  await folders.getByRole("button", { name: "Research", exact: true }).click();
+  await expect(folders.locator(".folder-page")).toContainText("Related page");
+  await folders
+    .getByRole("button", { name: "Rename Research", exact: true })
+    .click();
+  await folders.getByRole("textbox", { name: "Folder name" }).fill("Reading");
+  await folders.getByRole("button", { name: "Save", exact: true }).click();
+  await page.screenshot({
+    path: `.audit/workspace-folders-${info.project.name}.png`,
+  });
+  await folders
+    .getByRole("button", { name: "Delete folder Reading", exact: true })
+    .click();
+  await expect(
+    folders.locator(".folder-page").filter({ hasText: "Related page" }),
+  ).toBeVisible();
+  expect(value.assignments).toEqual({});
+});
+
+test("media gallery list details and trash preserve asset URLs", async ({
+  page,
+}, info) => {
+  let asset = {
+    src: "/avatar-96.webp",
+    size: 1024,
+    type: "image/webp",
+    uploadedAt: "2026-09-29T00:00:00Z",
+    usedIn: [],
+    title: "Portrait", digest:"same",
+    alt: "",
+    trashed: false,
+    base: "v1",
+  };
+  await page.route("**/api/admin/media", (route) => {
+    if (route.request().method() === "PUT") {
+      asset = { ...asset, ...route.request().postDataJSON(), base: "v2" };
+      return route.fulfill({ json: { base: "v2" } });
+    }
+    return route.fulfill({
+      json: {
+        assets: [
+          asset,
+          {
+            ...asset,
+            src: "/avatar-128.webp",
+            title: "Duplicate",
+            digest: "same",
+          },
+        ],
+        cursor: null,
+      },
+    });
+  });
+  await page.getByRole("button", { name: "View", exact: true }).click();
+  await page
+    .getByRole("menuitem", { name: "Media library", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog", {
+    name: "Media library",
+    exact: true,
+  });
+  await expect(dialog.locator(".asset-card")).toHaveCount(1);
+  await dialog.getByRole("button", { name: "List view" }).click();
+  await expect(dialog.locator(".asset-grid")).toHaveAttribute(
+    "data-view",
+    "list",
+  );
+  await dialog
+    .getByRole("button", { name: "Details", exact: true })
+    .first()
+    .click();
+  await dialog
+    .getByRole("textbox", { name: "Name", exact: true })
+    .fill("Author portrait");
+  await dialog
+    .getByRole("textbox", { name: "Default alt text" })
+    .fill("Author portrait");
+  await dialog.getByRole("button", { name: "Save details" }).click();
+  await expect(dialog).toContainText("Author portrait");
+  await dialog
+    .getByRole("button", { name: "Move asset to trash" })
+    .first()
+    .click();
+  await dialog.getByRole("button", { name: "Trash", exact: true }).click();
+  await expect(dialog.locator(".asset-card")).toHaveCount(1);
+  await dialog.getByRole("button", { name: "Restore asset" }).click();
+  await expect(dialog.locator(".asset-card")).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Trash", exact: true }).click();
+  await page.screenshot({
+    path: `.audit/workspace-media-${info.project.name}.png`,
+  });
+  expect(asset.src).toBe("/avatar-96.webp");
+});
+
+test("editable shortcuts persist reject collisions and trigger their editor action", async ({
+  page,
+}, info) => {
+  test.setTimeout(90000);
+  await page.keyboard.press("Control+s");
+  await expect(page.locator(".save-state")).toHaveAttribute("data-status", "saved");
+  await page.goto("/admin/shortcuts");
+  const field = page.getByRole("textbox", {
+    name: "Find in page shortcut",
+    exact: true,
+  });
+  await field.press("Control+s");
+  await expect(page.locator(".shortcuts-page").getByRole("alert")).toContainText("already assigned");
+  await field.press("Control+Shift+f");
+  await expect(field).toHaveValue("Mod+Shift+f");
+  await page.reload();
+  await expect(field).toHaveValue("Mod+Shift+f");
+  await page.screenshot({
+    path: `.audit/workspace-shortcuts-${info.project.name}.png`,
+  });
+  await page.goto(`/admin?post=${id}`);
+  await page.getByRole("textbox", { name: "Body", exact: true }).click();
+  await page.keyboard.press("Control+Shift+f");
+  await expect(
+    page.getByRole("search", { name: "Find and replace" }),
+  ).toBeVisible();
 });

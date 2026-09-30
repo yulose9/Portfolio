@@ -1,12 +1,13 @@
 "use client";
 import { Popover } from "@base-ui/react/popover";
+import { HexColorPicker } from "react-colorful";
 import { useEditorState, type Editor } from "@tiptap/react";
 import { TEXT_COLORS, textColor } from "../../../cms/inline";
-import { FONT_SHELF } from "../../../cms/fonts";
-import { loadFont } from "./MetaEditors";
+import { findFont } from "../../../cms/fonts";
+import { loadFont } from "./font-loader";
 import { useEffect, useState, useRef } from "react";
 import { ownInteraction } from "./editor-interactions";
-import AdminSelect from "./AdminSelect";
+import FontPicker from "./FontPicker";
 import { ArrowCounterClockwise, X } from "@phosphor-icons/react";
 
 export default function ColorPicker({ editor }: { editor: Editor }) {
@@ -48,8 +49,8 @@ export default function ColorPicker({ editor }: { editor: Editor }) {
     value: selected ?? "#52525b",
   });
   useEffect(() => {
-    if (open) FONT_SHELF.forEach(loadFont);
-  }, [open]);
+    if (open) loadFont(findFont(appearance.font));
+  }, [open, appearance.font]);
   useEffect(() => {
     const loadUsed = () => {
       const used = new Set<string>();
@@ -58,7 +59,7 @@ export default function ColorPicker({ editor }: { editor: Editor }) {
           if (mark.type.name === "textColor" && mark.attrs.font)
             used.add(mark.attrs.font);
       });
-      for (const font of FONT_SHELF) if (used.has(font.family)) loadFont(font);
+      for (const family of used) loadFont(findFont(family));
     };
     loadUsed();
     editor.on("update", loadUsed);
@@ -108,19 +109,13 @@ export default function ColorPicker({ editor }: { editor: Editor }) {
               </Popover.Close>
             </div>
             {error ? <p role="alert">{error}</p> : null}
-            <AdminSelect
+            <FontPicker
               label="Font"
               value={appearance.font}
-              onValueChange={(font) => format({ font: font || null })}
-              options={[
-                { value: "", label: "Page font" },
-                ...FONT_SHELF.map((font) => ({
-                  value: font.family,
-                  label: font.family,
-                })),
-              ]}
+              onChange={(font) => format({ font: font?.family ?? null })}
             />
             <div className="appearance-section-label">Text color</div>
+            <HexColorPicker color={selected ?? "#52525b"} onChange={apply} />
             <div className="color-options" role="group" aria-label="Text color">
               <button
                 type="button"
@@ -151,12 +146,6 @@ export default function ColorPicker({ editor }: { editor: Editor }) {
               ))}
             </div>
             <div className="appearance-custom">
-              <input
-                type="color"
-                aria-label="Choose custom text color"
-                value={selected ?? "#52525b"}
-                onChange={(e) => apply(e.target.value)}
-              />
               <label>
                 Hex
                 <input
@@ -199,6 +188,7 @@ export default function ColorPicker({ editor }: { editor: Editor }) {
               </span>
               <input
                 type="range"
+                aria-label="Text opacity"
                 min="0"
                 max="100"
                 value={appearance.opacity}

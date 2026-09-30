@@ -4,6 +4,7 @@ import type { Editor } from "@tiptap/core";
 import { ancestors, canParent } from "../../../cms/page-tree";
 import { api, type PostSummary } from "./api";
 import Sheet from "./Sheet";
+import Folders from "./Folders";
 import {
   FolderSimple,
   FolderOpen,
@@ -175,6 +176,7 @@ export default function PageLocation({
         variant="center"
         className="page-move-dialog"
       >
+        <details className="folder-disclosure"><summary>Organize in a folder</summary>{open?<Folders pages={pages} currentId={id} beforeMove={beforeSave}/>:null}</details>
         <label className="picker-search">
           <MagnifyingGlass size={16} />
           <input

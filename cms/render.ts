@@ -12,7 +12,7 @@ import { fluentUrl, splitEmoji } from "./emoji";
 import { imageInfo, videoInfo } from "./media";
 import { dateHref, fullMentionDate, pageMentionId, parseDateHref } from "./mentions";
 import { textColor, textOpacity, safeInlineUrl, decodeLogoLabel } from "./inline";
-import { FONT_SHELF, fontStack } from "./fonts";
+import { FONT_CATALOG, findFont, fontStack } from "./fonts";
 
 /*
  * Markdown → hast, the way the site renders a post: figures, callouts,
@@ -169,7 +169,7 @@ function rehypeEditorial(options: { resolvePage?: PageResolver } = {}) {
           continue;
         }
         if (node.tagName === "span" && node.properties.dataTextColor !== undefined) {
-          const font=FONT_SHELF.find(f=>f.family===node.properties.dataTextFont);
+          const font=findFont(node.properties.dataTextFont);
           node.properties.style = `color:${textColor(node.properties.dataTextColor)??"inherit"}${node.properties.dataTextOpacity!==undefined?`;opacity:${textOpacity(node.properties.dataTextOpacity)/100}`:""}${font?`;font-family:${fontStack(font)}`:""}`;
         }
         if (node.tagName === "img" && typeof node.properties.dataInlineLogo === "string") {
@@ -350,7 +350,7 @@ export async function markdownToTree(markdown: string, extra: PluggableList = []
       // The editorial pass below builds TOC links from these sanitized IDs.
       attributes: {
         ...defaultSchema.attributes,
-        span: [...(defaultSchema.attributes?.span ?? []), ["dataTextColor", /^(#[0-9a-f]{6}|inherit)$/i], ["dataTextFont",...FONT_SHELF.map(f=>f.family)], ["dataTextOpacity",/^\d{1,3}$/]],
+        span: [...(defaultSchema.attributes?.span ?? []), ["dataTextColor", /^(#[0-9a-f]{6}|inherit)$/i], ["dataTextFont",...FONT_CATALOG.map(f=>f.family)], ["dataTextOpacity",/^\d{1,3}$/]],
         img: [...(defaultSchema.attributes?.img ?? []), "dataInlineLogo", "dataLogoHref", "dataHeadingIcon"],
         video: ["src", "poster", "controls", "muted", "loop", "autoPlay", "playsInline", "preload", "width", "height", "title"],
         audio: ["src", "controls", "preload", "title"],
@@ -386,4 +386,3 @@ export function outline(tree: Root): OutlineItem[] {
   walk(tree);
   return out;
 }
-

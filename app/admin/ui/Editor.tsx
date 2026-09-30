@@ -99,6 +99,7 @@ import Sheet from "./Sheet";
 import ResearchPanel from "./ResearchPanel";
 import MediaJobs from "./MediaJobs";
 import MediaLibrary from "./MediaLibrary";
+import {useShortcuts} from "./shortcuts";
 import PageLocation from "./PageLocation";
 import PageNavigator from "./PageNavigator";
 import { CLIPBOARD_TYPE, readClipboard } from "../../../cms/clipboard";
@@ -743,6 +744,13 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
   }, [save]);
 
   /* ── Keys and focus mode ────────────────────────────────────────────── */
+  useShortcuts({
+    save:()=>{void flush(true);},find:()=>openFind.current(),replace:()=>openFind.current(undefined,true),
+    palette:()=>window.dispatchEvent(new Event("admin:palette")),details:()=>setPanel(p=>p==="details"?null:"details"),
+    preview:()=>setView(v=>v==="edit"?"page":"edit"),publish:()=>setPanel("publish"),
+    bold:()=>{editor?.chain().focus().toggleBold().run();},italic:()=>{editor?.chain().focus().toggleItalic().run();},underline:()=>{editor?.chain().focus().toggleUnderline().run();},strike:()=>{editor?.chain().focus().toggleStrike().run();},code:()=>{editor?.chain().focus().toggleCode().run();},undo:()=>{editor?.commands.undo();},redo:()=>{editor?.commands.redo();},
+    heading1:()=>{editor?.chain().focus().toggleHeading({level:1}).run();},heading2:()=>{editor?.chain().focus().toggleHeading({level:2}).run();},heading3:()=>{editor?.chain().focus().toggleHeading({level:3}).run();},paragraph:()=>{editor?.chain().focus().setParagraph().run();},bullet:()=>{editor?.chain().focus().toggleBulletList().run();},ordered:()=>{editor?.chain().focus().toggleOrderedList().run();},duplicate:()=>{if(editor){const b=currentBlock(editor);if(b)duplicateBlock(editor,b.pos);}},moveUp:()=>{if(editor){const b=currentBlock(editor);if(b)moveBlock(editor,b.pos,-1);}},moveDown:()=>{if(editor){const b=currentBlock(editor);if(b)moveBlock(editor,b.pos,1);}},
+  },()=>Boolean(editor?.isFocused));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -913,6 +921,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
       ...(Object.keys(MODE_TITLES) as (keyof Modes)[]).map((k) => ({ id: `mode:${k}`, group: "View" as const, ...MODE_TITLES[k], keywords: [...MODE_TITLES[k].keywords, "setting", "toggle"], checked: modes[k], run: () => toggleMode(k) })),
     ];
     const edit: Command[] = [
+      {id:"shortcut-settings",group:"Edit",title:"Keyboard shortcuts",icon:<SlidersHorizontal {...CI}/>,keywords:["keys","customize","bindings"],run:()=>{window.open("/admin/shortcuts","_blank","noopener");}},
       { id: "find", group: "Edit", title: "Find in this post", keys: "⌘F", icon: <MagnifyingGlass {...CI} />, keywords: ["search"], run: () => openFind.current() },
       { id: "replace", group: "Edit", title: "Find and replace", keys: "⌥⌘F", icon: <Swap {...CI} />, keywords: ["substitute", "change all"], run: () => openFind.current(undefined, true) },
       { id: "select-block", group: "Edit", title: "Select block", keys: "⌘A", icon: <SelectionPlus {...CI} />, keywords: ["paragraph", "highlight"], run: () => (setView("edit"), selectBlock(editor) || editor.commands.focus()) },
@@ -1257,7 +1266,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
       <ImportReview editor={editor}/>
       <MediaLibrary open={panel==="media"} onClose={()=>setPanel(null)} onInsert={asset=>{
         if(!editor)return;
-        editor.chain().focus().insertContent(asset.type.startsWith("image/")?{type:"image",attrs:{src:asset.src,alt:""}}:{type:"media",attrs:{src:asset.src,kind:asset.type.startsWith("video/")?"video":"audio",caption:""}}).run();setPanel(null);
+        editor.chain().focus().insertContent(asset.type.startsWith("image/")?{type:"image",attrs:{src:asset.src,alt:asset.alt??""}}:{type:"media",attrs:{src:asset.src,kind:asset.type.startsWith("video/")?"video":"audio",caption:""}}).run();setPanel(null);
       }}/>
 
       <PreviewSheet

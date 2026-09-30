@@ -4,6 +4,49 @@ import { onRequestPut as move } from "../functions/api/admin/posts/[id]/parent.t
 import { onRequestPost as upload } from "../functions/api/admin/uploads.ts";
 import { publish } from "../cms/server/publish.ts";
 import { onRequestPut as reorder } from "../functions/api/admin/page-order.ts";
+import { onRequestPut as folders } from "../functions/api/admin/folders.ts";
+import { onRequestPut as saveMedia } from "../functions/api/admin/media.ts";
+import { assetMetadataKey } from "../cms/media-library.ts";
+
+test("media metadata rejects stale edits and uploading identical content restores trash", async () => {
+  const env = envFor(bucket());
+  const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0]);
+  const request = () =>
+    new Request(
+      "https://example.test/api/admin/uploads?name=aaaaaaaaaaaa-100x100.png",
+      { method: "POST", headers: { "Content-Type": "image/png" }, body: bytes },
+    );
+  const { src } = await (await upload({ env, request: request() })).json();
+  const edit = (base) =>
+    new Request("https://example.test/api/admin/media", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        src,
+        title: "Portrait",
+        alt: "Author",
+        trashed: true,
+        base,
+      }),
+    });
+  assert.equal((await saveMedia({ env, request: edit(null) })).status, 200);
+  assert.equal((await saveMedia({ env, request: edit(null) })).status, 409);
+  assert.equal((await upload({ env, request: request() })).status, 200);
+  const object = await env.WRITING.head(src.slice(1));
+  const metadata = await env.WRITING.get(
+    assetMetadataKey(src.slice(1), object.customMetadata.sha256),
+  );
+  assert.deepEqual(await metadata.json(), {
+    title: "Portrait",
+    alt: "Author",
+    trashed: false,
+  });
+  assert.equal(
+    [...env.WRITING.objects.keys()].filter((k) => k.startsWith("media/"))
+      .length,
+    1,
+  );
+});
 
 function bucket(initial = {}) {
   const objects = new Map(
@@ -250,6 +293,63 @@ test("immutable media retry accepts identical bytes and refuses changed bytes", 
   assert.equal((await upload({ env, request: request(bytes) })).status, 200);
   bytes[8] = 1;
   assert.equal((await upload({ env, request: request(bytes) })).status, 409);
+});
+
+test("simultaneous identical images share one immutable primary across names and years", async () => {
+  const env = envFor(bucket());
+  const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0]);
+  const request = (name, year) =>
+    new Request(
+      `https://example.test/api/admin/uploads?name=${name}&year=${year}`,
+      { method: "POST", headers: { "Content-Type": "image/png" }, body: bytes },
+    );
+  const responses = await Promise.all([
+    upload({ env, request: request("aaaaaaaaaaaa-100x100.png", 2025) }),
+    upload({ env, request: request("bbbbbbbbbbbb-100x100.png", 2026) }),
+  ]);
+  const [a, b] = await Promise.all(responses.map((r) => r.json()));
+  assert.equal(a.src, b.src);
+  assert.equal(
+    [...env.WRITING.objects.keys()].filter((k) => k.startsWith("media/"))
+      .length,
+    1,
+  );
+  assert.equal(
+    (await upload({ env, request: request("cccccccccccc-100x100.png", 2026) }))
+      .status,
+    200,
+  );
+});
+test("folder writes enforce compare-and-swap and do not silently overwrite", async () => {
+  const env = envFor(bucket());
+  const request = (action) =>
+    new Request("https://example.test/api/admin/folders", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, base: null }),
+    });
+  assert.equal(
+    (
+      await folders({
+        env,
+        request: request({
+          type: "create",
+          id: "folder-one",
+          name: "Research",
+        }),
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await folders({
+        env,
+        request: request({ type: "create", id: "folder-two", name: "Reading" }),
+      })
+    ).status,
+    409,
+  );
 });
 test("publication keeps newer draft edits and retains the actual Git receipt", async () => {
   const original = globalThis.fetch,

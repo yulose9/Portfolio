@@ -101,7 +101,7 @@ async function uploadPhoto(file: File, progress: Progress, id = newMediaId(), op
   progress(0.05, "Reading photo");
   const bitmap = await decodePhoto(file);
   const top = Math.min(bitmap.width, WIDTHS[WIDTHS.length - 1]);
-  const widths = [...WIDTHS.filter((w) => w < top), top];
+  const widths = [top, ...WIDTHS.filter((w) => w < top)];
   // Screenshots and graphics keep more quality so text stays crisp.
   const quality = file.type === "image/png" ? 0.9 : 0.82;
   let main: { src: string; width: number; height: number } | null = null;
@@ -117,11 +117,15 @@ async function uploadPhoto(file: File, progress: Progress, id = newMediaId(), op
     ctx.drawImage(bitmap, 0, 0, width, height);
     let blob = await canvasBlob(canvas, "image/webp", quality);
     if (blob.type !== "image/webp") blob = await canvasBlob(canvas, "image/jpeg", 0.86);
-    const largest = i === widths.length - 1;
+    const largest = width === top;
     progress(0.15 + (0.8 * (i + 1)) / widths.length, `Uploading ${width}px`);
     const name = mediaName(id, largest ? { width, height } : { variant: width });
     const res = await api.uploadNamed(blob, name, options.signal, options.year);
-    if (largest) main = { src: res.src, width, height };
+    if (largest) {
+      main = { src: res.src, width, height };
+      const canonical = /^\/media\/(\d{4})\/([a-z0-9]+)-/.exec(res.src);
+      if (canonical) { options = { ...options, year: Number(canonical[1]) }; id = canonical[2]; }
+    }
   }
   bitmap.close();
   if (!main) throw new ApiError("The upload came back empty. Try again.", 0);

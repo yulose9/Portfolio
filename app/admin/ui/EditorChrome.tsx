@@ -419,7 +419,8 @@ export function FindBar({ editor, request, onClose }: { editor: Editor; request:
     editor,
     selector: ({ editor: e }) => {
       const s = findKey.getState(e.state);
-      return { count: s?.matches.length ?? 0, index: s?.index ?? 0, first: s?.matches[s.index]?.from ?? -1 };
+      return { count: s?.matches.length ?? 0, index: s?.index ?? 0, first: s?.matches[s.index]?.from ?? -1,
+        results: (s?.matches??[]).map((match,i)=>{const pos=e.state.doc.resolve(match.from);const start=pos.start();const end=pos.end();return {index:i,before:e.state.doc.textBetween(Math.max(start,match.from-45),match.from," "),text:e.state.doc.textBetween(match.from,match.to," "),after:e.state.doc.textBetween(match.to,Math.min(end,match.to+65)," "),block:pos.parent.type.name};}) };
     },
   });
 
@@ -484,7 +485,7 @@ export function FindBar({ editor, request, onClose }: { editor: Editor; request:
   };
 
   return (
-    <div className="find-bar" role="search" data-open={open || undefined} data-replacing={replacing || undefined} inert={!open} onKeyDown={onKey}>
+    <div className="find-bar find-sidebar" role="search" aria-label="Find and replace" data-open={open || undefined} data-replacing={replacing || undefined} inert={!open} onKeyDown={onKey}>
       <div className="find-heading"><strong>Find in this page</strong><button type="button" className="admin-button admin-button-quiet" onClick={()=>window.dispatchEvent(new CustomEvent("admin:palette",{detail:{query}}))}>Search all writing ↗</button></div>
       <button
         type="button"
@@ -558,6 +559,7 @@ export function FindBar({ editor, request, onClose }: { editor: Editor; request:
           </div>
         </div>
       </div>
+      <div className="find-results" aria-label="Search results">{state.results.map(result=><button type="button" key={result.index} aria-current={state.index===result.index ? "true" : undefined} onClick={()=>editor.commands.setFind(query,result.index,options)}><small>{result.index+1} · {result.block}</small><span>{result.before}<mark>{result.text}</mark>{result.after}</span></button>)}</div>
     </div>
   );
 }

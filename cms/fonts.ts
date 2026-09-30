@@ -1,4 +1,18 @@
 import type { FontChoice, Fonts } from "./format";
+import catalog from "./font-catalog";
+export const FONT_CATALOG_DATE = catalog.updatedAt;
+export const FONT_CATALOG: FontChoice[] = [
+  ...catalog.google.map((family) => ({ family, source: "google" as const })),
+  ...catalog.fontshare
+    .filter((family) => !catalog.google.includes(family))
+    .map((family) => ({ family, source: "fontshare" as const })),
+];
+export function findFont(value: unknown): FontChoice | undefined {
+  return (
+    FONT_SHELF.find((f) => f.family === value) ??
+    FONT_CATALOG.find((f) => f.family === value)
+  );
+}
 
 /*
  * Typefaces a post can wear, from free services. A curated shelf to pick from
@@ -8,27 +22,95 @@ import type { FontChoice, Fonts } from "./format";
  * page links the one it needs, so a post in Inter loads nothing extra.
  */
 
-export type ShelfFont = FontChoice & { kind: "sans" | "serif" | "display" | "mono"; note: string };
+export type ShelfFont = FontChoice & {
+  kind: "sans" | "serif" | "display" | "mono";
+  note: string;
+};
 
 export const FONT_SHELF: ShelfFont[] = [
   { family: "Inter", source: "google", kind: "sans", note: "The site's own" },
   { family: "Geist", source: "google", kind: "sans", note: "Crisp, technical" },
-  { family: "IBM Plex Sans", source: "google", kind: "sans", note: "Engineered, warm" },
+  {
+    family: "IBM Plex Sans",
+    source: "google",
+    kind: "sans",
+    note: "Engineered, warm",
+  },
   { family: "Manrope", source: "google", kind: "sans", note: "Round, modern" },
-  { family: "Satoshi", source: "fontshare", kind: "sans", note: "Fontshare · geometric" },
-  { family: "General Sans", source: "fontshare", kind: "sans", note: "Fontshare · neutral" },
-  { family: "Newsreader", source: "google", kind: "serif", note: "Made for reading" },
-  { family: "Source Serif 4", source: "google", kind: "serif", note: "Book-like" },
+  {
+    family: "Satoshi",
+    source: "fontshare",
+    kind: "sans",
+    note: "Fontshare · geometric",
+  },
+  {
+    family: "General Sans",
+    source: "fontshare",
+    kind: "sans",
+    note: "Fontshare · neutral",
+  },
+  {
+    family: "Newsreader",
+    source: "google",
+    kind: "serif",
+    note: "Made for reading",
+  },
+  {
+    family: "Source Serif 4",
+    source: "google",
+    kind: "serif",
+    note: "Book-like",
+  },
   { family: "Literata", source: "google", kind: "serif", note: "Long-form" },
-  { family: "Fraunces", source: "google", kind: "serif", note: "Soft, characterful" },
+  {
+    family: "Fraunces",
+    source: "google",
+    kind: "serif",
+    note: "Soft, characterful",
+  },
   { family: "EB Garamond", source: "google", kind: "serif", note: "Classic" },
-  { family: "Gambetta", source: "fontshare", kind: "serif", note: "Fontshare · editorial" },
-  { family: "Instrument Serif", source: "google", kind: "display", note: "Headlines" },
-  { family: "Playfair Display", source: "google", kind: "display", note: "High contrast" },
-  { family: "Clash Display", source: "fontshare", kind: "display", note: "Fontshare · bold" },
-  { family: "Space Grotesk", source: "google", kind: "display", note: "Quirky grotesk" },
-  { family: "JetBrains Mono", source: "google", kind: "mono", note: "Monospace" },
-  { family: "IBM Plex Mono", source: "google", kind: "mono", note: "Monospace" },
+  {
+    family: "Gambetta",
+    source: "fontshare",
+    kind: "serif",
+    note: "Fontshare · editorial",
+  },
+  {
+    family: "Instrument Serif",
+    source: "google",
+    kind: "display",
+    note: "Headlines",
+  },
+  {
+    family: "Playfair Display",
+    source: "google",
+    kind: "display",
+    note: "High contrast",
+  },
+  {
+    family: "Clash Display",
+    source: "fontshare",
+    kind: "display",
+    note: "Fontshare · bold",
+  },
+  {
+    family: "Space Grotesk",
+    source: "google",
+    kind: "display",
+    note: "Quirky grotesk",
+  },
+  {
+    family: "JetBrains Mono",
+    source: "google",
+    kind: "mono",
+    note: "Monospace",
+  },
+  {
+    family: "IBM Plex Mono",
+    source: "google",
+    kind: "mono",
+    note: "Monospace",
+  },
 ];
 
 const FALLBACK: Record<ShelfFont["kind"], string> = {
@@ -50,23 +132,37 @@ export function fontHref(font: FontChoice): string | null {
     const slug = font.family.toLowerCase().replace(/\s+/g, "-");
     return `https://api.fontshare.com/v2/css?f[]=${slug}@300,400,500,600,700&display=swap`;
   }
-  const family = font.family.replace(/\s+/g, "+");
-  return `https://fonts.googleapis.com/css2?family=${family}:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap`;
+  const family = encodeURIComponent(font.family).replace(/%20/g, "+");
+  return `https://fonts.googleapis.com/css2?family=${family}&display=swap`;
 }
 
 export function fontLinks(fonts: Fonts | null | undefined): string[] {
-  const hrefs = [fonts?.heading, fonts?.body].filter((f): f is FontChoice => Boolean(f)).map(fontHref);
+  const hrefs = [fonts?.heading, fonts?.body]
+    .filter((f): f is FontChoice => Boolean(f))
+    .map(fontHref);
   return [...new Set(hrefs.filter((h): h is string => Boolean(h)))];
 }
 
 /** CSS custom properties the article's styles read. */
-export function fontVars(fonts: Fonts | null | undefined): Record<string, string> {
-  const vars: Record<string, string> = {"--article-ligatures":fonts?.ligatures === false ? "none" : "normal"};
+export function fontVars(
+  fonts: Fonts | null | undefined,
+): Record<string, string> {
+  const vars: Record<string, string> = {
+    "--article-ligatures": fonts?.ligatures === false ? "none" : "normal",
+  };
   if (fonts?.heading) vars["--article-heading-font"] = fontStack(fonts.heading);
   if (fonts?.body) vars["--article-body-font"] = fontStack(fonts.body);
   return vars;
 }
 
 export function inlineFontLinks(body: string): string[] {
-  return FONT_SHELF.filter(font=>body.includes(`data-text-font="${font.family}"`)).map(fontHref).filter((href):href is string=>Boolean(href));
+  return [
+    ...new Set(
+      [...body.matchAll(/data-text-font="([\w -]{2,60})"/g)]
+        .map((m) => findFont(m[1]))
+        .filter((f): f is FontChoice => Boolean(f))
+        .map(fontHref)
+        .filter((href): href is string => Boolean(href)),
+    ),
+  ];
 }

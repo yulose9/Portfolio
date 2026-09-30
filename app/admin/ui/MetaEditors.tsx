@@ -1,11 +1,12 @@
 "use client";
+import FontPicker from "./FontPicker";
 import { beginPendingWork } from "./session";
 
 import { ArrowCounterClockwise, Camera, Plus, Shuffle, Smiley, Trash, UserPlus } from "@phosphor-icons/react";
 import { Popover } from "@base-ui/react/popover";
 import { useEffect, useRef, useState } from "react";
 
-import { FONT_SHELF, fontHref, fontStack } from "../../../cms/fonts";
+
 import { DEFAULT_AUTHOR, type Author, type FontChoice, type Fonts } from "../../../cms/format";
 import Avatar, { AVATAR_STYLES, parseGenerated, randomAvatar } from "../../components/writing/Avatar";
 import { Avatars, joinNames, named } from "../../components/writing/Byline";
@@ -187,61 +188,10 @@ export function AuthorsEditor({ authors, minutes, onChange }: { authors: Author[
 
 /* ── Fonts ───────────────────────────────────────────────────────────── */
 
-/** Load a font's stylesheet into the admin once, so the picker and canvas can show it. */
-export function loadFont(font: FontChoice | null | undefined) {
-  const href = font ? fontHref(font) : null;
-  if (href && !document.querySelector(`link[data-font="${CSS.escape(href)}"]`)) {
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = href;
-    link.dataset.font = href;
-    document.head.appendChild(link);
-  }
-}
+export {loadFont} from "./font-loader";
 
 function FontSelect({ label, value, onChange }: { label: string; value: FontChoice | null | undefined; onChange: (f: FontChoice | null) => void }) {
-  const [custom, setCustom] = useState("");
-  // The shelf previews each face in itself, so its stylesheets load with it.
-  useEffect(() => FONT_SHELF.forEach(loadFont), []);
-  useEffect(() => loadFont(value), [value]);
-  const current = value?.family ?? "Inter";
-  return (
-    <div className="font-select">
-      <span className="field-label">{label}</span>
-      <div className="font-shelf" role="radiogroup" aria-label={label}>
-        {FONT_SHELF.map((f) => (
-          <button
-            key={f.family}
-            type="button"
-            role="radio"
-            aria-checked={current === f.family}
-            className="font-option"
-            onClick={() => onChange(f.family === "Inter" ? null : { family: f.family, source: f.source })}
-            style={{ fontFamily: fontStack(f) }}
-          >
-            <span className="font-option-name">{f.family}</span>
-            <span className="font-option-note">{f.note}</span>
-          </button>
-        ))}
-      </div>
-      <form
-        className="font-custom"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const family = custom.trim();
-          if (!/^[\w \-]{2,60}$/.test(family)) return;
-          onChange({ family, source: "google" });
-          setCustom("");
-        }}
-      >
-        <input value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="Any Google Fonts family, e.g. Crimson Pro" aria-label={`Custom ${label.toLowerCase()} font`} />
-        <button type="submit" className="admin-chip" aria-label="Use this font">
-          <Plus size={13} /> Use
-        </button>
-      </form>
-      {value && !FONT_SHELF.some((f) => f.family === value.family) ? <p className="field-help">Using {value.family} from Google Fonts.</p> : null}
-    </div>
-  );
+  return <FontPicker label={label} value={value?.family??""} onChange={onChange}/>;
 }
 
 export function FontsEditor({ fonts, onChange }: { fonts: Fonts | null; onChange: (f: Fonts | null) => void }) {

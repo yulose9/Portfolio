@@ -1,7 +1,14 @@
 import { newId } from "../../../cms/format";
 import { MEDIA_NAME } from "../../../cms/media";
-import { fail, json, readBytes, type AdminFunction } from "../../../cms/server/http";
+import {
+  fail,
+  json,
+  readBytes,
+  type AdminFunction,
+} from "../../../cms/server/http";
 import { matchesMediaType } from "../../../cms/server/upload";
+import { canonicalImageKey } from "../../../cms/server/media-dedup";
+import { assetMetadataKey } from "../../../cms/media-library";
 
 /*
  * Media upload. The editor has already compressed, resized and stripped the
@@ -29,13 +36,20 @@ const TYPES: Record<string, string[]> = {
 const MAX_BYTES = 32 * 1024 * 1024;
 
 export const onRequestPost: AdminFunction = async ({ env, request }) => {
-  const type = (request.headers.get("Content-Type") ?? "").split(";")[0].trim().toLowerCase();
+  const type = (request.headers.get("Content-Type") ?? "")
+    .split(";")[0]
+    .trim()
+    .toLowerCase();
   const exts = TYPES[type];
   if (!exts) return fail("That file type can't be uploaded.", 415);
 
-  const bytes = await readBytes(request, type.startsWith("image/") ? 12 * 1024 * 1024 : MAX_BYTES);
+  const bytes = await readBytes(
+    request,
+    type.startsWith("image/") ? 12 * 1024 * 1024 : MAX_BYTES,
+  );
   if (bytes.byteLength === 0) return fail("The upload was empty.");
-  if (!matchesMediaType(bytes, type)) return fail("The file contents don't match its media type.", 415);
+  if (!matchesMediaType(bytes, type))
+    return fail("The file contents don't match its media type.", 415);
 
   const url = new URL(request.url);
   const name = url.searchParams.get("name");
@@ -44,26 +58,76 @@ export const onRequestPost: AdminFunction = async ({ env, request }) => {
     const dot = name.lastIndexOf(".");
     const stem = name.slice(0, dot);
     const ext = name.slice(dot + 1);
-    if (dot < 1 || !MEDIA_NAME.test(stem) || !exts.includes(ext)) return fail("Unexpected file name. Upload through the editor.");
+    if (dot < 1 || !MEDIA_NAME.test(stem) || !exts.includes(ext))
+      return fail("Unexpected file name. Upload through the editor.");
     file = name;
   } else {
     file = `${newId()}.${exts[0]}`;
   }
-  const year=Number(url.searchParams.get("year")??new Date().getUTCFullYear());
-  if(!Number.isInteger(year)||year<2020||year>new Date().getUTCFullYear())return fail("Invalid upload year.");
-  const key = `media/${year}/${file}`;
-  const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",new Uint8Array(bytes))),b=>b.toString(16).padStart(2,"0")).join("");
+  const year = Number(
+    url.searchParams.get("year") ?? new Date().getUTCFullYear(),
+  );
+  if (
+    !Number.isInteger(year) ||
+    year < 2020 ||
+    year > new Date().getUTCFullYear()
+  )
+    return fail("Invalid upload year.");
+  let key = `media/${year}/${file}`;
+  const digest = Array.from(
+    new Uint8Array(
+      await crypto.subtle.digest("SHA-256", new Uint8Array(bytes)),
+    ),
+    (b) => b.toString(16).padStart(2, "0"),
+  ).join("");
+  const named = await env.WRITING.head(key);
+  if (
+    named &&
+    (named.customMetadata?.sha256 !== digest ||
+      named.httpMetadata?.contentType !== type)
+  )
+    return fail(
+      "That media name already exists with different content. Choose the file again to start a new upload.",
+      409,
+    );
+  key = await canonicalImageKey(env, key, digest, type);
+  const restore = async () => {
+    const metaKey = assetMetadataKey(key, digest);
+    const meta = await env.WRITING.get(metaKey);
+    if (meta) {
+      const value = await meta.json<{ trashed?: boolean }>();
+      if (value.trashed)
+        await env.WRITING.put(
+          metaKey,
+          JSON.stringify({ ...value, trashed: false }),
+          { onlyIf: { etagMatches: meta.etag } },
+        );
+    }
+  };
 
   const stored = await env.WRITING.put(key, bytes, {
     // Never replace an immutable public URL, even with a forged upload name.
     onlyIf: { etagDoesNotMatch: "*" },
-    httpMetadata: { contentType: type, cacheControl: "public, max-age=31536000, immutable" },
-    customMetadata: {sha256:digest},
+    httpMetadata: {
+      contentType: type,
+      cacheControl: "public, max-age=31536000, immutable",
+    },
+    customMetadata: { sha256: digest },
   });
   if (!stored) {
-    const previous=await env.WRITING.head(key);
-    if(previous?.customMetadata?.sha256===digest && previous.httpMetadata?.contentType===type)return json({src:`/${key}`});
-    return fail("That media name already exists with different content. Choose the file again to start a new upload.",409);
+    const previous = await env.WRITING.head(key);
+    if (
+      previous?.customMetadata?.sha256 === digest &&
+      previous.httpMetadata?.contentType === type
+    ) {
+      await restore();
+      return json({ src: `/${key}` });
+    }
+    return fail(
+      "That media name already exists with different content. Choose the file again to start a new upload.",
+      409,
+    );
   }
+  await restore();
   return json({ src: `/${key}` }, 201);
 };

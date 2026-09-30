@@ -20,6 +20,7 @@ import {
   siblingIds,
 } from "../../../cms/page-order";
 import { MenuSurface, MItem } from "./menu";
+import Folders from "./Folders";
 
 type Props = {
   pages: PostSummary[];
@@ -310,6 +311,7 @@ export default function PageTree({
   };
   const content = (
     <nav aria-label="Page navigator" aria-busy={busy}>
+      <details className="folder-disclosure"><summary>Folders</summary><Folders pages={rows} beforeMove={beforeNavigate}/></details>
       <label className="page-tree-search">
         Find a page
         <input

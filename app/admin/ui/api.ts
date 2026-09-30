@@ -93,6 +93,9 @@ const put = (body: unknown): RequestInit => ({ method: "PUT", body: JSON.stringi
 const post = (body: unknown = {}): RequestInit => ({ method: "POST", body: JSON.stringify(body) });
 
 export const api = {
+  folders:()=>call<{value:import("../../../cms/folders").Folders;base:string|null}>("/folders"),
+  changeFolder:(action:import("../../../cms/folders").FolderAction,base:string|null)=>call<{value:import("../../../cms/folders").Folders;base:string|null}>("/folders",put({action,base})),
+  saveMedia: (asset: {src:string;title:string;alt:string;trashed:boolean;base:string|null}) => call<{base:string}>("/media",put(asset)),
   reorderPages: (parentId: string | null, previousIds: string[], ids: string[]) => call<{ids:string[]}>("/page-order", put({parentId,previousIds,ids})),
   media:(cursor?:string)=>call<{assets:import("./MediaLibrary").Asset[];cursor:string|null}>(`/media${cursor?`?cursor=${encodeURIComponent(cursor)}`:""}`),
   movePage:(id:string,parentId:string|null,previousParentId:string|null)=>call<{parentId:string|null}>(`/posts/${id}/parent`,put({parentId,previousParentId})),

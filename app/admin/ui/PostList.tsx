@@ -366,6 +366,7 @@ export default function PostList({
               <MItem icon={<TagIcon size={16} />} onSelect={onTags}>
                 Tag pages
               </MItem>
+              <Menu.Item className="menu-item" render={<a href="/admin/shortcuts" target="_blank" rel="noopener"/>}><span className="menu-item-text">Keyboard shortcuts</span></Menu.Item>
               <Menu.Item
                 className="menu-item"
                 render={<a href="/writing" target="_blank" rel="noopener" />}
