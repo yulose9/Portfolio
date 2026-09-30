@@ -25,14 +25,14 @@
 .library-tools > input {
   flex: 1;
 }
-.view-switch {
+.library-tools .view-switch {
   display: flex;
   gap: 2px;
   background: var(--a-fill);
   border-radius: 8px;
   padding: 3px;
 }
-.view-switch button {
+.library-tools .view-switch button {
   display: grid;
   place-items: center;
   border: 0;
@@ -41,7 +41,7 @@
   height: 30px;
   border-radius: 6px;
 }
-.view-switch [aria-pressed="true"] {
+.library-tools .view-switch [aria-pressed="true"] {
   background: white;
   box-shadow: 0 1px 3px #0001;
 }
