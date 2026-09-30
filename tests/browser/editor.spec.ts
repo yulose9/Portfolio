@@ -43,7 +43,8 @@ async function openNavigator(page: Page) {
   ).toBeVisible();
   return dialog;
 }
-test.beforeEach(async ({ page }) => {
+const codeSource = 'const longValue = "' + 'a'.repeat(140) + '";\n  console.log(longValue);';
+test.beforeEach(async ({ page }, info) => {
   let draft = {
     id,
     title: "Editor regression",
@@ -66,6 +67,9 @@ test.beforeEach(async ({ page }) => {
     createdAt: "2026-09-28T00:00:00.000Z",
     updatedAt: "2026-09-28T00:00:00.000Z",
   };
+  if (info.title.startsWith("code controls") || info.title.startsWith("code copy")) {
+    draft.body = '```js\n' + codeSource + '\n```\n\n```customlang\nraw source\n```';
+  }
   await page.route("**/api/admin/**", async (route) => {
     const req = route.request(),
       url = new URL(req.url());
@@ -113,6 +117,57 @@ test.beforeEach(async ({ page }) => {
     page.getByRole("textbox", { name: "Body", exact: true }),
   ).toBeEditable({ timeout: 30000 });
 });
+test("code controls preserve source, save language, and keep view state out of Markdown", async ({ page }, info) => {
+  const source = codeSource;
+  const block = page.locator('.editor-code-block').first();
+  await expect(block.locator('pre')).toHaveText(source);
+  await expect(block.locator('pre code')).toHaveCSS('white-space', 'pre');
+  await expect(block.getByRole('combobox', { name: 'Code language' })).toHaveText('js');
+  await expect(page.locator('.editor-code-block').nth(1).getByRole('combobox')).toHaveText('customlang');
+  await block.getByRole('button', { name: 'Wrap code' }).click();
+  await expect(block.locator('pre')).toHaveCSS('white-space', 'pre-wrap');
+  await expect(block.locator('pre code')).toHaveCSS('white-space', 'pre-wrap');
+  await expect.poll(() => block.locator('pre').evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+  await block.screenshot({ path: info.outputPath('code-controls.png') });
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+      writeText: async (text: string) => { document.documentElement.dataset.copiedCode = text; },
+    } });
+  });
+  await block.getByRole('button', { name: 'Copy code' }).click();
+  await expect(block.getByRole('button', { name: 'Copy code' })).toHaveText('Copied');
+  await expect(page.locator('html')).toHaveAttribute('data-copied-code', source);
+  await block.getByRole('combobox', { name: 'Code language' }).click();
+  await page.getByRole('option', { name: 'TypeScript', exact: true }).click();
+  await expect.poll(async () => page.evaluate(async () =>
+    (await (await fetch('/api/admin/posts/abcdefghijkl')).json()).post.body,
+  )).toContain('```typescript\n' + source + '\n```');
+  const saved = await page.evaluate(async () => (await (await fetch('/api/admin/posts/abcdefghijkl')).json()).post);
+  expect(saved.body).not.toMatch(/Wrap|Copied|editor-code-tools|data-wrapped/);
+  expect(saved.body).toContain('```customlang');
+  const savedBlock = saved.editorDocument.doc.content.find((node: { type: string }) => node.type === 'codeBlock');
+  expect(savedBlock.attrs.blockId).toBeTruthy();
+  await page.reload();
+  await expect(block.getByRole('combobox')).toHaveText('TypeScript');
+  await expect(block.getByRole('button', { name: 'Wrap code' })).toHaveAttribute('aria-pressed', 'false');
+  await block.locator('pre code').click();
+  await page.keyboard.press('End');
+  await page.keyboard.type(' // edited');
+  await expect(block.locator('pre')).toContainText('// edited');
+});
+
+test("code copy does not claim success when clipboard access fails", async ({ page }) => {
+  const block = page.locator('.editor-code-block').first();
+  await expect(block).toBeVisible();
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => { throw new Error('Denied'); } } });
+    document.execCommand = () => false;
+  });
+  await block.getByRole('button', { name: 'Copy code', exact: true }).click();
+  await expect(page.locator('.toast-title').filter({ hasText: 'Couldn’t copy' })).toBeVisible();
+  await expect(block.getByRole('button', { name: 'Copy code', exact: true })).toHaveText('Copy');
+});
+
 test("link editing retains focus, accepts text/address, and commits together", async ({
   page,
 }, info) => {

@@ -105,6 +105,7 @@ import PageNavigator from "./PageNavigator";
 import { CLIPBOARD_TYPE, readClipboard } from "../../../cms/clipboard";
 import ImportReview from "./ImportReview";
 import { WritingClipboard, pasteWritingClipboard } from "./extensions/clipboard";
+import { WritingCodeBlock } from "./extensions/code-block";
 import { saveMediaJob, pendingMediaLabel } from "./media-journal";
 import { InteractionHighlight } from "./extensions/interaction-highlight";
 import { SlashCommand, slashItems, type SlashItem } from "./slash";
@@ -364,11 +365,13 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
     extensions: [
       UniqueID.configure({attributeName:"blockId",types:["paragraph","heading","blockquote","codeBlock","bulletList","orderedList","listItem","taskList","taskItem","image","horizontalRule","table","tableRow","tableCell","tableHeader","callout","details","detailsSummary","detailsContent","embed","media"]}),
       StarterKit.configure({
+        codeBlock: false,
         heading: { levels: [2, 3, 4] },
         link: { openOnClick: false, autolink: true, defaultProtocol: "https" },
         dropcursor: { color: "#2563eb", width: 2 },
       }),
       ResizableImage,
+      WritingCodeBlock,
       InlineLogo,
       HeadingIcon,
       TextColor,

@@ -1,0 +1,48 @@
+/* Scoped node-view controls; neither labels nor wrapping enter the document. */
+.editor-code-block {
+  margin-block: 1.4em;
+  min-width: 0;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: #fafafa;
+}
+.editor-code-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--font-sans, sans-serif);
+  font-size: 12px;
+  line-height: 1.4;
+  user-select: none;
+}
+.editor-code-tools .admin-select-field { min-width: 0; max-width: 50%; }
+.editor-code-tools .admin-select-trigger { min-height: 32px; padding: 5px 8px; border: 0; background: transparent; box-shadow: none; font-size: 12px; }
+.editor-code-actions { display: flex; gap: 2px; flex-shrink: 0; }
+.editor-code-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 32px;
+  min-width: 64px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  color: var(--muted);
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.editor-code-actions button:hover,
+.editor-code-actions button[aria-pressed="true"] { background: #eeeeef; color: var(--ink); }
+.editor-code-actions button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.editor-code-actions button:active { transform: scale(.97); }
+.article-body .editor-code-block pre { margin: 0; border-radius: 0 0 12px 12px; box-shadow: none; white-space: pre; }
+.article-body .editor-code-block pre code { display: block; white-space: inherit; }
+.article-body .editor-code-block[data-wrapped] pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (pointer: coarse) {
+  .editor-code-actions button, .editor-code-tools .admin-select-trigger { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .editor-code-actions button { transition: none; }
+}
