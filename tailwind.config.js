@@ -3,6 +3,11 @@ module.exports = {
   content: ["./app/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
+      // The Sound layer's tokens (globals.css :root), as utilities.
+      colors: {
+        "shell-fg-muted": "var(--shell-fg-muted)",
+        "shell-fg-faint": "var(--shell-fg-faint)",
+      },
       keyframes: {
         // The design's soft blur-in, used when a tab panel mounts.
         "panel-in": {

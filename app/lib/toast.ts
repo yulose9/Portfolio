@@ -13,6 +13,15 @@ import { Toast } from "@base-ui/react/toast";
  */
 export const toast = Toast.createToastManager();
 
+/*
+ * An error stays until it is dismissed: a failure that vanishes on a timer
+ * while the visitor is looking elsewhere is a failure nobody saw. A caller
+ * that passes its own timeout still gets it.
+ */
+const addToast = toast.add.bind(toast);
+toast.add = ((options) =>
+  addToast(options.type === "error" && options.timeout === undefined ? { ...options, timeout: 0 } : options)) as typeof toast.add;
+
 /** Truncated and quoted, for showing what just went to the clipboard. */
 export function snippet(text: string, max = 64): string {
   const flat = text.replace(/\s+/g, " ").trim();

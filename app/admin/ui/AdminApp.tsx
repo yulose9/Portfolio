@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowSquareOut, House, NotePencil, SignOut } from "@phosphor-icons/react";
+import { ArrowSquareOut, House, NotePencil, SignOut, SpeakerHigh, SpeakerLow, SpeakerNone } from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
 
 import { toast } from "../../lib/toast";
+import { setSoundMuted, setSoundVolume, useSoundMuted, useSoundVolume } from "../../components/ui/sound";
 import { api, ApiError } from "./api";
 import Editor, { type OpenOptions, type Panel } from "./Editor";
 import { Fluent } from "./extensions/emoji";
@@ -47,6 +48,8 @@ export default function AdminApp() {
   const [options, setOptions] = useState<OpenOptions>(() => currentOptions());
   const [searchQuery,setSearchQuery]=useState("");
   const [searching, setSearching] = useState(false);
+  const soundMuted = useSoundMuted();
+  const soundVolume = useSoundVolume();
 
   // ⌘K anywhere: search and actions. Inside the text the editor opens it itself.
   useEffect(() => {
@@ -117,6 +120,22 @@ export default function AdminApp() {
     {id:"tags",group:"Go to",title:"Edit tag pages",keywords:["tags","topics","description"],icon:<NotePencil {...CI}/>,run:()=>setTagsOpen(true)},
     { id: "site", group: "Go to", title: "View on site", icon: <ArrowSquareOut {...CI} />, keywords: ["live", "nazarene.dev", "writing"], run: () => window.open("/writing", "_blank", "noopener") },
     { id: "signout", group: "Go to", title: "Sign out", icon: <SignOut {...CI} />, keywords: ["logout", "access"], run: () => window.open("/cdn-cgi/access/logout", "_self") },
+    // The keyboard path to the speaker in the top bar, and the only place the volume lives.
+    { id: "sound", group: "View", title: "Interface sounds", checked: !soundMuted, icon: soundMuted ? <SpeakerNone {...CI} /> : <SpeakerHigh {...CI} />, keywords: ["sound", "audio", "mute", "unmute", "clicks"], run: () => setSoundMuted(!soundMuted) },
+    ...([
+      ["quiet", "Quiet", 0.25, SpeakerLow],
+      ["normal", "Normal", 0.5, SpeakerHigh],
+      ["loud", "Loud", 0.85, SpeakerHigh],
+    ] as const).map(([id, label, level, Icon]) => ({
+      id: `sound:${id}`,
+      group: "View" as const,
+      title: `Sound volume: ${label}`,
+      checked: !soundMuted && Math.abs(soundVolume - level) < 0.01,
+      disabled: soundMuted ? "Interface sounds are off" : undefined,
+      icon: <Icon {...CI} />,
+      keywords: ["sound", "volume", "audio", "loud", "quiet"],
+      run: () => setSoundVolume(level),
+    })),
   ]);
 
   if (gate.state === "checking") return <div className="admin-loading" aria-busy="true" />;

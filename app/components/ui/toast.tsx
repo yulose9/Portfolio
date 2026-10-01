@@ -10,6 +10,8 @@ import {
 import { Toast } from "@base-ui/react/toast";
 import { useEffect } from "react";
 
+import { playSound, type SoundName } from "./sound";
+
 import { isProgrammaticCopy, snippet, toast } from "../../lib/toast";
 
 /**
@@ -62,7 +64,9 @@ function KeyboardToasts() {
         id: "keyboard-paste",
         type: "info",
         title: "Nothing to paste into",
-        description: "This page has no text fields — to send me something, use Email under About.",
+        description: window.location.pathname.startsWith("/admin")
+          ? "Click into the page or a field first, then paste."
+          : "This page has no text fields — to send me something, use Email under About.",
         timeout: 3200,
       });
     };
@@ -77,9 +81,40 @@ function KeyboardToasts() {
   return null;
 }
 
+/*
+ * Each toast says itself once, when it appears or changes kind (a promise
+ * toast going from loading to done). What it says follows its type; a copy
+ * confirmation gets the copy cue rather than the general success.
+ */
+const voiced = new Map<string, string>();
+
+function cueFor(type: string | undefined, title: unknown): SoundName | null {
+  if (type === "loading") return null;
+  if (type === "success") return typeof title === "string" && /\bcopied\b/i.test(title) ? "copy" : "success";
+  if (type === "error") return "error";
+  if (type === "warning") return "warning";
+  return "notification";
+}
+
+function ToastSounds({ toasts }: { toasts: { id: string; type?: string; title?: unknown }[] }) {
+  useEffect(() => {
+    const live = new Set<string>();
+    for (const t of toasts) {
+      live.add(t.id);
+      const kind = `${t.type ?? ""}:${String(t.title ?? "")}`;
+      if (voiced.get(t.id) === kind) continue;
+      voiced.set(t.id, kind);
+      const cue = cueFor(t.type, t.title);
+      if (cue) playSound(cue);
+    }
+    for (const id of voiced.keys()) if (!live.has(id)) voiced.delete(id);
+  }, [toasts]);
+  return null;
+}
+
 function ToastList() {
   const { toasts } = Toast.useToastManager();
-  return toasts.map((t) => {
+  return [<ToastSounds key="__sounds" toasts={toasts} />, ...toasts.map((t) => {
     const icon = t.type ? ICONS[t.type as ToastType] : null;
     return (
       <Toast.Root
@@ -101,7 +136,7 @@ function ToastList() {
             <Toast.Description className="toast-description" />
           </div>
           <Toast.Action className="toast-action" />
-          <Toast.Close className="toast-close" aria-label="Dismiss">
+          <Toast.Close className="toast-close" aria-label="Dismiss" data-slot="toast-close">
             <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
               <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
@@ -109,7 +144,7 @@ function ToastList() {
         </Toast.Content>
       </Toast.Root>
     );
-  });
+  })];
 }
 
 /** Mount once, in the root layout. */

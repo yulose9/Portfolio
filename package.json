@@ -47,7 +47,9 @@
     "@tiptap/starter-kit": "^3.31.3",
     "@tiptap/suggestion": "^3.31.3",
     "@tiptap/y-tiptap": "^3.0.9",
+    "@web-kits/audio": "^0.2.0",
     "boring-avatars": "^2.0.4",
+    "clsx": "^2.1.1",
     "emoji-regex": "^11.0.0",
     "emojibase-data": "^17.0.0",
     "hast-util-to-jsx-runtime": "^2.3.6",
@@ -72,6 +74,7 @@
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
     "shiki": "^4.4.3",
+    "tailwind-merge": "^2.6.1",
     "unified": "^11.0.5",
     "yjs": "^13.6.33"
   },

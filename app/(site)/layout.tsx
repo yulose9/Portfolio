@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import VendorScripts from "../analytics/VendorScripts";
 import { ENHANCED_METADATA } from "../constants/seo";
 import DeferredAnalytics from "../providers/DeferredAnalytics";
-import UiSounds from "../components/UiSounds";
+import { SoundEffects } from "../components/ui/sound";
 import LazyToaster from "../components/LazyToaster";
 import PeerCursors from "../components/PeerCursors";
 import SmoothCursor from "../components/SmoothCursor";
@@ -61,22 +61,26 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body>
-        {children}
-        <WebMcpTools />
+        <SoundEffects>
+          <a href="#main" className="skip-link">
+            Skip to content
+          </a>
+          {children}
+          <WebMcpTools />
 
-        {/*
-          Analytics load after the content, and every vendor script is
-          lazyOnload, so none of this competes with first paint.
+          {/*
+            Analytics load after the content, and every vendor script is
+            lazyOnload, so none of this competes with first paint.
 
-          PostHog comes in separately and later still: DeferredAnalytics waits
-          1.5s and does nothing at all unless NEXT_PUBLIC_POSTHOG_KEY is set.
-        */}
-        {/* Both desktop-pointer only, and both no-ops under reduced motion. */}
-        <SmoothScroll />
-        <SmoothCursor />
-        <PeerCursors />
-        <UiSounds />
-        <LazyToaster />
+            PostHog comes in separately and later still: DeferredAnalytics waits
+            1.5s and does nothing at all unless NEXT_PUBLIC_POSTHOG_KEY is set.
+          */}
+          {/* Both desktop-pointer only, and both no-ops under reduced motion. */}
+          <SmoothScroll />
+          <SmoothCursor />
+          <PeerCursors />
+          <LazyToaster />
+        </SoundEffects>
 
         <VendorScripts />
         <DeferredAnalytics />

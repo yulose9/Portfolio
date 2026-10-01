@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 
 import LazyToaster from "../components/LazyToaster";
+import { SoundEffects } from "../components/ui/sound";
 import "../globals.css";
 import "../article.css";
 import "../article-blocks.css";
@@ -41,8 +42,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <html lang="en" className={inter.variable}>
       <body className="admin-body">
-        {children}
-        <LazyToaster />
+        <SoundEffects>
+          {children}
+          <LazyToaster />
+        </SoundEffects>
       </body>
     </html>
   );
