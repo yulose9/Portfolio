@@ -1,7 +1,7 @@
 "use client";
 
 import { Microphone, Stop } from "@phosphor-icons/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { formatDuration } from "../../../cms/media";
 import Sheet from "./Sheet";
@@ -20,6 +20,11 @@ export default function VoiceRecorder({ open, onClose, onDone }: { open: boolean
   const [state, setState] = useState<"idle" | "recording" | "done" | "error">("idle");
   const [seconds, setSeconds] = useState(0);
   const [take, setTake] = useState<Blob | null>(null);
+  // One object URL per take, released when the take changes (not one per render).
+  const takeUrl = useMemo(() => (take ? URL.createObjectURL(take) : null), [take]);
+  useEffect(() => () => {
+    if (takeUrl) URL.revokeObjectURL(takeUrl);
+  }, [takeUrl]);
   const [error, setError] = useState("");
   const levels = useRef<HTMLDivElement>(null);
   const rec = useRef<{ recorder: MediaRecorder; stream: MediaStream; ctx: AudioContext; frame: number; timer: number } | null>(null);
@@ -105,11 +110,11 @@ export default function VoiceRecorder({ open, onClose, onDone }: { open: boolean
             <span key={i} style={{ height: "6%" }} />
           ))}
         </div>
-        <p className="recorder-time" aria-live="polite">
+        <p className="recorder-time" role="timer" aria-live="off">
           {formatDuration(seconds)}
         </p>
         {state === "error" ? <p className="field-help" data-tone="warn">{error}</p> : null}
-        {state === "done" && take ? <audio className="recorder-preview" src={URL.createObjectURL(take)} controls /> : null}
+        {state === "done" && takeUrl ? <audio className="recorder-preview" src={takeUrl} controls /> : null}
         <div className="publish-actions">
           {state === "recording" ? (
             <button type="button" className="admin-button admin-button-primary recorder-stop" onClick={stop}>

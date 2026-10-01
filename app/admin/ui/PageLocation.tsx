@@ -144,7 +144,7 @@ export default function PageLocation({
             <CaretRight size={12} aria-hidden />
           </button>
         ))}
-        <span title={current?.title}>{current?.title || "Current page"}</span>
+        <span title={current?.title} aria-current="page">{current?.title || "Current page"}</span>
       </nav>
       <button
         type="button"

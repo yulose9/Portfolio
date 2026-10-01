@@ -22,6 +22,8 @@ const INTERACTIVE = [
   "[role='menuitem']",
   "[role='menuitemcheckbox']",
   "[role='menuitemradio']",
+  // The audio waveform seeks on press.
+  "[role='slider']",
   "[data-keycap]",
   // Pointer affordance without link semantics, e.g. the placeholder articles.
   "[data-clickable]",

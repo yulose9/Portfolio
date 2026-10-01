@@ -16,7 +16,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { copy } from "../../components/menu/actions";
 import { toast } from "../../lib/toast";
@@ -257,9 +257,31 @@ export default function BulkBar({ bulk, total, onSelectAll, onClear }: { bulk: B
   const [shown, setShown] = useState(n);
   if (n && n !== shown) setShown(n);
 
+  /*
+   * The bar goes inert once nothing is selected, which drops any focus inside
+   * it on the floor (the page body). If it held focus, hand it to the list:
+   * the first row, where the next thing to do most likely is.
+   */
+  const held = useRef(false);
+  useEffect(() => {
+    if (n || !held.current) return;
+    held.current = false;
+    document.querySelector<HTMLElement>(".admin-rows .admin-row:not(.admin-row-skeleton)")?.focus();
+  }, [n]);
+
   return (
     <>
-      <div className="bulk-bar" data-open={n > 0 || undefined} inert={n === 0} role="toolbar" aria-label="Selected posts">
+      <div
+        className="bulk-bar"
+        data-open={n > 0 || undefined}
+        inert={n === 0}
+        role="toolbar"
+        aria-label="Selected posts"
+        onFocus={() => (held.current = true)}
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null) && n) held.current = false;
+        }}
+      >
         <button type="button" className="bulk-close" onClick={onClear} aria-label="Clear selection" title="Clear selection (Esc)">
           <X size={14} weight="bold" />
         </button>
@@ -333,7 +355,7 @@ export default function BulkBar({ bulk, total, onSelectAll, onClear }: { bulk: B
             </button>
           </>
         )}
-        <button type="button" className="bulk-action bulk-more" onClick={() => window.dispatchEvent(new Event("admin:palette"))} title="All actions for the selection">
+        <button type="button" className="bulk-action bulk-more" onClick={() => window.dispatchEvent(new Event("admin:palette"))} title="All actions for the selection" aria-label={`All actions for the selection, ${keys("⌘K")}`}>
           <kbd>{keys("⌘K")}</kbd>
         </button>
       </div>
@@ -352,7 +374,7 @@ export default function BulkBar({ bulk, total, onSelectAll, onClear }: { bulk: B
             </div>
             <div className="sheet-body">
               <div className="publish-actions">
-                <AlertDialog.Close className="admin-button admin-button-quiet">Keep them</AlertDialog.Close>
+                <AlertDialog.Close data-slot="alert-dialog-close" className="admin-button admin-button-quiet">Keep them</AlertDialog.Close>
                 <button
                   type="button"
                   className="admin-button admin-button-danger"

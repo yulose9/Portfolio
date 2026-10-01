@@ -102,6 +102,9 @@ export function shortcutKey(e: {
   let key = e.key.toLowerCase();
   if (["control", "meta", "shift", "alt"].includes(key)) return "";
   if (e.code && /^Digit[0-9]$/.test(e.code)) key = e.code.slice(-1);
+  // On a Mac, Option turns letters into symbols (⌥F is "ƒ"); the physical key
+  // is what the binding means, so read the letter off the key code instead.
+  else if (e.altKey && e.code && /^Key[A-Z]$/.test(e.code)) key = e.code.slice(-1).toLowerCase();
   return `Mod+${e.altKey ? "Alt+" : ""}${e.shiftKey ? "Shift+" : ""}${key}`;
 }
 export function validateBindings(value: unknown): Bindings {
@@ -145,4 +148,16 @@ export function validateBindings(value: unknown): Bindings {
     result[item.id] = key;
   }
   return result;
+}
+
+/**
+ * A binding as the interface shows it: "Mod+Shift+arrowup" becomes "⌘⇧↑".
+ * The admin's keys() then spells it out as Ctrl/Shift/Alt off a Mac.
+ */
+export function prettyKeys(binding: string): string {
+  const arrows: Record<string, string> = { arrowup: "↑", arrowdown: "↓", arrowleft: "←", arrowright: "→" };
+  const parts = binding.split("+");
+  const key = parts[parts.length - 1];
+  // The order the rest of the admin writes them in: ⌥⌘F, ⌘⇧E.
+  return `${parts.includes("Alt") ? "⌥" : ""}${parts.includes("Mod") ? "⌘" : ""}${parts.includes("Shift") ? "⇧" : ""}${arrows[key] ?? key.toUpperCase()}`;
 }

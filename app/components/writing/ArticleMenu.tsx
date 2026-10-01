@@ -67,7 +67,9 @@ function MenuItem({ icon, children, onClick }: { icon?: ReactNode; children: Rea
   );
 }
 const MenuSeparator = () => <div role="separator" className="menu-separator" />;
-const MenuLabel = ({ children }: { children: ReactNode }) => <div className="menu-label">{children}</div>;
+// Visual context only: inside role="menu" only items belong, so the label is
+// hidden from assistive tech and the menu carries its own name instead.
+const MenuLabel = ({ children }: { children: ReactNode }) => <div className="menu-label" aria-hidden="true">{children}</div>;
 
 type Target =
   | { kind: "selection"; text: string }
@@ -138,8 +140,13 @@ export default function ArticleMenu({ children, title, url, markdownUrl }: { chi
   const [target, setTarget] = useState<Target>({ kind: "none" });
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
   const popup = useRef<HTMLDivElement>(null);
+  // Where focus was when the menu opened, so Escape can put it back.
+  const returnTo = useRef<HTMLElement | null>(null);
 
-  const close = () => setAt(null);
+  const close = (restore = false) => {
+    setAt(null);
+    if (restore) returnTo.current?.focus({ preventScroll: true });
+  };
 
   // Keep it on screen, then focus it so the arrow keys work at once.
   useLayoutEffect(() => {
@@ -161,24 +168,42 @@ export default function ArticleMenu({ children, title, url, markdownUrl }: { chi
     };
     const key = (e: KeyboardEvent) => {
       const items = [...(popup.current?.querySelectorAll<HTMLButtonElement>("[data-menu-item]") ?? [])];
+      if (!items.length) return;
       const i = items.indexOf(document.activeElement as HTMLButtonElement);
-      if (e.key === "Escape") close();
-      else if (e.key === "ArrowDown") {
+      const last = items.length - 1;
+      if (e.key === "Escape") {
         e.preventDefault();
-        items[(i + 1) % items.length]?.focus();
+        close(true);
+      } else if (e.key === "Tab") {
+        // A menu is one stop: Tab leaves it, and leaving closes it.
+        close();
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        items[i < 0 || i === last ? 0 : i + 1]?.focus();
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        items[(i - 1 + items.length) % items.length]?.focus();
+        // From nothing focused, Up goes to the last item, not the one before it.
+        items[i <= 0 ? last : i - 1]?.focus();
+      } else if (e.key === "Home" || e.key === "End") {
+        e.preventDefault();
+        items[e.key === "Home" ? 0 : last]?.focus();
+      } else if (e.key.length === 1 && /\S/.test(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        // Typeahead: the next item whose label starts with that letter.
+        const ch = e.key.toLowerCase();
+        const order = [...items.slice(i + 1), ...items.slice(0, i + 1)];
+        order.find((it) => it.textContent?.trim().toLowerCase().startsWith(ch))?.focus();
       }
     };
+    const onScroll = () => close();
+    const onBlur = () => close();
     window.addEventListener("pointerdown", away, true);
-    window.addEventListener("scroll", close, { passive: true });
-    window.addEventListener("blur", close);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("blur", onBlur);
     window.addEventListener("keydown", key);
     return () => {
       window.removeEventListener("pointerdown", away, true);
-      window.removeEventListener("scroll", close);
-      window.removeEventListener("blur", close);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("blur", onBlur);
       window.removeEventListener("keydown", key);
     };
   }, [at]);
@@ -187,6 +212,7 @@ export default function ArticleMenu({ children, title, url, markdownUrl }: { chi
     // Touch keeps the system's own long-press behaviour.
     if (!window.matchMedia("(any-hover: hover) and (any-pointer: fine)").matches) return;
     e.preventDefault();
+    returnTo.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setAt({ x: e.clientX, y: e.clientY });
     const el = e.target as Element;
     const text = window.getSelection()?.toString().trim() ?? "";
@@ -223,10 +249,11 @@ export default function ArticleMenu({ children, title, url, markdownUrl }: { chi
           <div
             ref={popup}
             role="menu"
+            aria-label="Article"
             tabIndex={-1}
             className="menu-popup article-menu"
             onClick={(e) => {
-              if ((e.target as Element).closest("[data-menu-item]")) close();
+              if ((e.target as Element).closest("[data-menu-item]")) close(true);
             }}
           >
             {t.kind === "selection" ? (
@@ -385,7 +412,9 @@ export default function ArticleMenu({ children, title, url, markdownUrl }: { chi
             <MenuItem icon={<Printer size={I} />} onClick={() => window.print()}>
               Print or save as PDF
             </MenuItem>
-            <MenuItem icon={<ArrowUp size={I} />} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+            <MenuItem icon={<ArrowUp size={I} />} onClick={() =>
+              window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })
+            }>
               Back to top
             </MenuItem>
           </div>

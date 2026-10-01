@@ -163,6 +163,12 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
                   onClick={(event) => {
                     haptic();
                     setActiveId(tab.id);
+                    // The URL follows the tab, so it can be linked, survives a
+                    // reload, and an agent setting the hash always changes it.
+                    // replaceState: switching tabs is not navigation, Back
+                    // should leave the page rather than step through tabs.
+                    const url = index === 0 ? window.location.pathname + window.location.search : `#${tab.id}`;
+                    window.history.replaceState(window.history.state, "", url);
                     // On a phone a tab can sit half off the edge of the
                     // scrolling rail; tapping it brings it fully into view.
                     // "nearest" on both axes: never scrolls the page itself.
@@ -174,7 +180,8 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
                         : "smooth",
                     });
                   }}
-                  aria-current={isActive ? "page" : undefined}
+                  aria-current={isActive ? "true" : undefined}
+                  aria-controls="tab-panel"
                   // No hover colour shift: the labels hold one tone in every
                   // state, and the rail below is the active cue.
                   // The label sits above the pill, so it needs its own padding
@@ -241,9 +248,16 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
             : undefined
         }
       >
+        {/* Said once on each switch, so a screen reader hears what changed. */}
+        <p className="sr-only" aria-live="polite">
+          {active.label}
+        </p>
         <div
           key={active.id}
           ref={measurePanel}
+          id="tab-panel"
+          role="region"
+          aria-label={active.label}
           className="panel-floor rhythm-12 flex min-h-[23rem] w-full flex-col gap-12"
         >
         {active.items?.length ? (
@@ -397,14 +411,28 @@ function useTravellingHighlight() {
     setHovered(null);
   }, []);
 
-  return { hovered, rowRefs, highlightRef, enter, leave };
+  /*
+   * The highlight follows keyboard focus as well as the pointer, so it must
+   * let go of both: when focus leaves the list, and when the pointer leaves
+   * unless a row still holds keyboard focus (then the highlight stays on it).
+   */
+  const wrapperProps = {
+    onPointerLeave: (event: React.PointerEvent<HTMLElement>) => {
+      if (!event.currentTarget.querySelector(":focus-visible")) leave();
+    },
+    onBlur: (event: React.FocusEvent<HTMLElement>) => {
+      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) leave();
+    },
+  };
+
+  return { hovered, rowRefs, highlightRef, enter, leave, wrapperProps };
 }
 
 /** Blank line between paragraphs when the bio is copied as one block. */
 const PARAGRAPH_BREAK = "\n\n";
 
 function EntryList({ items, kind }: { items: Entry[]; kind: string }) {
-  const { hovered, rowRefs, highlightRef, enter, leave } =
+  const { hovered, rowRefs, highlightRef, enter, wrapperProps } =
     useTravellingHighlight();
 
   const previewSrc = hovered === null ? undefined : items[hovered]?.image;
@@ -415,7 +443,7 @@ function EntryList({ items, kind }: { items: Entry[]; kind: string }) {
   );
 
   return (
-    <div className="relative w-full" onPointerLeave={leave}>
+    <div className="relative w-full" {...wrapperProps}>
       {/*
         This wrapper is the single coordinate space for the hover surface.
 
@@ -720,10 +748,9 @@ function PostRow({ title, date, href, ruled }: Post & { ruled: boolean }) {
     </>
   );
 
-  // Nothing is published yet, so rows without a destination stay inert rather
-  // than becoming href="#" links that go nowhere. They still take the hand
-  // (data-clickable, for the custom cursor; cursor-pointer for the native
-  // one) so the list reads as the index of articles it is about to be.
+  // A row without a page stays inert rather than becoming an href="#" that
+  // goes nowhere, and it no longer takes the hand either: a pointer that
+  // promises a click on something that does nothing reads as a broken link.
   return href ? (
     <a
       href={href}
@@ -734,7 +761,7 @@ function PostRow({ title, date, href, ruled }: Post & { ruled: boolean }) {
       {content}
     </a>
   ) : (
-    <span data-clickable="" className={`${shell} cursor-pointer`}>
+    <span className={`${shell} cursor-default`}>
       {content}
     </span>
   );
@@ -747,7 +774,7 @@ function LinkList({
   links: NonNullable<Tab["links"]>;
   start: number;
 }) {
-  const { hovered, rowRefs, highlightRef, enter, leave } =
+  const { hovered, rowRefs, highlightRef, enter, wrapperProps } =
     useTravellingHighlight();
 
   return (
@@ -757,7 +784,7 @@ function LinkList({
       unpositioned: if it were the rows' offsetParent, their offsets would be
       measured against it while the highlight sat 40px away.
     */
-    <div className="relative -mx-10" onPointerLeave={leave}>
+    <div className="relative -mx-10" {...wrapperProps}>
       <div
         ref={highlightRef}
         aria-hidden="true"

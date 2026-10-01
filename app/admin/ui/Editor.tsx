@@ -1,5 +1,6 @@
 "use client";
 
+import { SoundToggle } from "../../components/ui/sound";
 import {
   ArrowLeft,
   ArrowSquareOut,
@@ -69,7 +70,7 @@ import { copy } from "../../components/menu/actions";
 import { useFinePointer } from "../../components/menu/useFinePointer";
 import { toast } from "../../lib/toast";
 import { altFromName, api, ApiError, type Draft } from "./api";
-import { exactTime, StatusDot, statusLabel } from "./bits";
+import { exactTime, StatusDot, statusLabel, onRadioKeys } from "./bits";
 import { ImageBubble, TextBubble } from "./Bubble";
 import { BLOCKS, currentBlock, duplicateBlock, inserts, MARKS, moveBlock, selectBlock, selectionMarkdown, turnInto } from "./commands";
 import DateTimePicker from "./DateTimePicker";
@@ -99,7 +100,7 @@ import Sheet from "./Sheet";
 import ResearchPanel from "./ResearchPanel";
 import MediaJobs from "./MediaJobs";
 import MediaLibrary from "./MediaLibrary";
-import {useShortcuts} from "./shortcuts";
+import {useShortcuts, shortcutLabel } from "./shortcuts";
 import PageLocation from "./PageLocation";
 import PageNavigator from "./PageNavigator";
 import { CLIPBOARD_TYPE, readClipboard } from "../../../cms/clipboard";
@@ -752,27 +753,18 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
     palette:()=>window.dispatchEvent(new Event("admin:palette")),details:()=>setPanel(p=>p==="details"?null:"details"),
     preview:()=>setView(v=>v==="edit"?"page":"edit"),publish:()=>setPanel("publish"),
     bold:()=>{editor?.chain().focus().toggleBold().run();},italic:()=>{editor?.chain().focus().toggleItalic().run();},underline:()=>{editor?.chain().focus().toggleUnderline().run();},strike:()=>{editor?.chain().focus().toggleStrike().run();},code:()=>{editor?.chain().focus().toggleCode().run();},undo:()=>{editor?.commands.undo();},redo:()=>{editor?.commands.redo();},
-    heading1:()=>{editor?.chain().focus().toggleHeading({level:1}).run();},heading2:()=>{editor?.chain().focus().toggleHeading({level:2}).run();},heading3:()=>{editor?.chain().focus().toggleHeading({level:3}).run();},paragraph:()=>{editor?.chain().focus().setParagraph().run();},bullet:()=>{editor?.chain().focus().toggleBulletList().run();},ordered:()=>{editor?.chain().focus().toggleOrderedList().run();},duplicate:()=>{if(editor){const b=currentBlock(editor);if(b)duplicateBlock(editor,b.pos);}},moveUp:()=>{if(editor){const b=currentBlock(editor);if(b)moveBlock(editor,b.pos,-1);}},moveDown:()=>{if(editor){const b=currentBlock(editor);if(b)moveBlock(editor,b.pos,1);}},
+    /* The page title is the H1, so the body's headings are levels 2–4: "Heading 1" is the first of those. */heading1:()=>{editor?.chain().focus().toggleHeading({level:2}).run();},heading2:()=>{editor?.chain().focus().toggleHeading({level:3}).run();},heading3:()=>{editor?.chain().focus().toggleHeading({level:4}).run();},paragraph:()=>{editor?.chain().focus().setParagraph().run();},bullet:()=>{editor?.chain().focus().toggleBulletList().run();},ordered:()=>{editor?.chain().focus().toggleOrderedList().run();},duplicate:()=>{if(editor){const b=currentBlock(editor);if(b)duplicateBlock(editor,b.pos);}},moveUp:()=>{if(editor){const b=currentBlock(editor);if(b)moveBlock(editor,b.pos,-1);}},moveDown:()=>{if(editor){const b=currentBlock(editor);if(b)moveBlock(editor,b.pos,1);}},
   },()=>Boolean(editor?.isFocused));
 
   useEffect(() => {
+    // Save, publish, details, preview and find are the customizable layer's
+    // (useShortcuts, above); repeating them here kept the old keys working
+    // after they were rebound. Only find-and-replace's fixed ⌥⌘F is left.
     const onKey = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
-      if (mod && e.key.toLowerCase() === "s") {
+      if (mod && e.altKey && e.code === "KeyF" && !editor?.isFocused) {
         e.preventDefault();
-        void flush(true);
-      } else if (mod && e.shiftKey && e.key.toLowerCase() === "p") {
-        e.preventDefault();
-        setPanel("publish");
-      } else if (mod && e.key === ".") {
-        e.preventDefault();
-        setPanel((p) => (p === "details" ? null : "details"));
-      } else if (mod && e.shiftKey && e.key.toLowerCase() === "e") {
-        e.preventDefault();
-        setView((v) => (v === "edit" ? "page" : "edit"));
-      } else if (mod && e.key.toLowerCase() === "f" && !editor?.isFocused) {
-        e.preventDefault();
-        openFind.current(undefined, e.altKey);
+        openFind.current(undefined, true);
       }
     };
     const wake = () => setTyping(false);
@@ -926,7 +918,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
     const edit: Command[] = [
       {id:"shortcut-settings",group:"Edit",title:"Keyboard shortcuts",icon:<SlidersHorizontal {...CI}/>,keywords:["keys","customize","bindings"],run:()=>{window.open("/admin/shortcuts","_blank","noopener");}},
       { id: "find", group: "Edit", title: "Find in this post", keys: "⌘F", icon: <MagnifyingGlass {...CI} />, keywords: ["search"], run: () => openFind.current() },
-      { id: "replace", group: "Edit", title: "Find and replace", keys: "⌥⌘F", icon: <Swap {...CI} />, keywords: ["substitute", "change all"], run: () => openFind.current(undefined, true) },
+      { id: "replace", group: "Edit", title: "Find and replace", keys: shortcutLabel("replace"), icon: <Swap {...CI} />, keywords: ["substitute", "change all"], run: () => openFind.current(undefined, true) },
       { id: "select-block", group: "Edit", title: "Select block", keys: "⌘A", icon: <SelectionPlus {...CI} />, keywords: ["paragraph", "highlight"], run: () => (setView("edit"), selectBlock(editor) || editor.commands.focus()) },
       { id: "select-all", group: "Edit", title: "Select all", keys: "⌘A ⌘A", icon: <ArrowsInLineVertical {...CI} />, keywords: ["everything", "body"], run: () => (setView("edit"), editor.chain().focus().selectAll().run()) },
       { id: "undo", group: "Edit", title: "Undo", keys: "⌘Z", icon: <ArrowUUpLeft {...CI} />, disabled: editor.can().undo() ? undefined : "Nothing to undo", run: () => editor.chain().focus().undo().run() },
@@ -1015,17 +1007,17 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
           {deploy ? <DeployPill key={deploy.updatedAt} deploy={deploy} onDismiss={() => setDeploy(null)} /> : null}
         </div>
         <div className="editor-bar-side">
-          <div className="admin-segments view-switch" role="radiogroup" aria-label="View">
-            <button type="button" role="radio" aria-checked={view === "edit"} className="admin-segment" onClick={() => setView("edit")} title={`Edit  ${keys("⌘⇧E")}`}>
+          <div className="admin-segments view-switch" onKeyDown={onRadioKeys} role="radiogroup" aria-label="View">
+            <button type="button" role="radio" aria-checked={view === "edit"} tabIndex={view === "edit" ? 0 : -1} className="admin-segment" onClick={() => setView("edit")} title={`Edit  ${keys(shortcutLabel("preview"))}`}>
               <PencilSimple size={14} aria-hidden="true" />
               <span className="admin-hide-sm">Edit</span>
             </button>
-            <button type="button" role="radio" aria-checked={view === "page"} className="admin-segment" onClick={() => setView("page")} title={`Read as the page  ${keys("⌘⇧E")}`}>
+            <button type="button" role="radio" aria-checked={view === "page"} tabIndex={view === "page" ? 0 : -1} className="admin-segment" onClick={() => setView("page")} title={`Read as the page  ${keys(shortcutLabel("preview"))}`}>
               <BookOpenText size={14} aria-hidden="true" />
               <span className="admin-hide-sm">Page</span>
             </button>
           </div>
-          <button type="button" className="admin-icon-button admin-hide-sm" aria-label="Find in this post" title={`Find  ${keys("⌘F")}`} onClick={() => openFind.current()}>
+          <button type="button" className="admin-icon-button admin-hide-sm" aria-label="Find in this post" title={`Find  ${keys(shortcutLabel("find"))}`} onClick={() => openFind.current()}>
             <MagnifyingGlass size={16} weight="bold" />
           </button>
           <Menu.Root>
@@ -1060,16 +1052,17 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
               <MItem icon={<Eye size={15} />} onSelect={() => setPanel("preview")}>
                 Preview page and share cards
               </MItem>
-              <MItem icon={<span className="menu-check-space" />} keys={keys("⌘K")} onSelect={() => window.dispatchEvent(new Event("admin:palette"))}>
+              <MItem icon={<span className="menu-check-space" />} keys={keys(shortcutLabel("palette"))} onSelect={() => window.dispatchEvent(new Event("admin:palette"))}>
                 Search and actions
               </MItem>
             </MenuSurface>
           </Menu.Root>
+          <SoundToggle className="admin-hide-sm size-8 rounded-full text-[color:var(--a-ink-2)]" />
           <button type="button" className="admin-icon-button" aria-label="Research and references" title="Research and references" onClick={() => setPanel("research")}><BookOpenText size={16}/></button>
           <button type="button" className="admin-icon-button admin-hide-sm" aria-label="History" title="History" onClick={() => setPanel("revisions")}>
             <ClockCounterClockwise size={16} weight="bold" />
           </button>
-          <button type="button" className="admin-icon-button" aria-label="Details" title={`Details  ${keys("⌘.")}`} onClick={() => setPanel("details")}>
+          <button type="button" className="admin-icon-button" aria-label="Details" title={`Details  ${keys(shortcutLabel("details"))}`} onClick={() => setPanel("details")}>
             <SlidersHorizontal size={16} weight="bold" />
           </button>
           <button
@@ -1197,7 +1190,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
           {words.toLocaleString()} {words === 1 ? "word" : "words"} · {minutes} min read
         </span>
         <span className="editor-foot-keys">
-          <kbd className="admin-kbd">/</kbd> blocks <kbd className="admin-kbd">:</kbd> emoji <kbd className="admin-kbd">{keys("⌘K")}</kbd> search and actions <kbd className="admin-kbd">{keys("⌘⇧P")}</kbd> publish
+          <kbd className="admin-kbd">/</kbd> blocks <kbd className="admin-kbd">:</kbd> emoji <kbd className="admin-kbd">{keys(shortcutLabel("palette"))}</kbd> search and actions <kbd className="admin-kbd">{keys(shortcutLabel("publish"))}</kbd> publish
         </span>
       </footer>
 
@@ -1244,7 +1237,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
         />
       </Sheet>
 
-      <Sheet open={Boolean(recovery)} onClose={() => {}} title="Restore your unsaved changes?" variant="center">
+      <Sheet open={Boolean(recovery)} onClose={() => {}} dismissible={false} title="Restore your unsaved changes?" description="Choose which version to keep editing." variant="center">
         {recoveryCopies.length>1?<AdminSelect label="Recovery copy" value={String(recoveryCopies.indexOf(recovery!))} onValueChange={value=>setRecovery(recoveryCopies[Number(value)])} options={recoveryCopies.map((entry,i)=>({value:String(i),label:`${new Date(entry.at).toLocaleString()} — ${entry.edit.title||"Untitled"}`}))}/>:null}
         <p>A recovery copy is available on this device.{recovery?.base !== initial.updatedAt ? " The server also has a different version. Review both before restoring; restoring changes the draft, not the published page." : " Restore it to continue where you left off."}</p>
         <details><summary>Compare recovery and server text</summary><h3>Recovery</h3><pre className="research-compare">{recovery?.edit.body}</pre><h3>Server</h3><pre className="research-compare">{initial.body}</pre></details>
@@ -1352,6 +1345,8 @@ function EyebrowDate({
 }) {
   const scheduled = doc.status === "scheduled" && doc.publishAt;
   const [pending, setPending] = useState<Date | null>(null);
+  // Set by Reschedule, so closing the picker after it does not throw the new date away.
+  const committing = useRef(false);
 
   if (scheduled) {
     const value = pending ?? new Date(doc.publishAt as string);
@@ -1360,6 +1355,12 @@ function EyebrowDate({
         value={value}
         min={new Date()}
         onChange={setPending}
+        // Closed any way but Reschedule (Escape, a click away, Cancel): the
+        // eyebrow goes back to the date that is actually scheduled.
+        onOpenChange={(isOpen) => {
+          if (!isOpen && !committing.current) setPending(null);
+          committing.current = false;
+        }}
         className="eyebrow-date"
         label="Change when this goes live"
         footer={(close) => (
@@ -1373,7 +1374,10 @@ function EyebrowDate({
               data-keycap
               disabled={!pending}
               onClick={() => {
-                if (pending) void onReschedule(pending).then(() => setPending(null));
+                if (pending) {
+                  committing.current = true;
+                  void onReschedule(pending).finally(() => setPending(null));
+                }
                 close();
               }}
             >

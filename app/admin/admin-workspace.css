@@ -381,13 +381,21 @@
   width: 100%;
   margin: 12px 0;
 }
-.shortcut-list > label {
+.shortcut-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--a-line);
+}
+.shortcut-row > label {
+  flex: 1 1 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--a-line);
   font-size: 14px;
 }
 .shortcut-list small {

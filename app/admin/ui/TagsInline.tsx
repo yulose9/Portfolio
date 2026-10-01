@@ -27,6 +27,14 @@ export default function TagsInline({ tags, onChange }: { tags: string[]; onChang
   // Enter takes a suggestion only after you've arrowed to it.
   const [navigated, setNavigated] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  // Escape swaps the field back to the button; focus goes back with it.
+  const addButton = useRef<HTMLButtonElement>(null);
+  const refocus = useRef(false);
+  useEffect(() => {
+    if (adding || !refocus.current) return;
+    refocus.current = false;
+    addButton.current?.focus();
+  }, [adding]);
   const [announcement,setAnnouncement]=useState("");
   const dragged = useRef<string | null>(null);
   const reorder = (from: string, to: string) => {
@@ -100,6 +108,7 @@ export default function TagsInline({ tags, onChange }: { tags: string[]; onChang
                 e.preventDefault();
                 add(matches[active]);
               } else if (e.key === "Escape") {
+                refocus.current = true;
                 setAdding(false);
                 setValue("");
               } else if (e.key === "Backspace" && !value && tags.length) {
@@ -122,7 +131,7 @@ export default function TagsInline({ tags, onChange }: { tags: string[]; onChang
           ) : null}
         </span>
       ) : (
-        <button type="button" className="tag-add" onClick={() => setAdding(true)} disabled={tags.length >= 8}>
+        <button ref={addButton} type="button" className="tag-add" onClick={() => setAdding(true)} disabled={tags.length >= 8}>
           <Plus size={11} weight="bold" aria-hidden="true" />
           {tags.length ? "Tag" : "Add tags"}
         </button>

@@ -80,7 +80,7 @@ export default async function TagPage({ params }: Props) {
 
   return (
     <div className="flex w-full justify-center bg-white">
-      <main data-cursor-frame className="page-shell page-enter article-shell article-page writing-index w-full max-w-[672px] py-16 sm:py-24">
+      <main id="main" tabIndex={-1} data-cursor-frame className="page-shell page-enter article-shell article-page writing-index w-full max-w-[672px] py-16 sm:py-24">
         <nav className="article-nav" aria-label="Breadcrumb">
           <ol className="breadcrumbs">
             <li>

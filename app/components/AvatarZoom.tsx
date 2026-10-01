@@ -298,7 +298,7 @@ export default function AvatarZoom({ alt }: { alt: string }) {
         // Lenis must not smooth-scroll the page underneath the open photo.
         data-lenis-prevent=""
         className="avatar-dialog"
-        aria-label={alt}
+        aria-label={`${alt}. Press Escape, or click anywhere, to close.`}
       >
         {/*
           Always mounted, with its src set by prime(), so it can be fetched and

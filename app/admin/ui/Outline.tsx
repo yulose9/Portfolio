@@ -86,6 +86,7 @@ export const Outline = memo(function Outline({ editor }: { editor: Editor }) {
             <button
               type="button"
               data-active={i === state.active || undefined}
+              aria-current={i === state.active ? "location" : undefined}
               onClick={() => go(h)}
             >
               {h.icon ? <HeadingGlyph value={h.icon} /> : null}

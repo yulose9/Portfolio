@@ -58,13 +58,16 @@ export default function ShibaPet() {
   };
 
   return (
-    <span
+    // A real button, so a keyboard can pet it too (Enter or Space). Asleep,
+    // it says so and stays asleep: the press is refused, not ignored.
+    <button
+      type="button"
       className="shiba"
       data-mood={mood ?? undefined}
       data-happy={happy || undefined}
-      data-clickable={mood === "awake" || undefined}
-      role="img"
-      aria-label={mood === "asleep" ? "A shiba inu, asleep" : "A shiba inu"}
+      data-sound={mood === "awake" ? "chirp" : undefined}
+      aria-label={mood === "asleep" ? "A shiba inu, asleep" : "Pet the shiba inu"}
+      aria-disabled={mood === "asleep" || undefined}
       onPointerEnter={cheer}
       onClick={cheer}
     >
@@ -116,6 +119,6 @@ export default function ShibaPet() {
           <path className="shiba-z3" d="M36 1 L38.5 1 L36 3.5 L38.5 3.5" />
         </g>
       </svg>
-    </span>
+    </button>
   );
 }

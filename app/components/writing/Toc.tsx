@@ -49,8 +49,17 @@ export default function Toc({ items }: { items: OutlineItem[] }) {
                 const viewport=doc.defaultView;
                 const width = event.currentTarget.ownerDocument.defaultView?.innerWidth ?? 0;
                 if (width < 1440 && disclosure.current) disclosure.current.open = false;
-                viewport?.history.replaceState(null,"",`#${item.id}`);
-                viewport?.requestAnimationFrame(()=>doc.getElementById(item.id)?.scrollIntoView({block:"start",behavior:viewport.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"}));
+                // A history entry, so Back returns to where the reader was.
+                viewport?.history.pushState(null,"",`#${item.id}`);
+                viewport?.requestAnimationFrame(()=>{
+                  const head=doc.getElementById(item.id);
+                  if(!head)return;
+                  head.scrollIntoView({block:"start",behavior:viewport.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+                  // Focus follows the jump, so the next Tab continues from the
+                  // section rather than from inside the contents list.
+                  if(!head.hasAttribute("tabindex"))head.tabIndex=-1;
+                  head.focus({preventScroll:true});
+                });
               }}>
                 {item.icon ? <span className="toc-icon" aria-hidden="true">{safeInlineUrl(item.icon,true) ? (
                   // eslint-disable-next-line @next/next/no-img-element

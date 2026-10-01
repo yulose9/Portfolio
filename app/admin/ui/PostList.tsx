@@ -1,4 +1,6 @@
 "use client";
+
+import { SoundToggle } from "../../components/ui/sound";
 import PageTree from "./PageTree";
 import MediaLibrary from "./MediaLibrary";
 
@@ -25,7 +27,7 @@ import UpdatedAt from "../../components/UpdatedAt";
 import { tagTint } from "../../components/writing/Tag";
 import { toast } from "../../lib/toast";
 import { api, ApiError, type PostSummary } from "./api";
-import { relative, StatusDot, statusLabel } from "./bits";
+import { relative, StatusDot, statusLabel, onRadioKeys } from "./bits";
 import type { Panel } from "./Editor";
 import { Fluent } from "./extensions/emoji";
 import { usePulse } from "./live";
@@ -74,6 +76,8 @@ export default function PostList({
   const [workspace, setWorkspace] = useState(false);
   const [pagesOpen, setPagesOpen] = useState(false);
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
+  // A failed load is not an empty list: it gets its own state and a retry.
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [tag, setTag] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -93,9 +97,13 @@ export default function PostList({
   useEffect(() => {
     api
       .list()
-      .then(({ posts }) => setPosts(posts))
+      .then(({ posts }) => {
+        setPosts(posts);
+        setLoadError(null);
+      })
       .catch((error: unknown) => {
-        setPosts([]);
+        setPosts((current) => current ?? []);
+        setLoadError(error instanceof ApiError ? error.message : "Check your connection and try again.");
         toast.add({
           type: "error",
           title: "Couldn’t load posts",
@@ -193,11 +201,13 @@ export default function PostList({
         "input, textarea, [contenteditable]",
       );
       if (typing) return;
-      if (
-        e.key === "Escape" &&
-        selected.size &&
-        !document.querySelector("[data-open][role=dialog], .menu-popup")
-      ) {
+      // Anything layered over the list (a sheet, the palette, a menu, a
+      // listbox) owns the keyboard: N must not make a post behind a dialog.
+      const covered =
+        Boolean((e.target as Element | null)?.closest?.("[role=dialog], [role=alertdialog], [role=menu], [role=listbox]")) ||
+        Boolean(document.querySelector("[data-open][role=dialog], [data-open][role=alertdialog], .menu-popup, .palette"));
+      if (covered) return;
+      if (e.key === "Escape" && selected.size) {
         setSelected(new Set());
         return;
       }
@@ -211,7 +221,8 @@ export default function PostList({
         return;
       }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.key === "n") {
+      // Either case: Caps Lock should not switch the shortcut off.
+      if (e.key === "n" || e.key === "N") {
         e.preventDefault();
         void create();
       } else if (e.key === "/") {
@@ -348,6 +359,7 @@ export default function PostList({
           <h1 className="admin-list-title">Writing</h1>
         </div>
         <div className="admin-list-actions">
+          <SoundToggle className="size-8 rounded-full text-[color:var(--a-ink-2)]" />
           <Menu.Root modal={false}>
             <Menu.Trigger className="admin-button admin-button-quiet">
               Workspace
@@ -453,17 +465,20 @@ export default function PostList({
         </button>
       </div>
       <div className="admin-toolbar writing-status-toolbar">
+        {/* A filter, not tabs (there are no panels to switch): one stop, arrows to change. */}
         <div
           className="admin-segments"
-          role="tablist"
+          role="radiogroup"
           aria-label="Filter posts"
+          onKeyDown={onRadioKeys}
         >
           {FILTERS.map((f) => (
             <button
               key={f.id}
               type="button"
-              role="tab"
-              aria-selected={filter === f.id}
+              role="radio"
+              aria-checked={filter === f.id}
+              tabIndex={filter === f.id ? 0 : -1}
               className="admin-segment"
               data-trash={f.id === "trash" || undefined}
               onClick={() => setFilter(f.id)}
@@ -494,7 +509,15 @@ export default function PostList({
         </div>
       ) : null}
 
-      {posts === null ? (
+      {loadError && !posts?.length ? (
+        <div className="admin-empty" role="alert">
+          <p className="admin-empty-title">Couldn’t load your posts</p>
+          <p className="admin-empty-text">{loadError}</p>
+          <button type="button" className="admin-button" onClick={() => setVersion((v) => v + 1)}>
+            Try again
+          </button>
+        </div>
+      ) : posts === null ? (
         <ul className="admin-rows" aria-busy="true">
           {[0, 1, 2].map((i) => (
             <li key={i} className="admin-row admin-row-skeleton" />

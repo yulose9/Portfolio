@@ -5,6 +5,7 @@ import { Popover } from "@base-ui/react/popover";
 import AdminSelect from "./AdminSelect";
 import { useState } from "react";
 import { DayPicker } from "react-day-picker";
+import { onRadioKeys } from "./bits";
 
 /*
  * Date and time, shadcn's way: a calendar (react-day-picker, which shadcn's
@@ -54,7 +55,10 @@ export function DateTimeFields({
   const [month, setMonth] = useState(value);
   const h12 = value.getHours() % 12 || 12;
   const pm = value.getHours() >= 12;
-  const setClock = (hour12: number, minute: number, isPm: boolean) => onChange(withTime(value, (hour12 % 12) + (isPm ? 12 : 0), minute));
+  // The calendar stops days before `min`; this stops an earlier time on that
+  // same day, so "today, 9 am" at noon becomes noon rather than the past.
+  const within = (d: Date) => (min && d < min ? new Date(min) : max && d > max ? new Date(max) : d);
+  const setClock = (hour12: number, minute: number, isPm: boolean) => onChange(within(withTime(value, (hour12 % 12) + (isPm ? 12 : 0), minute)));
 
   return (
     <div className="dtp">
@@ -71,7 +75,7 @@ export function DateTimeFields({
       <DayPicker
         mode="single"
         selected={value}
-        onSelect={(d) => d && onChange(withTime(d, value.getHours(), value.getMinutes()))}
+        onSelect={(d) => d && onChange(within(withTime(d, value.getHours(), value.getMinutes())))}
         month={month}
         onMonthChange={setMonth}
         weekStartsOn={1}
@@ -89,11 +93,11 @@ export function DateTimeFields({
             <AdminSelect label="Hour" hideLabel value={String(h12)} onValueChange={hour=>setClock(Number(hour),value.getMinutes(),pm)} options={Array.from({length:12},(_,i)=>({value:String(i+1),label:String(i+1)}))}/>
             <span aria-hidden="true">:</span>
             <AdminSelect label="Minute" hideLabel value={String(value.getMinutes())} onValueChange={minute=>setClock(h12,Number(minute),pm)} options={Array.from({length:60},(_,i)=>({value:String(i),label:String(i).padStart(2,"0")}))}/>
-            <span className="admin-segments dtp-ampm" role="radiogroup" aria-label="AM or PM">
-              <button type="button" role="radio" aria-checked={!pm} className="admin-segment" onClick={() => setClock(h12, value.getMinutes(), false)}>
+            <span className="admin-segments dtp-ampm" onKeyDown={onRadioKeys} role="radiogroup" aria-label="AM or PM">
+              <button type="button" role="radio" aria-checked={!pm} tabIndex={!pm ? 0 : -1} className="admin-segment" onClick={() => setClock(h12, value.getMinutes(), false)}>
                 AM
               </button>
-              <button type="button" role="radio" aria-checked={pm} className="admin-segment" onClick={() => setClock(h12, value.getMinutes(), true)}>
+              <button type="button" role="radio" aria-checked={pm} tabIndex={pm ? 0 : -1} className="admin-segment" onClick={() => setClock(h12, value.getMinutes(), true)}>
                 PM
               </button>
             </span>
@@ -139,7 +143,14 @@ export default function DateTimePicker({
   };
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger className={className} aria-label={label ?? "Pick a date and time"}>
+      {/* With visible text (the eyebrow's date), that text is the name and the
+          label is a tooltip; a name that hid the visible words would fail
+          label-in-name for voice control. */}
+      <Popover.Trigger
+        className={className}
+        aria-label={children ? undefined : label ?? "Pick a date and time"}
+        title={children ? label : undefined}
+      >
         {children ?? (
           <>
             <CalendarBlank size={14} aria-hidden="true" />
@@ -150,6 +161,7 @@ export default function DateTimePicker({
       <Popover.Portal>
         <Popover.Positioner sideOffset={8} align="start" collisionPadding={8} className="menu-positioner">
           <Popover.Popup className="menu-popup admin-popover dtp-popover">
+            <Popover.Title className="sr-only">{label ?? "Pick a date and time"}</Popover.Title>
             <DateTimeFields value={value} onChange={onChange} min={min} max={max} showNow={!min} />
             {footer ? <div className="dtp-footer">{footer(() => setOpen(false))}</div> : null}
           </Popover.Popup>

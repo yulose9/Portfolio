@@ -117,7 +117,7 @@ function rowCommands(p: PostSummary, actions: RowActions, askDelete: () => void,
           Select
         </MItem>
       ) : null}
-      <MItem icon={<ArrowSquareOut {...I} />} onSelect={() => window.open(`/admin?post=${p.id}`, "_blank")}>
+      <MItem icon={<ArrowSquareOut {...I} />} onSelect={() => window.open(`/admin?post=${p.id}`, "_blank", "noopener")}>
         Open in new tab
       </MItem>
       {liveUrl ? (
@@ -305,7 +305,7 @@ export function PostRow({
             </div>
             <div className="sheet-body">
               <div className="publish-actions">
-                <AlertDialog.Close className="admin-button admin-button-quiet">Keep it</AlertDialog.Close>
+                <AlertDialog.Close data-slot="alert-dialog-close" className="admin-button admin-button-quiet">Keep it</AlertDialog.Close>
                 <button type="button" className="admin-button admin-button-danger" data-confirming="" onClick={remove} disabled={deleting}>
                   {deleting ? "Deleting…" : "Delete forever"}
                 </button>

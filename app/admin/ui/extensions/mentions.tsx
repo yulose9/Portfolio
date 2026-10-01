@@ -99,7 +99,7 @@ function DateEditor({ node, updateAttributes }: NodeViewProps) {
                 />
               </label>
               <p>Manila · UTC+8</p>
-              <Popover.Close className="admin-button">Done</Popover.Close>
+              <Popover.Close data-slot="popover-close" className="admin-button">Done</Popover.Close>
             </Popover.Popup>
           </Popover.Positioner>
         </Popover.Portal>
@@ -170,13 +170,19 @@ const MentionList = forwardRef<Handle, Props>(function MentionList(
   useEffect(() => {
     const el = editor.view.dom;
     if (picking) return;
+    // Put back whatever was there before (another menu's wiring), as the
+    // slash menu does, rather than leaving the field with nothing or stale ids.
+    const before = ["aria-controls", "aria-activedescendant", "aria-autocomplete"].map((name) => [name, el.getAttribute(name)] as const);
     el.setAttribute("aria-controls", listId);
+    el.setAttribute("aria-autocomplete", "list");
     if (items[index])
       el.setAttribute("aria-activedescendant", `${listId}-${index}`);
+    else el.removeAttribute("aria-activedescendant");
     return () => {
-      if (el.getAttribute("aria-controls") === listId) {
-        el.removeAttribute("aria-controls");
-        el.removeAttribute("aria-activedescendant");
+      if (el.getAttribute("aria-controls") !== listId) return;
+      for (const [name, value] of before) {
+        if (value === null) el.removeAttribute(name);
+        else el.setAttribute(name, value);
       }
     };
   }, [editor, index, items, listId, picking]);

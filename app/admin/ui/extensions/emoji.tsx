@@ -7,6 +7,7 @@ import Suggestion, { type SuggestionKeyDownProps, type SuggestionProps } from "@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 
 import { fluentUrl } from "../../../../cms/emoji";
+import { onRadioKeys } from "../bits";
 
 /*
  * Emoji, in Fluent 3D: a searchable picker (page icons, the toolbar) and
@@ -135,9 +136,9 @@ export function EmojiPicker({ onPick, onRemove }: { onPick: (emoji: string) => v
         )}
       </div>
       {!query ? (
-        <div className="emoji-groups" role="tablist" aria-label="Emoji categories">
+        <div className="emoji-groups" role="radiogroup" aria-label="Emoji categories" onKeyDown={onRadioKeys}>
           {GROUPS.map((g) => (
-            <button key={g.id} type="button" role="tab" aria-selected={g.id === group} className="emoji-group" onClick={() => setGroup(g.id)} aria-label={g.label} title={g.label}>
+            <button key={g.id} type="button" role="radio" aria-checked={g.id === group} tabIndex={g.id === group ? 0 : -1} className="emoji-group" onClick={() => setGroup(g.id)} aria-label={g.label} title={g.label}>
               <Fluent emoji={g.sample} size={18} />
             </button>
           ))}

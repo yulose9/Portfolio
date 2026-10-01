@@ -687,8 +687,20 @@
   color: var(--a-ink-3);
 }
 .palette-command[aria-disabled="true"] {
-  opacity: 0.45;
   cursor: default;
+}
+/* Dim the label, not the reason: why it's unavailable stays readable. */
+.palette-command[aria-disabled="true"] > :not(.palette-command-why) {
+  opacity: 0.45;
+}
+.palette-command-why {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--a-ink-3);
 }
 .palette-switch {
   flex: none;

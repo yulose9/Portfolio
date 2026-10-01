@@ -21,6 +21,8 @@ export default function LinkHover({editor}: {editor:Editor}) {
   const input = useRef<HTMLInputElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const editingRef = useRef(false);
+  // Whether the card is up, for the window's Escape listener (which outlives renders).
+  const openRef = useRef(false);
   useEffect(()=>{if(!editing)return;const lease=ownInteraction(editor,()=>{editingRef.current=false;setEditing(false);setTarget(null);});return()=>lease.release();},[editor,editing]);
   useEffect(() => { editingRef.current = editing; }, [editing]);
   const cancel = useCallback(() => clearTimeout(timer.current), []);
@@ -67,7 +69,16 @@ export default function LinkHover({editor}: {editor:Editor}) {
       if(!transaction.docChanged)return;
       setTarget(current=>{if(!current)return null;const mapped=mapInteractionRange(current,transaction);if(!mapped){editingRef.current=false;setEditing(false);return null;}return {...current,...mapped};});
     };
-    const key = (event:KeyboardEvent) => { if(event.key==="Escape") {hide();editor.commands.focus();} };
+    // Escape closes the card, and only the card: an Escape in the title, a
+    // sheet or the find bar is theirs, and must not drag focus into the body.
+    const key = (event:KeyboardEvent) => {
+      if(event.key!=="Escape"||!openRef.current)return;
+      const at=document.activeElement;
+      const inCard=Boolean(panel.current?.contains(at));
+      if(!inCard&&!dom.contains(at))return;
+      hide();
+      if(inCard)editor.commands.focus();
+    };
     dom.addEventListener("mouseover",show); dom.addEventListener("focusin",show); dom.addEventListener("click",click);
     dom.addEventListener("mouseout",closeLater);
     dom.addEventListener("writing:edit-link",editSelection);
@@ -77,6 +88,7 @@ export default function LinkHover({editor}: {editor:Editor}) {
     return () => { cancel(); dom.removeEventListener("writing:edit-link",editSelection); dom.removeEventListener("mouseover",show); dom.removeEventListener("focusin",show); dom.removeEventListener("click",click); dom.removeEventListener("mouseout",closeLater); window.removeEventListener("scroll",scroll,true); window.removeEventListener("resize",resize); window.removeEventListener("keydown",key); document.removeEventListener("pointerdown",outside); editor.off("transaction",update); };
   }, [editor, cancel, closeLater]);
   useEffect(() => { if(editing) input.current?.focus({preventScroll:true}); }, [editing]);
+  useEffect(() => { openRef.current = target !== null; }, [target]);
   const from=target?.from,to=target?.to;
   useEffect(()=>{
     if(editor.isDestroyed)return;
@@ -94,7 +106,7 @@ export default function LinkHover({editor}: {editor:Editor}) {
       editingRef.current=false;setTarget(null); setEditing(false);editor.commands.focus();
     }}><label>Text<input value={label} onChange={e => setLabel(e.target.value)} /></label>
       <label>Link address<input ref={input} value={href} onChange={e => setHref(e.target.value)} /></label>
-      {error ? <p role="alert">{error}</p> : null}<div className="session-actions"><button className="admin-button" type="button" onClick={() => {setTarget(null);setEditing(false);}}>Cancel</button><button className="admin-button" type="submit">Save link</button></div></form> : <>
+      {error ? <p role="alert">{error}</p> : null}<div className="session-actions"><button className="admin-button" type="button" onClick={() => {editingRef.current=false;setTarget(null);setEditing(false);editor.commands.focus();}}>Cancel</button><button className="admin-button" type="submit">Save link</button></div></form> : <>
       <a className="link-hover-address" href={safeInlineUrl(target.href)} target="_blank" rel="noopener noreferrer">{target.href}</a>
       <div className="session-actions"><button type="button" className="admin-button" onMouseDown={event=>event.preventDefault()} onClick={() => {cancel();editingRef.current=true;setHref(target.href);setLabel(editor.state.doc.textBetween(target.from,target.to," "));setError("");setEditing(true);}}>Edit link</button>
         <button type="button" className="admin-button" onClick={() => {editor.chain().focus().setTextSelection({from:target.from,to:target.to}).unsetLink().run();setTarget(null);}}>Remove link</button></div>

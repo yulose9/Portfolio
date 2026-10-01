@@ -18,6 +18,8 @@ import { useEditorState } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { memo, useEffect, useRef } from "react";
 import ColorPicker from "./ColorPicker";
+import { shortcutLabel } from "./shortcuts";
+import { keys } from "./menu";
 
 /*
  * The selection toolbar. It only appears over selected text (never in code,
@@ -65,7 +67,18 @@ const showForText = ({ editor: e, state: s }: { editor: Editor; state: Editor["s
   !s.selection.empty && e.isEditable && (isNodeRangeSelection(s.selection) || (!e.isActive("codeBlock") && !e.isActive("image") && !e.isActive("embed")));
 const showForImage = ({ editor: e }: { editor: Editor }) => e.isEditable && e.isActive("image") && !isNodeRangeSelection(e.state.selection);
 
-const mod = typeof navigator !== "undefined" && /Mac|iP/.test(navigator.platform) ? "⌘" : "Ctrl ";
+/** Left/Right (and Home/End) move between a toolbar's buttons, as a toolbar's keys should. */
+function toolbarKeys(event: React.KeyboardEvent<HTMLElement>) {
+  if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+  const tools = [...event.currentTarget.querySelectorAll<HTMLElement>("button:not([disabled])")];
+  const at = tools.indexOf(document.activeElement as HTMLElement);
+  if (at < 0 || !tools.length) return;
+  event.preventDefault();
+  const last = tools.length - 1;
+  const next = event.key === "Home" ? 0 : event.key === "End" ? last : event.key === "ArrowRight" ? (at === last ? 0 : at + 1) : at === 0 ? last : at - 1;
+  tools[next].focus();
+}
+
 
 export const TextBubble = memo(function TextBubble({ editor, linkRequest }: { editor: Editor; linkRequest: number }) {
 
@@ -103,30 +116,33 @@ export const TextBubble = memo(function TextBubble({ editor, linkRequest }: { ed
       className="bubble"
       options={TEXT_OPTIONS}
       shouldShow={showForText}
+      role="toolbar"
+      aria-label="Formatting"
+      onKeyDown={toolbarKeys}
     >
         <>
           {state.blocks > 0 ? <span className="bubble-count">{state.blocks} selected</span> : null}
-          <Tool label="Bold" shortcut={`${mod}B`} active={state.bold} onClick={() => editor.chain().focus().toggleBold().run()}>
+          <Tool label="Bold" shortcut={keys(shortcutLabel("bold"))} active={state.bold} onClick={() => editor.chain().focus().toggleBold().run()}>
             <TextB size={15} weight="bold" />
           </Tool>
-          <Tool label="Italic" shortcut={`${mod}I`} active={state.italic} onClick={() => editor.chain().focus().toggleItalic().run()}>
+          <Tool label="Italic" shortcut={keys(shortcutLabel("italic"))} active={state.italic} onClick={() => editor.chain().focus().toggleItalic().run()}>
             <TextItalic size={15} weight="bold" />
           </Tool>
-          <Tool label="Strikethrough" active={state.strike} onClick={() => editor.chain().focus().toggleStrike().run()}>
+          <Tool label="Strikethrough" shortcut={keys(shortcutLabel("strike"))} active={state.strike} onClick={() => editor.chain().focus().toggleStrike().run()}>
             <TextStrikethrough size={15} weight="bold" />
           </Tool>
-          <Tool label="Code" shortcut={`${mod}E`} active={state.code} onClick={() => editor.chain().focus().toggleCode().run()}>
+          <Tool label="Code" shortcut={keys(shortcutLabel("code"))} active={state.code} onClick={() => editor.chain().focus().toggleCode().run()}>
             <Code size={15} weight="bold" />
           </Tool>
-          <Tool label="Link" shortcut={`${mod}K`} active={state.link} onClick={startLink}>
+          <Tool label="Link" shortcut={keys(`${shortcutLabel("palette")} ↵`)} active={state.link} onClick={startLink}>
             <LinkSimple size={15} weight="bold" />
           </Tool>
           <span className="bubble-sep" aria-hidden="true" />
           <ColorPicker editor={editor} />
-          <Tool label="Heading 1" active={state.h2} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
+          <Tool label="Heading 1" shortcut={keys(shortcutLabel("heading1"))} active={state.h2} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
             <TextHOne size={15} weight="bold" />
           </Tool>
-          <Tool label="Heading 2" active={state.h3} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
+          <Tool label="Heading 2" shortcut={keys(shortcutLabel("heading2"))} active={state.h3} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
             <TextHTwo size={15} weight="bold" />
           </Tool>
           <Tool label="Quote" active={state.quote} onClick={() => editor.chain().focus().toggleBlockquote().run()}>

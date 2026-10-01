@@ -2,12 +2,14 @@
 import { useState } from "react";
 import {
   SHORTCUTS,
+  prettyKeys,
   shortcutKey,
   validateBindings,
   type Bindings,
   type ShortcutId,
 } from "../../../cms/shortcuts";
 import { useBindings, SHORTCUT_STORAGE } from "../ui/shortcuts";
+import { keys } from "../ui/menu";
 export default function ShortcutPage() {
   const bindings = useBindings();
   const [query, setQuery] = useState(""),
@@ -62,18 +64,34 @@ export default function ShortcutPage() {
         {SHORTCUTS.filter((s) =>
           `${s.label} ${s.group}`.toLowerCase().includes(query.toLowerCase()),
         ).map((s) => (
-          <label key={s.id}>
-            <span>
-              {s.label}
-              <small>{s.group}</small>
-            </span>
-            <input
-              aria-label={`${s.label} shortcut`}
-              readOnly
-              value={bindings[s.id] ?? s.keys}
-              onKeyDown={(e) => edit(s.id, e)}
-            />
-          </label>
+          <div key={s.id} className="shortcut-row">
+            <label>
+              <span>
+                {s.label}
+                <small>{s.group}</small>
+              </span>
+              <input
+                aria-label={`${s.label} shortcut`}
+                readOnly
+                // Shown as the keys look on this keyboard: ⌘⇧E, or Ctrl Shift E.
+                value={keys(prettyKeys(bindings[s.id] ?? s.keys))}
+                onKeyDown={(e) => edit(s.id, e)}
+              />
+            </label>
+            {bindings[s.id] && bindings[s.id] !== s.keys ? (
+              <button
+                type="button"
+                className="admin-button admin-button-quiet"
+                onClick={() => {
+                  const next = { ...bindings };
+                  delete next[s.id];
+                  save(next);
+                }}
+              >
+                Reset to {keys(prettyKeys(s.keys))}
+              </button>
+            ) : null}
+          </div>
         ))}
       </div>
       <section>
@@ -84,6 +102,15 @@ export default function ShortcutPage() {
           Shift+Enter adds a soft line break. Ctrl/⌘+A selects a block, then the
           whole document. Ctrl/⌘+Alt+F also opens replace. These structural
           shortcuts stay fixed.
+        </p>
+        <p>
+          Ctrl/⌘+Shift+V pastes as plain text. Ctrl/⌘+Enter in the replace
+          field replaces every match. Ctrl/⌘+Shift+H highlights the selection.
+        </p>
+        <h2>On the list of posts</h2>
+        <p>
+          N starts a new post. / jumps to the filter. Ctrl/⌘+A selects every
+          post shown, and Escape clears the selection.
         </p>
         <p>
           Your custom bindings apply in the writing editor. Browser and

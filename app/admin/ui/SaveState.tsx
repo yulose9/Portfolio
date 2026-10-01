@@ -24,7 +24,13 @@ export default function SaveState({ status, at, local }: { status: SaveStatus; a
   const label = LABEL[status];
 
   return (
-    <span className="save-state" data-status={status} role="status" aria-live="polite">
+    <span className="save-state" data-status={status}>
+      {/* Autosave runs on every pause in typing, so "Saving… Saved" would talk
+          over the writer. Only trouble is announced; the state itself stays
+          readable on the line below. */}
+      <span className="sr-only" role="status">
+        {status === "error" ? "Couldn’t save" : status === "offline" ? "Offline. Retrying the save." : ""}
+      </span>
       <svg className="save-glyph" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
         <circle className="save-ring" cx="8" cy="8" r="5.5" pathLength="100" />
         <circle className="save-dot" cx="8" cy="8" r="2.75" />

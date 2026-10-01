@@ -37,6 +37,14 @@
    */
   --dur-morph: 340ms;
 
+  /* The Sound layer's toggle (components/ui/sound.tsx). Light only: the site has no dark theme. */
+  --shell-fg-muted: #333333;
+  --shell-fg-faint: #6d6d6d;
+  --ease-out: var(--ease);
+
+  /* Light only, said out loud, so a browser's auto-dark does not invert the page. */
+  color-scheme: light;
+
   /* The text column, and the gap between it and the pinned preview. */
   --column: 672px;
   --preview-gutter: 32px;
@@ -234,13 +242,14 @@ a {
  *
  * The labels are 16px text roughly 28px tall, well under the 44px a thumb
  * expects. A pseudo-element grows the target without moving the label or the
- * active rule. The 8px horizontal bleed stays inside the 24px gap between
- * tabs, so neighbouring targets never overlap.
+ * active rule. Sideways it bleeds only half the 4px gap between pills, so
+ * neighbouring targets meet without overlapping: a press on the right edge
+ * of a pill never lands on the next tab.
  */
 .tab-hit::after {
   content: "";
   position: absolute;
-  inset: -10px -8px;
+  inset: -10px -2px;
 }
 
 /*
@@ -505,6 +514,14 @@ html.has-smooth-cursor [contenteditable] {
   }
 }
 
+/* A press on a phone shows the name too, for as long as the finger is down. */
+@media (hover: none) {
+  .tool-badge:active::after {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tool-badge,
   .tool-badge::after {
@@ -589,7 +606,16 @@ html.has-smooth-cursor [contenteditable] {
  * through the menu looks identical to pointing at it.
  */
 .menu-item[data-highlighted] {
-  background-color: rgb(0 0 0 / 0.045);
+  background-color: rgb(0 0 0 / 0.06);
+}
+
+/*
+ * Keyboard focus also gets a ring: the tint alone sits near 1.1:1 against the
+ * glass, well under the 3:1 a focus indicator needs (WCAG 2.4.11). Inset, so
+ * it never pokes past the popup's edge.
+ */
+.menu-item:focus-visible {
+  box-shadow: inset 0 0 0 1.5px rgb(0 0 0 / 0.6);
 }
 
 .menu-item[data-disabled] {
@@ -1617,9 +1643,10 @@ html.has-smooth-cursor [contenteditable] {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  margin: 0 -2px 0 0;
+  /* 24px: the smallest target WCAG 2.5.8 allows, with the glyph unchanged. */
+  width: 24px;
+  height: 24px;
+  margin: -2px -4px -2px 0;
   padding: 0;
   border: 0;
   border-radius: 99px;
@@ -1695,6 +1722,20 @@ html.has-smooth-cursor [contenteditable] {
   opacity: 0;
   transition: opacity 0.3s ease;
   -webkit-tap-highlight-color: transparent;
+  /* A button that looks like a glyph: no chrome of its own. */
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+.shiba[aria-disabled="true"] {
+  cursor: default;
+}
+.shiba:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 2px;
 }
 .shiba[data-mood] {
   opacity: 1;
@@ -1977,3 +2018,138 @@ html.has-smooth-cursor [contenteditable] {
 
 html.has-smooth-cursor .tag, html.has-smooth-cursor .tag *, html.has-smooth-cursor img[data-zoom] { cursor: none !important; }
 [data-shape="zoom"] > .cursor-shape > [data-glyph="zoom"] { opacity: 1; transform: scale(1); filter: blur(0); }
+
+/*
+ * The Sound layer's speaker: the slash draws across and the waves fold away
+ * when muted. Unlayered, as Kobra ships it, so it outranks the utilities.
+ */
+.sound-slash {
+  stroke-dasharray: 1 2;
+  stroke-dashoffset: 1.02;
+  --slash-ms: 200ms;
+  transition: stroke-dashoffset var(--slash-ms) var(--ease-out);
+}
+[data-muted="true"] .sound-slash {
+  stroke-dashoffset: 0;
+  --slash-ms: 260ms;
+}
+.sound-wave {
+  transform-box: view-box;
+  transform-origin: 11px 12px;
+  transition:
+    opacity 130ms var(--ease-out) var(--wave-delay),
+    transform 130ms var(--ease-out) var(--wave-delay),
+    filter 130ms var(--ease-out) var(--wave-delay);
+}
+[data-muted="true"] .sound-wave {
+  opacity: 0;
+  transform: scale(0.25);
+  filter: blur(1px);
+}
+.sound-wave-inner { --wave-delay: 45ms; }
+.sound-wave-outer { --wave-delay: 20ms; }
+[data-muted="true"] .sound-wave-inner { --wave-delay: 50ms; }
+[data-muted="true"] .sound-wave-outer { --wave-delay: 75ms; }
+.sound-speaker {
+  --speaker-ms: 220ms;
+  --speaker-delay: 0ms;
+  transition: transform var(--speaker-ms) var(--ease-out) var(--speaker-delay);
+}
+[data-muted="true"] .sound-speaker {
+  transform: translateX(5.5px);
+  --speaker-ms: 260ms;
+  --speaker-delay: 80ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sound-slash,
+  .sound-wave,
+  .sound-speaker {
+    transition: none;
+  }
+}
+
+/*
+ * Focus, everywhere on the site that does not draw its own: one ring, the
+ * page's ink, a little off the edge. :where() keeps it at zero specificity, so
+ * any component that styles its own focus still wins.
+ */
+:where(a, button, summary, [role="button"], [role="slider"], [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 2px;
+}
+
+/* A skip link for keyboard users: invisible until it is focused. */
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #111;
+  color: #fff;
+  font-size: 14px;
+  line-height: 20px;
+  text-decoration: none;
+  transform: translateY(-160%);
+}
+.skip-link:focus-visible {
+  transform: none;
+  outline-offset: 2px;
+}
+/* The skip link's target takes focus without drawing a ring round the page. */
+main[tabindex="-1"]:focus {
+  outline: none;
+}
+
+/*
+ * Windows High Contrast and other forced-colour modes drop backgrounds and
+ * shadows, which is everything the glass states are drawn with. Give each one
+ * a system-colour outline instead, and hand the pointer back to the system:
+ * a drawn cursor ignores the visitor's own enlarged or high-contrast one.
+ */
+@media (forced-colors: active) {
+  .tab-rail,
+  .list-highlight {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+  .tab-hover-rail {
+    outline: 1px dashed CanvasText;
+    outline-offset: -1px;
+  }
+  .menu-item[data-highlighted],
+  .menu-item:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+  .smooth-cursor,
+  .peer-cursor-layer {
+    display: none !important;
+  }
+  html.has-smooth-cursor * {
+    cursor: auto !important;
+  }
+}
+
+/*
+ * Motion the earlier reduced-motion blocks missed: the tab pill and its hover
+ * ghost travel, the phone panel's height glide, the press scales.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .tab-rail,
+  .tab-hover-rail,
+  .panel-anim,
+  .article-menu,
+  .article-body summary::before,
+  .voice-play path {
+    transition-duration: 0ms !important;
+  }
+  .share-button:active,
+  .tag:active,
+  .code-copy:active,
+  .voice-play:active {
+    transform: none !important;
+    scale: none !important;
+  }
+}

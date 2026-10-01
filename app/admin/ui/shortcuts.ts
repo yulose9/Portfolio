@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import {
   SHORTCUTS,
+  prettyKeys,
   shortcutKey,
   validateBindings,
   type Bindings,
@@ -91,4 +92,14 @@ export function useShortcuts(
       window.removeEventListener("writing:shortcuts", reload);
     };
   }, [actions, canEdit]);
+}
+
+/**
+ * The keys for a shortcut as they are bound right now, for hints and menus,
+ * so a rebound shortcut never shows its old keys. In the ⌘ notation keys()
+ * takes.
+ */
+export function shortcutLabel(id: ShortcutId, bindings: Bindings = readBindings()): string {
+  const item = SHORTCUTS.find((s) => s.id === id);
+  return prettyKeys(bindings[id] ?? item?.keys ?? "");
 }

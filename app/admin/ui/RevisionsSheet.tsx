@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { toast } from "../../lib/toast";
 import { api, ApiError, type Draft, type Revision } from "./api";
-import { exactTime, relative } from "./bits";
+import { exactTime, relative, onRadioKeys } from "./bits";
 import { diffWords, wordDelta, type Piece } from "./diff";
 import { keys } from "./menu";
 import Sheet from "./Sheet";
@@ -67,6 +67,11 @@ export default function RevisionsSheet({
 }) {
   const [revisions, setRevisions] = useState<Revision[] | null>(null);
   const [bodies, setBodies] = useState<Record<string, string>>({});
+  // Failures are their own state: an empty list or an empty body would read
+  // as "no history" or "everything was deleted", which is a different story.
+  const [listError, setListError] = useState(false);
+  const [bodyError, setBodyError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [against, setAgainst] = useState<"previous" | "current">("previous");
   const [restoring, setRestoring] = useState(false);
@@ -85,12 +90,20 @@ export default function RevisionsSheet({
     let live = true;
     api
       .revisions(doc.id)
-      .then(({ revisions }) => live && setRevisions(revisions))
-      .catch(() => live && setRevisions([]));
+      .then(({ revisions }) => {
+        if (!live) return;
+        setRevisions(revisions);
+        setListError(false);
+      })
+      .catch(() => {
+        if (!live) return;
+        setRevisions([]);
+        setListError(true);
+      });
     return () => {
       live = false;
     };
-  }, [open, doc.id]);
+  }, [open, doc.id, attempt]);
 
   // Revision bodies load on demand and stay cached while the sheet is open.
   const loading = useRef(new Set<string>());
@@ -99,8 +112,11 @@ export default function RevisionsSheet({
     loading.current.add(at);
     api
       .revision(doc.id, at)
-      .then(({ revision }) => setBodies((b) => ({ ...b, [at]: revision.body })))
-      .catch(() => setBodies((b) => ({ ...b, [at]: "" })))
+      .then(({ revision }) => {
+        setBodies((b) => ({ ...b, [at]: revision.body }));
+        setBodyError(false);
+      })
+      .catch(() => setBodyError(true))
       .finally(() => loading.current.delete(at));
   };
 
@@ -173,6 +189,13 @@ export default function RevisionsSheet({
             <li key={i} className="rev-skeleton" />
           ))}
         </ul>
+      ) : listError ? (
+        <div role="alert" className="field-help">
+          <p>Couldn’t load the history of this post.</p>
+          <button type="button" className="admin-button" onClick={() => { setRevisions(null); setAttempt((n) => n + 1); }}>
+            Try again
+          </button>
+        </div>
       ) : revisions.length === 0 ? (
         <p className="field-help">Nothing yet. Press {keys("⌘S")} to keep a revision.</p>
       ) : (
@@ -214,11 +237,11 @@ export default function RevisionsSheet({
       {selected ? (
         <div className="rev-preview">
           <div className="rev-preview-head">
-            <div className="admin-segments" role="radiogroup" aria-label="Compare">
-              <button type="button" role="radio" aria-checked={against === "previous"} className="admin-segment" onClick={() => setAgainst("previous")}>
+            <div className="admin-segments" onKeyDown={onRadioKeys} role="radiogroup" aria-label="Compare">
+              <button type="button" role="radio" aria-checked={against === "previous"} tabIndex={against === "previous" ? 0 : -1} className="admin-segment" onClick={() => setAgainst("previous")}>
                 What changed
               </button>
-              <button type="button" role="radio" aria-checked={against === "current"} className="admin-segment" onClick={() => setAgainst("current")}>
+              <button type="button" role="radio" aria-checked={against === "current"} tabIndex={against === "current" ? 0 : -1} className="admin-segment" onClick={() => setAgainst("current")}>
                 Compared with now
               </button>
             </div>
@@ -234,7 +257,18 @@ export default function RevisionsSheet({
               </span>
             ) : null}
           </div>
-          {pieces ? <Diff pieces={pieces} /> : <div className="rev-skeleton" />}
+          {pieces ? (
+            <Diff pieces={pieces} />
+          ) : bodyError ? (
+            <p role="alert" className="field-help">
+              Couldn’t load this revision.{" "}
+              <button type="button" className="admin-button admin-button-quiet" onClick={() => { setBodyError(false); if (selected) choose(selected); }}>
+                Try again
+              </button>
+            </p>
+          ) : (
+            <div className="rev-skeleton" />
+          )}
           <button type="button" className="admin-button admin-button-primary" data-keycap onClick={restore} disabled={restoring || !pieces}>
             {restoring ? "Restoring…" : "Restore this revision"}
           </button>

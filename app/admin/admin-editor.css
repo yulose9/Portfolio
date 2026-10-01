@@ -286,7 +286,7 @@
   padding-top: 0.3rem;
   box-shadow: 0 -1px 0 var(--a-line);
 }
-.emoji-group[aria-selected="true"] {
+.emoji-group:is([aria-selected="true"], [aria-checked="true"]) {
   background: var(--a-fill);
 }
 .emoji-empty {
@@ -1282,3 +1282,13 @@ html:not(.has-smooth-cursor) .editor-body a[href], html:not(.has-smooth-cursor) 
 .ligature-control{display:flex;align-items:center;gap:8px;font-size:12px;margin-top:14px}.ligature-control input{accent-color:#2563eb}
 
 @media(prefers-reduced-motion:reduce){.heading-icon-trigger:active{scale:1}}
+
+/*
+ * Hover-only tools reveal for the keyboard too: a Remove or Open button that
+ * is focused but invisible is a focus with nowhere to look.
+ */
+.embed-node:focus-within .embed-tools,
+.media-node:focus-within .embed-tools,
+.article-header:focus-within .editor-page-tools .page-icon-add {
+  opacity: 1;
+}

@@ -66,3 +66,24 @@ const exact = new Intl.DateTimeFormat("en-US", {
   minute: "2-digit",
 });
 export const exactTime = (iso: string) => exact.format(new Date(iso));
+
+/**
+ * Arrow keys for a row of role="radio" buttons (segmented controls): Left and
+ * Up step back, Right and Down step on, Home and End jump to the ends, each
+ * moving focus and choosing, as native radio buttons do. Pair it with
+ * `tabIndex={checked ? 0 : -1}` on each radio so the group is one Tab stop.
+ */
+export function onRadioKeys(event: React.KeyboardEvent<HTMLElement>) {
+  const step: Record<string, number> = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 };
+  if (!(event.key in step) && event.key !== "Home" && event.key !== "End") return;
+  const group = (event.target as Element).closest('[role="radiogroup"]');
+  if (!group) return;
+  const radios = [...group.querySelectorAll<HTMLElement>('[role="radio"]:not([disabled]):not([aria-disabled="true"])')];
+  if (!radios.length) return;
+  const at = radios.indexOf(event.target as HTMLElement);
+  const next =
+    event.key === "Home" ? 0 : event.key === "End" ? radios.length - 1 : (at + step[event.key] + radios.length) % radios.length;
+  event.preventDefault();
+  radios[next].focus();
+  radios[next].click();
+}

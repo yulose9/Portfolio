@@ -1,14 +1,17 @@
 "use client";
 
 import {
+  ArrowSquareOut,
   Code,
   Copy,
+  Cursor,
   EnvelopeSimple,
   LinkSimple,
   MagnifyingGlass,
   Quotes,
 } from "@phosphor-icons/react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { peersHidden, setPeersHidden } from "../PeerCursors";
 import { Menu, MenuItem, MenuLabel, MenuSeparator } from "./ContextMenu";
 import { LINKS, copy, currentSelection, openEmail, openUrl, searchWeb } from "./actions";
 
@@ -28,11 +31,28 @@ const ICON = 15;
  */
 export default function PageMenu({ children }: { children: ReactNode }) {
   const [selection, setSelection] = useState("");
+  // Replacing the browser's menu everywhere must not cost the link actions it
+  // had: right-clicking a link here still offers to open or copy it.
+  const [link, setLink] = useState<string | null>(null);
+  const [hidePeers, setHidePeers] = useState(false);
+  const pointed = useRef<string | null>(null);
+
+  useEffect(() => {
+    const onContext = (event: MouseEvent) => {
+      const a = (event.target as Element | null)?.closest?.<HTMLAnchorElement>("a[href]");
+      pointed.current = a ? a.href : null;
+    };
+    document.addEventListener("contextmenu", onContext, true);
+    return () => document.removeEventListener("contextmenu", onContext, true);
+  }, []);
 
   return (
     <Menu
       onOpenChange={(open) => {
-        if (open) setSelection(currentSelection());
+        if (!open) return;
+        setSelection(currentSelection());
+        setLink(pointed.current);
+        setHidePeers(peersHidden());
       }}
       trigger={children}
     >
@@ -64,6 +84,19 @@ export default function PageMenu({ children }: { children: ReactNode }) {
         </>
       ) : null}
 
+      {link ? (
+        <>
+          <MenuLabel>Link</MenuLabel>
+          <MenuItem icon={<ArrowSquareOut size={ICON} />} onClick={() => window.open(link, "_blank", "noopener")}>
+            Open in new tab
+          </MenuItem>
+          <MenuItem icon={<LinkSimple size={ICON} />} onClick={() => void copy(link, "Link copied")}>
+            Copy link address
+          </MenuItem>
+          <MenuSeparator />
+        </>
+      ) : null}
+
       <MenuItem
         icon={<LinkSimple size={ICON} />}
         onClick={() => void copy(LINKS.SITE, "Link copied")}
@@ -76,6 +109,11 @@ export default function PageMenu({ children }: { children: ReactNode }) {
       <MenuSeparator />
       <MenuItem icon={<EnvelopeSimple size={ICON} />} onClick={() => openEmail()}>
         Email me
+      </MenuItem>
+      <MenuSeparator />
+      {/* Other visitors' pointers move on their own; this is how to stop that. */}
+      <MenuItem icon={<Cursor size={ICON} />} onClick={() => setPeersHidden(!hidePeers)}>
+        {hidePeers ? "Show other visitors’ cursors" : "Hide other visitors’ cursors"}
       </MenuItem>
     </Menu>
   );

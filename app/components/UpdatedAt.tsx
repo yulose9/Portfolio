@@ -29,7 +29,6 @@ export default function UpdatedAt({ at, nested = false }: { at: string; nested?:
         <Tooltip.Trigger
           render={<span tabIndex={nested ? undefined : 0} />}
           className="updated-at"
-          aria-label={`Last updated ${exact}`}
         >
           Last updated <time dateTime={at}>{label}</time>
           <span className="sr-only"> ({exact})</span>

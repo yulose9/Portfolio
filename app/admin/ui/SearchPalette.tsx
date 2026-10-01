@@ -2,7 +2,7 @@
 
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { Dialog } from "@base-ui/react/dialog";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { api, type SearchResult } from "./api";
 import { relative, StatusDot, statusLabel } from "./bits";
@@ -67,6 +67,8 @@ export default function SearchPalette({
   const [error,setError]=useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const list = useRef<HTMLDivElement>(null);
+  const listId = useId();
+  const optionId = (i: number) => `${listId}-opt-${i}`;
 
   const [searchKey,setSearchKey]=useState("");
   const nextKey=`${open}:${query}:${mode}:${status}:${tag}:${scope}`;
@@ -154,16 +156,36 @@ export default function SearchPalette({
             <input
               autoFocus
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                // A new query is a new list: the highlight starts at its top.
+                setActive(0);
+              }}
               placeholder="Search words or phrases across all writing"
               aria-label="Search posts and actions"
+              role="combobox"
+              aria-expanded={choices.length > 0}
+              aria-controls={listId}
+              aria-autocomplete="list"
+              aria-activedescendant={choices.length ? optionId(at) : undefined}
               onKeyDown={(e) => {
+                const last = choices.length - 1;
+                if (last < 0) return;
                 if (e.key === "ArrowDown") {
                   e.preventDefault();
-                  setActive((i) => Math.min(choices.length - 1, i + 1));
+                  setActive(at >= last ? 0 : at + 1);
                 } else if (e.key === "ArrowUp") {
                   e.preventDefault();
-                  setActive((i) => Math.max(0, i - 1));
+                  setActive(at <= 0 ? last : at - 1);
+                } else if (e.key === "PageDown") {
+                  e.preventDefault();
+                  setActive(Math.min(last, at + 8));
+                } else if (e.key === "PageUp") {
+                  e.preventDefault();
+                  setActive(Math.max(0, at - 8));
+                } else if ((e.metaKey || e.ctrlKey) && (e.key === "Home" || e.key === "End")) {
+                  e.preventDefault();
+                  setActive(e.key === "Home" ? 0 : last);
                 } else if (e.key === "Enter") {
                   e.preventDefault();
                   go(at);
@@ -180,7 +202,7 @@ export default function SearchPalette({
             <label className="field">Tag<input aria-label="Search tag" value={tag} onChange={e=>setTag(e.target.value)} placeholder="Any tag" maxLength={80}/></label>
           </div>
           {error ? <p className="palette-empty" role="alert">{error}</p> : null}
-          <div ref={list} className="palette-results" role="listbox" aria-label="Results">
+          <div ref={list} id={listId} className="palette-results" role="listbox" aria-label="Results">
             {!choices.length && query.trim().length >= 2 && results === null && !onlyCommands ? (
               <p className="palette-empty">Searching…</p>
             ) : !choices.length ? (
@@ -189,10 +211,12 @@ export default function SearchPalette({
               choices.map((c, i) =>
                 c.command ? (
                   <Fragment key={c.key}>
-                    {!commandQuery && c.command.group !== choices[i - 1]?.command?.group ? <p className="palette-group">{c.command.group}</p> : null}
+                    {!commandQuery && c.command.group !== choices[i - 1]?.command?.group ? <p className="palette-group" aria-hidden="true">{c.command.group}</p> : null}
                     <button
                       type="button"
-                      role={c.command.checked !== undefined ? "menuitemcheckbox" : "option"}
+                      id={optionId(i)}
+                      tabIndex={-1}
+                      role="option"
                       aria-checked={c.command.checked}
                       aria-selected={i === at}
                       aria-disabled={c.command.disabled ? true : undefined}
@@ -209,6 +233,7 @@ export default function SearchPalette({
                         {c.command.title}
                         {commandQuery ? <span className="palette-command-group">{c.command.group}</span> : null}
                       </span>
+                      {c.command.disabled ? <span className="palette-command-why">{c.command.disabled}</span> : null}
                       {c.command.keys ? <kbd className="admin-kbd">{keys(c.command.keys)}</kbd> : null}
                       {c.command.checked !== undefined ? <span className="palette-switch" data-on={c.command.checked || undefined} aria-hidden="true" /> : null}
                     </button>
@@ -217,6 +242,8 @@ export default function SearchPalette({
                   <button
                     key={c.key}
                     type="button"
+                    id={optionId(i)}
+                    tabIndex={-1}
                     role="option"
                     aria-selected={i === at}
                     data-index={i}
@@ -230,6 +257,8 @@ export default function SearchPalette({
                   <button
                     key={c.key}
                     type="button"
+                    id={optionId(i)}
+                    tabIndex={-1}
                     role="option"
                     aria-selected={i === at}
                     data-index={i}

@@ -187,7 +187,13 @@ html:not(.has-smooth-cursor) .article-page a[href] * { cursor: pointer; }
   position: relative;
 }
 .heading-anchor {
-  margin-left: 0.4rem;
+  /* Padded out to a 24px-plus target around the small # glyph (WCAG 2.5.8). */
+  display: inline-block;
+  min-width: 24px;
+  padding: 0 0.3em;
+  text-align: center;
+  border-radius: 6px;
+  margin-left: 0.1rem;
   color: #d4d4d8;
   font-weight: 400;
   text-decoration: none !important;
@@ -273,6 +279,16 @@ html:not(.has-smooth-cursor) .article-page a[href] * { cursor: pointer; }
 .article-body img[data-zoom],
 .article-cover img[data-zoom] {
   cursor: zoom-in;
+}
+.article-body img[data-zoom]:focus-visible,
+.article-cover img[data-zoom]:focus-visible,
+.article-body pre[tabindex]:focus-visible,
+.article-body .table-wrap[tabindex]:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 3px;
+}
+.zoom-overlay:focus {
+  outline: none;
 }
 .zoom-overlay {
   position: fixed;
@@ -463,3 +479,8 @@ html:not(.has-smooth-cursor) .article-page a[href] * { cursor: pointer; }
 .has-smooth-cursor .article-eyebrow time {cursor:none!important}
 
 .article-body .heading-icon-image{background:transparent;outline:0}.article-eyebrow .updated-at{margin-inline-start:12px}
+
+/* A heading that took focus after a contents jump: focus moves, no ring. */
+.article-body :is(h2, h3, h4)[tabindex="-1"]:focus {
+  outline: none;
+}

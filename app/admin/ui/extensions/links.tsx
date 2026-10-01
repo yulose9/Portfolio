@@ -53,7 +53,7 @@ const LinkList = forwardRef<Handle, Props>(function LinkList({ items, command, q
   }));
   return (
     <div className="slash-menu" role="listbox" aria-label="Link to a post">
-      <p className="slash-group">Link to a post</p>
+      <p className="slash-group" aria-hidden="true">Link to a post</p>
       {items.length ? (
         items.map((p, i) => (
           <button

@@ -12,6 +12,7 @@ import AuthorCard from "../../../components/writing/AuthorCard";
 import Byline from "../../../components/writing/Byline";
 import FluentText from "../../../components/writing/FluentText";
 import ShareRow from "../../../components/writing/ShareRow";
+import { SoundToggle } from "../../../components/ui/sound";
 import Tag from "../../../components/writing/Tag";
 import Toc from "../../../components/writing/Toc";
 import { FEED, ID, jsonLd, SITE_INFO, TWITTER_METADATA } from "../../../constants/seo";
@@ -148,7 +149,7 @@ export default async function ArticlePage({ params }: Props) {
         <link key={href} rel="stylesheet" href={href} precedence="default" />
       ))}
       <div className="reading-progress" aria-hidden="true" />
-      <main
+      <main id="main" tabIndex={-1}
         data-cursor-frame
         className="page-shell page-enter article-shell article-page w-full max-w-[672px] py-16 sm:py-24"
         style={fontVars(post.fonts) as React.CSSProperties}
@@ -224,8 +225,8 @@ export default async function ArticlePage({ params }: Props) {
           </div>
 
           <footer className="article-footer">
-
             <ShareRow url={url} title={post.title} />
+            <SoundToggle className="ml-auto size-9 rounded-full" />
           </footer>
 
           <AuthorCard authors={post.authors} />

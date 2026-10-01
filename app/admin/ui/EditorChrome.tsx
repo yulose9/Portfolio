@@ -66,6 +66,7 @@ import {
 } from "./commands";
 import { findKey, type FindOptions } from "./extensions/blocks";
 import { keys, MenuSurface, MItem, MLabel, MSep, MSub } from "./menu";
+import { shortcutLabel } from "./shortcuts";
 
 const I = { size: 15 } as const;
 const MARK_ICON: Record<string, React.ReactNode> = {
@@ -169,7 +170,7 @@ export function EditorContextMenu({ editor, children, ...pick }: { editor: Edito
               </MItem>
             ))}
             <MSep />
-            <MItem icon={<LinkSimple {...I} />} keys={keys("⌘K")} onSelect={pick.onLink}>
+            <MItem icon={<LinkSimple {...I} />} keys={keys(`${shortcutLabel("palette")} ↵`)} onSelect={pick.onLink}>
               Link…
             </MItem>
           </MSub>
@@ -216,17 +217,17 @@ export function EditorContextMenu({ editor, children, ...pick }: { editor: Edito
             </MItem>
           </>
         ) : (
-          <MItem icon={<MagnifyingGlass {...I} />} keys={keys("⌘F")} onSelect={() => pick.onFind()}>
+          <MItem icon={<MagnifyingGlass {...I} />} keys={keys(shortcutLabel("find"))} onSelect={() => pick.onFind()}>
             Find in this post
           </MItem>
         )}
         {pick.onReplace ? (
-          <MItem icon={<SwapIcon {...I} />} keys={keys("⌥⌘F")} onSelect={() => pick.onReplace?.(info.text || undefined)}>
+          <MItem icon={<SwapIcon {...I} />} keys={keys(shortcutLabel("replace"))} onSelect={() => pick.onReplace?.(info.text || undefined)}>
             Find and replace…
           </MItem>
         ) : null}
         <MSep />
-        <MItem icon={<CopySimple {...I} />} keys={keys("⌘D")} onSelect={() => {
+        <MItem icon={<CopySimple {...I} />} keys={keys(shortcutLabel("duplicate"))} onSelect={() => {
           if (info.blocks) {
             const { from, to } = editor.state.selection;
             editor.chain().focus().insertContentAt(to, editor.state.doc.slice(from, to).content.toJSON()).run();
@@ -234,10 +235,10 @@ export function EditorContextMenu({ editor, children, ...pick }: { editor: Edito
         }}>
           {info.blocks ? "Duplicate selected blocks" : "Duplicate block"}
         </MItem>
-        <MItem icon={<ArrowUp {...I} />} keys={keys("⌘⇧↑")} onSelect={() => { const b = block(); if (b) moveBlock(editor, b.pos, -1); }}>
+        <MItem icon={<ArrowUp {...I} />} keys={keys(shortcutLabel("moveUp"))} onSelect={() => { const b = block(); if (b) moveBlock(editor, b.pos, -1); }}>
           Move up
         </MItem>
-        <MItem icon={<ArrowDown {...I} />} keys={keys("⌘⇧↓")} onSelect={() => { const b = block(); if (b) moveBlock(editor, b.pos, 1); }}>
+        <MItem icon={<ArrowDown {...I} />} keys={keys(shortcutLabel("moveDown"))} onSelect={() => { const b = block(); if (b) moveBlock(editor, b.pos, 1); }}>
           Move down
         </MItem>
         <MItem icon={<Trash {...I} />} danger onSelect={() => { if (info.blocks) editor.chain().focus().deleteSelection().run(); else { const b = block(); if (b) deleteBlock(editor, b.pos); } }}>
@@ -355,7 +356,7 @@ export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Edito
                   </MItem>
                 ))}
               </MSub>
-              <MItem icon={<CopySimple {...I} />} keys={keys("⌘D")} onSelect={() => {
+              <MItem icon={<CopySimple {...I} />} keys={keys(shortcutLabel("duplicate"))} onSelect={() => {
                 if (selectedCount > 1) {
                   const { from, to } = editor.state.selection;
                   editor.chain().focus().insertContentAt(to, editor.state.doc.slice(from, to).content.toJSON()).run();
@@ -415,6 +416,9 @@ export function FindBar({ editor, request, onClose }: { editor: Editor; request:
   const [options, setOptions] = useState<FindOptions>({});
   const input = useRef<HTMLInputElement>(null);
   const replaceInput = useRef<HTMLInputElement>(null);
+  // Where focus was when find opened (a toolbar button, the palette's
+  // target), so closing returns there rather than always into the text.
+  const opener = useRef<HTMLElement | null>(null);
   const state = useEditorState({
     editor,
     selector: ({ editor: e }) => {
@@ -440,6 +444,8 @@ export function FindBar({ editor, request, onClose }: { editor: Editor; request:
       return;
     }
     editor.commands.setFind(request.query, request.index);
+    const was = document.activeElement;
+    if (was instanceof HTMLElement && !was.closest(".find-bar")) opener.current = was;
     const target = request.replace && request.query ? replaceInput.current : input.current;
     target?.focus();
     target?.select();
@@ -460,7 +466,10 @@ export function FindBar({ editor, request, onClose }: { editor: Editor; request:
   };
   const close = () => {
     onClose();
-    editor.commands.focus();
+    const back = opener.current;
+    opener.current = null;
+    if (back?.isConnected && !editor.view.dom.contains(back) && back !== document.body) back.focus();
+    else editor.commands.focus();
   };
   const toggleReplace = () => {
     const next = !replacing;
@@ -492,7 +501,7 @@ export function FindBar({ editor, request, onClose }: { editor: Editor; request:
         className="admin-icon-button find-toggle"
         aria-expanded={replacing}
         aria-label={replacing ? "Hide replace" : "Replace"}
-        title={`Replace  ${keys("⌥⌘F")}`}
+        title={`Replace  ${keys(shortcutLabel("replace"))}`}
         onClick={toggleReplace}
       >
         <CaretRight size={12} weight="bold" />
@@ -614,10 +623,12 @@ export function MobileToolbar({ editor, ...pick }: { editor: Editor } & Pickers)
     };
   }, [editor]);
 
-  const tap = (fn: () => void) => (e: React.PointerEvent) => {
-    e.preventDefault(); // keep the keyboard up
-    fn();
-  };
+  // Pressing keeps the keyboard up (no focus change on pointerdown); the
+  // action itself runs on click, so Enter, Space and switch access work too.
+  const tap = (fn: () => void) => ({
+    onPointerDown: (e: React.PointerEvent) => e.preventDefault(),
+    onClick: () => fn(),
+  });
   const blockIndex = BLOCKS.findIndex((b) => b.kind === state.block);
 
   return (
@@ -633,49 +644,49 @@ export function MobileToolbar({ editor, ...pick }: { editor: Editor } & Pickers)
             setLinking(false);
           }}
         >
-          <input autoFocus value={href} onChange={(e) => setHref(e.target.value)} placeholder="Paste a link" inputMode="url" aria-label="Link address" />
+          <input autoFocus value={href} onChange={(e) => setHref(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); setLinking(false); editor.commands.focus(); } }} placeholder="Paste a link" inputMode="url" aria-label="Link address" />
           <button type="submit" className="admin-button admin-button-primary">
             Apply
           </button>
-          <button type="button" className="admin-icon-button" onPointerDown={tap(() => setLinking(false))} aria-label="Cancel">
+          <button type="button" className="admin-icon-button" {...tap(() => setLinking(false))} aria-label="Cancel">
             <X size={16} weight="bold" />
           </button>
         </form>
       ) : (
         <div className="mobile-bar-scroll">
           <ColorPicker editor={editor} />
-          <button type="button" className="mobile-tool" onPointerDown={tap(() => editor.chain().focus().insertContent("/").run())} aria-label="Insert a block">
+          <button type="button" className="mobile-tool" {...tap(() => editor.chain().focus().insertContent("/").run())} aria-label="Insert a block">
             <Plus size={18} weight="bold" />
           </button>
           <button
             type="button"
             className="mobile-tool mobile-tool-wide"
-            onPointerDown={tap(() => turnInto(editor, BLOCKS[(blockIndex + 1) % BLOCKS.length].kind))}
+            {...tap(() => turnInto(editor, BLOCKS[(blockIndex + 1) % BLOCKS.length].kind))}
             aria-label="Change block type"
           >
             {BLOCKS[blockIndex]?.icon}
             <span>{BLOCKS[blockIndex]?.title}</span>
           </button>
           <span className="mobile-sep" />
-          <button type="button" className="mobile-tool" aria-pressed={state.bold} onPointerDown={tap(() => editor.chain().focus().toggleBold().run())} aria-label="Bold">
+          <button type="button" className="mobile-tool" aria-pressed={state.bold} {...tap(() => editor.chain().focus().toggleBold().run())} aria-label="Bold">
             <TextB size={18} weight="bold" />
           </button>
-          <button type="button" className="mobile-tool" aria-pressed={state.italic} onPointerDown={tap(() => editor.chain().focus().toggleItalic().run())} aria-label="Italic">
+          <button type="button" className="mobile-tool" aria-pressed={state.italic} {...tap(() => editor.chain().focus().toggleItalic().run())} aria-label="Italic">
             <TextItalic size={18} weight="bold" />
           </button>
-          <button type="button" className="mobile-tool" aria-pressed={state.underline} onPointerDown={tap(() => editor.chain().focus().toggleUnderline().run())} aria-label="Underline">
+          <button type="button" className="mobile-tool" aria-pressed={state.underline} {...tap(() => editor.chain().focus().toggleUnderline().run())} aria-label="Underline">
             <TextUnderline size={18} weight="bold" />
           </button>
-          <button type="button" className="mobile-tool" aria-pressed={state.strike} onPointerDown={tap(() => editor.chain().focus().toggleStrike().run())} aria-label="Strikethrough">
+          <button type="button" className="mobile-tool" aria-pressed={state.strike} {...tap(() => editor.chain().focus().toggleStrike().run())} aria-label="Strikethrough">
             <TextStrikethrough size={18} weight="bold" />
           </button>
-          <button type="button" className="mobile-tool" aria-pressed={state.highlight} onPointerDown={tap(() => editor.chain().focus().toggleHighlight().run())} aria-label="Highlight">
+          <button type="button" className="mobile-tool" aria-pressed={state.highlight} {...tap(() => editor.chain().focus().toggleHighlight().run())} aria-label="Highlight">
             <HighlighterCircle size={18} />
           </button>
           <button
             type="button"
             className="mobile-tool"
-            onPointerDown={tap(() => {
+            {...tap(() => {
               setHref((editor.getAttributes("link").href as string | undefined) ?? "");
               setLinking(true);
             })}
@@ -684,31 +695,31 @@ export function MobileToolbar({ editor, ...pick }: { editor: Editor } & Pickers)
             <LinkSimple size={18} weight="bold" />
           </button>
           <span className="mobile-sep" />
-          <button type="button" className="mobile-tool" aria-pressed={state.todo} onPointerDown={tap(() => editor.chain().focus().toggleTaskList().run())} aria-label="To-do list">
+          <button type="button" className="mobile-tool" aria-pressed={state.todo} {...tap(() => editor.chain().focus().toggleTaskList().run())} aria-label="To-do list">
             <CheckSquare size={18} />
           </button>
-          <button type="button" className="mobile-tool" aria-pressed={state.bullet} onPointerDown={tap(() => editor.chain().focus().toggleBulletList().run())} aria-label="Bulleted list">
+          <button type="button" className="mobile-tool" aria-pressed={state.bullet} {...tap(() => editor.chain().focus().toggleBulletList().run())} aria-label="Bulleted list">
             <ListBullets size={18} />
           </button>
-          <button type="button" className="mobile-tool" onPointerDown={tap(pick.pickImage)} aria-label="Image">
+          <button type="button" className="mobile-tool" {...tap(pick.pickImage)} aria-label="Image">
             <ImageSquare size={18} />
           </button>
           {pick.pickVoice ? (
-            <button type="button" className="mobile-tool" onPointerDown={tap(pick.pickVoice)} aria-label="Record a voice note">
+            <button type="button" className="mobile-tool" {...tap(pick.pickVoice)} aria-label="Record a voice note">
               <Microphone size={18} />
             </button>
           ) : null}
-          <button type="button" className="mobile-tool" onPointerDown={tap(pick.pickEmoji)} aria-label="Emoji">
+          <button type="button" className="mobile-tool" {...tap(pick.pickEmoji)} aria-label="Emoji">
             <Smiley size={18} />
           </button>
           <span className="mobile-sep" />
-          <button type="button" className="mobile-tool" disabled={!state.canUndo} onPointerDown={tap(() => editor.chain().focus().undo().run())} aria-label="Undo">
+          <button type="button" className="mobile-tool" disabled={!state.canUndo} {...tap(() => editor.chain().focus().undo().run())} aria-label="Undo">
             <ArrowUUpLeft size={18} />
           </button>
-          <button type="button" className="mobile-tool" disabled={!state.canRedo} onPointerDown={tap(() => editor.chain().focus().redo().run())} aria-label="Redo">
+          <button type="button" className="mobile-tool" disabled={!state.canRedo} {...tap(() => editor.chain().focus().redo().run())} aria-label="Redo">
             <ArrowUUpRight size={18} />
           </button>
-          <button type="button" className="mobile-tool" onPointerDown={tap(() => editor.commands.blur())} aria-label="Hide keyboard">
+          <button type="button" className="mobile-tool" {...tap(() => editor.commands.blur())} aria-label="Hide keyboard">
             <Keyboard size={18} />
           </button>
         </div>

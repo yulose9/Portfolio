@@ -37,6 +37,27 @@ const STALE_MS = 15_000;
  */
 const PERMANENT_CLOSE = new Set([4002, 4003]);
 
+/** The visitor's own switch (the page's right-click menu): hide everyone else's pointer. */
+export const PEERS_HIDDEN_KEY = "nazarene-peers-hidden";
+export const PEERS_TOGGLE_EVENT = "peers:toggle";
+
+export function peersHidden() {
+  try {
+    return localStorage.getItem(PEERS_HIDDEN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function setPeersHidden(hidden: boolean) {
+  try {
+    localStorage.setItem(PEERS_HIDDEN_KEY, hidden ? "1" : "0");
+  } catch {
+    /* lasts the visit */
+  }
+  window.dispatchEvent(new Event(PEERS_TOGGLE_EVENT));
+}
+
 type Peer = {
   hue: number;
   x: Spring;
@@ -74,13 +95,28 @@ export default function PeerCursors() {
     const calm = window.matchMedia("(prefers-reduced-motion: reduce)");
     if (!media.matches || calm.matches) return;
 
-    const column = document.querySelector<HTMLElement>("[data-cursor-frame]");
-    if (!column) return;
+    /*
+     * The layout outlives client-side navigation (Home → /writing and back),
+     * so the column is looked up again whenever the one in hand has left the
+     * document. A page without one has no shared frame: nothing is sent and
+     * nobody is drawn there.
+     */
+    let column: HTMLElement | null = null;
+    const frameNow = () => {
+      if (!column?.isConnected) column = document.querySelector<HTMLElement>("[data-cursor-frame]");
+      return column;
+    };
 
     const layer = document.createElement("div");
     layer.className = "peer-cursor-layer";
     layer.setAttribute("aria-hidden", "true");
     document.body.appendChild(layer);
+    const applyHidden = () => {
+      layer.style.display = peersHidden() ? "none" : "";
+    };
+    applyHidden();
+    window.addEventListener(PEERS_TOGGLE_EVENT, applyHidden);
+    window.addEventListener("storage", applyHidden);
 
     const peers = new Map<string, Peer>();
     let socket: ReconnectingWebSocket | null = null;
@@ -97,6 +133,8 @@ export default function PeerCursors() {
 
     const onPointerMove = (event: PointerEvent) => {
       if (event.pointerType === "touch") return;
+      const column = frameNow();
+      if (!column) return;
       const rect = column.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
       // Relative to the column, so the same value lands on the same content
@@ -171,6 +209,8 @@ export default function PeerCursors() {
       if (data.t !== "m") return;
       if (typeof data.x !== "number" || typeof data.y !== "number") return;
 
+      const column = frameNow();
+      if (!column) return;
       const rect = column.getBoundingClientRect();
       const existing = peers.get(data.i);
       const peer =
@@ -209,6 +249,10 @@ export default function PeerCursors() {
       last = now;
 
       flush(now);
+
+      // Off a page with a frame, everyone else's pointer would land on
+      // unrelated content; hide them until the frame is back.
+      layer.style.visibility = frameNow() ? "" : "hidden";
 
       for (const [id, peer] of peers) {
         if (now - peer.seen > STALE_MS) {
@@ -273,6 +317,8 @@ export default function PeerCursors() {
       disposed = true;
       (window.cancelIdleCallback ?? window.clearTimeout)(idleHandle);
       window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener(PEERS_TOGGLE_EVENT, applyHidden);
+      window.removeEventListener("storage", applyHidden);
       cancelAnimationFrame(frame);
       socket?.close();
       layer.remove();

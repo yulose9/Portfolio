@@ -24,6 +24,7 @@ import Toc from "../../components/writing/Toc";
 import { api, type Draft } from "./api";
 import { cursorMarkup, cursorTransform, shapeAt } from "../../lib/cursor";
 import type { Meta } from "./Editor";
+import { onRadioKeys } from "./bits";
 
 /*
  * Before it goes out: the post as readers will get it.
@@ -469,17 +470,17 @@ export default function PreviewSheet({
               ))}
             </div>
             {tab === "page" ? (
-              <div className="admin-segments" role="radiogroup" aria-label="Device">
-                <button type="button" role="radio" aria-checked={device === "desktop"} className="admin-segment" onClick={() => setDevice("desktop")} aria-label="Laptop">
+              <div className="admin-segments" onKeyDown={onRadioKeys} role="radiogroup" aria-label="Device">
+                <button type="button" role="radio" aria-checked={device === "desktop"} tabIndex={device === "desktop" ? 0 : -1} className="admin-segment" onClick={() => setDevice("desktop")} aria-label="Laptop">
                   <DesktopTower size={14} />
                 </button>
-                <button type="button" role="radio" aria-checked={device === "phone"} className="admin-segment" onClick={() => setDevice("phone")} aria-label="Phone">
+                <button type="button" role="radio" aria-checked={device === "phone"} tabIndex={device === "phone" ? 0 : -1} className="admin-segment" onClick={() => setDevice("phone")} aria-label="Phone">
                   <DeviceMobile size={14} />
                 </button>
               </div>
             ) : null}
             <div className="preview-actions">
-              <Dialog.Close className="admin-button admin-button-quiet">Keep editing</Dialog.Close>
+              <Dialog.Close data-slot="dialog-close" className="admin-button admin-button-quiet">Keep editing</Dialog.Close>
               <button
                 type="button"
                 className="admin-button admin-button-primary"

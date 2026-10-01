@@ -106,12 +106,17 @@ const SlashList = forwardRef<ListHandle, ListProps>(function SlashList(
     const element = editor.view.dom;
     const previousControls = element.getAttribute("aria-controls"),
       previousActive = element.getAttribute("aria-activedescendant");
+    const previousAutocomplete = element.getAttribute("aria-autocomplete");
     element.setAttribute("aria-controls", listId);
+    // The text field now drives a list of suggestions; say so.
+    element.setAttribute("aria-autocomplete", "list");
     if (items[index])
       element.setAttribute("aria-activedescendant", `${listId}-${index}`);
     else element.removeAttribute("aria-activedescendant");
     return () => {
       if (element.getAttribute("aria-controls") !== listId) return;
+      if (previousAutocomplete) element.setAttribute("aria-autocomplete", previousAutocomplete);
+      else element.removeAttribute("aria-autocomplete");
       if (previousControls)
         element.setAttribute("aria-controls", previousControls);
       else element.removeAttribute("aria-controls");
@@ -169,7 +174,7 @@ const SlashList = forwardRef<ListHandle, ListProps>(function SlashList(
           items.map((item, i) => (
             <Fragment key={item.title}>
               {i === 0 || items[i - 1].group !== item.group ? (
-                <p className="slash-group">{item.group}</p>
+                <p className="slash-group" aria-hidden="true">{item.group}</p>
               ) : null}
               <button
                 type="button"
@@ -198,7 +203,7 @@ const SlashList = forwardRef<ListHandle, ListProps>(function SlashList(
             </Fragment>
           ))
         ) : (
-          <p className="slash-empty">No blocks match</p>
+          <p className="slash-empty" role="option" aria-disabled="true" aria-selected="false">No blocks match</p>
         )}
       </div>
       {items[index] ? (

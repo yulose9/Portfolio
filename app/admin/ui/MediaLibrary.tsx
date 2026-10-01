@@ -36,6 +36,9 @@ export default function MediaLibrary({
   const [assets, setAssets] = useState<Asset[]>([]),
     [cursor, setCursor] = useState<string | null>(null),
     [busy, setBusy] = useState(false),
+    // Loading the list is not a write: the sheet can always be closed while
+    // it loads (a hung request must never trap anyone). Only a write holds it.
+    [loading, setLoading] = useState(false),
     [error, setError] = useState("");
   const [query, setQuery] = useState(""),
     [view, setView] = useState<"gallery" | "list">("gallery"),
@@ -45,7 +48,7 @@ export default function MediaLibrary({
   const [previousOpen, setPreviousOpen] = useState(open);
   if (previousOpen !== open) {
     setPreviousOpen(open);
-    if (open) setBusy(true);
+    if (open) setLoading(true);
   }
   const refresh = async () => {
     const r = await api.media();
@@ -68,7 +71,7 @@ export default function MediaLibrary({
         if (alive) setError(e.message);
       })
       .finally(() => {
-        if (alive) setBusy(false);
+        if (alive) setLoading(false);
       });
     return () => {
       alive = false;
@@ -206,8 +209,8 @@ export default function MediaLibrary({
         </p>
       ) : null}
       <p className="field-help" role="status">
-        {busy
-          ? progress || "Loading…"
+        {busy || loading
+          ? progress || (busy ? "Saving…" : "Loading…")
           : `${shown.length} ${shown.length === 1 ? "asset" : "assets"}${cursor ? " loaded" : ""}`}
       </p>
       {edit ? (
@@ -312,7 +315,7 @@ export default function MediaLibrary({
           </article>
         ))}
       </div>
-      {!shown.length && !busy ? <p>No media matches this view.</p> : null}
+      {!shown.length && !busy && !loading ? <p>No media matches this view.</p> : null}
       {cursor ? (
         <button
           className="admin-button"

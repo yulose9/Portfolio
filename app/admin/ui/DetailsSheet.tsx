@@ -54,7 +54,8 @@ export default function DetailsSheet({
   const remove = async () => {
     if (!confirming) {
       setConfirming(true);
-      window.setTimeout(() => setConfirming(false), 3000);
+      // Long enough to read the new label and press again, not just to react.
+      window.setTimeout(() => setConfirming(false), 6000);
       return;
     }
     setDeleting(true);
@@ -205,6 +206,9 @@ export default function DetailsSheet({
         <button type="button" className="admin-button admin-button-danger" data-confirming={confirming || undefined} onClick={remove} disabled={deleting}>
           {deleting ? "Moving to Trash…" : confirming ? (live ? "Click again to unpublish and move to Trash" : "Click again to move to Trash") : "Move to Trash"}
         </button>
+        <span className="sr-only" role="status">
+          {confirming ? "Press again to confirm. The button resets after a few seconds." : ""}
+        </span>
         <p className="field-help">
           {live ? "Takes it off the site. It stays in Trash with its history until you delete it permanently." : "It stays in Trash with its history until you delete it permanently."}
         </p>

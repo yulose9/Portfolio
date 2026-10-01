@@ -47,6 +47,7 @@ export default function ColorPicker({ editor }: { editor: Editor }) {
   const [hex, setHex] = useState({
     base: selected,
     value: selected ?? "#52525b",
+    edited: false,
   });
   useEffect(() => {
     if (open) loadFont(findFont(appearance.font));
@@ -101,7 +102,7 @@ export default function ColorPicker({ editor }: { editor: Editor }) {
           >
             <div className="picker-heading">
               <Popover.Title>Text appearance</Popover.Title>
-              <Popover.Close
+              <Popover.Close data-slot="popover-close"
                 className="admin-icon-button"
                 aria-label="Close text appearance"
               >
@@ -156,7 +157,7 @@ export default function ColorPicker({ editor }: { editor: Editor }) {
                   }
                   maxLength={7}
                   onChange={(e) =>
-                    setHex({ base: selected, value: e.target.value })
+                    setHex({ base: selected, value: e.target.value, edited: true })
                   }
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -172,6 +173,10 @@ export default function ColorPicker({ editor }: { editor: Editor }) {
                     }
                   }}
                   onBlur={(e) => {
+                    // Only a value that was typed here is applied: tabbing
+                    // through the field must not paint the default grey onto
+                    // text that had no colour.
+                    if (hex.base !== selected || !hex.edited) return;
                     const color = textColor(e.target.value);
                     if (color) {
                       apply(color);
@@ -201,14 +206,14 @@ export default function ColorPicker({ editor }: { editor: Editor }) {
                 className="admin-button admin-button-quiet"
                 onClick={() => {
                   format(null);
-                  setHex({ base: null, value: "#52525b" });
+                  setHex({ base: null, value: "#52525b", edited: false });
                   setError("");
                 }}
               >
                 <ArrowCounterClockwise size={14} />
                 Reset
               </button>
-              <Popover.Close className="admin-button admin-button-primary">
+              <Popover.Close data-slot="popover-close" className="admin-button admin-button-primary">
                 Done
               </Popover.Close>
             </div>

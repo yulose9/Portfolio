@@ -115,7 +115,8 @@ export default function DeployPill({ deploy, onDismiss }: { deploy: Deploy; onDi
         <circle cx="8" cy="8" r="6" pathLength="100" className="deploy-ring-fill" style={{ strokeDashoffset: 100 - progress * 100 }} />
       </svg>
       Deploying
-      <span className="deploy-time">{label}</span>
+      {/* The countdown ticks every second; it is for eyes, not announced. */}
+      <span className="deploy-time" aria-hidden="true">{label}</span>
     </span>
   );
 }

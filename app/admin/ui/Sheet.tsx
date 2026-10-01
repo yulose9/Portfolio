@@ -16,6 +16,7 @@ export default function Sheet({
   variant = "side",
   className = "",
   finalFocus,
+  dismissible = true,
   children,
 }: {
   open: boolean;
@@ -25,10 +26,16 @@ export default function Sheet({
   variant?: "side" | "center";
   className?: string;
   finalFocus?: React.ComponentProps<typeof Dialog.Popup>["finalFocus"];
+  /**
+   * False for a choice that has to be made (recovering unsaved work): no ✕,
+   * and Escape or a click outside does nothing, rather than a close button
+   * that silently refuses.
+   */
+  dismissible?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <Dialog.Root open={open} onOpenChange={(next) => !next && onClose()}>
+    <Dialog.Root open={open} disablePointerDismissal={!dismissible} onOpenChange={(next) => !next && dismissible && onClose()}>
       <Dialog.Portal>
         <Dialog.Backdrop className="sheet-backdrop" data-variant={variant} />
         <Dialog.Popup className={`sheet ${className}`} data-variant={variant} finalFocus={finalFocus}>
@@ -37,9 +44,11 @@ export default function Sheet({
               <Dialog.Title className="sheet-title">{title}</Dialog.Title>
               {description ? <Dialog.Description className="sheet-description">{description}</Dialog.Description> : null}
             </div>
-            <Dialog.Close className="admin-icon-button" aria-label="Close">
-              <X size={14} weight="bold" />
-            </Dialog.Close>
+            {dismissible ? (
+              <Dialog.Close data-slot="sheet-close" className="admin-icon-button" aria-label="Close">
+                <X size={14} weight="bold" />
+              </Dialog.Close>
+            ) : null}
           </header>
           <div className="sheet-body">{children}</div>
         </Dialog.Popup>

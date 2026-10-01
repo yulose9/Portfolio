@@ -70,6 +70,15 @@ export default function AudioPlayer({ src, title }: { src: string; title?: strin
     const r = e.currentTarget.getBoundingClientRect();
     a.currentTime = Math.min(duration, Math.max(0, ((e.clientX - r.left) / r.width) * duration));
   };
+  // Press and drag scrubs: the bar keeps the pointer until it is let go.
+  const startSeek = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    seek(e);
+  };
+  const dragSeek = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) seek(e);
+  };
 
   const progress = duration ? time / duration : 0;
   const shown = bars ?? Array.from({ length: BARS }, () => 0.18);
@@ -101,13 +110,26 @@ export default function AudioPlayer({ src, title }: { src: string; title?: strin
         aria-valuemax={Math.round(duration)}
         aria-valuenow={Math.round(time)}
         aria-valuetext={`${formatDuration(time)} of ${formatDuration(duration)}`}
-        onPointerDown={seek}
+        onPointerDown={startSeek}
+        onPointerMove={dragSeek}
         onKeyDown={(e) => {
           const a = audio.current;
           if (!a) return;
-          if (e.key === "ArrowRight") a.currentTime = Math.min(duration, a.currentTime + 5);
-          if (e.key === "ArrowLeft") a.currentTime = Math.max(0, a.currentTime - 5);
-          if (e.key === " " || e.key === "Enter") {
+          // The slider keys: arrows step 5s, Page keys 30s, Home/End the ends.
+          const to: Record<string, number> = {
+            ArrowRight: a.currentTime + 5,
+            ArrowUp: a.currentTime + 5,
+            ArrowLeft: a.currentTime - 5,
+            ArrowDown: a.currentTime - 5,
+            PageUp: a.currentTime + 30,
+            PageDown: a.currentTime - 30,
+            Home: 0,
+            End: duration,
+          };
+          if (e.key in to) {
+            e.preventDefault();
+            a.currentTime = Math.min(duration, Math.max(0, to[e.key]));
+          } else if (e.key === " " || e.key === "Enter") {
             e.preventDefault();
             toggle();
           }

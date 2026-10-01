@@ -36,7 +36,7 @@ function LogoView({node, updateAttributes, deleteNode}: NodeViewProps) {
           <button className="admin-button" type="submit">Apply link</button>
         </form>
         <p role="status">{busy ? "Preparing logo…" : error || "The logo follows the surrounding text size."}</p>
-        <div className="session-actions"><button type="button" className="admin-button" disabled={busy} onClick={deleteNode}>Remove</button><Popover.Close className="admin-button">Done</Popover.Close></div>
+        <div className="session-actions"><button type="button" className="admin-button" disabled={busy} onClick={deleteNode}>Remove</button><Popover.Close data-slot="popover-close" className="admin-button">Done</Popover.Close></div>
       </Popover.Popup></Popover.Positioner></Popover.Portal>
     </Popover.Root>
   </NodeViewWrapper>;

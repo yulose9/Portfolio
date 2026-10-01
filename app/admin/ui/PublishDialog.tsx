@@ -6,7 +6,7 @@ import { useState,useEffect } from "react";
 import { isValidSlug } from "../../../cms/format";
 import { toast } from "../../lib/toast";
 import { api, ApiError, type Draft } from "./api";
-import { exactTime, PageSwitch } from "./bits";
+import { exactTime, PageSwitch, onRadioKeys } from "./bits";
 import type { Meta } from "./Editor";
 import DateTimePicker from "./DateTimePicker";
 import Sheet from "./Sheet";
@@ -164,6 +164,7 @@ export default function PublishDialog({
             <span className="publish-check-icon" aria-hidden="true">
               {c.ok ? <Check size={12} weight="bold" /> : <Warning size={12} weight="bold" />}
             </span>
+            <span className="sr-only">{c.ok ? "Passed: " : c.blocking ? "Blocking: " : "Needs attention: "}</span>
             <span>{c.label}</span>
             {!c.ok && c.hint ? <span className="publish-check-hint">{c.hint}</span> : null}
           </li>
@@ -172,11 +173,11 @@ export default function PublishDialog({
 
       {!live ? (
         <div className="publish-when">
-          <div className="admin-segments" role="radiogroup" aria-label="When">
-            <button type="button" role="radio" aria-checked={when === "now"} className="admin-segment" onClick={() => setWhen("now")}>
+          <div className="admin-segments" onKeyDown={onRadioKeys} role="radiogroup" aria-label="When">
+            <button type="button" role="radio" aria-checked={when === "now"} tabIndex={when === "now" ? 0 : -1} className="admin-segment" onClick={() => setWhen("now")}>
               Now
             </button>
-            <button type="button" role="radio" aria-checked={when === "later"} className="admin-segment" onClick={() => setWhen("later")}>
+            <button type="button" role="radio" aria-checked={when === "later"} tabIndex={when === "later" ? 0 : -1} className="admin-segment" onClick={() => setWhen("later")}>
               Later
             </button>
           </div>

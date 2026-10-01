@@ -68,7 +68,7 @@ export default function SessionGuard() {
           <Dialog.Title className="sheet-title">Time to sign in again</Dialog.Title>
           <Dialog.Description>Your Cloudflare Access session is ending. This editor will stay open until you choose to sign in again.</Dialog.Description>
           <p role="status">{message}</p>
-          <div className="session-actions"><Dialog.Close className="admin-button" disabled={busy}>Stay here</Dialog.Close>
+          <div className="session-actions"><Dialog.Close data-slot="dialog-close" className="admin-button" disabled={busy}>Stay here</Dialog.Close>
             <button type="button" className="admin-button admin-button-primary" disabled={busy} onClick={() => void signIn()}>{busy ? "Saving…" : "Okay, sign in again"}</button></div>
         </div>
       </Dialog.Popup>

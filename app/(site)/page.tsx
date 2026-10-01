@@ -5,6 +5,7 @@ import LocalTime from "../components/LocalTime";
 import TabbedIndex from "../components/TabbedIndex";
 import { buildTimeCommit } from "../last-commit";
 import ToolRow from "../components/ToolRow";
+import { SoundToggle } from "../components/ui/sound";
 import type { Metadata } from "next";
 
 import { FEED, homeGraph, jsonLd } from "../constants/seo";
@@ -55,7 +56,7 @@ export default async function Page() {
         off deliberately — the Figma frame is desktop-only, and a 512px floor
         would force a horizontal scrollbar on every phone.
       */}
-      <main
+      <main id="main" tabIndex={-1}
         // Cursor positions are normalised against this element, so a peer
         // lands on the same word regardless of their viewport width.
         data-cursor-frame
@@ -99,8 +100,12 @@ export default async function Page() {
         */}
         <footer className="footer-gap mt-24 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
           <LocalTime />
-          {/* Read during the build; refreshed from GitHub on the client. */}
-          <LastUpdated initial={commit} />
+          <div className="flex items-center gap-2">
+            {/* Read during the build; refreshed from GitHub on the client. */}
+            <LastUpdated initial={commit} />
+            {/* The one place the page offers its sound switch: with the other facts about the page. */}
+            <SoundToggle className="-my-1 -mr-1.5 self-center" />
+          </div>
         </footer>
       </main>
       </div>

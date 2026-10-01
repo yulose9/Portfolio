@@ -50,7 +50,7 @@ export function HeadingIconPicker({
           >
             <div className="picker-heading">
               <Popover.Title>Heading icon</Popover.Title>
-              <Popover.Close
+              <Popover.Close data-slot="popover-close"
                 className="admin-icon-button"
                 aria-label="Close heading icon"
                 disabled={busy}

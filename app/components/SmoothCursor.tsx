@@ -115,7 +115,11 @@ export default function SmoothCursor() {
      */
     const onOut = (event: PointerEvent) => {
       if (event.pointerType === "touch") return;
-      if (event.relatedTarget === null) {
+      // Into an iframe (a YouTube or Threads embed) counts as leaving too: the
+      // page stops hearing the pointer there, and the embed draws the native
+      // one, so a frozen drawn cursor at its edge would be a second pointer.
+      const into = event.relatedTarget as Element | null;
+      if (into === null || into.tagName === "IFRAME") {
         nodeRef.current?.style.setProperty("opacity", "0");
       }
     };
@@ -154,7 +158,8 @@ export default function SmoothCursor() {
     };
 
     const start = () => {
-      if (listening || !media.matches || calm.matches) return;
+      // In forced colours the visitor's own (often enlarged) pointer stays.
+      if (listening || !media.matches || calm.matches || window.matchMedia("(forced-colors: active)").matches) return;
       listening = true;
       document.documentElement.classList.add("has-smooth-cursor");
       window.addEventListener("pointermove", onMove, { passive: true });

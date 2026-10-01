@@ -13,6 +13,7 @@ import { Avatars, joinNames, named } from "../../components/writing/Byline";
 import { toast } from "../../lib/toast";
 import { mediaName, newMediaId } from "../../../cms/media";
 import { api, ApiError } from "./api";
+import { onRadioKeys } from "./bits";
 import { shareImage, squareImage } from "./media";
 import { EmojiPicker, Fluent } from "./extensions/emoji";
 
@@ -114,13 +115,14 @@ function AuthorRow({ author, onChange, onRemove }: { author: Author; onChange: (
       <div className="author-fields">
         <input value={author.name} onChange={(e) => onChange({ ...author, name: e.target.value })} placeholder="Name (optional)" aria-label="Author name" />
         {parseGenerated(author.avatar) ? (
-          <div className="avatar-styles" role="radiogroup" aria-label="Avatar style">
+          <div className="avatar-styles" onKeyDown={onRadioKeys} role="radiogroup" aria-label="Avatar style">
             {AVATAR_STYLES.map((style) => (
               <button
                 key={style}
                 type="button"
                 role="radio"
                 aria-checked={parseGenerated(author.avatar)?.style === style}
+                tabIndex={parseGenerated(author.avatar)?.style === style ? 0 : -1}
                 aria-label={style}
                 title={style}
                 className="avatar-style"
