@@ -1995,6 +1995,19 @@ html.has-smooth-cursor [contenteditable] {
   }
 }
 
+/*
+ * Paused from the page's menu (WCAG 2.2.2: anything that moves on its own can
+ * be stopped). Same stillness as reduced motion, except a pet still gets its
+ * happy wiggle: that motion answers the visitor, it doesn't run by itself.
+ */
+.shiba[data-still]:not([data-happy]) *,
+.shiba[data-still][data-mood]:not([data-happy]) * {
+  animation: none !important;
+}
+.shiba[data-still][data-mood="asleep"] .shiba-z1 {
+  opacity: 1;
+}
+
 /* Content timestamps share the existing quiet tooltip surface. */
 .updated-at { display: inline-block; font-size: 12px; font-weight: 400; line-height: 1.5; color: #71717a; border-radius: 4px; font-variant-numeric: tabular-nums; }
 .updated-at:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }

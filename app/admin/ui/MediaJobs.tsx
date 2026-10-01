@@ -14,6 +14,17 @@ import {
 import { beginPendingWork } from "./session";
 
 const running = new Set<string>();
+
+/*
+ * One place for upload progress. Body media is journaled and shows here as a
+ * job; the cover and voice notes upload directly, so they report here too,
+ * through this event, as a plain progress row. Outcomes still raise a toast.
+ */
+export const UPLOAD_PROGRESS_EVENT = "admin:upload-progress";
+export type UploadProgress = { id: string; name: string; label?: string; done?: boolean };
+export function reportUpload(detail: UploadProgress) {
+  window.dispatchEvent(new CustomEvent<UploadProgress>(UPLOAD_PROGRESS_EVENT, { detail }));
+}
 export function uploadedNode(up: Uploaded, name: string, blockId?: string) {
   const attrs = { blockId, src: up.src };
   if (up.kind === "image")
@@ -59,6 +70,17 @@ export default function MediaJobs({
     [progress, setProgress] = useState("");
   const controller = useRef<AbortController | null>(null);
   useEffect(() => () => controller.current?.abort(), []);
+  const [direct, setDirect] = useState<UploadProgress[]>([]);
+  useEffect(() => {
+    const onProgress = (event: Event) => {
+      const next = (event as CustomEvent<UploadProgress>).detail;
+      setDirect((rows) =>
+        next.done ? rows.filter((r) => r.id !== next.id) : rows.some((r) => r.id === next.id) ? rows.map((r) => (r.id === next.id ? next : r)) : [...rows, next],
+      );
+    };
+    window.addEventListener(UPLOAD_PROGRESS_EVENT, onProgress);
+    return () => window.removeEventListener(UPLOAD_PROGRESS_EVENT, onProgress);
+  }, []);
   useEffect(() => {
     let live = true;
     const load = () => {
@@ -231,7 +253,7 @@ export default function MediaJobs({
       if (present) void runRef.current(job);
     }
   }, [jobs, busy, editor, enabled]);
-  if (!jobs.length && !error) return null;
+  if (!jobs.length && !error && !direct.length) return null;
   return (
     <section className="media-jobs" aria-label="Media uploads">
       <h2>Media uploads</h2>
@@ -240,6 +262,14 @@ export default function MediaJobs({
         resume here after signing in.
       </p>
       {error ? <p role="alert">{error}</p> : null}
+      {direct.map((row) => (
+        <div className="media-job" key={row.id}>
+          <span>
+            <strong>{row.name}</strong>
+            <small>{row.label ?? "Preparing…"}</small>
+          </span>
+        </div>
+      ))}
       {jobs.map((job) => (
         <div className="media-job" key={job.id}>
           <span>

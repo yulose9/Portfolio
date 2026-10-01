@@ -9,7 +9,7 @@ import {
 } from "@phosphor-icons/react";
 import Sheet from "./Sheet";
 import { api } from "./api";
-import { uploadMedia } from "./media";
+import { uploadMedia, ACCEPT } from "./media";
 import { beginPendingWork } from "./session";
 import { assetIdentity } from "../../../cms/media-library";
 export type Asset = {
@@ -182,15 +182,22 @@ export default function MediaLibrary({
           <input
             type="file"
             className="sr-only"
-            aria-label="Upload media"
-            accept="image/*,video/*,audio/*"
+            aria-label="Upload media (one or more files)"
+            accept={ACCEPT}
+            multiple
             disabled={busy}
             onChange={(e) => {
-              const file = e.target.files?.[0];
+              // Several at once, one after another: each one's progress
+              // reads "2 of 5 · Uploading…", and a failure stops the rest
+              // with what it was.
+              const files = [...(e.target.files ?? [])];
               e.target.value = "";
-              if (file)
+              if (files.length)
                 void perform(async () => {
-                  await uploadMedia(file, (_, label) => setProgress(label));
+                  for (const [i, file] of files.entries()) {
+                    const of = files.length > 1 ? `${i + 1} of ${files.length} · ` : "";
+                    await uploadMedia(file, (_, label) => setProgress(`${of}${label}`));
+                  }
                   await refresh();
                 });
             }}

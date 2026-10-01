@@ -284,6 +284,9 @@ export async function uploadAudio(file: Blob, progress: Progress, voice = true, 
 }
 
 /** Any file → compressed, stripped, uploaded. */
+/** What any picker in the admin accepts: images (HEIC included, converted on the way), video, audio. */
+export const ACCEPT = "image/*,video/*,audio/*,.heic,.heif";
+
 export async function uploadMedia(file: File, progress: Progress = () => {}, id = newMediaId(), options: UploadOptions = {}): Promise<Uploaded> {
   const kind = kindOf(file);
   if (!kind) throw new ApiError("That file type can't be added. Try a photo, GIF, video or audio file.", 415);

@@ -260,16 +260,23 @@ export default {
     }
 
     /*
-     * One room for the whole site, on purpose.
+     * One room per page.
      *
-     * "One global object" is the usual Durable Objects anti-pattern, but the
-     * unit of coordination here genuinely is the site: everyone on the page
-     * must see everyone else. Sharding would split visitors who should meet.
-     * The 64-socket cap keeps this one object far inside its throughput.
+     * Positions are normalised to the page's own text column, so a cursor
+     * from /writing/a drawn on the home page lands on unrelated content. The
+     * client names its page in ?room=; each page path gets its own object,
+     * and everyone on that page still meets everyone else there. A client
+     * that sends no room (an older build) gets the original site-wide room.
+     *
+     * The name is the path itself, checked: a short, plain path or nothing,
+     * so nobody can mint arbitrary objects with junk names.
      *
      * fetch() rather than RPC because a WebSocket upgrade has to be an HTTP
-     * request; getByName is deterministic, so every visitor lands here.
+     * request; getByName is deterministic, so every visitor to a page lands
+     * in the same object.
      */
-    return env.CURSOR_ROOM.getByName("portfolio").fetch(request);
+    const room = url.searchParams.get("room");
+    const page = room && /^\/[a-z0-9\-/]{0,120}$/.test(room) ? room.replace(/\/+$/, "") || "/" : null;
+    return env.CURSOR_ROOM.getByName(page ? `page:${page}` : "portfolio").fetch(request);
   },
 };

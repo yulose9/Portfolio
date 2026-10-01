@@ -484,3 +484,14 @@ html:not(.has-smooth-cursor) .article-page a[href] * { cursor: pointer; }
 .article-body :is(h2, h3, h4)[tabindex="-1"]:focus {
   outline: none;
 }
+
+/*
+ * The contents render open (so a desktop rail and a no-script page are
+ * complete), and script closes them on narrower screens. Until it has, keep
+ * the list out of sight there, so a phone never sees it flash open and shut.
+ */
+@media (scripting: enabled) and (max-width: 1439px) {
+  .toc details:not([data-ready]) > ol {
+    display: none;
+  }
+}

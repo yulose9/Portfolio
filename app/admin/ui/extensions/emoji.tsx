@@ -100,7 +100,21 @@ export function EmojiPicker({ onPick, onRemove }: { onPick: (emoji: string) => v
   return (
     <div className="emoji-picker">
       <div className="emoji-picker-top">
-        <input ref={input} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search emoji" aria-label="Search emoji" />
+        <input
+          ref={input}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          // Down from the search lands on the first result.
+          onKeyDown={(e) => {
+            if (e.key !== "ArrowDown") return;
+            const first = e.currentTarget.closest(".emoji-picker")?.querySelector<HTMLButtonElement>(".emoji-scroll .emoji-cell");
+            if (!first) return;
+            e.preventDefault();
+            first.focus();
+          }}
+          placeholder="Search emoji"
+          aria-label="Search emoji"
+        />
         {onRemove ? (
           <button type="button" className="admin-chip" onClick={onRemove}>
             Remove
@@ -110,9 +124,9 @@ export function EmojiPicker({ onPick, onRemove }: { onPick: (emoji: string) => v
       {!query && recent.length ? (
         <div className="emoji-section">
           <p className="emoji-section-title">Recent</p>
-          <div className="emoji-grid">
-            {recent.map((e) => (
-              <button key={e} type="button" className="emoji-cell" onClick={() => pick(e)} aria-label={e}>
+          <div className="emoji-grid" role="group" aria-label="Recent emoji" onKeyDown={onGridKeys}>
+            {recent.map((e, i) => (
+              <button key={e} type="button" className="emoji-cell" tabIndex={i === 0 ? 0 : -1} onClick={() => pick(e)} aria-label={e}>
                 <Fluent emoji={e} />
               </button>
             ))}
@@ -124,9 +138,9 @@ export function EmojiPicker({ onPick, onRemove }: { onPick: (emoji: string) => v
         {rows === null ? (
           <p className="emoji-empty">Loading…</p>
         ) : shown.length ? (
-          <div className="emoji-grid">
-            {shown.map((r) => (
-              <button key={r[0]} type="button" className="emoji-cell" title={r[1]} onClick={() => pick(r[0])} aria-label={r[1]}>
+          <div className="emoji-grid" role="group" aria-label="Emoji" onKeyDown={onGridKeys}>
+            {shown.map((r, i) => (
+              <button key={r[0]} type="button" className="emoji-cell" tabIndex={i === 0 ? 0 : -1} title={r[1]} onClick={() => pick(r[0])} aria-label={r[1]}>
                 <Fluent emoji={r[0]} />
               </button>
             ))}
@@ -146,6 +160,31 @@ export function EmojiPicker({ onPick, onRemove }: { onPick: (emoji: string) => v
       ) : null}
     </div>
   );
+}
+
+/**
+ * Arrow keys inside an emoji grid: one Tab stop for the whole grid, arrows
+ * to move (Up/Down by a row, counted from the layout), Home/End for the ends.
+ * The focused cell becomes the grid's Tab stop, so Tab out and back returns
+ * to it.
+ */
+function onGridKeys(event: React.KeyboardEvent<HTMLElement>) {
+  const cells = [...event.currentTarget.querySelectorAll<HTMLButtonElement>(".emoji-cell")];
+  const at = cells.indexOf(document.activeElement as HTMLButtonElement);
+  if (at < 0) return;
+  const top = cells[0].offsetTop;
+  const columns = Math.max(1, cells.findIndex((c) => c.offsetTop !== top) === -1 ? cells.length : cells.findIndex((c) => c.offsetTop !== top));
+  const move: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -columns, ArrowDown: columns };
+  let next = at;
+  if (event.key in move) next = at + move[event.key];
+  else if (event.key === "Home") next = 0;
+  else if (event.key === "End") next = cells.length - 1;
+  else return;
+  event.preventDefault();
+  if (next < 0 || next >= cells.length) return;
+  cells[at].tabIndex = -1;
+  cells[next].tabIndex = 0;
+  cells[next].focus();
 }
 
 /* ── ":" autocomplete ────────────────────────────────────────────────── */

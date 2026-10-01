@@ -17,6 +17,8 @@ export default function Toc({ items }: { items: OutlineItem[] }) {
     const wide = viewport.matchMedia("(min-width: 1440px)");
     const sync = () => { if (disclosure.current) disclosure.current.open = wide.matches; };
     sync();
+    // Settled: the CSS that held the list hidden until now can let go.
+    disclosure.current?.setAttribute("data-ready", "");
     const doc=disclosure.current!.ownerDocument;
     let frame=0;
     const update=()=>{

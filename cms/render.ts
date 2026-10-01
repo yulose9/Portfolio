@@ -238,11 +238,17 @@ function rehypeEditorial(options: { resolvePage?: PageResolver } = {}) {
         }
 
         // Headings get a link to themselves, the way Notion and Obsidian do.
+        // The text is wrapped and named as the heading's label, so a screen
+        // reader hears "Results", not "Results, Link to this section": the #
+        // link stays its own, separately focusable control.
         if ((node.tagName === "h2" || node.tagName === "h3" || node.tagName === "h4") && node.properties?.id) {
           walk(node, literal);
-          node.children.push(
-            el("a", { href: `#${node.properties.id}`, className: ["heading-anchor"], ariaLabel: "Link to this section" }, [{ type: "text", value: "#" }])
-          );
+          const textId = `${node.properties.id}-text`;
+          node.children = [
+            el("span", { id: textId, className: ["heading-text"] }, node.children),
+            el("a", { href: `#${node.properties.id}`, className: ["heading-anchor"], ariaLabel: "Link to this section" }, [{ type: "text", value: "#" }]),
+          ];
+          node.properties.ariaLabelledBy = [textId];
           continue;
         }
 
@@ -373,12 +379,15 @@ export function outline(tree: Root): OutlineItem[] {
     for (const k of n.children) {
       if (!isEl(k)) continue;
       if ((k.tagName === "h2" || k.tagName === "h3") && k.properties?.id) {
-        const text = k.children
+        // The heading's own words live in .heading-text once decorated.
+        const wrapped = k.children.find((c) => isEl(c) && (c.properties?.className as string[] | undefined)?.includes("heading-text")) as Element | undefined;
+        const parts = wrapped ? wrapped.children : k.children;
+        const text = parts
           .filter((c) => !(isEl(c) && (c.properties?.className as string[] | undefined)?.some(c => c === "heading-anchor" || c === "heading-icon")))
           .map(textOf)
           .join("")
           .trim();
-        const glyph=k.children.find(c=>isEl(c)&&typeof c.properties.dataHeadingIcon==="string") as Element|undefined;
+        const glyph=parts.find(c=>isEl(c)&&typeof c.properties.dataHeadingIcon==="string") as Element|undefined;
         out.push({ icon:glyph?decodeLogoLabel(String(glyph.properties.dataHeadingIcon)):undefined, id: String(k.properties.id), text, depth: k.tagName === "h2" ? 2 : 3 });
       } else walk(k);
     }

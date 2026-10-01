@@ -43,9 +43,40 @@ function getServerSnapshot(): Mood | null {
 
 const HAPPY_MS = 1600;
 
+/** The visitor's switch, from the page's right-click menu: keep the dog still. */
+const STILL_KEY = "nazarene-shiba-still";
+const STILL_EVENT = "shiba:still";
+
+function subscribeStill(onChange: () => void) {
+  window.addEventListener(STILL_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(STILL_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
+export function shibaStill() {
+  try {
+    return localStorage.getItem(STILL_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function setShibaStill(still: boolean) {
+  try {
+    localStorage.setItem(STILL_KEY, still ? "1" : "0");
+  } catch {
+    /* lasts the visit */
+  }
+  window.dispatchEvent(new Event(STILL_EVENT));
+}
+
 export default function ShibaPet() {
   const mood = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const [happy, setHappy] = useState(false);
+  const still = useSyncExternalStore(subscribeStill, shibaStill, () => false);
   const timer = useRef<number | undefined>(undefined);
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
@@ -65,6 +96,7 @@ export default function ShibaPet() {
       className="shiba"
       data-mood={mood ?? undefined}
       data-happy={happy || undefined}
+      data-still={still || undefined}
       data-sound={mood === "awake" ? "chirp" : undefined}
       aria-label={mood === "asleep" ? "A shiba inu, asleep" : "Pet the shiba inu"}
       aria-disabled={mood === "asleep" || undefined}

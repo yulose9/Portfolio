@@ -5,6 +5,7 @@ import {
   Code,
   Copy,
   Cursor,
+  PawPrint,
   EnvelopeSimple,
   LinkSimple,
   MagnifyingGlass,
@@ -12,6 +13,7 @@ import {
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { peersHidden, setPeersHidden } from "../PeerCursors";
+import { setShibaStill, shibaStill } from "../ShibaPet";
 import { Menu, MenuItem, MenuLabel, MenuSeparator } from "./ContextMenu";
 import { LINKS, copy, currentSelection, openEmail, openUrl, searchWeb } from "./actions";
 
@@ -35,6 +37,7 @@ export default function PageMenu({ children }: { children: ReactNode }) {
   // had: right-clicking a link here still offers to open or copy it.
   const [link, setLink] = useState<string | null>(null);
   const [hidePeers, setHidePeers] = useState(false);
+  const [still, setStill] = useState(false);
   const pointed = useRef<string | null>(null);
 
   useEffect(() => {
@@ -53,6 +56,7 @@ export default function PageMenu({ children }: { children: ReactNode }) {
         setSelection(currentSelection());
         setLink(pointed.current);
         setHidePeers(peersHidden());
+        setStill(shibaStill());
       }}
       trigger={children}
     >
@@ -114,6 +118,10 @@ export default function PageMenu({ children }: { children: ReactNode }) {
       {/* Other visitors' pointers move on their own; this is how to stop that. */}
       <MenuItem icon={<Cursor size={ICON} />} onClick={() => setPeersHidden(!hidePeers)}>
         {hidePeers ? "Show other visitors’ cursors" : "Hide other visitors’ cursors"}
+      </MenuItem>
+      {/* The Shiba idles forever (wags, blinks, glances); this keeps it still. */}
+      <MenuItem icon={<PawPrint size={ICON} />} onClick={() => setShibaStill(!still)}>
+        {still ? "Let the Shiba move" : "Keep the Shiba still"}
       </MenuItem>
     </Menu>
   );

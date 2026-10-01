@@ -84,7 +84,7 @@ import { keys, MenuSurface, MItem, MLabel } from "./menu";
 import { Outline } from "./Outline";
 import { Embed } from "./extensions/EmbedView";
 import { Media } from "./extensions/MediaView";
-import { kindOf, uploadAudio, uploadMedia, type Uploaded } from "./media";
+import { kindOf, uploadAudio, uploadMedia, type Uploaded, ACCEPT } from "./media";
 import { cleanPastedHtml, htmlIsWrappedMarkdown, looksLikeMarkdown, proseToParagraphs } from "./paste";
 import VoiceRecorder from "./VoiceRecorder";
 import { forgetLinkTargets, PostLinks } from "./extensions/links";
@@ -98,7 +98,7 @@ import PreviewSheet, { PageView } from "./PreviewSheet";
 import TagsInline from "./TagsInline";
 import Sheet from "./Sheet";
 import ResearchPanel from "./ResearchPanel";
-import MediaJobs from "./MediaJobs";
+import MediaJobs, { reportUpload } from "./MediaJobs";
 import MediaLibrary from "./MediaLibrary";
 import {useShortcuts, shortcutLabel } from "./shortcuts";
 import PageLocation from "./PageLocation";
@@ -208,23 +208,30 @@ const openEmojiPicker = () => window.dispatchEvent(new Event(EMOJI_EVENT));
 const openRecorder = () => window.dispatchEvent(new Event(VOICE_EVENT));
 const SLASH_ITEMS: SlashItem[] = slashItems(openBodyPicker, openEmojiPicker, openRecorder);
 
-const ACCEPT = "image/*,video/*,audio/*,.heic,.heif";
 /** Photos, GIFs, video and audio: anything the uploader can compress. */
 const mediaFiles = (list: FileList | null | undefined) => Array.from(list ?? []).filter((f) => kindOf(f) !== null);
 const imageFiles = (list: FileList | null | undefined) => mediaFiles(list).filter((f) => kindOf(f) === "image");
 
-/** An upload with a toast that shows how far along it is, then what happened. */
+/**
+ * A direct upload (cover, voice note). Its progress shows in the Media uploads
+ * panel beside body media, so every upload reports in one place; what
+ * happened is a toast.
+ */
 async function withProgress(label: string, run: (progress: (f: number, text: string) => void) => Promise<Uploaded>): Promise<Uploaded | null> {
   const finish = beginPendingWork();
-  const id = toast.add({ type: "loading", title: label, description: "Preparing…", timeout: 0 });
+  const id = `direct-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  reportUpload({ id, name: label });
   try {
-    const result = await run((f, text) => toast.update(id, { description: `${text} · ${Math.round(f * 100)}%` }));
-    toast.update(id, { type: "success", title: result.kind === "image" ? "Image added" : result.kind === "video" ? "Video added" : "Audio added", description: "Compressed and stripped of metadata.", timeout: 2200 });
+    const result = await run((f, text) => reportUpload({ id, name: label, label: `${text} · ${Math.round(f * 100)}%` }));
+    toast.add({ type: "success", title: result.kind === "image" ? "Image added" : result.kind === "video" ? "Video added" : "Audio added", description: "Compressed and stripped of metadata.", timeout: 2200 });
     return result;
   } catch (error) {
-    toast.update(id, { type: "error", title: "Upload failed", description: error instanceof Error ? error.message : undefined, timeout: 5000 });
+    toast.add({ type: "error", title: "Upload failed", description: error instanceof Error ? error.message : undefined });
     return null;
-  } finally { finish(); }
+  } finally {
+    reportUpload({ id, name: label, done: true });
+    finish();
+  }
 }
 
 /** Where an upload lands in the document. */

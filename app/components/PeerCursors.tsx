@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 // Type-only, so it is erased at build and the library stays a lazy chunk.
 import type ReconnectingWebSocket from "partysocket/ws";
@@ -87,7 +88,18 @@ type Peer = {
  * Off entirely without a fine pointer: a touch visitor has no cursor to
  * broadcast, and would be paying for a connection they cannot participate in.
  */
+/** The page's room: its path, as the worker accepts it ("/", "/writing/a"). */
+function roomFor(pathname: string) {
+  const path = pathname.toLowerCase().replace(/\.html$/, "").replace(/\/+$/, "") || "/";
+  return /^\/[a-z0-9\-/]{0,120}$/.test(path) ? path : "/";
+}
+
 export default function PeerCursors() {
+  // Each page is its own room: positions are relative to that page's column,
+  // so only people on the same page should meet. A new page, a new room.
+  const pathname = usePathname() ?? "/";
+  const room = roomFor(pathname);
+
   useEffect(() => {
     if (!ENDPOINT) return;
 
@@ -283,7 +295,9 @@ export default function PeerCursors() {
       const { default: Socket } = await import("partysocket/ws");
       if (disposed) return;
 
-      const ws = new Socket(ENDPOINT!, [], {
+      const endpoint = new URL(ENDPOINT!);
+      endpoint.searchParams.set("room", room);
+      const ws = new Socket(endpoint.toString(), [], {
         // Positions are worthless the moment a newer one exists, so nothing is
         // held while offline to be flushed on reconnect.
         maxEnqueuedMessages: 0,
@@ -323,7 +337,7 @@ export default function PeerCursors() {
       socket?.close();
       layer.remove();
     };
-  }, []);
+  }, [room]);
 
   return null;
 }
