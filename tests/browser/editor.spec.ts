@@ -1182,3 +1182,46 @@ test("editable shortcuts persist reject collisions and trigger their editor acti
     page.getByRole("search", { name: "Find and replace" }),
   ).toBeVisible();
 });
+
+test("reference discovery filters context and previews unlinked mentions", async ({ page }, info) => {
+  await page.route("**/api/admin/posts/*/references", route => route.fulfill({ json: {
+    incoming: [{ id: "123456789abc", title: "Linked source", icon: null, snippet: "Existing connection" }],
+    outgoing: [{ id: "mmmmmmmmmmmm", title: "Unavailable page", snippet: "Old reference", missing: true }],
+    unlinked: { total: 1, items: [{ id: "123456789abc", title: "Research notes", snippet: "Read Editor regression today.", start: 5, length: 17 }] },
+  } }));
+  await page.getByRole("button", { name: "Research and references", exact: true }).click();
+  const section = page.getByRole("region", { name: "Unlinked mentions", exact: true });
+  await expect(section.locator("mark")).toHaveText("Editor regression");
+  await expect(page.getByRole("button", { name: /Unavailable page.*Unavailable reference/ })).toBeDisabled();
+  await page.getByLabel("Filter references", { exact: true }).fill("Research notes");
+  await expect(section.getByRole("button", { name: /Research notes/ })).toBeVisible();
+  await page.getByLabel("Show context", { exact: true }).uncheck();
+  await expect(section.locator("mark")).toBeHidden();
+  await page.screenshot({ path: info.outputPath("references.png"), fullPage: true });
+  await section.getByRole("button", { name: "Research notes", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Open editor in new tab" })).toBeVisible();
+  await page.getByRole("button", { name: "Return to writing", exact: true }).click();
+  await expect(page.getByLabel("Filter references")).toHaveValue("Research notes");
+});
+
+test("connections workspace distinguishes isolated pages and unavailable links", async ({ page }, info) => {
+  await page.route("**/api/admin/connections", route => route.fulfill({ json: { pages: [
+    { id, title: "Standalone essay", icon: null, incoming: 0, outgoing: 0, missing: 0 },
+    { id: "123456789abc", title: "Broken reference essay", icon: null, incoming: 0, outgoing: 1, missing: 1 },
+    { id: "cccccccccccc", title: "Connected essay", icon: null, incoming: 1, outgoing: 0, missing: 0 },
+  ] } }));
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Workspace", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Research", exact: true }).click();
+  await page.getByRole("combobox", { name: "Workspace view" }).click();
+  await page.getByRole("option", { name: "Connections", exact: true }).click();
+  const section = page.getByRole("region", { name: "Connections", exact: true });
+  await expect(section.getByRole("button", { name: /Standalone essay/ })).toBeVisible();
+  await expect(section.getByRole("button", { name: /Broken reference essay/ })).toHaveCount(0);
+  await section.getByRole("combobox", { name: "Connection view" }).click();
+  await page.getByRole("option", { name: "Broken references (1)", exact: true }).click();
+  await expect(section.getByRole("button", { name: /Broken reference essay/ })).toBeVisible();
+  await page.screenshot({ path: info.outputPath("connections.png"), fullPage: true });
+  await section.getByLabel("Filter pages").fill("absent");
+  await expect(section.getByText("No pages match this view.")).toBeVisible();
+});

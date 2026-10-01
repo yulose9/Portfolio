@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Sheet from "./Sheet";
 import ReviewQueue from "./ReviewQueue";
+import ConnectionWorkspace from "./ConnectionWorkspace";
 import { api, type PostSummary } from "./api";
 import {
   inCollection,
@@ -148,6 +149,7 @@ export default function ResearchWorkspace({
             options={[
               { value: "board", label: "Editorial board" },
               { value: "reviews", label: "Review queue" },
+              { value: "connections", label: "Connections" },
               { value: "calendar", label: "Publication calendar" },
               { value: "inbox", label: "Capture inbox" },
               { value: "templates", label: "Templates" },
@@ -330,6 +332,7 @@ export default function ResearchWorkspace({
             }
           />
         ) : null}
+        {open && loaded && view === "connections" ? <ConnectionWorkspace onOpen={(id) => navigate(id, "research")} /> : null}
         {loaded && view === "board" ? (
           <div className="research-board">
             {(["idea", "drafting", "review", "ready"] as const).map((status) => (

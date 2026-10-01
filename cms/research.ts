@@ -7,7 +7,8 @@ export type DocumentIndex = Pick<
   Draft,
   "id" | "title" | "dek" | "status" | "dirty" | "updatedAt" | "icon"
 > & {
-  version: 2;
+  version: 3;
+  mentionBlocks?: { text: string; blockId?: string }[];
   searchText?:string;
   searchTitle?:string;
   tags: string[];
@@ -74,7 +75,7 @@ export function indexDocument(d: Draft): DocumentIndex {
   }
   const bodyText=root ? text(root).replace(/\s+/g," ").trim() : readable(d.body);
   return {
-    version: 2,
+    version: 3,
     searchText:normalizeSearch(`${d.title} ${d.dek} ${bodyText}`),
     searchTitle:normalizeSearch(d.title),
     tags: d.tags,

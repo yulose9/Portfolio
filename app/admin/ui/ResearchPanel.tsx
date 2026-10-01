@@ -25,6 +25,7 @@ import {
 } from "@phosphor-icons/react";
 import { MenuSurface, MItem } from "./menu";
 import { diffWords } from "./diff";
+import ReferenceLists from "./ReferenceLists";
 
 export const PEEK_EVENT = "writing:peek";
 type Refs = Awaited<ReturnType<typeof api.references>>;
@@ -470,42 +471,7 @@ export default function ResearchPanel({
               </section>
             ) : null}
             {!refs && !error ? <p role="status">Loading references…</p> : null}
-            {refs
-              ? (["incoming", "outgoing"] as const).map((direction) => (
-                  <section
-                    className="research-reference-section"
-                    key={direction}
-                  >
-                    <h3>
-                      {direction === "incoming"
-                        ? "Pages linking here"
-                        : "Referenced pages"}
-                      <span className="research-count">
-                        {refs[direction].length}
-                      </span>
-                    </h3>
-                    {!refs?.[direction].length ? (
-                      <p className="research-empty">
-                        {direction === "incoming"
-                          ? "Mention this page with @ from another draft to connect your notes."
-                          : "Use @ to reference a page while writing."}
-                      </p>
-                    ) : (
-                      refs[direction].map((r, i) => (
-                        <button
-                          className="research-row"
-                          type="button"
-                          key={`${r.id}:${i}`}
-                          onClick={() => setPeek(r.id)}
-                        >
-                          <strong>{r.title || "Untitled"}</strong>
-                          <span>{r.snippet || "Page reference"}</span>
-                        </button>
-                      ))
-                    )}
-                  </section>
-                ))
-              : null}
+            {refs ? <ReferenceLists refs={refs} onPeek={setPeek} /> : null}
           </Tabs.Panel>
           {(["library", "review"] as const).map((section) => (
             <Tabs.Panel

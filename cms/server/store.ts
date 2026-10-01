@@ -14,6 +14,7 @@
 import { upgradeDraft, type Draft } from "../format";
 import { HttpError, ID } from "./http";
 import { indexDocument } from "../research";
+import { proseBlocks } from "./prose-index";
 import { applyParent, readHierarchy, type Hierarchy } from "./hierarchy";
 
 export type StoreEnv = { WRITING: R2Bucket };
@@ -27,7 +28,7 @@ const revPrefix = (id: string) => `drafts/${validId(id)}/rev/`;
 const marker = (id: string) => `scheduled/${validId(id)}`;
 
 async function cacheIndex(env:StoreEnv,draft:Draft) {
-  try {await env.WRITING.put(`indexes/private/${draft.id}.json`,JSON.stringify({...indexDocument(draft),deleted:Boolean(draft.trashedAt)}));}
+  try {await env.WRITING.put(`indexes/private/${draft.id}.json`,JSON.stringify({...indexDocument(draft),mentionBlocks:proseBlocks(draft),deleted:Boolean(draft.trashedAt)}));}
   catch { /* Disposable: researchIndex checks source versions and repairs misses. */ }
 }
 

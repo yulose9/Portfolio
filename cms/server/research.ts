@@ -3,6 +3,7 @@ import { indexDocument, type DocumentIndex } from "../research";
 import { livePosts, type CmsEnv } from "./publish";
 import { getDraft } from "./store";
 import { applyParent, readHierarchy } from "./hierarchy";
+import { proseBlocks } from "./prose-index";
 
 /** Per-document indexes are disposable: compare source versions and repair lazily. */
 export async function researchIndex(env: CmsEnv): Promise<DocumentIndex[]> {
@@ -33,13 +34,13 @@ export async function researchIndex(env: CmsEnv): Promise<DocumentIndex[]> {
         const value = cached
           ? await cached.json<DocumentIndex & { deleted?: boolean }>()
           : null;
-        if (value?.version === 2 && typeof value.searchText==="string" && key.updatedAt && value.updatedAt === key.updatedAt) {
+        if (value?.version === 3 && Array.isArray(value.mentionBlocks) && typeof value.searchText==="string" && key.updatedAt && value.updatedAt === key.updatedAt) {
           if (!value.deleted) rows.push(value);
           return;
         }
         const d = await getDraft(env, key.id,hierarchy);
         if (!d) return;
-        const index = { ...indexDocument(d), deleted: Boolean(d.trashedAt) };
+        const index = { ...indexDocument(d), mentionBlocks: proseBlocks(d), deleted: Boolean(d.trashedAt) };
         await env.WRITING.put(
           `indexes/private/${d.id}.json`,
           JSON.stringify(index),
@@ -49,6 +50,9 @@ export async function researchIndex(env: CmsEnv): Promise<DocumentIndex[]> {
     );
   const known = new Set(keys.map((k) => k.id));
   for (const p of await livePosts(env))
-    if (!known.has(p.id)) rows.push(indexDocument(postToDraft(p)));
+    if (!known.has(p.id)) {
+      const draft = postToDraft(p);
+      rows.push({ ...indexDocument(draft), mentionBlocks: proseBlocks(draft) });
+    }
   return rows.map(row=>applyParent(row,hierarchy));
 }

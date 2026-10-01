@@ -5,12 +5,14 @@ import {
 } from "../../../../../cms/server/http";
 import { loadDraft } from "../../../../../cms/server/load";
 import { researchIndex } from "../../../../../cms/server/research";
+import { unlinkedMentions } from "../../../../../cms/connections";
 export const onRequestGet: AdminFunction<"id"> = async ({ env, params }) => {
   const id = param(params.id);
   await loadDraft(env, id);
   const index = await researchIndex(env);
   const current = index.find((d) => d.id === id);
   return json({
+    unlinked: unlinkedMentions(index, id),
     incoming: index
       .filter((d) => d.id !== id)
       .flatMap((d) =>
