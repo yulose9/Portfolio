@@ -63,82 +63,20 @@
   padding-bottom: 60vh;
 }
 
-/* Outline, in the left margin on wide screens. */
-.editor-outline {
+/* Outline: Notion's lines on the right edge (components/writing/PageOutline,
+   styled in article-extras.css). Quieter while you type; gone in preview. */
+body:has(.editor-root[data-typing]) .page-outline[data-variant="editor"]:not([data-open]) {
+  opacity: 0.35;
+}
+.page-outline[data-variant="editor"] {
+  transition: opacity 300ms ease;
+}
+body:has(.editor-canvas[hidden]) .page-outline[data-variant="editor"] {
   display: none;
 }
-@media (min-width: 1180px) {
-  .editor-outline {
-    position: fixed;
-    top: 7rem;
-    left: max(1.5rem, calc(50% - 336px - 260px));
-    z-index: 5;
-    display: block;
-    width: 200px;
-    max-height: calc(100vh - 10rem);
-    overflow-y: auto;
-    font-size: 13px;
-    line-height: 1.4;
-    transition: opacity 300ms ease;
-  }
-  .editor-root[data-typing] .editor-outline {
-    opacity: 0.35;
-  }
-}
-.editor-outline ol {
-  display: grid;
-  gap: 1px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.editor-outline li[data-depth="1"] {
-  padding-left: 0.75rem;
-}
-.editor-outline li[data-depth="2"] {
-  padding-left: 1.5rem;
-}
-.editor-outline button {
-  position: relative;
-  display: block;
-  width: 100%;
-  padding: 0.25rem 0.4rem 0.25rem 0.75rem;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  font: inherit;
-  text-align: left;
-  color: var(--a-ink-3);
-  cursor: pointer;
-  transition: color 150ms ease, background-color 150ms ease;
-}
-.editor-outline button::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.35rem;
-  bottom: 0.35rem;
-  width: 2px;
-  border-radius: 2px;
-  background: var(--a-ink);
-  transform: scaleY(0);
-  opacity: 0;
-  transition-property: transform, opacity;
-  transition-duration: 220ms;
-  transition-timing-function: var(--ease);
-}
-.editor-outline button[data-active] {
-  color: var(--a-ink);
-}
-.editor-outline button[data-active]::before {
-  transform: scaleY(1);
-  opacity: 1;
-}
-@media (hover: hover) and (pointer: fine) {
-  .editor-outline button:hover {
-    color: var(--a-ink);
-    background: var(--a-fill-2);
-  }
+/* Jumps land the heading below the editor's top bar. */
+.editor-canvas .ProseMirror > :is(h1, h2, h3, h4) {
+  scroll-margin-top: 96px;
 }
 
 /* Palette actions */
@@ -236,7 +174,6 @@
   .smooth-caret[data-blink] {
     animation: none;
   }
-  .editor-outline button::before,
   .switch::after {
     transition-duration: 0ms;
   }

@@ -495,3 +495,258 @@ html:not(.has-smooth-cursor) .article-page a[href] * { cursor: pointer; }
     display: none;
   }
 }
+
+/*
+ * The page outline (components/writing/PageOutline.tsx), Notion's: short
+ * lines on the right edge, one per heading, that open into a card of the
+ * headings on hover or focus. Shared by the article and the editor, and
+ * portalled to the body, so it carries its own colours.
+ */
+.page-outline {
+  --po-ink: #18181b;
+  --po-ink-2: #71717a;
+  --po-line: #d4d4d8;
+  --po-line-active: #3f3f46;
+  --po-hover: rgb(24 24 27 / 0.05);
+  --po-current: rgb(24 24 27 / 0.06);
+  --po-dot: #2383e2;
+  display: none;
+}
+/* Wide screens with a mouse. Touch and narrow screens keep the disclosure. */
+@media (min-width: 1100px) and (hover: hover) and (pointer: fine) {
+  .page-outline {
+    position: fixed;
+    top: 50%;
+    right: 0;
+    z-index: 40;
+    display: block;
+    transform: translateY(-50%);
+  }
+}
+@media (scripting: enabled) and (min-width: 1100px) and (hover: hover) and (pointer: fine) {
+  .toc-rail {
+    display: none;
+  }
+}
+.page-outline-strip {
+  position: relative;
+  box-sizing: content-box;
+  width: 22px;
+  /* The hover target runs wider than the lines. */
+  padding: 14px 18px 14px 26px;
+  border-radius: 10px;
+  transition: opacity 150ms ease, background-color 150ms ease;
+}
+.page-outline-line {
+  position: absolute;
+  right: 18px;
+  height: 2px;
+  margin-top: 5px;
+  border-radius: 2px;
+  background: var(--po-line);
+}
+.page-outline-line-active {
+  top: 0;
+  background: var(--po-line-active);
+}
+/* A banner cover behind the lines: a frosted backing keeps them readable. */
+body:has(.article-banner, .editor-banner) .page-outline-strip {
+  background: rgb(255 255 255 / 0.82);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(160%);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.05);
+}
+.page-outline[data-open] .page-outline-strip {
+  opacity: 0;
+}
+/* Escape closed the card while focus stayed inside: show where it is. */
+.page-outline[data-dismissed]:focus-within .page-outline-strip {
+  outline: 2px solid #2563eb;
+  outline-offset: -4px;
+}
+
+.page-outline-card {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  width: 248px;
+  padding: 6px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgb(15 15 15 / 0.06),
+    0 3px 6px rgb(15 15 15 / 0.06),
+    0 9px 24px rgb(15 15 15 / 0.12);
+  font-size: 14px;
+  line-height: 1.4;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%) scale(0.96);
+  transform-origin: right center;
+  transition:
+    opacity 140ms ease,
+    transform 180ms var(--ease, ease);
+}
+.page-outline[data-open] .page-outline-card {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(-50%);
+}
+.page-outline-scroll {
+  position: relative;
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(0 0 0 / 0.18) transparent;
+}
+.page-outline ol {
+  position: relative;
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Kobra's marker: a highlight box and a small dot that glide between rows. */
+.page-outline-marker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: block;
+  border-radius: 6px;
+  background: var(--po-current);
+  pointer-events: none;
+}
+.page-outline-dot {
+  position: absolute;
+  top: 50%;
+  left: 7px;
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  border-radius: 999px;
+  background: var(--po-dot);
+}
+.page-outline-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.page-outline-link {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  min-height: 28px;
+  padding: 4px 8px 4px calc(20px + var(--po-indent, 0px));
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  color: var(--po-ink-2);
+  cursor: pointer;
+  transition: color 120ms ease, background-color 120ms ease;
+}
+.page-outline-item[data-depth="1"] { --po-indent: 12px; }
+.page-outline-item[data-depth="2"] { --po-indent: 24px; }
+.page-outline-item[data-depth="3"] { --po-indent: 36px; }
+.page-outline-link[data-active] {
+  color: var(--po-ink);
+  font-weight: 500;
+}
+.page-outline-link:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .page-outline-link:hover {
+    color: var(--po-ink);
+    background: var(--po-hover);
+  }
+}
+.page-outline-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.page-outline-icon {
+  display: inline-flex;
+  flex: none;
+  justify-content: center;
+  width: 1.15em;
+  margin-inline-end: 0.45em;
+  line-height: 1;
+}
+.page-outline-icon img {
+  width: 1em;
+  height: 1em;
+  object-fit: contain;
+}
+/* The editor's icon picker, at the end of a row, shown on hover or focus. */
+.page-outline .outline-icon-edit {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-left: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--po-ink-2);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease, background-color 120ms ease;
+}
+.page-outline-item:hover .outline-icon-edit,
+.page-outline-item:focus-within .outline-icon-edit,
+.page-outline .outline-icon-edit[data-popup-open] {
+  opacity: 1;
+}
+.page-outline .outline-icon-edit:hover,
+.page-outline .outline-icon-edit[data-popup-open] {
+  background: var(--po-hover);
+}
+.page-outline .outline-icon-edit:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+
+/* The landing mark after a jump: a soft wash that fades out. */
+@keyframes outline-flash {
+  from { background-color: rgb(35 131 226 / 0.16); }
+  to { background-color: rgb(35 131 226 / 0); }
+}
+.outline-flash {
+  border-radius: 4px;
+  animation: outline-flash 1.2s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-outline-strip,
+  .page-outline-card,
+  .page-outline-link {
+    transition: none;
+  }
+  .page-outline-card {
+    transform: translateY(-50%);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  body:has(.article-banner, .editor-banner) .page-outline-strip {
+    background: #fff;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media print {
+  .page-outline {
+    display: none !important;
+  }
+}

@@ -16,7 +16,8 @@ import { scrollEdges } from "./scroll-edges";
  * plain-text keys are used for sorting and filtering.
  */
 
-export type DataTableCell = { node: React.ReactNode; key: string; align?: string };
+/** bg and fg: the cell's background and text colour names (cms/blocks.ts TABLE_COLORS). */
+export type DataTableCell = { node: React.ReactNode; key: string; align?: string; bg?: string; fg?: string };
 export type DataTableProps = {
   head: DataTableCell[];
   rows: DataTableCell[][];
@@ -98,7 +99,7 @@ export default function DataTable({ head, rows, numeric, rowHeaders = false, wid
                 {head.map((h, i) => {
                   const state = sort?.col === i ? (sort.dir === 1 ? "ascending" : "descending") : "none";
                   return (
-                    <th key={i} scope="col" aria-sort={state} data-align={alignOf(h, i)}>
+                    <th key={i} scope="col" aria-sort={state} data-align={alignOf(h, i)} data-bg={h.bg} data-fg={h.fg}>
                       <button type="button" className="data-table-sort" onClick={() => cycle(i)}>
                         <span className="data-table-sort-label">{h.node}</span>
                         <svg viewBox="0 0 16 16" aria-hidden="true" data-dir={state}>
@@ -115,7 +116,7 @@ export default function DataTable({ head, rows, numeric, rowHeaders = false, wid
               {shown.map((r, ri) => (
                 <tr key={ri}>
                   {head.map((_, ci) => {
-                    const props = { "data-align": alignOf(r[ci], ci), "data-numeric": numeric[ci] || undefined };
+                    const props = { "data-align": alignOf(r[ci], ci), "data-numeric": numeric[ci] || undefined, "data-bg": r[ci]?.bg, "data-fg": r[ci]?.fg };
                     return ci === 0 && rowHeaders ? (
                       <th key={ci} scope="row" {...props}>
                         {r[ci]?.node}

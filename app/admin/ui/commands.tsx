@@ -51,7 +51,11 @@ export type BlockKind =
 
 export type BlockDef = { kind: BlockKind; title: string; hint: string; md: string; keywords: string[]; icon: React.ReactNode };
 
-/** Blocks a line can be turned into. Headings 1–3 are h2–h4 on the page: h1 is the title. */
+/**
+ * Blocks a line can be turned into, in the order Notion's menus list them.
+ * Headings 1–3 are h2–h4 on the page: h1 is the title. `md` is what you type
+ * at the start of a line to get the block (an input rule), when there is one.
+ */
 export const BLOCKS: BlockDef[] = [
   { kind: "paragraph", title: "Text", hint: "Plain paragraph", md: "", keywords: ["paragraph", "p", "plain"], icon: <TextT {...I} /> },
   { kind: "h1", title: "Heading 1", hint: "Section", md: "#", keywords: ["h1", "title", "section", "heading"], icon: <TextHOne {...I} /> },
@@ -60,12 +64,12 @@ export const BLOCKS: BlockDef[] = [
   { kind: "bullet", title: "Bulleted list", hint: "Simple list", md: "-", keywords: ["ul", "unordered", "bullet", "list"], icon: <ListBullets {...I} /> },
   { kind: "ordered", title: "Numbered list", hint: "Steps in order", md: "1.", keywords: ["ol", "ordered", "number", "list"], icon: <ListNumbers {...I} /> },
   { kind: "todo", title: "To-do list", hint: "Track tasks", md: "[]", keywords: ["todo", "task", "checkbox", "check"], icon: <CheckSquare {...I} /> },
-  { kind: "toggle", title: "Toggle", hint: "Hide content inside", md: ">", keywords: ["toggle", "details", "collapse", "accordion"], icon: <CaretCircleRight {...I} /> },
+  { kind: "toggle", title: "Toggle list", hint: "Hide content inside", md: "", keywords: ["toggle", "details", "collapse", "accordion"], icon: <CaretCircleRight {...I} /> },
+  { kind: "quote", title: "Quote", hint: "Pull a line out", md: ">", keywords: ["blockquote", "cite", "quote"], icon: <Quotes {...I} /> },
+  { kind: "callout", title: "Callout", hint: "Note, tip or warning box", md: "", keywords: ["callout", "note", "tip", "warning", "alert", "info"], icon: <Info {...I} /> },
   { kind: "toggleH1", title: "Toggle heading 1", hint: "Section that folds", md: "", keywords: ["toggleh1", "toggleheading1", "th1", "toggle", "heading", "h1", "collapse", "fold", "section"], icon: <CaretCircleRight {...I} weight="bold" /> },
   { kind: "toggleH2", title: "Toggle heading 2", hint: "Subsection that folds", md: "", keywords: ["toggleh2", "toggleheading2", "th2", "toggle", "heading", "h2", "collapse", "fold"], icon: <CaretCircleRight {...I} weight="bold" /> },
   { kind: "toggleH3", title: "Toggle heading 3", hint: "Small heading that folds", md: "", keywords: ["toggleh3", "toggleheading3", "th3", "toggle", "heading", "h3", "collapse", "fold"], icon: <CaretCircleRight {...I} weight="bold" /> },
-  { kind: "quote", title: "Quote", hint: "Pull a line out", md: '"', keywords: ["blockquote", "cite", "quote"], icon: <Quotes {...I} /> },
-  { kind: "callout", title: "Callout", hint: "Note, tip or warning box", md: "", keywords: ["callout", "note", "tip", "warning", "alert", "info"], icon: <Info {...I} /> },
   { kind: "code", title: "Code", hint: "Code block", md: "```", keywords: ["code", "snippet", "pre"], icon: <CodeBlock {...I} /> },
 ];
 
@@ -172,7 +176,7 @@ export function activeBlock(editor: Editor): BlockKind {
   return "paragraph";
 }
 
-export type InsertDef = { id: string; title: string; hint: string; keywords: string[]; icon: React.ReactNode; run: (editor: Editor) => void };
+export type InsertDef = { id: string; title: string; hint: string; md?: string; keywords: string[]; icon: React.ReactNode; run: (editor: Editor) => void };
 
 /** Things that are inserted rather than turned into. `pickImage` and `pickEmoji` come from the editor. */
 export function inserts(pickImage: () => void, pickEmoji?: () => void, pickVoice?: () => void): InsertDef[] {
@@ -206,8 +210,8 @@ export function inserts(pickImage: () => void, pickEmoji?: () => void, pickVoice
       icon: <XLogo {...I} />,
       run: (e) => e.chain().focus().setEmbed("").run(),
     },
-    { id: "divider", title: "Divider", hint: "---", keywords: ["hr", "rule", "separator", "divider", "line"], icon: <Minus {...I} />, run: (e) => e.chain().focus().setHorizontalRule().run() },
-    ...(pickEmoji ? [{ id: "emoji", title: "Emoji", hint: "Fluent 3D", keywords: ["emoji", "icon", "smiley"], icon: <Smiley {...I} />, run: () => pickEmoji() }] : []),
+    { id: "divider", title: "Divider", hint: "A line between sections", md: "---", keywords: ["hr", "rule", "separator", "divider", "line"], icon: <Minus {...I} />, run: (e) => e.chain().focus().setHorizontalRule().run() },
+    ...(pickEmoji ? [{ id: "emoji", title: "Emoji", hint: "Fluent 3D", md: ":", keywords: ["emoji", "icon", "smiley"], icon: <Smiley {...I} />, run: () => pickEmoji() }] : []),
   ];
 }
 

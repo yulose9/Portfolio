@@ -470,7 +470,7 @@
 .picker-field input { min-width:0; min-height:40px; padding:8px 10px; border:1px solid var(--a-line); border-radius:8px; font:inherit; font-size:14px; background:white; color:var(--a-ink); }
 .picker-search { display:flex; align-items:center; gap:9px; border:1px solid var(--a-line); border-radius:8px; padding:10px 12px; color:var(--a-ink-3); }
 .picker-search input { min-width:0; width:100%; border:0; outline:0; background:transparent; color:var(--a-ink); font:inherit; font-size:14px; }
-.picker-search:focus-within { outline:2px solid var(--a-blue); outline-offset:2px; }
+.picker-search:focus-within { border-color:var(--a-field-edge); box-shadow:var(--a-field-halo); }
 .page-location { max-width:880px; padding:8px 0; margin:12px auto 20px; flex-wrap:nowrap; gap:12px; color:var(--a-ink-2); }
 .page-location nav { min-width:0; flex-wrap:nowrap; align-items:center; overflow:hidden; }
 .page-location nav button { display:inline-flex; align-items:center; gap:8px; text-decoration:none; white-space:nowrap; }
@@ -492,7 +492,8 @@
 .heading-icon-preview small { display:block; color:var(--a-ink-3); font-size:12px; margin-top:3px; }
 .heading-upload { display:flex; align-items:center; gap:12px; padding:12px; margin-top:12px; border:1px dashed #c4c4ca; border-radius:8px; cursor:pointer; font-size:13px; }
 .heading-upload small { display:block; font-size:11px; margin-top:4px; color:var(--a-ink-3); }
-.heading-upload:focus-within { outline:2px solid var(--a-blue); outline-offset:2px; }
+/* The file input inside only takes keyboard focus; a click opens the file picker without a ring. */
+.heading-upload:has(input:focus-visible) { outline:2px solid var(--a-blue); outline-offset:2px; }
 .heading-upload[aria-disabled="true"] { opacity:.6; cursor:wait; }
 .editor-outline .outline-icon-edit { display:grid; place-items:center; width:28px; height:28px; padding:0; border-radius:6px; }
 .editor-outline li { padding-right:32px; }
@@ -531,9 +532,9 @@
 @media (prefers-reduced-motion:reduce) {
   .color-panel,.heading-icon-panel { transition:none; }
 }
-.writing-list-tools .admin-search:focus-within { box-shadow:inset 0 0 0 1px var(--a-blue),0 0 0 2px rgb(37 99 235 / .12); }
+.writing-list-tools .admin-search:focus-within { box-shadow:var(--a-field-focus); }
 .editor-root[data-typing] .editor-outline:is(:hover,:focus-within) { opacity:1; }
 .admin-body .writing-list-tools .admin-search input:focus-visible,.admin-body .page-move-dialog .picker-search input:focus-visible { outline:none; box-shadow:none; }
-.admin-body .heading-icon-panel .picker-field input:focus-visible { outline:2px solid var(--a-blue); outline-offset:2px; box-shadow:none; }
-.appearance-custom label:focus-within { outline:2px solid var(--a-blue); outline-offset:2px; }
+.admin-body .heading-icon-panel .picker-field input:focus-visible { outline:none; border-color:var(--a-field-edge); box-shadow:var(--a-field-halo); }
+.appearance-custom label:focus-within { border-color:var(--a-field-edge); box-shadow:var(--a-field-halo); }
 .admin-body .color-panel .appearance-custom label input:focus-visible { outline:none; box-shadow:none; }

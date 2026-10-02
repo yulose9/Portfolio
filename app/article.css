@@ -246,6 +246,118 @@
 .article-body li::marker {
   color: var(--ink-3);
 }
+/* Numbers sit right-aligned against the text (the browser's outside marker),
+   in even-width figures, so "9." and "10.", or "i." and "ii.", end at the
+   same place and every item's text starts on the same line. */
+.article-body ol > li::marker {
+  font-variant-numeric: tabular-nums;
+}
+/* Nested lists change marker every level and cycle every three, as Notion's
+   do: bullets go disc, circle, square, then disc again; numbers go 1., a.,
+   i., then 1. again. A list counts only the lists of its own kind above it,
+   so bullets inside a numbered item start again at the disc. To-do lists
+   have no marker and don't count. A list with its own numbering style (an
+   ol with a type, from pasted "a." items) keeps it. Written out nine levels
+   deep; past that the last style holds.
+   Kept in step with tests/list-markers.test.mjs. */
+.article-body
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list) {
+  list-style-type: circle;
+}
+.article-body
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list) {
+  list-style-type: square;
+}
+.article-body
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list) {
+  list-style-type: disc;
+}
+.article-body
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list) {
+  list-style-type: circle;
+}
+.article-body
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list) {
+  list-style-type: square;
+}
+.article-body
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list) {
+  list-style-type: disc;
+}
+.article-body
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list) {
+  list-style-type: circle;
+}
+.article-body
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list)
+  ul:not([data-type], .contains-task-list) {
+  list-style-type: square;
+}
+.article-body ol ol:not([type]) {
+  list-style-type: lower-alpha;
+}
+.article-body ol ol ol:not([type]) {
+  list-style-type: lower-roman;
+}
+.article-body ol ol ol ol:not([type]) {
+  list-style-type: decimal;
+}
+.article-body ol ol ol ol ol:not([type]) {
+  list-style-type: lower-alpha;
+}
+.article-body ol ol ol ol ol ol:not([type]) {
+  list-style-type: lower-roman;
+}
+.article-body ol ol ol ol ol ol ol:not([type]) {
+  list-style-type: decimal;
+}
+.article-body ol ol ol ol ol ol ol ol:not([type]) {
+  list-style-type: lower-alpha;
+}
+.article-body ol ol ol ol ol ol ol ol ol:not([type]) {
+  list-style-type: lower-roman;
+}
+.article-body ol[type="a"] {
+  list-style-type: lower-alpha;
+}
+.article-body ol[type="i"] {
+  list-style-type: lower-roman;
+}
 /* A quote is quiet: regular weight, a step up in size, set in from the text. */
 .article-body blockquote {
   position: relative;

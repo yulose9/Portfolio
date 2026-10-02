@@ -8,7 +8,7 @@
  *
  *   code      ```ts title="app/page.tsx" showLineNumbers {2,4-5}
  *   tabs      <div data-code-tabs>  + one fence per tab, title="npm" …
- *   table     <div data-table="striped" data-header="both" data-width="wide">  + a GFM table
+ *   table     <div data-table="striped" data-header="both" data-width="wide" data-bg="r0:blue">  + a GFM table
  *   chart     <div data-chart="bar" data-title="…">  + a GFM table
  *   poll      <div data-poll="id">  + **question** + a bullet list
  *   citation  <a href="…" data-cite="" data-title="…" data-snippet="…">Site</a>
@@ -264,21 +264,98 @@ export const hasHeaderRow = (h: TableHeader) => h === "row" || h === "both";
 export const hasHeaderCol = (h: TableHeader) => h === "col" || h === "both";
 
 /** The wrapper's opening tag, or "" when the table needs none. */
-export function tableOpenTag(o: Partial<TableOptions>): string {
+export function tableOpenTag(o: Partial<TableOptions & TableColors>): string {
   const style = isTableStyle(o.style) ? o.style : "default";
   const header = isTableHeader(o.header) ? o.header : "row";
   const width = isTableWidth(o.width) ? o.width : "fit";
-  if (style === "default" && header === "row" && width === "fit") return "";
-  return `<div data-table="${style}"${header !== "row" ? ` data-header="${header}"` : ""}${width !== "fit" ? ` data-width="${width}"` : ""}>`;
+  const bg = isTableColorList(o.bg) ? o.bg : "";
+  const fg = isTableColorList(o.fg) ? o.fg : "";
+  if (style === "default" && header === "row" && width === "fit" && !bg && !fg) return "";
+  return `<div data-table="${style}"${header !== "row" ? ` data-header="${header}"` : ""}${width !== "fit" ? ` data-width="${width}"` : ""}${bg ? ` data-bg="${bg}"` : ""}${fg ? ` data-fg="${fg}"` : ""}>`;
 }
 
-export function parseStyledTableStart(src: string): ({ open: string } & TableOptions) | null {
-  const m = /^<div data-table="([a-z]+)"((?:[ \t]+data-[a-z]+="[a-z]*")*)[ \t]*>[ \t]*\n/.exec(src);
+export function parseStyledTableStart(src: string): ({ open: string } & TableOptions & TableColors) | null {
+  const m = /^<div data-table="([a-z]+)"((?:[ \t]+data-[a-z]+="[a-z0-9:,]*")*)[ \t]*>[ \t]*\n/.exec(src);
   if (!m || !isTableStyle(m[1])) return null;
-  const attr = (name: string) => new RegExp(`data-${name}="([a-z]*)"`).exec(m[2])?.[1];
+  const attr = (name: string) => new RegExp(`data-${name}="([a-z0-9:,]*)"`).exec(m[2])?.[1];
   const header = attr("header");
   const width = attr("width");
-  return { open: m[0], style: m[1], header: isTableHeader(header) ? header : "row", width: isTableWidth(width) ? width : "fit" };
+  const bg = attr("bg");
+  const fg = attr("fg");
+  return {
+    open: m[0],
+    style: m[1],
+    header: isTableHeader(header) ? header : "row",
+    width: isTableWidth(width) ? width : "fit",
+    bg: isTableColorList(bg) ? bg : "",
+    fg: isTableColorList(fg) ? fg : "",
+  };
+}
+
+/* ── Table cell colours ──────────────────────────────────────────────── */
+
+/*
+ * A cell can have a background and a text colour, picked from Notion's
+ * light palette. GFM cells can't carry attributes, so the wrapper lists
+ * them, most compact first:
+ *
+ *   <div data-table="default" data-bg="r0:blue,c2:gray,r3c1:red" data-fg="r2:red">
+ *
+ * rN is a whole row, cN a whole column, rNcM one cell (rows and columns
+ * count from 0, the header row included). Reading it, a cell's own entry
+ * wins over its row's, which wins over its column's. In HTML (the editor's
+ * clipboard) each cell says it itself: <td data-bg="blue" data-fg="red">.
+ */
+export const TABLE_COLORS = ["gray", "brown", "orange", "yellow", "green", "blue", "purple", "pink", "red"] as const;
+export type TableColor = (typeof TABLE_COLORS)[number];
+export const isTableColor = (v: unknown): v is TableColor => typeof v === "string" && (TABLE_COLORS as readonly string[]).includes(v);
+export type TableColors = { bg: string; fg: string };
+
+/** A colour list as the wrapper writes it: "r0:blue,c2:gray,r3c1:red". */
+export const TABLE_COLOR_LIST = /^(?:r\d{1,3}|c\d{1,3}|r\d{1,3}c\d{1,3}):[a-z]{3,6}(?:,(?:r\d{1,3}|c\d{1,3}|r\d{1,3}c\d{1,3}):[a-z]{3,6}){0,999}$/;
+const isTableColorList = (v: unknown): v is string => typeof v === "string" && TABLE_COLOR_LIST.test(v);
+
+type ColorGrid = readonly (readonly (string | null | undefined)[])[];
+
+/** Each cell's colour (rows of cells, null for none) → the wrapper's list, "" when there are none. */
+export function tableColorList(grid: ColorGrid): string {
+  const at = (r: number, c: number) => (isTableColor(grid[r]?.[c]) ? (grid[r][c] as TableColor) : null);
+  const same = (cells: (TableColor | null)[]) => (cells.length > 0 && cells[0] !== null && cells.every((x) => x === cells[0]) ? cells[0] : null);
+  const rows = grid.map((row, r) => same(row.map((_, c) => at(r, c))));
+  const width = Math.max(0, ...grid.map((row) => row.length));
+  // A column counts the cells its rows' own entries don't already cover.
+  const cols = Array.from({ length: width }, (_, c) => {
+    const rest = grid.flatMap((row, r) => (rows[r] === null && c < row.length ? [at(r, c)] : []));
+    return rest.length > 1 ? same(rest) : null;
+  });
+  const out: string[] = [];
+  rows.forEach((color, r) => color && out.push(`r${r}:${color}`));
+  cols.forEach((color, c) => color && out.push(`c${c}:${color}`));
+  grid.forEach((row, r) => {
+    if (rows[r]) return;
+    row.forEach((_, c) => {
+      const color = at(r, c);
+      if (color && !cols[c]) out.push(`r${r}c${c}:${color}`);
+    });
+  });
+  return out.join(",");
+}
+
+/** The wrapper's list → a cell's colour by row and column (null for none). */
+export function tableColorAt(list: unknown): (row: number, col: number) => TableColor | null {
+  const rows = new Map<number, TableColor>();
+  const cols = new Map<number, TableColor>();
+  const cells = new Map<string, TableColor>();
+  if (isTableColorList(list)) {
+    for (const entry of list.split(",")) {
+      const m = /^(?:r(\d+))?(?:c(\d+))?:([a-z]+)$/.exec(entry);
+      if (!m || !isTableColor(m[3])) continue;
+      if (m[1] !== undefined && m[2] !== undefined) cells.set(`${Number(m[1])}.${Number(m[2])}`, m[3]);
+      else if (m[1] !== undefined) rows.set(Number(m[1]), m[3]);
+      else if (m[2] !== undefined) cols.set(Number(m[2]), m[3]);
+    }
+  }
+  return (row, col) => cells.get(`${row}.${col}`) ?? rows.get(row) ?? cols.get(col) ?? null;
 }
 
 /* ── Poll ────────────────────────────────────────────────────────────── */

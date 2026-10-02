@@ -131,7 +131,7 @@ function dataTableProps(table: Element, render: (root: Root) => React.ReactNode)
   const cells = (tr: Element): DataTableCell[] =>
     tr.children
       .filter((c): c is Element => c.type === "element" && (c.tagName === "th" || c.tagName === "td"))
-      .map((c) => ({ node: render({ type: "root", children: c.children }), key: textOf(c).trim(), align: str(c.properties.align) || undefined }));
+      .map((c) => ({ node: render({ type: "root", children: c.children }), key: textOf(c).trim(), align: str(c.properties.align) || undefined, bg: str(c.properties.dataBg) || undefined, fg: str(c.properties.dataFg) || undefined }));
   const [head, ...body] = rows.map(cells);
   const numeric = head.map((_, i) => body.length > 0 && body.every((r) => !r[i]?.key || isNumeric(r[i].key)) && body.some((r) => r[i]?.key));
   // A header column: the renderer made each body row's first cell a <th>.

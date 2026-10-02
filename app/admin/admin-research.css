@@ -246,7 +246,7 @@
     background: var(--a-fill);
   }
 }
-.research-panel :is(input, textarea, select, button, a):focus-visible {
+.research-panel :is(button, a):focus-visible {
   outline: 2px solid var(--a-ink);
   outline-offset: 3px;
 }
@@ -410,8 +410,8 @@
   outline: none !important;
 }
 .research-search:focus-within {
-  outline: 2px solid var(--a-ink);
-  outline-offset: 2px;
+  border-color: var(--a-field-edge);
+  box-shadow: var(--a-field-halo);
 }
 .research-form {
   gap: 18px;

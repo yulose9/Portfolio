@@ -16,7 +16,7 @@ import { calloutIconImage, NO_ICON, parseCalloutMeta } from "./callout-icon";
 import { FONT_CATALOG, findFont, fontStack } from "./fonts";
 import {
   CHART_TYPES, POLL_ID, TABLE_HEADERS, TABLE_STYLES, TABLE_WIDTHS, hasHeaderCol, hasHeaderRow, isChartType, isTableHeader, isTableStyle, isTableWidth,
-  parseCodeMeta, rangeLines, siteOf, tableHeader, type TableHeader,
+  parseCodeMeta, rangeLines, siteOf, TABLE_COLOR_LIST, tableColorAt, tableHeader, type TableHeader,
 } from "./blocks";
 
 /*
@@ -191,6 +191,7 @@ function rehypeEditorial(options: { resolvePage?: PageResolver } = {}) {
             const width = isTableWidth(node.properties.dataWidth) && node.properties.dataWidth !== "fit" ? { dataTableWidth: node.properties.dataWidth } : {};
             // The data table sorts by its header row, so it always has one.
             tableHeaders(table, style === "data" ? tableHeader(true, hasHeaderCol(header)) : header);
+            tableColors(table, node.properties.dataBg, node.properties.dataFg);
             kids[i] = style === "data"
               ? el("x-data-table", { dataTableStyle: "data", ...width }, [table])
               : tableFrame(table, { dataTableStyle: style, ...width });
@@ -495,6 +496,33 @@ function tableHeaders(table: Element, header: TableHeader) {
   }
 }
 
+/**
+ * Puts the wrapper's cell colours (data-bg, data-fg: see cms/blocks.ts) on
+ * the cells themselves, counting rows header first and cells left to right.
+ */
+function tableColors(table: Element, bg: unknown, fg: unknown) {
+  if (!bg && !fg) return;
+  const bgAt = tableColorAt(bg);
+  const fgAt = tableColorAt(fg);
+  const rows: Element[] = [];
+  const visit = (n: Element) => {
+    for (const k of n.children) {
+      if (!isEl(k)) continue;
+      if (k.tagName === "tr") rows.push(k);
+      else if (k.tagName === "thead" || k.tagName === "tbody") visit(k);
+    }
+  };
+  visit(table);
+  rows.forEach((tr, r) =>
+    tr.children.filter((c): c is Element => isEl(c, "th") || isEl(c, "td")).forEach((c, col) => {
+      const background = bgAt(r, col);
+      const color = fgAt(r, col);
+      if (background) c.properties.dataBg = background;
+      if (color) c.properties.dataFg = color;
+    }),
+  );
+}
+
 /** A table's cells as text, header row first. */
 function tableRows(table: Element): string[][] {
   const rows: string[][] = [];
@@ -592,7 +620,7 @@ export async function markdownToTree(markdown: string, extra: PluggableList = []
         span: [...(defaultSchema.attributes?.span ?? []), ["dataTextColor", /^(#[0-9a-f]{6}|inherit)$/i], ["dataTextFont",...FONT_CATALOG.map(f=>f.family)], ["dataTextOpacity",/^\d{1,3}$/]],
         img: [...(defaultSchema.attributes?.img ?? []), "dataInlineLogo", "dataLogoHref", "dataHeadingIcon"],
         code: [...(defaultSchema.attributes?.code ?? []), "dataMeta"],
-        div: [...(defaultSchema.attributes?.div ?? []), ["dataTable", ...TABLE_STYLES], ["dataHeader", ...TABLE_HEADERS], ["dataWidth", ...TABLE_WIDTHS], ["dataChart", ...CHART_TYPES], "dataTitle", ["dataPoll", POLL_ID], "dataCodeTabs"],
+        div: [...(defaultSchema.attributes?.div ?? []), ["dataTable", ...TABLE_STYLES], ["dataHeader", ...TABLE_HEADERS], ["dataWidth", ...TABLE_WIDTHS], ["dataBg", TABLE_COLOR_LIST], ["dataFg", TABLE_COLOR_LIST], ["dataChart", ...CHART_TYPES], "dataTitle", ["dataPoll", POLL_ID], "dataCodeTabs"],
         a: [...(defaultSchema.attributes?.a ?? []), "dataCite", "dataTitle", "dataSnippet"],
         video: ["src", "poster", "controls", "muted", "loop", "autoPlay", "playsInline", "preload", "width", "height", "title", ["dataCaptions", /^(?:\/(?!\/)|https:\/\/)[^\s"<>]+\.vtt$/i]],
         audio: ["src", "controls", "preload", "title"],

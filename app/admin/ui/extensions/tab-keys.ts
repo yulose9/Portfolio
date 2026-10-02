@@ -1,6 +1,7 @@
 import { Extension, type Editor } from "@tiptap/core";
 import { Fragment, type ResolvedPos } from "@tiptap/pm/model";
-import { Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
+import { liftListItem } from "@tiptap/pm/schema-list";
+import { Plugin, PluginKey, TextSelection, type EditorState, type Transaction } from "@tiptap/pm/state";
 
 /*
  * Tab, everywhere in the body.
@@ -21,6 +22,9 @@ import { Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
  *
  * The extension runs after every other Tab handler (low priority), so lists,
  * tables, code, and the slash and mention menus keep first claim on the key.
+ *
+ * ListEnter, below, is Enter on an empty list item, which steps out a level
+ * the same way Shift+Tab does.
  */
 
 const ITEMS = ["listItem", "taskItem"];
@@ -154,5 +158,39 @@ export const TabKeys = Extension.create({
         },
       }),
     ];
+  },
+});
+
+/**
+ * Enter on an empty list item steps it out one level, as Notion does: the
+ * same as Shift+Tab, children and all. Pressed again it keeps stepping out,
+ * and on an item that's already at the top level it ends the list, leaving
+ * an empty paragraph. The same for bulleted, numbered and to-do lists, and
+ * whether or not the item has nested items under it or more items after it.
+ *
+ * Tiptap's own Enter only does this for the last item of a nested list; an
+ * empty item with siblings after it, or children under it, would be split
+ * into another empty item instead.
+ */
+export function outdentEmptyItem(state: EditorState, dispatch?: (tr: Transaction) => void): boolean {
+  const { selection } = state;
+  if (!selection.empty) return false;
+  const { $from } = selection;
+  if (!$from.parent.isTextblock || $from.parent.content.size > 0 || $from.depth < 2) return false;
+  const item = $from.node(-1);
+  // Only the item's own line, not a paragraph tucked in under it.
+  if (!ITEMS.includes(item.type.name) || $from.index(-1) !== 0) return false;
+  return liftListItem(item.type)(state, dispatch && ((tr) => dispatch(tr.scrollIntoView())));
+}
+
+export const ListEnter = Extension.create({
+  name: "listEnter",
+  // Ahead of the list items' own Enter (100), which would split the item.
+  priority: 150,
+
+  addKeyboardShortcuts() {
+    return {
+      Enter: ({ editor }) => outdentEmptyItem(editor.state, editor.view.dispatch),
+    };
   },
 });

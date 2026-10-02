@@ -7,15 +7,19 @@ import type { EditorView, ViewMutationRecord } from "@tiptap/pm/view";
 import { isTableStyle, isTableWidth, TABLE_STYLES, TABLE_WIDTHS, type TableStyle, type TableWidth } from "../../../../cms/blocks";
 import { scrollEdges } from "../../../components/writing/scroll-edges";
 import { TableStyled } from "./blocks-schema";
+import { mountTableHandles, type TableHandlesProps } from "./table-handles";
+import { duplicateLine, moveLine, openLineMenu, selectedLine } from "./table-lines";
 import { mountTableMenu, type TableMenuProps } from "./table-menu";
 
 /*
  * Tables, in the editor: Tiptap's table (Tab / Shift-Tab move between cells,
  * Tab in the last cell adds a row; columns resize by dragging their edge)
- * with a toolbar over the table you're in: rows and columns in and out,
- * header row and column (either, both or neither), the column's alignment
- * (written into the GFM delimiter row), and the table's style and width,
- * picked from a menu that sketches each one (table-menu.tsx):
+ * with Notion's row and column handles (table-handles.tsx: insert, move,
+ * colour, duplicate, clear and delete a whole row or column) and a toolbar
+ * over the table you're in: header row and column (either, both or
+ * neither), the column's alignment (written into the GFM delimiter row),
+ * and the table's style and width, picked from a menu that sketches each
+ * one (table-menu.tsx):
  *
  *   default · minimal · striped · bordered · data (sortable on the site)
  *   fit text width · wide (breaks out past the text column)
@@ -29,12 +33,6 @@ import { mountTableMenu, type TableMenuProps } from "./table-menu";
 
 const svg = (d: string) => `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="${d}" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const ICON = {
-  rowAbove: svg("M2.5 9.5h11v4h-11zM8 2.5v4M6 4.5h4"),
-  rowBelow: svg("M2.5 2.5h11v4h-11zM8 9.5v4M6 11.5h4"),
-  colLeft: svg("M9.5 2.5h4v11h-4zM2.5 8h4M4.5 6v4"),
-  colRight: svg("M2.5 2.5h4v11h-4zM9.5 8h4M11.5 6v4"),
-  delRow: svg("M2.5 5.5h11v5h-11zM6.5 13.5l3-3M9.5 13.5l-3-3"),
-  delCol: svg("M5.5 2.5h5v11h-5zM12 6.5l2 2m0-2-2 2"),
   headRow: svg("M2.5 2.5h11v11h-11zM2.5 6h11M2.5 2.5h11v3.5h-11z"),
   headCol: svg("M2.5 2.5h11v11h-11zM6 2.5v11"),
   left: svg("M2.5 4h11M2.5 8h7M2.5 12h9"),
@@ -84,6 +82,8 @@ export class StyledTableView extends TableView {
   toolbar: HTMLDivElement;
   editorView: EditorView | undefined;
   private menu: ReturnType<typeof mountTableMenu>;
+  private handles: ReturnType<typeof mountTableHandles> | null = null;
+  private handleLayer: HTMLDivElement;
   private edges: () => void;
 
   constructor(node: PMNode, cellMinWidth: number, view?: EditorView, HTMLAttributes: Record<string, unknown> = {}) {
@@ -117,11 +117,7 @@ export class StyledTableView extends TableView {
       this.toolbar.append(b);
       return b;
     };
-    add("Add row above", ICON.rowAbove, (e) => e.chain().focus().addRowBefore().run());
-    add("Add row below", ICON.rowBelow, (e) => e.chain().focus().addRowAfter().run());
-    add("Add column left", ICON.colLeft, (e) => e.chain().focus().addColumnBefore().run());
-    add("Add column right", ICON.colRight, (e) => e.chain().focus().addColumnAfter().run());
-    this.toolbar.append(this.sep());
+    // Rows and columns in, out and around: the handles (table-handles.tsx).
     add("Header row", ICON.headRow, (e) => e.chain().focus().toggleHeaderRow().run(), "table-tool-toggle").dataset.header = "row";
     add("Header column", ICON.headCol, (e) => e.chain().focus().toggleHeaderColumn().run(), "table-tool-toggle").dataset.header = "col";
     this.toolbar.append(this.sep());
@@ -130,13 +126,18 @@ export class StyledTableView extends TableView {
       b.dataset.align = align;
     }
     this.toolbar.append(this.sep());
-    add("Delete row", ICON.delRow, (e) => e.chain().focus().deleteRow().run(), "table-tool-danger");
-    add("Delete column", ICON.delCol, (e) => e.chain().focus().deleteColumn().run(), "table-tool-danger");
     add("Delete table", ICON.trash, (e) => e.chain().focus().deleteTable().run(), "table-tool-danger");
 
-    outer.append(this.toolbar, wrapper);
+    // The row and column handles' layer: over the frame, outside the scroller.
+    this.handleLayer = document.createElement("div");
+    this.handleLayer.className = "table-handles";
+    this.handleLayer.contentEditable = "false";
+
+    outer.append(this.toolbar, wrapper, this.handleLayer);
     this.dom = outer;
     this.menu = mountTableMenu(menuHost, this.menuProps(node));
+    const handles = this.handlesProps(node);
+    if (handles) this.handles = mountTableHandles(this.handleLayer, handles);
     // The fades at the frame's edges while the table is wider than the column.
     this.edges = scrollEdges(wrapper, { frame: outer, label: false });
     this.applyStyle(node);
@@ -156,6 +157,13 @@ export class StyledTableView extends TableView {
       onOpenChange: (open) => this.dom.toggleAttribute("data-menu-open", open),
       focusEditor: () => this.editorView?.focus(),
     };
+  }
+
+  private readonly tablePos = () => this.pos();
+
+  private handlesProps(node: PMNode): TableHandlesProps | null {
+    if (!this.editorView) return null;
+    return { view: this.editorView, frame: this.dom, scroller: this.dom.querySelector<HTMLElement>(".tableWrapper") ?? this.dom, table: this.table, node, getPos: this.tablePos };
   }
 
   private sep() {
@@ -219,23 +227,50 @@ export class StyledTableView extends TableView {
     if (!super.update(node)) return false;
     this.applyStyle(node);
     this.sync();
+    const handles = this.handlesProps(node);
+    if (handles) this.handles?.render(handles);
     return true;
   }
 
   destroy() {
     this.edges();
     this.menu.destroy();
+    this.handles?.destroy();
   }
 
   stopEvent(event: Event) {
-    return this.toolbar.contains(event.target as Node);
+    return this.toolbar.contains(event.target as Node) || this.handleLayer.contains(event.target as Node);
   }
 
   ignoreMutation(mutation: ViewMutationRecord) {
-    if (this.toolbar.contains(mutation.target as Node) || mutation.target === this.dom) return true;
+    if (this.toolbar.contains(mutation.target as Node) || this.handleLayer.contains(mutation.target as Node) || mutation.target === this.dom) return true;
     return super.ignoreMutation(mutation);
   }
 }
 
-/** The editor's table: styles, the toolbar, resizable columns. */
-export const TablePlus = TableStyled.configure({ resizable: true, View: StyledTableView });
+/**
+ * The editor's table: styles, the toolbar, the row and column handles,
+ * resizable columns. With a whole row or column selected (its handle),
+ * ⌘D duplicates it and ⌘⇧ and an arrow move it, as they do a block.
+ */
+export const TablePlus = TableStyled.extend({
+  addKeyboardShortcuts() {
+    const onLine = (run: (line: NonNullable<ReturnType<typeof selectedLine>>) => boolean) => () => {
+      const line = selectedLine(this.editor.state);
+      return line ? run(line) : false;
+    };
+    const move = (axis: "row" | "col", by: -1 | 1) =>
+      onLine((line) => (line.axis === axis ? moveLine(this.editor.view, line.tablePos, line, line.index + by) || true : false));
+    return {
+      ...this.parent?.(),
+      "Mod-d": onLine((line) => duplicateLine(this.editor.view, line.tablePos, line)),
+      "Mod-Shift-ArrowUp": move("row", -1),
+      "Mod-Shift-ArrowDown": move("row", 1),
+      "Mod-Shift-ArrowLeft": move("col", -1),
+      "Mod-Shift-ArrowRight": move("col", 1),
+      // The caret's row or column menu, for the keyboard (table-handles.tsx).
+      "Alt-Shift-m": () => openLineMenu(this.editor.view, "row"),
+      "Alt-Shift-c": () => openLineMenu(this.editor.view, "col"),
+    };
+  },
+}).configure({ resizable: true, View: StyledTableView });

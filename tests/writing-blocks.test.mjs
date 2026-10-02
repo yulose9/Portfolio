@@ -3,17 +3,17 @@ import assert from "node:assert/strict";
 import StarterKit from "@tiptap/starter-kit";
 import { TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
 import { MarkdownManager } from "@tiptap/markdown";
+import { getSchema } from "@tiptap/core";
 import {
-  ChartBase, CitationBase, CodeBlockPlus, CodeTabsBase, PollBase, TableStyleMarkdown, TableStyled,
+  ChartBase, CitationBase, CodeBlockPlus, CodeTabsBase, PollBase, TableCellColors, TableStyleMarkdown, TableStyled,
 } from "../app/admin/ui/extensions/blocks-schema.ts";
 import { MediaCaptionsSchema } from "../app/admin/ui/extensions/media-schema.ts";
 import { markdownToTree } from "../cms/render.ts";
-import { parseCsv, toCsv, parseCodeInfo, codeInfo, isNumeric } from "../cms/blocks.ts";
+import { parseCsv, toCsv, parseCodeInfo, codeInfo, isNumeric, tableColorAt, tableColorList } from "../cms/blocks.ts";
 import { cleanEditorDocument } from "../cms/editor-document.ts";
 
-const manager = new MarkdownManager({
-  extensions: [StarterKit.configure({ codeBlock: false }), CodeBlockPlus, CodeTabsBase, ChartBase, PollBase, CitationBase, TableStyled, TableRow, TableHeader, TableCell, TableStyleMarkdown, MediaCaptionsSchema],
-});
+const EXTENSIONS = [StarterKit.configure({ codeBlock: false }), CodeBlockPlus, CodeTabsBase, ChartBase, PollBase, CitationBase, TableStyled, TableRow, TableHeader, TableCell, TableStyleMarkdown, TableCellColors, MediaCaptionsSchema];
+const manager = new MarkdownManager({ extensions: EXTENSIONS });
 const all = (tree) => (tree.children ?? []).flatMap((n) => [n, ...all(n)]);
 const find = (tree, tag) => all(tree).find((n) => n.tagName === tag);
 const roundTrip = (md) => {
@@ -133,6 +133,56 @@ test("header row and column, and the table's width, survive Markdown and render 
   assert.equal(find(tree, "th").properties.scope, "col");
   const odd = manager.parse('<div data-table="bordered" data-header="sideways">\n\n| a |\n| --- |\n| 1 |\n\n</div>');
   assert.deepEqual(cellTypes(odd.content[0]), ["H", "c"]);
+});
+
+test("cell colours survive Markdown, the editor's HTML and the page's sanitizer", async () => {
+  const colors = (table, attr) => table.content.map((r) => r.content.map((c) => c.attrs?.[attr] ?? null));
+  const src = { type: "doc", content: [{ type: "table", attrs: { tableStyle: "striped" }, content: [
+    ["blue", "blue", "blue"], [null, "red", "gray"], [null, "red", null], [null, "red", "green"],
+  ].map((row, r) => ({ type: "tableRow", content: row.map((background, c) => ({
+    type: r === 0 ? "tableHeader" : "tableCell",
+    attrs: { background, textColor: r === 2 && c === 0 ? "purple" : null },
+    content: [{ type: "paragraph", content: [{ type: "text", text: `${r}.${c}` }] }],
+  })) })) }] };
+
+  // The editor's table → Markdown: a whole row, a whole column and single cells, compactly.
+  const md = manager.serialize(src);
+  assert.match(md, /^<div data-table="striped" data-bg="r0:blue,c1:red,r1c2:gray,r3c2:green" data-fg="r2c0:purple">\n/);
+  const { doc } = roundTrip(md);
+  assert.deepEqual(colors(doc.content[0], "background"), colors(src.content[0], "background"));
+  assert.deepEqual(colors(doc.content[0], "textColor"), colors(src.content[0], "textColor"));
+
+  // Colours alone put a default table in a wrapper; none leave it plain GFM.
+  const plain = { ...src.content[0], attrs: {} };
+  const alone = manager.serialize({ type: "doc", content: [{ ...plain, content: [plain.content[0], ...plain.content.slice(1).map((r) => ({ ...r, content: r.content.map((c) => ({ ...c, attrs: {} })) }))] }] });
+  assert.match(alone, /^<div data-table="default" data-bg="r0:blue">\n/);
+  assert.doesNotMatch(manager.serialize(manager.parse("| a | b |\n| --- | --- |\n| 1 | 2 |")), /data-bg|<div/);
+
+  // The page: each cell carries its own colour, header row included.
+  const tree = await markdownToTree(md);
+  const cells = all(tree).filter((n) => n.tagName === "th" || n.tagName === "td");
+  assert.deepEqual(cells.map((n) => n.properties.dataBg ?? null), ["blue", "blue", "blue", null, "red", "gray", null, "red", null, null, "red", "green"]);
+  assert.equal(cells[6].properties.dataFg, "purple");
+  assert.equal(all(tree).some((n) => n.properties?.dataBg !== undefined && n.tagName === "div"), false, "the list stays off the frame");
+  const data = await markdownToTree('<div data-table="data" data-bg="c0:yellow">\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n\n</div>');
+  assert.deepEqual(all(find(data, "x-data-table")).filter((n) => n.tagName === "th" || n.tagName === "td").map((n) => n.properties.dataBg ?? null), ["yellow", null, "yellow", null]);
+
+  // Unknown colours and anything else in the list never reach the page or the editor.
+  const evil = '<div data-table="default" data-bg="r0:blue;x:url(javascript:1)">\n\n| a |\n| --- |\n| 1 |\n\n</div>';
+  assert.equal(all(await markdownToTree(evil)).some((n) => n.properties?.dataBg), false);
+  assert.equal(tableColorAt("r0:teal,r1:blue")(0, 0), null);
+  assert.equal(tableColorAt("r0:teal,r1:blue")(1, 3), "blue");
+  assert.equal(tableColorList([[null, "chartreuse"]]), "");
+
+  // The editor's HTML (its clipboard): data-bg and data-fg on the cell itself.
+  const cellType = getSchema(EXTENSIONS).nodes.tableCell;
+  const [, attrs] = cellType.spec.toDOM(cellType.create({ background: "pink", textColor: "brown" }, cellType.schema.nodes.paragraph.create()));
+  assert.equal(attrs["data-bg"], "pink");
+  assert.equal(attrs["data-fg"], "brown");
+  const el = (a) => ({ getAttribute: (k) => a[k] ?? null, hasAttribute: (k) => k in a, style: {}, children: [], childNodes: [], textContent: "x", closest: () => null, parentElement: null });
+  const parsed = cellType.spec.parseDOM.map((r) => r.getAttrs?.(el({ "data-bg": "orange", "data-fg": "nope" }))).find(Boolean);
+  assert.equal(parsed.background, "orange");
+  assert.equal(parsed.textColor ?? null, null, "an unknown colour falls back to none");
 });
 
 test("charts keep type, title and data, and render with a data table fallback", async () => {

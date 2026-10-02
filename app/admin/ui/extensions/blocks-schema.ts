@@ -20,6 +20,7 @@ import {
   isChartType,
   hasHeaderCol,
   hasHeaderRow,
+  isTableColor,
   isTableStyle,
   isTableWidth,
   normalizeRanges,
@@ -31,6 +32,8 @@ import {
   parseStyledTableStart,
   pollMarkdown,
   siteOf,
+  tableColorAt,
+  tableColorList,
   tableHeader,
   tableOpenTag,
   type CodeTab,
@@ -307,7 +310,8 @@ export const TableStyled = Table.extend({
       ? node
       : { ...node, content: [{ ...rows[0], content: (rows[0].content ?? []).map((c) => ({ ...c, type: "tableHeader" })) }, ...rows.slice(1)] };
     const table = renderPlainTable(asGfm, h);
-    const open = tableOpenTag({ style: node.attrs?.tableStyle, header, width: node.attrs?.tableWidth });
+    const colors = (attr: string) => tableColorList(rows.map((r) => (r.content ?? []).map((c) => c.attrs?.[attr] as string | null | undefined)));
+    const open = tableOpenTag({ style: node.attrs?.tableStyle, header, width: node.attrs?.tableWidth, bg: colors("background"), fg: colors("textColor") });
     return open ? `${open}\n\n${table.trim()}\n\n</div>` : table;
   },
 });
@@ -329,16 +333,59 @@ export const TableStyleMarkdown = Extension.create({
       const inner = rest.slice(0, close.index).trim();
       const tokens = (config as Lexer).blockTokens(inner);
       if (tokens.filter((t) => t.type !== "space").length !== 1 || !tokens.some((t) => t.type === "table")) return undefined;
-      return { type: "styledTable", raw: open.open + rest.slice(0, close.index + close[0].length), style: open.style, header: open.header, width: open.width, tokens };
+      return {
+        type: "styledTable",
+        raw: open.open + rest.slice(0, close.index + close[0].length),
+        style: open.style,
+        header: open.header,
+        width: open.width,
+        bg: open.bg,
+        fg: open.fg,
+        tokens,
+      };
     },
   },
   parseMarkdown: (token: MarkdownToken, helpers: MarkdownParseHelpers) => {
     const nodes = helpers.parseChildren(token.tokens ?? []);
+    const bg = tableColorAt(token.bg);
+    const fg = tableColorAt(token.fg);
     for (const n of nodes) {
       if (n.type !== "table") continue;
       n.attrs = { ...(n.attrs ?? {}), tableStyle: token.style, tableWidth: token.width };
       setHeaders(n, token.header);
+      (n.content ?? []).forEach((r, ri) =>
+        (r.content ?? []).forEach((c, ci) => {
+          const background = bg(ri, ci);
+          const textColor = fg(ri, ci);
+          if (background || textColor) c.attrs = { ...(c.attrs ?? {}), ...(background ? { background } : {}), ...(textColor ? { textColor } : {}) };
+        }),
+      );
     }
     return nodes;
+  },
+});
+
+/*
+ * A cell's colours: a background and a text colour from Notion's light
+ * palette (TABLE_COLORS), set from the row and column handles' menu
+ * (table-handles.tsx). In HTML each cell carries its own (data-bg,
+ * data-fg); in Markdown the table's wrapper lists them (cms/blocks.ts).
+ */
+const cellColor = (dataAttr: string) => ({
+  default: null as string | null,
+  parseHTML: (el: HTMLElement) => {
+    const value = el.getAttribute(dataAttr);
+    return isTableColor(value) ? value : null;
+  },
+  renderHTML: (attrs: Record<string, unknown>) => {
+    const value = attrs[dataAttr === "data-bg" ? "background" : "textColor"];
+    return isTableColor(value) ? { [dataAttr]: value } : {};
+  },
+});
+
+export const TableCellColors = Extension.create({
+  name: "tableCellColors",
+  addGlobalAttributes() {
+    return [{ types: ["tableCell", "tableHeader"], attributes: { background: cellColor("data-bg"), textColor: cellColor("data-fg") } }];
   },
 });

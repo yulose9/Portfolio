@@ -66,6 +66,7 @@ import {
 } from "./commands";
 import { findKey, type FindOptions } from "./extensions/blocks";
 import { alignColumns } from "./extensions/table-plus";
+import { openLineMenu } from "./extensions/table-lines";
 import { TABLE_STYLES, TABLE_WIDTHS } from "../../../cms/blocks";
 import { keys, MenuSurface, MItem, MLabel, MSep, MSub } from "./menu";
 import { shortcutLabel } from "./shortcuts";
@@ -193,6 +194,10 @@ export function EditorContextMenu({ editor, children, ...pick }: { editor: Edito
         </MSub>
         {info.inTable ? (
           <MSub icon={<Table {...I} />} label="Table">
+            {/* The caret's row or column handle menu (table-handles.tsx), after this menu lets go of focus. */}
+            <MItem keys={keys("⌥⇧M")} onSelect={() => setTimeout(() => openLineMenu(editor.view, "row"), 0)}>Row options…</MItem>
+            <MItem keys={keys("⌥⇧C")} onSelect={() => setTimeout(() => openLineMenu(editor.view, "col"), 0)}>Column options…</MItem>
+            <MSep />
             <MItem onSelect={() => editor.chain().focus().addRowBefore().run()}>Add row above</MItem>
             <MItem onSelect={() => editor.chain().focus().addRowAfter().run()}>Add row below</MItem>
             <MItem onSelect={() => editor.chain().focus().addColumnBefore().run()}>Add column left</MItem>

@@ -3,6 +3,7 @@
 import { SoundToggle } from "../../components/ui/sound";
 import { Tabs, TabsList, TabsTrigger } from "../../components/kit/tabs";
 import { SlidingNumber } from "../../components/kit/inputs/counter";
+import { MultiSelect, type MultiSelectMatch } from "../../components/kit/inputs/multi-select";
 import PageTree from "./PageTree";
 import MediaLibrary from "./MediaLibrary";
 
@@ -81,7 +82,9 @@ export default function PostList({
   // A failed load is not an empty list: it gets its own state and a retry.
   const [loadError, setLoadError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
-  const [tag, setTag] = useState<string | null>(null);
+  // Tags to filter by, and whether a post needs any of them or all of them.
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
+  const [tagMatch, setTagMatch] = useState<MultiSelectMatch>("any");
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
@@ -91,9 +94,10 @@ export default function PostList({
   const [version, setVersion] = useState(0);
 
   // A different view is a different set of rows: start the selection over.
-  const [view, setView] = useState(`${filter}|${tag}`);
-  if (view !== `${filter}|${tag}`) {
-    setView(`${filter}|${tag}`);
+  const viewKey = `${filter}|${tagFilter.join("\u0000")}|${tagMatch}`;
+  const [view, setView] = useState(viewKey);
+  if (view !== viewKey) {
+    setView(viewKey);
     setSelected(new Set());
   }
   useEffect(() => {
@@ -175,6 +179,14 @@ export default function PostList({
     return [...m].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   }, [live]);
 
+  // The multi-select's options: every tag in use with its post count, plus any
+  // picked tag no live post carries any more, so it can still be unpicked.
+  const tagOptions = useMemo(() => {
+    const options = tags.map(([value, count]) => ({ value, count }));
+    for (const t of tagFilter) if (!tags.some(([x]) => x === t)) options.push({ value: t, count: 0 });
+    return options;
+  }, [tags, tagFilter]);
+
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     const pool =
@@ -183,7 +195,12 @@ export default function PostList({
       .filter(
         (p) =>
           (filter === "all" || filter === "trash" || p.status === filter) &&
-          (!tag || p.tags.includes(tag)) &&
+          // Trash has no tag filter: its control is hidden there.
+          (filter === "trash" ||
+            !tagFilter.length ||
+            (tagMatch === "all"
+              ? tagFilter.every((t) => p.tags.includes(t))
+              : tagFilter.some((t) => p.tags.includes(t)))) &&
           (!q ||
             p.title.toLowerCase().includes(q) ||
             p.dek.toLowerCase().includes(q) ||
@@ -194,7 +211,7 @@ export default function PostList({
           Number(b.pinned) - Number(a.pinned) ||
           (a.updatedAt < b.updatedAt ? 1 : -1),
       );
-  }, [posts, live, filter, tag, query]);
+  }, [posts, live, filter, tagFilter, tagMatch, query]);
 
   // N for a new post, / to filter: the two things this screen is for.
   useEffect(() => {
@@ -303,8 +320,8 @@ export default function PostList({
       title: `Tagged “${t}”`,
       icon: <TagIcon {...CI} />,
       keywords: ["tag", "filter", t],
-      checked: tag === t,
-      run: () => setTag((cur) => (cur === t ? null : t)),
+      checked: tagFilter.includes(t),
+      run: () => setTagFilter((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t])),
     })),
     {
       id: "select-all",
@@ -479,25 +496,23 @@ export default function PostList({
             ))}
           </TabsList>
         </Tabs>
+        {/* Several tags at once, any or all of them, in the manner of Kobra's multi-select. */}
+        {tagOptions.length && filter !== "trash" ? (
+          <MultiSelect
+            className="writing-tag-filter"
+            label="Tags"
+            icon={<TagIcon size={14} aria-hidden="true" />}
+            placeholder="Search tags…"
+            emptyText="No matching tags"
+            options={tagOptions}
+            value={tagFilter}
+            onValueChange={setTagFilter}
+            match={tagMatch}
+            onMatchChange={setTagMatch}
+            itemProps={(t) => ({ "data-tint": tagTint(t) })}
+          />
+        ) : null}
       </div>
-
-      {tags.length && filter !== "trash" ? (
-        <div className="tag-filter" role="group" aria-label="Filter by tag">
-          {tags.map(([t, n]) => (
-            <button
-              key={t}
-              type="button"
-              className="tag"
-              data-tint={tagTint(t)}
-              aria-pressed={tag === t}
-              onClick={() => setTag(tag === t ? null : t)}
-            >
-              {t}
-              <span className="tag-count">{n}</span>
-            </button>
-          ))}
-        </div>
-      ) : null}
 
       {loadError && !posts?.length ? (
         <div className="admin-empty" role="alert">

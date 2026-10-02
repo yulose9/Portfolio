@@ -102,6 +102,14 @@ The chip row stays on one line and scrolls sideways, because the drag library me
   Use `<TagsInput value={tags} onChange={…} suggestions={known} max={8} label="Tags" tagProps={(t) => ({ "data-tint": tagTint(t) })} />`.
 - `admin/ui/DetailsSheet.tsx:119-143` is the simpler duplicate, with no reorder and no suggestions. Use the same component so both sheets behave the same.
 
+## `multi-select.tsx`: `MultiSelect`
+
+A filter in the manner of Kobra's multi-select, on Base UI's Combobox in multiple mode with the input inside the popup. A compact trigger shows the label and a count badge. The popover holds a search field, checkable options with an optional count, an optional Any / All match toggle and a Clear action. The picks show as removable chips after the trigger.
+
+- **Props:** `options` (`{ value, label?, count? }[]`), `value`, `onValueChange`, `label`, `icon`, `placeholder`, `emptyText`, `match` + `onMatchChange` (both needed for the toggle), `itemProps` (extra props for an option's label and a chip, e.g. `data-tint`), `chips` (default `true`), `disabled`.
+- **Slots:** `multi-select-trigger`, `multi-select-input`, `multi-select-option` (plays toggle on and off through `data-sound`), `multi-select-match`, `multi-select-clear`, `multi-select-value`, `multi-select-remove`.
+- **In use:** the tag filter in `admin/ui/PostList.tsx`, with `itemProps={(t) => ({ "data-tint": tagTint(t) })}`.
+
 ## `magnetic-dropzone.tsx`: `MagneticDropzone`
 
 This is a drop target that reacts as soon as a file is dragged anywhere over the page:

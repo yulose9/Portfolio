@@ -441,6 +441,34 @@
   white-space: nowrap;
 }
 
+/* Cell colours (data-bg, data-fg; cms/blocks.ts), Notion's light palette.
+   They're the author's own choice for that cell, so they win over the
+   table style's header shade, stripes and hover. */
+.article-body :is(td, th)[data-bg="gray"] { --cell-bg: #f1f1ef; }
+.article-body :is(td, th)[data-bg="brown"] { --cell-bg: #f4eeee; }
+.article-body :is(td, th)[data-bg="orange"] { --cell-bg: #fbecdd; }
+.article-body :is(td, th)[data-bg="yellow"] { --cell-bg: #fbf3db; }
+.article-body :is(td, th)[data-bg="green"] { --cell-bg: #edf3ec; }
+.article-body :is(td, th)[data-bg="blue"] { --cell-bg: #e7f3f8; }
+.article-body :is(td, th)[data-bg="purple"] { --cell-bg: #f6f3f9; }
+.article-body :is(td, th)[data-bg="pink"] { --cell-bg: #faf1f5; }
+.article-body :is(td, th)[data-bg="red"] { --cell-bg: #fdebec; }
+.article-body :is(td, th)[data-bg] {
+  background-color: var(--cell-bg, transparent) !important;
+}
+.article-body :is(td, th)[data-fg="gray"] { --cell-fg: #787774; }
+.article-body :is(td, th)[data-fg="brown"] { --cell-fg: #9f6b53; }
+.article-body :is(td, th)[data-fg="orange"] { --cell-fg: #d9730d; }
+.article-body :is(td, th)[data-fg="yellow"] { --cell-fg: #cb912f; }
+.article-body :is(td, th)[data-fg="green"] { --cell-fg: #448361; }
+.article-body :is(td, th)[data-fg="blue"] { --cell-fg: #337ea9; }
+.article-body :is(td, th)[data-fg="purple"] { --cell-fg: #9065b0; }
+.article-body :is(td, th)[data-fg="pink"] { --cell-fg: #c14c8a; }
+.article-body :is(td, th)[data-fg="red"] { --cell-fg: #d44c47; }
+.article-body :is(td, th)[data-fg] {
+  color: var(--cell-fg, inherit) !important;
+}
+
 /* ── Data table (CRM-like) ───────────────────────────────────────────── */
 
 .article-body .data-table {

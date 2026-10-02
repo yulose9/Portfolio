@@ -8,7 +8,6 @@ import Suggestion, {
   type SuggestionProps,
 } from "@tiptap/suggestion";
 import {
-  Fragment,
   forwardRef,
   useEffect,
   useId,
@@ -17,12 +16,13 @@ import {
   useState,
 } from "react";
 
-import { ChartBar, ChartBarHorizontal, Quotes, Table, Tabs } from "@phosphor-icons/react";
+import { At, CalendarBlank, ChartBar, ChartBarHorizontal, FileText, Quotes, Table, Tabs } from "@phosphor-icons/react";
 
 import { DEFAULT_CHART_CSV, newPollId } from "../../../cms/blocks";
 import { BLOCKS, inserts, turnInto, type BlockKind } from "./commands";
 import { DEFAULT_TABS } from "./extensions/blocks-schema";
 import BlockExample from "./BlockExample";
+import { filterSlashItems, orderSlashItems, slashGroupOf, type SlashGroup } from "./slash-groups";
 import { mountSuggestion, revealOption } from "./suggestion-surface";
 
 /*
@@ -30,16 +30,21 @@ import { mountSuggestion, revealOption } from "./suggestion-surface";
  * filter, arrows to move, Enter to insert, Escape to close. Tiptap's
  * Suggestion utility tracks the query and the range; this file only says what
  * the items are and how the list looks.
+ *
+ * The items are grouped as Notion groups them (Basic blocks, Media, Advanced,
+ * Inline; see slash-groups.ts), each with a short line under its title and,
+ * on the right, what you'd type to get it without the menu.
  */
 
 export type SlashItem = {
+  id: string;
   example?: BlockKind;
   shortcut?: string;
   title: string;
   hint: string;
   keywords: string[];
   icon: React.ReactNode;
-  group: "Blocks" | "Insert";
+  group: SlashGroup;
   run: (editor: Editor, range: Range) => void;
 };
 
@@ -59,16 +64,17 @@ export function slashItems(
   pickEmoji: () => void,
   pickVoice: () => void,
 ): SlashItem[] {
-  return [
+  return orderSlashItems([
     ...BLOCKS.map(
       (b): SlashItem => ({
+        id: b.kind,
         title: b.title,
         hint: b.hint,
         shortcut: b.md,
         example: b.kind,
         keywords: b.keywords,
         icon: b.icon,
-        group: "Blocks",
+        group: slashGroupOf(b.kind),
         run: (e, r) => {
           fresh(e, r);
           turnInto(e, b.kind);
@@ -77,11 +83,13 @@ export function slashItems(
     ),
     ...inserts(pickImage, pickEmoji, pickVoice).map(
       (i): SlashItem => ({
+        id: i.id,
         title: i.title,
         hint: i.hint,
+        shortcut: i.md,
         keywords: i.keywords,
         icon: i.icon,
-        group: "Insert",
+        group: slashGroupOf(i.id),
         run: (e, r) => {
           if (i.id === "inline-logo") e.chain().focus().deleteRange(r).run();
           else fresh(e, r);
@@ -90,19 +98,28 @@ export function slashItems(
       }),
     ),
     ...EXTRA_ITEMS,
-  ];
+  ]);
 }
+
+/**
+ * Inline items type the trigger of a menu that already exists ("@" for
+ * mentions and dates, "[[" for a link to another page), which then opens
+ * where the "/" was, as if you'd typed it.
+ */
+const typeTrigger = (trigger: string) => (e: Editor, r: Range) => {
+  e.chain().focus().deleteRange(r).insertContent(trigger).run();
+};
 
 /* The newer blocks (extensions/blocks-schema.ts and their views). */
 const EI = { size: 15 } as const;
 const EXTRA_ITEMS: SlashItem[] = [
   {
-    title: "Code tabs", hint: "npm / pnpm / yarn, or several files", group: "Insert",
+    id: "code-tabs", group: slashGroupOf("code-tabs"), title: "Code tabs", hint: "npm / pnpm / yarn, or several files",
     keywords: ["code", "tabs", "install", "npm", "pnpm", "yarn", "bun", "files", "snippet"], icon: <Tabs {...EI} />,
     run: (e, r) => { fresh(e, r); e.chain().focus().insertContent({ type: "codeTabs", attrs: { tabs: DEFAULT_TABS } }).run(); },
   },
   {
-    title: "Data table", hint: "Sortable columns, numbers aligned", group: "Insert",
+    id: "data-table", group: slashGroupOf("data-table"), title: "Data table", hint: "Sortable columns, numbers aligned",
     keywords: ["table", "data", "sort", "crm", "grid", "spreadsheet"], icon: <Table {...EI} />,
     run: (e, r) => {
       fresh(e, r);
@@ -110,21 +127,48 @@ const EXTRA_ITEMS: SlashItem[] = [
     },
   },
   {
-    title: "Chart", hint: "Bar, line, area, pie or donut", group: "Insert",
+    id: "chart", group: slashGroupOf("chart"), title: "Chart", hint: "Bar, line, area, pie or donut",
     keywords: ["chart", "graph", "plot", "bar", "line", "area", "pie", "donut", "data"], icon: <ChartBar {...EI} />,
     run: (e, r) => { fresh(e, r); e.chain().focus().insertContent({ type: "chart", attrs: { chartType: "bar", title: "", data: DEFAULT_CHART_CSV } }).run(); },
   },
   {
-    title: "Poll", hint: "Readers vote on one option", group: "Insert",
+    id: "poll", group: slashGroupOf("poll"), title: "Poll", hint: "Readers vote on one option",
     keywords: ["poll", "vote", "survey", "choice", "question"], icon: <ChartBarHorizontal {...EI} />,
     run: (e, r) => { fresh(e, r); e.chain().focus().insertContent({ type: "poll", attrs: { pollId: newPollId(), question: "", options: ["", ""] } }).run(); },
   },
   {
-    title: "Citation", hint: "A numbered source, listed at the end", group: "Insert",
+    id: "citation", group: slashGroupOf("citation"), title: "Citation", hint: "A numbered source, listed at the end",
     keywords: ["cite", "citation", "source", "reference", "footnote"], icon: <Quotes {...EI} />,
     run: (e, r) => { e.chain().focus().deleteRange(r).insertContent({ type: "citation", attrs: { href: "" } }).run(); },
   },
+  {
+    id: "page-link", group: slashGroupOf("page-link"), title: "Link to page", hint: "Another post or page, by its title", shortcut: "[[",
+    keywords: ["page", "link", "subpage", "internal", "post", "wiki"], icon: <FileText {...EI} />,
+    run: typeTrigger("[["),
+  },
+  {
+    id: "mention", group: slashGroupOf("mention"), title: "Mention a page", hint: "An inline chip linking to a page", shortcut: "@",
+    keywords: ["mention", "page", "at", "person", "link"], icon: <At {...EI} />,
+    run: typeTrigger("@"),
+  },
+  {
+    id: "date", group: slashGroupOf("date"), title: "Date or reminder", hint: "Today, tomorrow or any date and time", shortcut: "@",
+    keywords: ["date", "time", "today", "tomorrow", "reminder", "when", "day"], icon: <CalendarBlank {...EI} />,
+    run: typeTrigger("@"),
+  },
 ];
+
+/** The runs of same-section items in the (already grouped) list, for the headings. */
+function sections(items: SlashItem[]) {
+  const runs: { group: SlashGroup; start: number; end: number }[] = [];
+  items.forEach((item, i) => {
+    const last = runs[runs.length - 1];
+    if (last && last.group === item.group) last.end = i + 1;
+    else runs.push({ group: item.group, start: i, end: i + 1 });
+  });
+  return runs;
+}
+const slug = (group: string) => group.toLowerCase().replace(/\W+/g, "-");
 
 type ListProps = SuggestionProps<SlashItem>;
 type ListHandle = { onKeyDown: (props: SuggestionKeyDownProps) => boolean };
@@ -209,36 +253,40 @@ const SlashList = forwardRef<ListHandle, ListProps>(function SlashList(
         aria-label="Insert block"
       >
         {items.length ? (
-          items.map((item, i) => (
-            <Fragment key={item.title}>
-              {i === 0 || items[i - 1].group !== item.group ? (
-                <p className="slash-group" aria-hidden="true">{item.group}</p>
-              ) : null}
-              <button
-                type="button"
-                role="option"
-                id={`${listId}-${i}`}
-                tabIndex={-1}
-                aria-selected={i === index}
-                data-index={i}
-                className="slash-item"
-                onPointerMove={(e) => {
-                  if (e.pointerType === "mouse") {
-                    keyboardSelection.current = false;
-                    setIndex(i);
-                  }
-                }}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => command(item)}
-              >
-                <span className="slash-icon">{item.icon}</span>
-                <span className="slash-title">
-                  {item.title}
-                  {item.shortcut ? <kbd>{item.shortcut}</kbd> : null}
-                </span>
-                <span className="slash-hint">{item.hint}</span>
-              </button>
-            </Fragment>
+          sections(items).map(({ group, start, end }) => (
+            <div key={group} role="group" className="slash-section" aria-labelledby={`${listId}-${slug(group)}`}>
+              <p className="slash-group" id={`${listId}-${slug(group)}`} role="presentation">{group}</p>
+              {items.slice(start, end).map((item, offset) => {
+                const i = start + offset;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="option"
+                    id={`${listId}-${i}`}
+                    tabIndex={-1}
+                    aria-selected={i === index}
+                    data-index={i}
+                    className="slash-item"
+                    onPointerMove={(e) => {
+                      if (e.pointerType === "mouse") {
+                        keyboardSelection.current = false;
+                        setIndex(i);
+                      }
+                    }}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => command(item)}
+                  >
+                    <span className="slash-icon">{item.icon}</span>
+                    <span className="slash-title">
+                      {item.title}
+                      {item.shortcut ? <kbd>{item.shortcut}</kbd> : null}
+                    </span>
+                    <span className="slash-hint">{item.hint}</span>
+                  </button>
+                );
+              })}
+            </div>
           ))
         ) : (
           <p className="slash-empty" role="option" aria-disabled="true" aria-selected="false">No blocks match</p>
@@ -291,15 +339,8 @@ export function SlashCommand(getItems: () => SlashItem[]) {
             );
             return before === "" || /\s/.test(before);
           },
-          items: ({ query }) => {
-            const q = query.toLowerCase();
-            return getItems().filter(
-              (i) =>
-                !q ||
-                i.title.toLowerCase().includes(q) ||
-                i.keywords.some((k) => k.startsWith(q)),
-            );
-          },
+          // Matching items only, best match first; empty sections drop out.
+          items: ({ query }) => filterSlashItems(getItems(), query),
           command: ({ editor, range, props }) => props.run(editor, range),
           render: () => {
             let renderer: ReactRenderer<ListHandle, ListProps> | null = null;

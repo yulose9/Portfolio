@@ -91,7 +91,7 @@ import { ChartBlock } from "./extensions/chart";
 import { PollBlock } from "./extensions/poll";
 import { CitationNode } from "./extensions/citation";
 import { TablePlus } from "./extensions/table-plus";
-import { TableStyleMarkdown } from "./extensions/blocks-schema";
+import { TableCellColors, TableStyleMarkdown } from "./extensions/blocks-schema";
 import { kindOf, uploadAudio, uploadMedia, type Uploaded, ACCEPT } from "./media";
 import { cleanPastedHtml, htmlIsWrappedMarkdown, looksLikeMarkdown, proseToParagraphs } from "./paste";
 import VoiceRecorder from "./VoiceRecorder";
@@ -118,7 +118,8 @@ import { WritingCodeBlockPro as WritingCodeBlock } from "./extensions/code-pro";
 import { saveMediaJob, pendingMediaLabel } from "./media-journal";
 import { InteractionHighlight } from "./extensions/interaction-highlight";
 import { SlashCommand, slashItems, type SlashItem } from "./slash";
-import { TabKeys } from "./extensions/tab-keys";
+import { ListEnter, TabKeys } from "./extensions/tab-keys";
+import { HeadingShortcuts } from "./extensions/heading-rules";
 import { useClickBelowToWrite, useGrabbingCursor } from "./editor-gestures";
 import { Tabs, TabsList, TabsTrigger } from "../../components/kit/tabs";
 import { SlidingNumber } from "../../components/kit/inputs/counter";
@@ -426,6 +427,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
       TableKit.configure({ table: false }),
       TablePlus,
       TableStyleMarkdown,
+      TableCellColors,
       Highlight,
       Typography,
       Callout,
@@ -446,6 +448,10 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
       PostLinks(() => OPEN_POST.id),
       SlashCommand(() => SLASH_ITEMS),
       TabKeys,
+      // Enter on an empty list item steps out a level, like Shift+Tab.
+      ListEnter,
+      // "# " is Heading 1, as in Notion (see heading-rules.ts).
+      HeadingShortcuts,
       Extension.create({
         name: "adminKeys",
         addKeyboardShortcuts: () => ({

@@ -596,7 +596,9 @@
   flex: 1;
   min-width: 0;
   height: 30px;
+  padding: 0 8px;
   border: 0;
+  border-radius: 8px;
   outline: 0;
   background: transparent;
   font: inherit;
@@ -837,10 +839,37 @@
   bottom: 64px;
 }
 
-/* Focus you can see: 2px ink rings, 3:1 or better against every surface. */
-.admin-body :is(input, textarea, select):focus-visible:not(.editor-field) {
-  box-shadow: inset 0 0 0 1.5px var(--a-ink);
+/*
+ * Focus you can see, sized to what it is on.
+ *
+ * Text fields match :focus-visible on every focus, mouse or keyboard, and when
+ * a shortcut opens a dialog that focuses one. So a field gets the quiet look:
+ * a darker hairline and a faint halo (the border goes transparent so the
+ * hairline is the only edge, whatever the field's own border is).
+ */
+.admin-body :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"]), textarea, select):focus-visible:not(.editor-field) {
+  outline: none;
+  border-color: transparent;
+  box-shadow: var(--a-field-focus);
 }
+/* A field inside a composite control (search with an icon, tag input, hex
+   field, the palette's search) draws nothing itself: its container shows
+   focus with :focus-within. */
+.admin-body :is(.palette-input, .admin-search, .tag-field, .slug-field, .picker-search, .research-search, .appearance-custom label, .ki-tags-field, .ki-color-field, .ki-ms-search) :is(input, textarea):focus-visible:not(.editor-field) {
+  outline: none;
+  box-shadow: none;
+}
+/* Chart data cells keep the spreadsheet's own cell outline (admin-blocks.css),
+   so no halo spills into the next cell. */
+.admin-body .editor-chart-grid input:focus-visible:not(.editor-field) {
+  outline: 2px solid rgb(37 99 235 / 0.5);
+  outline-offset: -2px;
+  box-shadow: none;
+}
+/* Everything else keeps the 2px ink ring, which only keyboard focus draws:
+   3:1 or better against every surface. Native toggles and sliders sit at zero
+   specificity under :where(), so a control that styles its own focus wins. */
+:where(.admin-body input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"])):focus-visible,
 .admin-body :is(button, [role="button"], [role="checkbox"], a):focus-visible {
   outline: 2px solid var(--a-ink);
   outline-offset: 2px;
