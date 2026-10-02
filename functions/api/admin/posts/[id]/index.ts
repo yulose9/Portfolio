@@ -88,6 +88,8 @@ function cleanCover(value: unknown): Cover | null {
   if (v.style === "banner") (result as Cover & { style?: "banner" }).style = "banner";
   // Where a banner crops its picture, 0 (top) to 100 (bottom); 50 is the default and isn't stored.
   if (typeof v.position === "number" && Number.isFinite(v.position) && v.position >= 0 && v.position <= 100 && v.position !== 50) (result as Cover & { position?: number }).position = Math.round(v.position * 10) / 10;
+  // How far a banner zooms into its picture, 1 to 3; 1 is the default and isn't stored.
+  if (typeof v.zoom === "number" && Number.isFinite(v.zoom) && v.zoom > 1 && v.zoom <= 3) (result as Cover & { zoom?: number }).zoom = Math.round(v.zoom * 100) / 100;
   return result;
 }
 

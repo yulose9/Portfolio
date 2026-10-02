@@ -8,6 +8,7 @@ import {
   ArrowCounterClockwise,
 } from "@phosphor-icons/react";
 import Sheet from "./Sheet";
+import { AssetPreview, ImageLightbox } from "./MediaPreview";
 import { api } from "./api";
 import { uploadMedia, ACCEPT } from "./media";
 import { beginPendingWork } from "./session";
@@ -45,7 +46,10 @@ export default function MediaLibrary({
     [view, setView] = useState<"gallery" | "list">("gallery"),
     [trash, setTrash] = useState(false),
     [edit, setEdit] = useState<Asset | null>(null),
-    [progress, setProgress] = useState("");
+    [progress, setProgress] = useState(""),
+    // The image open full size, and the audio playing, if any (one at a time).
+    [viewing, setViewing] = useState<Asset | null>(null),
+    [playing, setPlaying] = useState<string | null>(null);
   const [previousOpen, setPreviousOpen] = useState(open);
   if (previousOpen !== open) {
     setPreviousOpen(open);
@@ -279,21 +283,13 @@ export default function MediaLibrary({
       <div className="asset-grid" data-view={view}>
         {shown.map((asset) => (
           <article key={asset.src} className="asset-card">
-            <a
-              className="asset-preview"
-              href={asset.src}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={`Preview ${asset.title || "asset"}`}
-            >
-              {asset.type.startsWith("image/") ? (
-                <img src={asset.src} alt={asset.alt ?? ""} loading="lazy" />
-              ) : (
-                <span>
-                  {asset.type.startsWith("video/") ? "Video" : "Audio"}
-                </span>
-              )}
-            </a>
+            <AssetPreview
+              asset={asset}
+              open={viewing?.src === asset.src}
+              playing={playing === asset.src}
+              onOpen={() => setViewing(asset)}
+              onPlay={(on) => setPlaying(on ? asset.src : null)}
+            />
             <div className="asset-info">
               <strong>{asset.title || asset.src.split("/").pop()}</strong>
               <small>
@@ -338,6 +334,7 @@ export default function MediaLibrary({
           </article>
         ))}
       </div>
+      <ImageLightbox asset={viewing} onClose={() => setViewing(null)} />
       {!shown.length && !busy && !loading ? <p>No media matches this view.</p> : null}
       {cursor ? (
         <button

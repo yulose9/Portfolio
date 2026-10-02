@@ -1,10 +1,13 @@
 "use client";
 
-import { ArrowsDownUp, ImageSquare, X } from "@phosphor-icons/react";
+import { ArrowsDownUp, ImageSquare, MagnifyingGlassMinus, MagnifyingGlassPlus, X } from "@phosphor-icons/react";
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 
 import type { Cover } from "../../../cms/format";
-import { coverObjectPosition, coverPosition, coverStyle, withCoverPosition, withCoverStyle, type CoverStyle } from "../../../cms/cover";
+import {
+  MAX_COVER_ZOOM, coverImageStyle, coverPosition, coverStyle, coverZoom, withCoverPosition, withCoverStyle, withCoverZoom, type CoverStyle,
+} from "../../../cms/cover";
+import { Slider } from "../../components/kit/slider";
 
 /*
  * The cover's hover tools, and the banner style's own view. Classic is the
@@ -38,7 +41,7 @@ export function CoverActions({
       </button>
       {onReposition ? (
         <button type="button" className="admin-chip" onClick={onReposition}>
-          <ArrowsDownUp size={13} aria-hidden="true" /> Reposition
+          <ArrowsDownUp size={13} aria-hidden="true" /> Reposition and zoom
         </button>
       ) : null}
       <div className="cover-style" role="radiogroup" aria-label="Cover style">
@@ -86,6 +89,7 @@ export function EditorBanner({
   onPick: () => void;
 }) {
   const [moving, setMoving] = useState<number | null>(null);
+  const [zoom, setZoom] = useState(1);
   const frame = useRef<HTMLElement>(null);
   const img = useRef<HTMLImageElement>(null);
   const drag = useRef<{ y: number; from: number } | null>(null);
@@ -95,17 +99,17 @@ export function EditorBanner({
   const overflow = () => {
     const f = frame.current, i = img.current;
     if (!f || !i || !i.naturalWidth) return 0;
-    const shown = (f.clientWidth * i.naturalHeight) / i.naturalWidth;
+    const shown = ((f.clientWidth * i.naturalHeight) / i.naturalWidth) * zoom;
     return Math.max(0, shown - f.clientHeight);
   };
   const clamp = (n: number) => Math.min(100, Math.max(0, n));
   const save = () => {
-    if (moving !== null) onChange(withCoverPosition(cover, moving));
+    if (moving !== null) onChange(withCoverZoom(withCoverPosition(cover, moving), zoom));
     setMoving(null);
   };
 
   const onPointerDown = (e: PointerEvent<HTMLElement>) => {
-    if (moving === null || e.button !== 0 || (e.target as Element).closest("button, input")) return;
+    if (moving === null || e.button !== 0 || (e.target as Element).closest("button, input, .editor-banner-zoom")) return;
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
     drag.current = { y: e.clientY, from: moving };
@@ -124,6 +128,8 @@ export function EditorBanner({
     const step = e.shiftKey ? 10 : 2;
     if (e.key === "ArrowUp") setMoving(clamp(moving + step));
     else if (e.key === "ArrowDown") setMoving(clamp(moving - step));
+    else if (e.key === "+" || e.key === "=") setZoom((z) => Math.min(MAX_COVER_ZOOM, z + 0.1));
+    else if (e.key === "-") setZoom((z) => Math.max(1, z - 0.1));
     else if (e.key === "Enter") save();
     else if (e.key === "Escape") setMoving(null);
     else return;
@@ -144,11 +150,21 @@ export function EditorBanner({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img ref={img} src={cover.src} alt={cover.alt} width={cover.width} height={cover.height} draggable={false}
-        style={{ objectPosition: moving === null ? coverObjectPosition(cover) : `50% ${position}%` }} />
+        style={moving === null ? coverImageStyle(cover) : coverImageStyle(cover, position, zoom)} />
       {moving !== null ? (
         <>
-          <p className="editor-banner-hint" aria-live="polite">Drag the image, or use ↑ ↓, to reposition</p>
+          <p className="editor-banner-hint" aria-live="polite">Drag to reposition · ↑ ↓ to move, + − to zoom</p>
           <div className="editor-cover-actions editor-banner-confirm">
+            <div className="editor-banner-zoom">
+              <button type="button" className="editor-banner-zoom-step" aria-label="Zoom out" disabled={zoom <= 1} onClick={() => setZoom((z) => Math.max(1, Math.round((z - 0.25) * 100) / 100))}>
+                <MagnifyingGlassMinus size={14} aria-hidden="true" />
+              </button>
+              <Slider aria-label="Zoom" min={1} max={MAX_COVER_ZOOM} step={0.01} value={zoom} onValueChange={(v) => setZoom(v)} />
+              <button type="button" className="editor-banner-zoom-step" aria-label="Zoom in" disabled={zoom >= MAX_COVER_ZOOM} onClick={() => setZoom((z) => Math.min(MAX_COVER_ZOOM, Math.round((z + 0.25) * 100) / 100))}>
+                <MagnifyingGlassPlus size={14} aria-hidden="true" />
+              </button>
+              <output className="editor-banner-zoom-value">{Math.round(zoom * 100)}%</output>
+            </div>
             <button type="button" className="admin-chip" onClick={() => setMoving(null)}>
               Cancel
             </button>
@@ -159,7 +175,10 @@ export function EditorBanner({
         </>
       ) : (
         <>
-          <CoverActions cover={cover} onChange={onChange} onPick={onPick} onReposition={() => setMoving(coverPosition(cover))} />
+          <CoverActions cover={cover} onChange={onChange} onPick={onPick} onReposition={() => {
+              setZoom(coverZoom(cover));
+              setMoving(coverPosition(cover));
+            }} />
           <input
             className="editor-banner-alt"
             value={cover.alt}

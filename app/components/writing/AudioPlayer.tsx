@@ -49,7 +49,7 @@ function resample(values: number[], count: number): number[] {
 
 const clock = (s: number) => formatDuration(Math.floor(Math.max(0, s)));
 
-export default function AudioPlayer({ src, title }: { src: string; title?: string }) {
+export default function AudioPlayer({ src, title, autoPlay = false }: { src: string; title?: string; autoPlay?: boolean }) {
   const audio = useRef<HTMLAudioElement>(null);
   const wave = useRef<HTMLDivElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -100,6 +100,12 @@ export default function AudioPlayer({ src, title }: { src: string; title?: strin
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [playing]);
+
+  // Opened by a click (the media library's preview): start at once. A refused
+  // play (no gesture) just leaves the play button to press.
+  useEffect(() => {
+    if (autoPlay) void audio.current?.play().catch(() => undefined);
+  }, [autoPlay]);
 
   const toggle = () => {
     const a = audio.current;
@@ -233,6 +239,7 @@ export function AudioFigure({
   tools,
   className,
   editing,
+  autoPlay,
 }: {
   src: string;
   title?: string;
@@ -241,6 +248,8 @@ export function AudioFigure({
   className?: string;
   /** In the editor: the card is a block, not text. */
   editing?: boolean;
+  /** Starts playing as soon as it appears. */
+  autoPlay?: boolean;
 }) {
   return (
     <figure
@@ -250,7 +259,7 @@ export function AudioFigure({
     >
       {tools}
       {caption ?? (title ? <figcaption className="voice-caption">{title}</figcaption> : null)}
-      <AudioPlayer src={src} title={title} />
+      <AudioPlayer src={src} title={title} autoPlay={autoPlay} />
     </figure>
   );
 }

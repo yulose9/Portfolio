@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { coverObjectPosition, coverStyle } from "../../../../cms/cover";
+import { coverImageStyle, coverStyle } from "../../../../cms/cover";
 import { fluentUrl } from "../../../../cms/emoji";
 import { tagSlug } from "../../../../cms/format";
 import { fontLinks, inlineFontLinks, fontVars } from "../../../../cms/fonts";
@@ -178,7 +178,7 @@ export default async function ArticlePage({ params }: Props) {
       {banner ? (
         <figure className="article-banner">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={banner.src} alt={banner.alt} width={banner.width} height={banner.height} style={{ objectPosition: coverObjectPosition(banner) }} fetchPriority="high" decoding="async" />
+          <img src={banner.src} alt={banner.alt} width={banner.width} height={banner.height} style={coverImageStyle(banner)} fetchPriority="high" decoding="async" />
         </figure>
       ) : null}
       <main id="main" tabIndex={-1}

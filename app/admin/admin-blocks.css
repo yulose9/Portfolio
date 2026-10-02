@@ -970,3 +970,256 @@
     transition: none;
   }
 }
+
+/* The outline floats in the left margin; over a banner it would sit on the
+   picture, so there it gets a frosted panel to stay readable. */
+@media (min-width: 1180px) {
+  .editor-root:has(.editor-banner) .editor-outline {
+    padding: 10px 8px 10px 12px;
+    border-radius: 14px;
+    background: rgb(255 255 255 / 0.86);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    backdrop-filter: blur(14px) saturate(160%);
+    box-shadow: 0 0 0 1px rgb(0 0 0 / 0.06), 0 10px 28px -14px rgb(0 0 0 / 0.22);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .editor-root:has(.editor-banner) .editor-outline {
+    background: #fff;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Reposition's zoom: the kit's slider in a frosted pill beside Cancel and Save. */
+.editor-banner-confirm {
+  align-items: center;
+  gap: 6px;
+}
+.editor-banner-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px 0 4px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.9);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+}
+.editor-banner-zoom .kit-slider,
+.editor-banner-zoom [data-slot="slider"] {
+  width: 120px;
+}
+.editor-banner-zoom-step {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--a-ink-2);
+  cursor: pointer;
+  transition: background-color 150ms ease, scale 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.editor-banner-zoom-step:hover:not(:disabled) {
+  background: rgb(0 0 0 / 0.06);
+}
+.editor-banner-zoom-step:active:not(:disabled) {
+  scale: 0.96;
+}
+.editor-banner-zoom-step:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.editor-banner-zoom-value {
+  min-width: 3.2em;
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--a-ink-2);
+}
+.editor-banner img {
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.editor-banner[data-repositioning] img {
+  transition: none;
+}
+@media (max-width: 640px) {
+  .editor-banner-zoom .kit-slider,
+  .editor-banner-zoom [data-slot="slider"] {
+    width: 80px;
+  }
+}
+
+/* ── Media library previews (MediaPreview.tsx) ─────────────────────────── */
+
+button.asset-preview {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--a-line);
+  font: inherit;
+  cursor: zoom-in;
+}
+.asset-preview-image img {
+  transition: scale 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+@media (hover: hover) {
+  .asset-preview-image:hover img {
+    scale: 1.03;
+  }
+}
+.asset-preview:focus-visible {
+  outline: 2px solid var(--a-blue);
+  outline-offset: -2px;
+}
+.asset-preview-placeholder {
+  width: 100%;
+  height: 100%;
+}
+/* Audio, waiting: a play button over a still waveform. */
+button.asset-preview-audio {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  cursor: pointer;
+}
+.asset-preview-play {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--a-ink);
+  color: #fff;
+  transition: scale 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+button.asset-preview-audio:active .asset-preview-play {
+  scale: 0.96;
+}
+.asset-preview-wave {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 3px;
+  height: 36px;
+  min-width: 0;
+}
+.asset-preview-wave span {
+  flex: 1;
+  max-width: 4px;
+  border-radius: 2px;
+  background: rgb(0 0 0 / 0.16);
+}
+/* Audio, playing: the post's own player card, filling the preview. */
+div.asset-preview-audio {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 8px;
+}
+div.asset-preview-audio .article-audio {
+  width: 100%;
+  margin: 0;
+}
+.asset-preview-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.9);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+  color: var(--a-ink-2);
+  cursor: pointer;
+}
+.asset-grid[data-view="list"] div.asset-preview-audio {
+  grid-column: 1 / -1;
+}
+
+/* The full view: the picture grows out of its thumbnail over a dim page. */
+.media-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 56px 24px 72px;
+  background: rgb(10 10 12 / 0.78);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  cursor: zoom-out;
+}
+.media-lightbox-img {
+  max-width: min(1200px, 100%);
+  max-height: 100%;
+  border-radius: 10px;
+  object-fit: contain;
+  box-shadow: 0 24px 60px -20px rgb(0 0 0 / 0.5);
+}
+.media-lightbox-bar {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 32px);
+  padding: 4px 4px 4px 14px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.95);
+  box-shadow: 0 8px 24px -10px rgb(0 0 0 / 0.4);
+  translate: -50% 0;
+  cursor: default;
+}
+.media-lightbox-title {
+  min-width: 0;
+  margin-right: 6px;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--a-ink);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.media-lightbox-action {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--a-ink-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+.media-lightbox-action:hover {
+  background: rgb(0 0 0 / 0.06);
+}
+.media-lightbox-action:focus-visible {
+  outline: 2px solid var(--a-blue);
+  outline-offset: 1px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .asset-preview-image img,
+  .asset-preview-play {
+    transition: none;
+  }
+}

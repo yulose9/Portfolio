@@ -7,7 +7,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { parseEmbed, threadsFrame, youtubeFrame, type Embed } from "../../../cms/embeds";
-import { coverObjectPosition, coverStyle } from "../../../cms/cover";
+import { coverImageStyle, coverStyle } from "../../../cms/cover";
 import { fluentUrl } from "../../../cms/emoji";
 import { fontLinks, inlineFontLinks, fontVars } from "../../../cms/fonts";
 import { readingMinutes, tagSlug } from "../../../cms/format";
@@ -157,7 +157,7 @@ function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
       {banner ? (
         <figure className="article-banner">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={banner.src} alt={banner.alt} width={banner.width} height={banner.height} style={{ objectPosition: coverObjectPosition(banner) }} />
+          <img src={banner.src} alt={banner.alt} width={banner.width} height={banner.height} style={coverImageStyle(banner)} />
         </figure>
       ) : null}
       <main className="page-shell article-shell article-page preview-page w-full max-w-[672px] py-16" data-cover={banner ? "banner" : undefined} style={fontVars(meta.fonts) as React.CSSProperties}>
