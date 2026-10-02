@@ -449,7 +449,13 @@
 .writing-list-tools { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
 .writing-list-tools .admin-search { flex:1; border-radius:8px; height:38px; }
 .writing-list-tools .admin-search input { width:100%; min-width:0; }
-.writing-status-toolbar { border-bottom:1px solid var(--a-line); margin-bottom:16px; }
+.writing-status-toolbar { border-bottom:1px solid var(--a-line); margin-bottom:16px; padding-bottom:14px; }
+/* The sliding tabs in the admin: a 3px well around 30px pills (outer radius = pill + well), the count a quiet step after its label. */
+.writing-status-toolbar .kit-tabs-trigger { height:32px; padding:0 14px; gap:7px; font-size:13.5px; }
+.writing-status-toolbar .kit-tabs-trigger .admin-segment-count { margin-left:-1px; }
+.view-switch .kit-tabs-list { padding:3px; }
+.view-switch .kit-tabs-trigger { height:28px; padding:0 12px 0 10px; gap:6px; font-size:13px; }
+.view-switch .kit-tabs-trigger svg { flex:none; }
 .writing-status-toolbar .admin-segments { width:100%; background:transparent; border-radius:0; padding:0; gap:20px; }
 .writing-status-toolbar .admin-segment { height:42px; padding:0 0 9px; border-radius:0; border-bottom:2px solid transparent; }
 .writing-status-toolbar .admin-segment:is([aria-selected="true"], [aria-checked="true"]) { border-bottom-color:var(--a-ink); background:transparent; box-shadow:none; }

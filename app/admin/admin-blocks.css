@@ -312,6 +312,42 @@
   background: #fff;
   box-shadow: inset 0 0 0 1.5px #a1a1aa;
 }
+/* The live share sits behind each option as a faint fill; the count at its end. */
+.editor-poll-option {
+  isolation: isolate;
+  overflow: hidden;
+}
+.editor-poll-share {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: -1;
+  width: var(--share, 0%);
+  background: rgb(0 0 0 / 0.045);
+  transition: width 400ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.editor-poll-count {
+  min-width: 1.5em;
+  font-size: 12.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--a-ink-3);
+}
+.editor-poll-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.editor-poll-confirm {
+  display: inline-flex;
+  gap: 4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .editor-poll-share {
+    transition: none;
+  }
+}
 .editor-poll .poll-footer .admin-button {
   display: inline-flex;
   align-items: center;
@@ -887,16 +923,46 @@
   margin-top: 1.25rem;
 }
 .editor-canvas[data-cover="banner"] .editor-page-tools[data-has-icon] {
-  margin-top: -48px;
-  margin-bottom: 1rem;
+  margin-top: -39px;
+  margin-bottom: 0.75rem;
 }
 .editor-canvas[data-cover="banner"] .page-icon {
-  width: 92px;
-  height: 92px;
+  width: 78px;
+  height: 78px;
   margin-left: 0;
-  border-radius: 24px;
-  background: #fff;
-  box-shadow: 0 0 0 4px #fff, 0 6px 20px rgb(0 0 0 / 0.1);
+}
+/* Reposition: the picture follows the pointer; the tools give way to a save. */
+.editor-banner[data-repositioning] {
+  cursor: grab;
+  touch-action: none;
+  outline: 2px solid rgb(37 99 235 / 0.5);
+  outline-offset: -2px;
+}
+.editor-banner[data-repositioning]:active {
+  cursor: grabbing;
+}
+.editor-banner[data-repositioning] .editor-cover-actions {
+  opacity: 1;
+}
+.editor-banner-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  translate: -50% -50%;
+}
+.admin-chip.admin-chip-primary {
+  background: var(--a-ink);
+  color: #fff;
 }
 @media (prefers-reduced-motion: reduce) {
   .cover-style-option,

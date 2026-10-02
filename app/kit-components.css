@@ -499,9 +499,10 @@
 .kit-tabs-list {
   position: relative;
   display: inline-flex;
+  gap: 2px;
   width: max-content;
   max-width: 100%;
-  padding: 2px;
+  padding: 3px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
@@ -521,7 +522,8 @@
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
-  padding: 0.375rem 1rem;
+  height: 30px;
+  padding: 0 0.875rem;
   border-radius: 9999px;
   color: var(--muted-foreground);
   font-weight: 500;
@@ -573,8 +575,9 @@
   top: 0;
   left: 0;
   display: flex;
+  gap: 2px;
   width: max-content;
-  padding: 2px;
+  padding: 3px;
   transform: translate(calc(var(--active-tab-left) * -1), calc(var(--active-tab-top) * -1));
   transition: transform var(--tabs-duration) var(--tabs-ease);
   will-change: transform;

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { coverStyle } from "../../../../cms/cover";
+import { coverObjectPosition, coverStyle } from "../../../../cms/cover";
 import { fluentUrl } from "../../../../cms/emoji";
 import { tagSlug } from "../../../../cms/format";
 import { fontLinks, inlineFontLinks, fontVars } from "../../../../cms/fonts";
@@ -178,7 +178,7 @@ export default async function ArticlePage({ params }: Props) {
       {banner ? (
         <figure className="article-banner">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={banner.src} alt={banner.alt} width={banner.width} height={banner.height} fetchPriority="high" decoding="async" />
+          <img src={banner.src} alt={banner.alt} width={banner.width} height={banner.height} style={{ objectPosition: coverObjectPosition(banner) }} fetchPriority="high" decoding="async" />
         </figure>
       ) : null}
       <main id="main" tabIndex={-1}
@@ -191,7 +191,7 @@ export default async function ArticlePage({ params }: Props) {
           <div className="article-banner-row">
             {post.icon ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img className="article-banner-icon" src={fluentUrl(post.icon)} alt="" width={88} height={88} />
+              <img className="article-banner-icon" src={fluentUrl(post.icon)} alt="" width={78} height={78} />
             ) : null}
             {breadcrumbs}
           </div>

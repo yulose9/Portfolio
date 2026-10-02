@@ -388,15 +388,15 @@ button.tag:active {
 }
 
 /* ── Banner cover (cms/cover.ts) ───────────────────────────────────────
-   A profile header: the picture edge to edge across the top, about 3:1 and
-   never taller than 360px; the page icon overlaps its bottom edge, the
-   breadcrumbs sit beside it, the title below. */
+   Notion's page cover: a strip edge to edge across the top, about a third
+   of the screen tall, cropped where the writer set it (cover.position). The
+   page icon sits half over its bottom edge, flush with the text column, with
+   nothing behind it; the title follows below. */
 .article-banner {
   position: relative;
   width: 100%;
+  height: clamp(180px, 30vh, 280px);
   margin: 0;
-  aspect-ratio: 3 / 1;
-  max-height: 360px;
   overflow: hidden;
   background: #f4f4f5;
 }
@@ -422,27 +422,23 @@ button.tag:active {
   gap: 1rem;
   min-width: 0;
   padding-top: 1.5rem;
-  margin-bottom: 2.5rem;
+  margin-bottom: 1.75rem;
 }
 .article-banner-row:has(.article-banner-icon) {
   padding-top: 0;
-  margin-top: -44px;
+  margin-top: -39px;
 }
 .article-banner-row .article-nav {
   min-width: 0;
   margin: 0 0 0.35rem;
 }
-/* The icon on a white tile, ringed in the page colour, over the edge. */
+/* The icon itself, 78px, half over the edge: no tile, no ring. */
 .article-banner-icon {
   position: relative;
   flex-shrink: 0;
   display: block;
-  width: 88px;
-  height: 88px;
-  padding: 8px;
-  border-radius: 24px;
-  background: #fff;
-  box-shadow: 0 0 0 4px #fff, 0 6px 20px rgb(0 0 0 / 0.1);
+  width: 78px;
+  height: 78px;
   user-select: none;
 }
 .article-page .article-banner-row {
@@ -455,14 +451,15 @@ button.tag:active {
   .article-banner-row {
     margin-bottom: 2rem;
   }
+  .article-banner {
+    height: clamp(140px, 24vh, 200px);
+  }
   .article-banner-row:has(.article-banner-icon) {
-    margin-top: -36px;
+    margin-top: -32px;
   }
   .article-banner-icon {
-    width: 72px;
-    height: 72px;
-    padding: 6px;
-    border-radius: 20px;
+    width: 64px;
+    height: 64px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -86,6 +86,8 @@ function cleanCover(value: unknown): Cover | null {
   }
   // The banner layout (cms/cover.ts); classic is the default and isn't stored.
   if (v.style === "banner") (result as Cover & { style?: "banner" }).style = "banner";
+  // Where a banner crops its picture, 0 (top) to 100 (bottom); 50 is the default and isn't stored.
+  if (typeof v.position === "number" && Number.isFinite(v.position) && v.position >= 0 && v.position <= 100 && v.position !== 50) (result as Cover & { position?: number }).position = Math.round(v.position * 10) / 10;
   return result;
 }
 

@@ -24,3 +24,25 @@ export function withCoverStyle(cover: Cover, style: CoverStyle): Cover {
   delete rest.style;
   return (style === "banner" ? { ...rest, style } : rest) as Cover;
 }
+
+/*
+ * Where the picture sits in a banner that crops it: 0 shows its top edge,
+ * 100 its bottom, 50 (the default, not stored) its middle. Set by dragging
+ * the banner in the editor, as Notion's "Reposition" does.
+ */
+export type PositionedCover = StyledCover & { position?: number };
+
+export function coverPosition(cover: Cover | null | undefined): number {
+  const p = (cover as PositionedCover | null | undefined)?.position;
+  return typeof p === "number" && Number.isFinite(p) ? Math.min(100, Math.max(0, p)) : 50;
+}
+
+export function withCoverPosition(cover: Cover, position: number): Cover {
+  const rest: PositionedCover = { ...cover };
+  delete rest.position;
+  const p = Math.round(Math.min(100, Math.max(0, position)) * 10) / 10;
+  return (p === 50 ? rest : { ...rest, position: p }) as Cover;
+}
+
+/** The banner image's object-position, for the site, the preview and the editor. */
+export const coverObjectPosition = (cover: Cover) => `50% ${coverPosition(cover)}%`;

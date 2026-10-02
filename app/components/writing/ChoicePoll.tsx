@@ -22,6 +22,13 @@ const read = (key: string) => {
     return null;
   }
 };
+const remove = (key: string) => {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    /* nothing kept, nothing to remove */
+  }
+};
 const write = (key: string, value: string) => {
   try {
     localStorage.setItem(key, value);
@@ -73,29 +80,49 @@ export default function ChoicePoll({ id, question, options }: { id: string; ques
     };
   }, [id, key, options.length]);
 
-  const vote = async () => {
-    if (choice === null || busy) return;
+  const [changing, setChanging] = useState(false);
+  const [error, setError] = useState("");
+
+  /** POST to vote or move a vote, DELETE to take it back; local when the API is away. */
+  const send = async (method: "POST" | "DELETE", option: number | null) => {
+    if (busy) return;
     setBusy(true);
-    write(key, String(choice));
+    setError("");
+    if (option === null) remove(key);
+    else write(key, String(option));
     try {
-      if (mode !== "live") throw new Error("offline");
+      if (mode !== "live") throw new TypeError("offline");
       const r = await fetch(`/api/polls/${id}`, {
-        method: "POST",
+        method,
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ option: choice, options: options.length, voter: voter() }),
+        body: JSON.stringify({ option, options: options.length, voter: voter() }),
       });
-      if (!r.ok && r.status !== 409) throw new Error(String(r.status));
-      setResults((await r.json()) as Results);
-    } catch {
+      const body = (await r.json().catch(() => ({}))) as Partial<Results> & { error?: string };
+      // Not set up here: keep the vote on this device. Anything else is the reader's to retry.
+      if (r.status === 503 || r.status === 404) throw new TypeError("offline");
+      if (!r.ok || !Array.isArray(body.counts)) {
+        setError(body.error ?? "That didn’t go through. Try again.");
+        return;
+      }
+      setResults({ counts: body.counts, total: body.total ?? 0, voted: body.voted ?? null });
+      setChanging(false);
+    } catch (e) {
+      if (!(e instanceof TypeError)) throw e;
       setMode("local");
-      setResults(localResults(options.length, choice));
+      setResults(option === null ? null : localResults(options.length, option));
+      setChanging(false);
     } finally {
       setBusy(false);
     }
   };
+  const vote = () => (choice === null ? undefined : void send("POST", choice));
+  const retract = () => {
+    setChoice(null);
+    void send("DELETE", null);
+  };
 
   const voted = results?.voted ?? null;
-  const showResults = voted !== null && results;
+  const showResults = voted !== null && results && !changing;
   const total = results?.total ?? 0;
   const top = Math.max(0, ...(results?.counts ?? [0]));
   const titleId = `${name}-q`;
@@ -159,17 +186,48 @@ export default function ChoicePoll({ id, question, options }: { id: string; ques
       </div>
       <footer className="poll-footer">
         {showResults ? (
-          <p className="poll-note" role="status">
-            {mode === "live"
-              ? `${total.toLocaleString("en-US")} ${total === 1 ? "vote" : "votes"} · Thanks for voting`
-              : "Saved on this device. Live results aren’t available right now."}
-          </p>
+          <>
+            <p className="poll-note" role="status">
+              {mode === "live"
+                ? `${total.toLocaleString("en-US")} ${total === 1 ? "vote" : "votes"}`
+                : "Saved on this device. Live results aren’t available right now."}
+            </p>
+            <button
+              type="button"
+              className="poll-link"
+              onClick={() => {
+                setChoice(voted);
+                setChanging(true);
+              }}
+            >
+              Change vote
+            </button>
+          </>
         ) : (
           <>
-            <p className="poll-note">{mode === "loading" ? "Loading…" : choice === null ? "Pick one to vote." : "One vote per reader."}</p>
-            <button type="button" className="poll-submit" disabled={choice === null || busy || mode === "loading"} onClick={() => void vote()}>
-              {busy ? "Voting…" : "Vote"}
-            </button>
+            <p className="poll-note" role={error ? "alert" : undefined} data-error={error ? "" : undefined}>
+              {error || (mode === "loading" ? "Loading…" : changing ? "Pick another, or take your vote back." : choice === null ? "Pick one to vote." : "You can change it later.")}
+            </p>
+            <span className="poll-actions">
+              {changing ? (
+                <>
+                  <button type="button" className="poll-link" disabled={busy} onClick={retract}>
+                    Remove vote
+                  </button>
+                  <button type="button" className="poll-link" disabled={busy} onClick={() => setChanging(false)}>
+                    Cancel
+                  </button>
+                </>
+              ) : null}
+              <button
+                type="button"
+                className="poll-submit"
+                disabled={choice === null || busy || mode === "loading" || (changing && choice === voted)}
+                onClick={vote}
+              >
+                {busy ? "Saving…" : changing ? "Update vote" : "Vote"}
+              </button>
+            </span>
           </>
         )}
       </footer>
