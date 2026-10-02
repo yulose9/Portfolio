@@ -14,6 +14,12 @@ pages_build_output_dir = "out"
 binding = "WRITING"
 bucket_name = "portfolio-writing"
 
+# Poll votes (functions/api/polls). The ID is a namespace's address, not a
+# secret; the namespace was made with `wrangler kv namespace create POLLS`.
+[[kv_namespaces]]
+binding = "POLLS"
+id = "e8acdae732924098a26fee37de60eb2f"
+
 [vars]
 GITHUB_REPO = "yulose9/Portfolio"
 GITHUB_BRANCH = "master"
