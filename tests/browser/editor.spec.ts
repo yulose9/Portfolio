@@ -119,11 +119,11 @@ test.beforeEach(async ({ page }, info) => {
 });
 test("code controls preserve source, save language, and keep view state out of Markdown", async ({ page }, info) => {
   const source = codeSource;
-  const block = page.locator('.editor-code-block').first();
+  const block = page.locator('.editor-code-pro').first();
   await expect(block.locator('pre')).toHaveText(source);
   await expect(block.locator('pre code')).toHaveCSS('white-space', 'pre');
   await expect(block.getByRole('combobox', { name: 'Code language' })).toHaveText('js');
-  await expect(page.locator('.editor-code-block').nth(1).getByRole('combobox')).toHaveText('customlang');
+  await expect(page.locator('.editor-code-pro').nth(1).getByRole('combobox')).toHaveText('customlang');
   await block.getByRole('button', { name: 'Wrap code' }).click();
   await expect(block.locator('pre')).toHaveCSS('white-space', 'pre-wrap');
   await expect(block.locator('pre code')).toHaveCSS('white-space', 'pre-wrap');
@@ -135,7 +135,7 @@ test("code controls preserve source, save language, and keep view state out of M
     } });
   });
   await block.getByRole('button', { name: 'Copy code' }).click();
-  await expect(block.getByRole('button', { name: 'Copy code' })).toHaveText('Copied');
+  await expect(block.getByRole('button', { name: 'Copied' })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-copied-code', source);
   await block.getByRole('combobox', { name: 'Code language' }).click();
   await page.getByRole('option', { name: 'TypeScript', exact: true }).click();
@@ -157,7 +157,7 @@ test("code controls preserve source, save language, and keep view state out of M
 });
 
 test("code copy does not claim success when clipboard access fails", async ({ page }) => {
-  const block = page.locator('.editor-code-block').first();
+  const block = page.locator('.editor-code-pro').first();
   await expect(block).toBeVisible();
   await page.evaluate(() => {
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => { throw new Error('Denied'); } } });
@@ -165,7 +165,7 @@ test("code copy does not claim success when clipboard access fails", async ({ pa
   });
   await block.getByRole('button', { name: 'Copy code', exact: true }).click();
   await expect(page.locator('.toast-title').filter({ hasText: 'Couldn’t copy' })).toBeVisible();
-  await expect(block.getByRole('button', { name: 'Copy code', exact: true })).toHaveText('Copy');
+  await expect(block.getByRole('button', { name: 'Copy code', exact: true })).toBeVisible();
 });
 
 test("link editing retains focus, accepts text/address, and commits together", async ({
@@ -845,7 +845,7 @@ test("text appearance preserves selection through font color and opacity", async
   await page.getByRole("option", { name: "Geist", exact: true }).click();
   await expect(panel).toBeVisible();
   expect(await panel.evaluate((el) => el.clientHeight)).toBe(height);
-  await panel.getByRole("button", { name: "Blue", exact: true }).click();
+  await panel.getByRole("radio", { name: "Blue", exact: true }).click();
   await panel.getByRole("slider", { name: "Text opacity" }).focus();
   await page.keyboard.press("Home");
   for (let i = 0; i < 6; i++) await page.keyboard.press("PageUp");
@@ -1071,9 +1071,13 @@ test("folder CRUD supports page moves without changing its parent hierarchy", as
   await page.screenshot({
     path: `.audit/workspace-folders-${info.project.name}.png`,
   });
+  // Deleting a folder is hold-to-confirm: hold Space on the button.
   await folders
     .getByRole("button", { name: "Delete folder Reading", exact: true })
-    .click();
+    .focus();
+  await page.keyboard.down(" ");
+  await page.waitForTimeout(1100);
+  await page.keyboard.up(" ");
   await expect(
     folders.locator(".folder-page").filter({ hasText: "Related page" }),
   ).toBeVisible();

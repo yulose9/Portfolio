@@ -65,6 +65,8 @@ import {
   turnInto,
 } from "./commands";
 import { findKey, type FindOptions } from "./extensions/blocks";
+import { alignColumns } from "./extensions/table-plus";
+import { TABLE_STYLES } from "../../../cms/blocks";
 import { keys, MenuSurface, MItem, MLabel, MSep, MSub } from "./menu";
 import { shortcutLabel } from "./shortcuts";
 
@@ -197,6 +199,17 @@ export function EditorContextMenu({ editor, children, ...pick }: { editor: Edito
             <MItem onSelect={() => editor.chain().focus().addColumnAfter().run()}>Add column right</MItem>
             <MSep />
             <MItem onSelect={() => editor.chain().focus().toggleHeaderRow().run()}>Toggle header row</MItem>
+            <MItem onSelect={() => editor.chain().focus().toggleHeaderColumn().run()}>Toggle header column</MItem>
+            <MSep />
+            <MItem onSelect={() => alignColumns(editor, "left")}>Align column left</MItem>
+            <MItem onSelect={() => alignColumns(editor, "center")}>Center column</MItem>
+            <MItem onSelect={() => alignColumns(editor, "right")}>Align column right</MItem>
+            <MSep />
+            {TABLE_STYLES.map((style) => (
+              <MItem key={style} onSelect={() => editor.chain().focus().updateAttributes("table", { tableStyle: style }).run()}>
+                <span data-current={editor.getAttributes("table").tableStyle === style || undefined}>Style: {style === "data" ? "data table" : style}</span>
+              </MItem>
+            ))}
             <MSep />
             <MItem danger onSelect={() => editor.chain().focus().deleteRow().run()}>Delete row</MItem>
             <MItem danger onSelect={() => editor.chain().focus().deleteColumn().run()}>Delete column</MItem>

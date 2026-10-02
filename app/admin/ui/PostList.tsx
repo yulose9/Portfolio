@@ -1,6 +1,8 @@
 "use client";
 
 import { SoundToggle } from "../../components/ui/sound";
+import { Tabs, TabsList, TabsTrigger } from "../../components/kit/tabs";
+import { SlidingNumber } from "../../components/kit/inputs/counter";
 import PageTree from "./PageTree";
 import MediaLibrary from "./MediaLibrary";
 
@@ -27,7 +29,7 @@ import UpdatedAt from "../../components/UpdatedAt";
 import { tagTint } from "../../components/writing/Tag";
 import { toast } from "../../lib/toast";
 import { api, ApiError, type PostSummary } from "./api";
-import { relative, StatusDot, statusLabel, onRadioKeys } from "./bits";
+import { relative, StatusDot, statusLabel } from "./bits";
 import type { Panel } from "./Editor";
 import { Fluent } from "./extensions/emoji";
 import { usePulse } from "./live";
@@ -465,30 +467,18 @@ export default function PostList({
         </button>
       </div>
       <div className="admin-toolbar writing-status-toolbar">
-        {/* A filter, not tabs (there are no panels to switch): one stop, arrows to change. */}
-        <div
-          className="admin-segments"
-          role="radiogroup"
-          aria-label="Filter posts"
-          onKeyDown={onRadioKeys}
-        >
-          {FILTERS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              role="radio"
-              aria-checked={filter === f.id}
-              tabIndex={filter === f.id ? 0 : -1}
-              className="admin-segment"
-              data-trash={f.id === "trash" || undefined}
-              onClick={() => setFilter(f.id)}
-            >
-              {f.id === "trash" ? <Trash size={13} aria-hidden="true" /> : null}
-              {f.label}
-              <span className="admin-segment-count">{counts[f.id]}</span>
-            </button>
-          ))}
-        </div>
+        {/* Kobra's sliding tabs: the pill glides to the chosen filter. */}
+        <Tabs value={filter} onValueChange={(next) => setFilter(next as Filter)}>
+          <TabsList aria-label="Filter posts">
+            {FILTERS.map((f) => (
+              <TabsTrigger key={f.id} value={f.id} data-trash={f.id === "trash" || undefined}>
+                {f.id === "trash" ? <Trash size={13} aria-hidden="true" /> : null}
+                {f.label}
+                <span className="admin-segment-count"><SlidingNumber value={counts[f.id]} /></span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
       </div>
 
       {tags.length && filter !== "trash" ? (
@@ -520,7 +510,7 @@ export default function PostList({
       ) : posts === null ? (
         <ul className="admin-rows" aria-busy="true">
           {[0, 1, 2].map((i) => (
-            <li key={i} className="admin-row admin-row-skeleton" />
+            <li key={i} className="admin-row admin-row-skeleton kit-skeleton skeleton-shimmer" />
           ))}
         </ul>
       ) : shown.length === 0 ? (

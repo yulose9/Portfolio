@@ -10,9 +10,13 @@ import SmoothCursor from "../components/SmoothCursor";
 import WebMcpTools from "../components/WebMcpTools";
 import SmoothScroll from "../providers/SmoothScroll";
 import "../globals.css";
+import "../kit-inputs.css";
+import "../kit.css";
+import "../kit-components.css";
 import "../article.css";
 import "../article-blocks.css";
 import "../article-extras.css";
+import "../article-blocks-2.css";
 import "../writing-extras.css";
 
 /*

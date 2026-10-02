@@ -1,37 +1,61 @@
 "use client";
 
-import {
-  CheckCircle,
-  CircleNotch,
-  Info,
-  Warning,
-  WarningCircle,
-} from "@phosphor-icons/react";
+import { Info, Warning, WarningCircle } from "@phosphor-icons/react";
 import { Toast } from "@base-ui/react/toast";
-import { useEffect } from "react";
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
+import { useEffect, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
 
 import { playSound, type SoundName } from "./sound";
 
+import { buttonClassName } from "../kit/button";
+import { StatusBadge } from "../kit/spinner";
 import { isProgrammaticCopy, snippet, toast } from "../../lib/toast";
 
 /**
- * The toaster: renders what lib/toast's manager raises, in the page's own
- * glass. Base UI's Toast is the same primitive shadcn's Toast wraps.
+ * The toaster: renders what lib/toast's manager raises, after Kobra's toast.
+ * Each toast is a single-line pill on the frosted popover; several make a
+ * pile that fans into a list when pointed at or focused (the geometry is in
+ * kit-components.css, under .kt-*). Inside the pill, what changes morphs
+ * rather than swaps: the glyph pops, the words slide and the pill's width
+ * follows them on the same spring, so a promise toast going from "Saving…"
+ * to "Saved" reads as one thing finishing.
  *
- * Loaded as its own chunk after hydration (see LazyToaster), so none of this —
- * stacking, swipe, icons — weighs on the first load. Types pick the icon:
- * success, info, warning, error, loading.
+ * Loaded as its own chunk after hydration (see LazyToaster), so none of this
+ * weighs on the first load. Types pick the glyph: success, info, warning,
+ * error, loading. Pending and success share one badge, which turns from a
+ * running arc into a filled tick in place.
  */
 
 type ToastType = "success" | "info" | "warning" | "error" | "loading";
 
-const ICONS: Record<ToastType, React.ReactNode> = {
-  success: <CheckCircle size={18} weight="fill" />,
-  info: <Info size={18} weight="fill" />,
-  warning: <Warning size={18} weight="fill" />,
-  error: <WarningCircle size={18} weight="fill" />,
-  loading: <CircleNotch size={18} weight="bold" className="toast-spin" />,
-};
+// Kobra's MORPH and EXIT: critically damped springs, .3s in, .2s out.
+const MORPH = { type: "spring", duration: 0.3, bounce: 0 } as const;
+const EXIT = { type: "spring", duration: 0.2, bounce: 0 } as const;
+
+const GLYPH_POP = {
+  initial: { opacity: 0, scale: 0.25, filter: "blur(4px)" },
+  animate: { opacity: 1, scale: 1, filter: "blur(0px)" },
+  exit: { opacity: 0, scale: 0.25, filter: "blur(4px)", transition: EXIT },
+} as const;
+
+const TEXT_SLIDE = {
+  initial: { opacity: 0, x: -6 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: -6, transition: EXIT },
+} as const;
+
+function isType(type: string | undefined): type is ToastType {
+  return type === "success" || type === "info" || type === "warning" || type === "error" || type === "loading";
+}
+
+function Glyph({ type }: { type: ToastType }) {
+  if (type === "loading" || type === "success") return <StatusBadge state={type === "success" ? "done" : "loading"} />;
+  const Mark = type === "error" ? WarningCircle : type === "warning" ? Warning : Info;
+  return <Mark size={type === "error" ? 18 : 16} weight="fill" />;
+}
+
+// Pending and done are one badge morphing; the other kinds replace each other.
+const glyphKey = (type: ToastType) => (type === "loading" || type === "success" ? "badge" : type);
 
 /**
  * Keyboard feedback: Ctrl/⌘+C (or the browser's own Copy) confirms what was
@@ -112,50 +136,137 @@ function ToastSounds({ toasts }: { toasts: { id: string; type?: string; title?: 
   return null;
 }
 
-function ToastList() {
-  const { toasts } = Toast.useToastManager();
-  return [<ToastSounds key="__sounds" toasts={toasts} />, ...toasts.map((t) => {
-    const icon = t.type ? ICONS[t.type as ToastType] : null;
-    return (
-      <Toast.Root
-        key={t.id}
-        toast={t}
-        className="toast-root"
-        data-type={t.type}
-        // Bottom-centred, so it leaves by the way it came.
-        swipeDirection="down"
-      >
-        <Toast.Content className="toast-content">
-          {icon ? (
-            <span className="toast-icon" aria-hidden="true">
-              {icon}
-            </span>
-          ) : null}
-          <div className="toast-text">
-            <Toast.Title className="toast-title" />
-            <Toast.Description className="toast-description" />
-          </div>
-          <Toast.Action className="toast-action" />
-          <Toast.Close className="toast-close" aria-label="Dismiss" data-slot="toast-close">
-            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
-              <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </Toast.Close>
-        </Toast.Content>
-      </Toast.Root>
+/*
+ * While piled, the cards behind are held to the front card's width (Kobra's
+ * DeckCap), so a longer message further back never sticks out past the front
+ * of the pile. CSS can't see another element's width, so the front card's is
+ * measured and handed to the viewport as --kt-front-width.
+ */
+function useFrontWidth(viewport: RefObject<HTMLDivElement | null>, toasts: readonly { id: string }[]) {
+  useLayoutEffect(() => {
+    const root = viewport.current;
+    if (!root) return;
+    const front = [...root.querySelectorAll<HTMLElement>(".kt-toast")].find(
+      (el) => !el.hasAttribute("data-ending-style") && !el.querySelector(":scope > [data-behind]")
     );
-  })];
+    if (!front) return;
+    const write = () => root.style.setProperty("--kt-front-width", `${front.offsetWidth}px`);
+    write();
+    const observer = new ResizeObserver(write);
+    observer.observe(front);
+    return () => observer.disconnect();
+  }, [viewport, toasts]);
+}
+
+/** The words: a title, and the description after it in a quieter grey, on one line. */
+function Line({ title, description }: { title: ReactNode; description: ReactNode }) {
+  return (
+    <motion.div
+      initial={{ width: 0 }}
+      animate={{ width: "auto" }}
+      exit={{ width: 0, transition: EXIT }}
+      transition={MORPH}
+      className="kt-toast-text"
+    >
+      <motion.span {...TEXT_SLIDE} transition={MORPH} className="kt-toast-line">
+        <Toast.Title className="kt-toast-title toast-title" render={<span />}>
+          {title}
+        </Toast.Title>
+        {description ? (
+          <Toast.Description className="kt-toast-description" render={<span />}>
+            {description}
+          </Toast.Description>
+        ) : null}
+      </motion.span>
+    </motion.div>
+  );
+}
+
+function ToastList({ viewport }: { viewport: RefObject<HTMLDivElement | null> }) {
+  const { toasts } = Toast.useToastManager();
+  useFrontWidth(viewport, toasts);
+
+  return [
+    <ToastSounds key="__sounds" toasts={toasts} />,
+    ...toasts.map((t) => {
+      const type = isType(t.type) ? t.type : null;
+      // One that won't leave on its own keeps its × in view.
+      const sticky = t.timeout === 0;
+      const title: ReactNode = t.title ?? null;
+      const description: ReactNode = t.description ?? null;
+      const wording = `${typeof t.title === "string" ? t.title : ""}\u0000${typeof t.description === "string" ? t.description : ""}`;
+
+      return (
+        <Toast.Root
+          key={t.id}
+          toast={t}
+          className="kt-toast"
+          data-type={t.type}
+          data-glyph={type ? "" : undefined}
+          data-sticky={sticky ? "" : undefined}
+          data-trailing={t.actionProps || sticky ? "" : undefined}
+          // Down, back the way it came, or off to either side.
+          swipeDirection={["down", "left", "right"]}
+        >
+          <Toast.Content className="kt-toast-content">
+            <AnimatePresence initial={false}>
+              {type ? (
+                <motion.div
+                  key="glyph"
+                  initial={{ width: 0 }}
+                  animate={{ width: "auto" }}
+                  exit={{ width: 0, transition: EXIT }}
+                  transition={MORPH}
+                  className="kt-toast-glyph"
+                >
+                  <div className="kt-toast-glyph-inner">
+                    <AnimatePresence initial={false} mode="popLayout">
+                      <motion.span
+                        key={glyphKey(type)}
+                        {...GLYPH_POP}
+                        transition={MORPH}
+                        className="kt-toast-mark"
+                        data-tone={type}
+                        aria-hidden="true"
+                      >
+                        <Glyph type={type} />
+                      </motion.span>
+                    </AnimatePresence>
+                  </div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+
+            {/* Old and new words share the line for a moment: one folds away as the other opens. */}
+            <AnimatePresence initial={false}>
+              <Line key={wording} title={title} description={description} />
+            </AnimatePresence>
+
+            <Toast.Action className={buttonClassName("default", "kt-toast-action")} data-variant="default" data-size="xs" />
+            <Toast.Close className="kt-toast-close" aria-label="Dismiss" data-slot="toast-close">
+              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </Toast.Close>
+          </Toast.Content>
+        </Toast.Root>
+      );
+    }),
+  ];
 }
 
 /** Mount once, in the root layout. */
 export function Toaster() {
+  const viewport = useRef<HTMLDivElement>(null);
   return (
     <Toast.Provider toastManager={toast} timeout={3200} limit={3}>
       <KeyboardToasts />
       <Toast.Portal>
-        <Toast.Viewport className="toast-viewport">
-          <ToastList />
-        </Toast.Viewport>
+        <MotionConfig reducedMotion="user">
+          <Toast.Viewport ref={viewport} className="kt-viewport">
+            <ToastList viewport={viewport} />
+          </Toast.Viewport>
+        </MotionConfig>
       </Toast.Portal>
     </Toast.Provider>
   );

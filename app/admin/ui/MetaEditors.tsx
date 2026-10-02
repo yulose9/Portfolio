@@ -158,7 +158,7 @@ export function AuthorsEditor({ authors, minutes, onChange }: { authors: Author[
   return (
     <Popover.Root>
       <Popover.Trigger className="article-byline byline-trigger" aria-label="Edit authors">
-        <Avatars authors={authors} />
+        <Avatars authors={authors} still />
         <span className="article-author">{named(authors).length ? joinNames(named(authors).map((a, i) => <span key={i}>{a.name}</span>)) : "Add authors"}</span>
         <span aria-hidden="true">·</span>
         <span>{minutes} min read</span>

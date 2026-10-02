@@ -186,6 +186,152 @@ async function gifToVideo(file: File, progress: Progress, id = newMediaId(), opt
 
 /* ── Video and audio ─────────────────────────────────────────────────── */
 
+/*
+ * Video goes through a ladder of encoder plans rather than one fixed
+ * configuration, because what a browser's WebCodecs will encode varies by
+ * device: a 4K source asked for at 1280px H.264 can still be refused
+ * ("Unsupported configuration parameters.") by an encoder that only takes
+ * certain sizes, profiles, levels or bitrates. Each plan is probed with
+ * VideoEncoder.isConfigSupported before anything runs:
+ *
+ *   sizes      long edge 1280 → 960 → 640 (never upscaled; even dimensions)
+ *   codecs     H.264 in MP4 → VP9 → VP8 in WebM
+ *   H.264      the library's own profile/level, then High 4.0, Main 3.1 and
+ *              Baseline 3.1 written out explicitly
+ *   bitrates   about 0.08 then 0.045 bits per pixel per frame, skipped when
+ *              the result would be over the upload limit
+ *   hardware   no preference, then software
+ *
+ * If no plan works (or the source can't even be decoded), the original file
+ * goes up untouched when it is an MP4 or WebM under the 32 MB limit, rather
+ * than the upload failing.
+ */
+
+/** The server's limit for one upload (functions/api/admin/uploads.ts). */
+const MAX_UPLOAD = 32 * 1024 * 1024;
+const LONG_EDGES = [1280, 960, 640];
+const AVC_LEVELS = ["avc1.640028", "avc1.4d401f", "avc1.42e01f"];
+
+type VideoPlan = { codec: "avc" | "vp9" | "vp8"; full?: string; hw: HardwareAcceleration };
+type Fit = { width: number; height: number };
+type Mediabunny = typeof import("mediabunny");
+type AudioPlan = { codec: "aac" | "opus" | "vorbis"; channels: number; sampleRate: number };
+
+/** Long edge ≤ edge, aspect kept, both sides even (H.264 needs that), never upscaled. */
+function fitVideo(srcW: number, srcH: number, edge: number): Fit {
+  const scale = Math.min(1, edge / Math.max(srcW, srcH));
+  const even = (n: number) => Math.max(2, Math.round((n * scale) / 2) * 2);
+  return { width: even(srcW), height: even(srcH) };
+}
+
+function videoPlans(): VideoPlan[] {
+  const plans: VideoPlan[] = [];
+  for (const hw of ["no-preference", "prefer-software"] as const) {
+    plans.push({ codec: "avc", hw });
+    for (const full of AVC_LEVELS) plans.push({ codec: "avc", full, hw });
+  }
+  for (const hw of ["no-preference", "prefer-software"] as const) plans.push({ codec: "vp9", hw }, { codec: "vp8", hw });
+  return plans;
+}
+
+async function encoderSupports(mb: Mediabunny, plan: VideoPlan, size: Fit, bitrate: number, frameRate: number): Promise<boolean> {
+  // The browser's own answer first, for the exact string we'll ask for.
+  if (plan.full && typeof VideoEncoder !== "undefined") {
+    try {
+      const r = await VideoEncoder.isConfigSupported({ codec: plan.full, ...size, bitrate, framerate: frameRate, hardwareAcceleration: plan.hw });
+      if (!r.supported) return false;
+    } catch {
+      return false;
+    }
+  }
+  return mb
+    .canEncodeVideo(plan.codec, { ...size, bitrate, frameRate, hardwareAcceleration: plan.hw, ...(plan.full ? { fullCodecString: plan.full } : {}) })
+    .catch(() => false);
+}
+
+async function audioCodecFor(mb: Mediabunny, mp4: boolean, channels: number, sampleRate: number): Promise<AudioPlan["codec"] | null> {
+  for (const codec of mp4 ? (["aac", "opus"] as const) : (["opus", "vorbis"] as const)) {
+    if (await mb.canEncodeAudio(codec, { numberOfChannels: channels, sampleRate, bitrate: 128_000 }).catch(() => false)) return codec;
+  }
+  return null;
+}
+
+/** One encode with one plan. Throws if the encoder refuses partway. */
+async function encodeWith(mb: Mediabunny, file: File, plan: VideoPlan, size: Fit, bitrate: number, audio: AudioPlan | null, onProgress: (p: number) => void): Promise<Blob> {
+  const mp4 = plan.codec === "avc";
+  const input = new mb.Input({ source: new mb.BlobSource(file), formats: mb.ALL_FORMATS });
+  const target = new mb.BufferTarget();
+  const output = new mb.Output({ format: mp4 ? new mb.Mp4OutputFormat({ fastStart: "in-memory" }) : new mb.WebMOutputFormat(), target });
+  try {
+    if (!plan.full) {
+      // The library picks the profile and level; resizing and audio included.
+      const conversion = await mb.Conversion.init({
+        input,
+        output,
+        video: { ...size, fit: "fill", codec: plan.codec, bitrate, hardwareAcceleration: plan.hw, forceTranscode: true },
+        audio: audio ? { codec: audio.codec, numberOfChannels: audio.channels, sampleRate: audio.sampleRate, bitrate: 128_000, forceTranscode: true } : { discard: true },
+        // No location, device or title tags carried over.
+        tags: {},
+      });
+      if (!conversion.isValid) throw new Error("This plan can't convert that file.");
+      conversion.onProgress = onProgress;
+      await conversion.execute();
+    } else {
+      // An explicit H.264 profile and level: frames are resized through a
+      // canvas and handed to an encoder configured with exactly that string.
+      const video = await input.getPrimaryVideoTrack();
+      if (!video) throw new Error("No video track");
+      const length = (await video.computeDuration()) || 1;
+      const vSource = new mb.VideoSampleSource({ codec: "avc", fullCodecString: plan.full, bitrate, hardwareAcceleration: plan.hw, keyFrameInterval: 2 });
+      output.addVideoTrack(vSource);
+      const sound = audio ? await input.getPrimaryAudioTrack() : null;
+      const aSource = sound && audio ? new mb.AudioSampleSource({ codec: audio.codec, bitrate: 128_000 }) : null;
+      if (aSource) output.addAudioTrack(aSource);
+      await output.start();
+      const frames = (async () => {
+        for await (const { canvas, timestamp, duration } of new mb.CanvasSink(video, { ...size, fit: "fill", poolSize: 2 }).canvases()) {
+          const sample = new mb.VideoSample(canvas, { timestamp, duration });
+          await vSource.add(sample);
+          sample.close();
+          onProgress(Math.min(1, timestamp / length));
+        }
+        vSource.close();
+      })();
+      const samples = (async () => {
+        if (!sound || !aSource) return;
+        for await (const sample of new mb.AudioSampleSink(sound).samples()) {
+          await aSource.add(sample);
+          sample.close();
+        }
+        aSource.close();
+      })();
+      await Promise.all([frames, samples]);
+      await output.finalize();
+    }
+    return new Blob([target.buffer!], { type: mp4 ? "video/mp4" : "video/webm" });
+  } catch (error) {
+    await output.cancel().catch(() => {});
+    throw error;
+  } finally {
+    input.dispose();
+  }
+}
+
+async function posterFrame(mb: Mediabunny, file: File, width: number): Promise<Blob | null> {
+  const input = new mb.Input({ source: new mb.BlobSource(file), formats: mb.ALL_FORMATS });
+  try {
+    const track = await input.getPrimaryVideoTrack();
+    if (!track) return null;
+    const sink = new mb.CanvasSink(track, { width: Math.min(width, 1280) });
+    const shot = await sink.getCanvas(Math.min(0.5, (await track.computeDuration()) / 2));
+    return shot ? await canvasBlob(shot.canvas, "image/webp", 0.8) : null;
+  } catch {
+    return null; // no poster, no harm
+  } finally {
+    input.dispose();
+  }
+}
+
 async function uploadVideo(file: File, progress: Progress, id = newMediaId(), options: UploadOptions = {}): Promise<Uploaded> {
   const mb = await import("mediabunny");
   progress(0.02, "Reading video");
@@ -198,40 +344,71 @@ async function uploadVideo(file: File, progress: Progress, id = newMediaId(), op
   }
   const srcW = await track.getDisplayWidth();
   const srcH = await track.getDisplayHeight();
-  const width = Math.round(Math.min(srcW, 1280) / 2) * 2;
-  const height = Math.round(((srcH * width) / srcW) / 2) * 2;
-  const avc = await mb.canEncodeVideo("avc", { width, height });
-
-  const target = new mb.BufferTarget();
-  const output = new mb.Output({ format: avc ? new mb.Mp4OutputFormat({ fastStart: "in-memory" }) : new mb.WebMOutputFormat(), target });
-  const conversion = await mb.Conversion.init({
-    input,
-    output,
-    video: { width, height, fit: "fill", codec: avc ? "avc" : "vp9", bitrate: mb.QUALITY_MEDIUM, forceTranscode: true },
-    audio: { codec: avc ? "aac" : "opus", bitrate: mb.QUALITY_MEDIUM, forceTranscode: true },
-    // No location, device or title tags carried over.
-    tags: {},
-  });
-  if (!conversion.isValid) throw new ApiError("This browser can't convert that video.", 415);
-  conversion.onProgress = (p) => progress(0.05 + p * 0.75, "Compressing video");
-  await conversion.execute();
-
-  // A poster frame, so the page shows a picture before anything plays.
-  let posterBlob: Blob | null = null;
-  try {
-    const sink = new mb.CanvasSink(track, { width: Math.min(width, 1280) });
-    const shot = await sink.getCanvas(Math.min(0.5, (await track.computeDuration()) / 2));
-    if (shot) posterBlob = await canvasBlob(shot.canvas, "image/webp", 0.8);
-  } catch {
-    /* no poster, no harm */
-  }
+  const duration = (await track.computeDuration().catch(() => 0)) || 0;
+  const frameRate = await track.computePacketStats(60).then((s) => Math.min(60, Math.max(1, Math.round(s.averagePacketRate))), () => 30);
+  const decodable = await track.canDecode().catch(() => false);
+  const sound = await input.getPrimaryAudioTrack().catch(() => null);
+  const channels = sound ? Math.min(2, Math.max(1, await sound.getNumberOfChannels())) : 0;
+  const rate = sound ? await sound.getSampleRate() : 0;
+  const sampleRate = rate === 44100 || rate === 48000 ? rate : 48000;
   input.dispose();
 
-  const ext = avc ? "mp4" : "webm";
+  let encoded: { blob: Blob; size: Fit } | null = null;
+  let lastError: unknown = null;
+  if (decodable) {
+    const audioCodecs = new Map<boolean, AudioPlan["codec"] | null>();
+    search: for (const edge of LONG_EDGES) {
+      const size = fitVideo(srcW, srcH, edge);
+      for (const plan of videoPlans()) {
+        const mp4 = plan.codec === "avc";
+        if (sound && !audioCodecs.has(mp4)) audioCodecs.set(mp4, await audioCodecFor(mb, mp4, channels, sampleRate));
+        const audioCodec = sound ? audioCodecs.get(mp4) ?? null : null;
+        // Sound this container can't carry here: skip it; the next one may.
+        if (sound && !audioCodec) continue;
+        for (const bpp of [0.08, 0.045]) {
+          const bitrate = Math.round(Math.max(400_000, Math.min(6_000_000, size.width * size.height * frameRate * bpp)));
+          if (duration && ((bitrate + (sound ? 128_000 : 0)) * duration) / 8 > MAX_UPLOAD * 0.92) continue;
+          if (!(await encoderSupports(mb, plan, size, bitrate, frameRate))) continue;
+          try {
+            progress(0.05, "Compressing video");
+            const blob = await encodeWith(mb, file, plan, size, bitrate, audioCodec ? { codec: audioCodec, channels, sampleRate } : null, (p) => progress(0.05 + p * 0.75, "Compressing video"));
+            if (blob.size > MAX_UPLOAD) continue;
+            encoded = { blob, size };
+            break search;
+          } catch (error) {
+            lastError = error;
+            console.warn(`Video encode failed (${plan.codec}${plan.full ? ` ${plan.full}` : ""}, ${size.width}×${size.height}, ${plan.hw}); trying the next plan.`, error);
+          }
+        }
+      }
+    }
+  }
+
+  const poster = await posterFrame(mb, file, srcW);
+  let blob: Blob;
+  let size: Fit;
+  if (encoded) {
+    ({ blob, size } = encoded);
+  } else {
+    // Nothing here could re-encode it: send the original, untouched.
+    const type = /webm/i.test(file.type) || /\.webm$/i.test(file.name) ? "video/webm" : /mp4|m4v/i.test(file.type) || /\.(mp4|m4v)$/i.test(file.name) ? "video/mp4" : "";
+    if (!type || file.size > MAX_UPLOAD) {
+      throw new ApiError(
+        lastError || !decodable
+          ? "This browser couldn't compress that video, and the original is too large (or not MP4/WebM) to upload as it is. Export it at 1080p or smaller and try again."
+          : "That video is too long to upload. Trim it or export it smaller and try again.",
+        415,
+      );
+    }
+    blob = type === file.type ? file : new Blob([file], { type });
+    size = { width: srcW, height: srcH };
+  }
+
+  const ext = blob.type === "video/webm" ? "webm" : "mp4";
   progress(0.85, "Uploading video");
-  const video = await api.uploadNamed(new Blob([target.buffer!], { type: `video/${ext}` }), mediaName(id, { width, height }, ext), options.signal, options.year);
-  const poster = posterBlob ? (await api.uploadNamed(posterBlob, mediaName(id, "poster"), options.signal, options.year)).src : null;
-  return { kind: "video", src: video.src, poster, width, height, loop: false };
+  const video = await api.uploadNamed(blob, mediaName(id, size, ext), options.signal, options.year);
+  const posterSrc = poster ? (await api.uploadNamed(poster, mediaName(id, "poster"), options.signal, options.year)).src : null;
+  return { kind: "video", src: video.src, poster: posterSrc, ...size, loop: false };
 }
 
 export async function uploadAudio(file: Blob, progress: Progress, voice = true, id = newMediaId(), options: UploadOptions = {}): Promise<Uploaded> {

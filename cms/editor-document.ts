@@ -37,6 +37,10 @@ const NODES = new Set([
   "inlineLogo",
   "headingIcon",
   "fluentEmoji",
+  "codeTabs",
+  "chart",
+  "poll",
+  "citation",
 ]);
 const MARKS = new Set([
   "bold",

@@ -12,6 +12,7 @@ import { api } from "./api";
 import { uploadMedia, ACCEPT } from "./media";
 import { beginPendingWork } from "./session";
 import { assetIdentity } from "../../../cms/media-library";
+import { MagneticDropzone } from "../../components/kit/inputs/magnetic-dropzone";
 export type Asset = {
   src: string;
   size: number;
@@ -117,6 +118,18 @@ export default function MediaLibrary({
       );
       setEdit(null);
     });
+  // Several at once, one after another: each one's progress reads
+  // "2 of 5 · Uploading…", and a failure stops the rest with what it was.
+  const uploadFiles = (files: File[]) => {
+    if (!files.length) return;
+    void perform(async () => {
+      for (const [i, file] of files.entries()) {
+        const of = files.length > 1 ? `${i + 1} of ${files.length} · ` : "";
+        await uploadMedia(file, (_, label) => setProgress(`${of}${label}`));
+      }
+      await refresh();
+    });
+  };
   const unique = [
     ...new Map(
       [...assets]
@@ -187,19 +200,9 @@ export default function MediaLibrary({
             multiple
             disabled={busy}
             onChange={(e) => {
-              // Several at once, one after another: each one's progress
-              // reads "2 of 5 · Uploading…", and a failure stops the rest
-              // with what it was.
               const files = [...(e.target.files ?? [])];
               e.target.value = "";
-              if (files.length)
-                void perform(async () => {
-                  for (const [i, file] of files.entries()) {
-                    const of = files.length > 1 ? `${i + 1} of ${files.length} · ` : "";
-                    await uploadMedia(file, (_, label) => setProgress(`${of}${label}`));
-                  }
-                  await refresh();
-                });
+              uploadFiles(files);
             }}
           />
         </label>
@@ -214,6 +217,19 @@ export default function MediaLibrary({
             Refresh
           </button>
         </p>
+      ) : null}
+      {/* Drop files anywhere near it: the zone wakes when a file is dragged
+          over the page and leans toward the pointer. Click or Enter picks. */}
+      {!trash ? (
+        <MagneticDropzone
+          className="media-dropzone"
+          accept={ACCEPT}
+          multiple
+          disabled={busy}
+          title="Drop images, video or audio"
+          hint="Or click to choose. HEIC photos are converted."
+          onFiles={uploadFiles}
+        />
       ) : null}
       <p className="field-help" role="status">
         {busy || loading

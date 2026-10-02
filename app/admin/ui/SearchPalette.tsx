@@ -235,7 +235,12 @@ export default function SearchPalette({
                       </span>
                       {c.command.disabled ? <span className="palette-command-why">{c.command.disabled}</span> : null}
                       {c.command.keys ? <kbd className="admin-kbd">{keys(c.command.keys)}</kbd> : null}
-                      {c.command.checked !== undefined ? <span className="palette-switch" data-on={c.command.checked || undefined} aria-hidden="true" /> : null}
+                      {c.command.checked !== undefined ? (
+                        // Kobra's switch, drawn: the row itself is the control.
+                        <span className="kit-switch t-toggle" data-on={c.command.checked ? "true" : "false"} data-checked={c.command.checked || undefined} aria-hidden="true">
+                          <span className="kit-switch-thumb t-toggle-thumb" />
+                        </span>
+                      ) : null}
                     </button>
                   </Fragment>
                 ) : c.hit ? (

@@ -1,6 +1,7 @@
 import UpdatedAt from "../UpdatedAt";
 import type { Author } from "../../../cms/format";
 import Avatar from "./Avatar";
+import { AvatarGroup } from "../kit/inputs/avatar-group";
 
 /**
  * Who wrote it: stacked avatars, then the names ("A", "A and B", "A, B and
@@ -15,7 +16,23 @@ export function joinNames(names: React.ReactNode[]): React.ReactNode[] {
   });
 }
 
-export function Avatars({ authors }: { authors: Author[] }) {
+/**
+ * The faces. Several authors are a group: overlapping faces, each with its
+ * name on hover or focus, and a +N for the rest. Inside a control (the
+ * editor's byline is one button) the faces must stay decoration, so `still`
+ * draws them without their own tab stops.
+ */
+export function Avatars({ authors, still = false }: { authors: Author[]; still?: boolean }) {
+  if (!still && authors.length > 1)
+    return (
+      <AvatarGroup
+        className="article-avatar-group"
+        label="Authors"
+        max={4}
+        size={28}
+        people={authors.map((a, i) => ({ id: String(i), name: a.name.trim() || "Co-author", avatar: <Avatar author={a} /> }))}
+      />
+    );
   return (
     <span className="article-avatars" aria-hidden="true">
       {authors.map((a, i) => (

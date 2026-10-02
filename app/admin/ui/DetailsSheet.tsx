@@ -10,6 +10,7 @@ import type { Meta } from "./Editor";
 import { FontsEditor, ShareImageField } from "./MetaEditors";
 import Sheet from "./Sheet";
 import AdminSelect from "./AdminSelect";
+import { Checkbox } from "../../components/kit/checkbox";
 
 /*
  * Everything about a post that isn't its words: the URL, tags, the cover's
@@ -148,7 +149,7 @@ export default function DetailsSheet({
         <span className="field-label">Typography</span>
         <p className="field-help">From Google Fonts and Fontshare, both free. Inter unless you choose otherwise.</p>
         <FontsEditor fonts={meta.fonts} onChange={(fonts) => onChange({ fonts })} />
-        <label className="ligature-control"><input type="checkbox" checked={meta.fonts?.ligatures !== false} onChange={e=>onChange({fonts:{...meta.fonts,ligatures:e.target.checked}})}/> Enable font ligatures</label>
+        <label className="ligature-control"><Checkbox checked={meta.fonts?.ligatures !== false} onCheckedChange={(on)=>onChange({fonts:{...meta.fonts,ligatures:on}})}/> Enable font ligatures</label>
       </section>
 
       <section className="field">

@@ -4,9 +4,13 @@ import { Inter } from "next/font/google";
 import LazyToaster from "../components/LazyToaster";
 import { SoundEffects } from "../components/ui/sound";
 import "../globals.css";
+import "../kit-inputs.css";
+import "../kit.css";
+import "../kit-components.css";
 import "../article.css";
 import "../article-blocks.css";
 import "../article-extras.css";
+import "../article-blocks-2.css";
 import "../writing-extras.css";
 import "./admin.css";
 import "./admin-editor.css";
@@ -17,6 +21,7 @@ import "./admin-bulk.css";
 import "./admin-research.css";
 import "./admin-controls.css";
 import "./admin-code.css";
+import "./admin-blocks.css";
 import "./admin-workspace.css";
 
 /*

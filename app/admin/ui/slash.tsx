@@ -17,7 +17,11 @@ import {
   useState,
 } from "react";
 
+import { ChartBar, ChartBarHorizontal, Quotes, Table, Tabs } from "@phosphor-icons/react";
+
+import { DEFAULT_CHART_CSV, newPollId } from "../../../cms/blocks";
 import { BLOCKS, inserts, turnInto, type BlockKind } from "./commands";
+import { DEFAULT_TABS } from "./extensions/blocks-schema";
 import BlockExample from "./BlockExample";
 import { mountSuggestion, revealOption } from "./suggestion-surface";
 
@@ -85,8 +89,42 @@ export function slashItems(
         },
       }),
     ),
+    ...EXTRA_ITEMS,
   ];
 }
+
+/* The newer blocks (extensions/blocks-schema.ts and their views). */
+const EI = { size: 15 } as const;
+const EXTRA_ITEMS: SlashItem[] = [
+  {
+    title: "Code tabs", hint: "npm / pnpm / yarn, or several files", group: "Insert",
+    keywords: ["code", "tabs", "install", "npm", "pnpm", "yarn", "bun", "files", "snippet"], icon: <Tabs {...EI} />,
+    run: (e, r) => { fresh(e, r); e.chain().focus().insertContent({ type: "codeTabs", attrs: { tabs: DEFAULT_TABS } }).run(); },
+  },
+  {
+    title: "Data table", hint: "Sortable columns, numbers aligned", group: "Insert",
+    keywords: ["table", "data", "sort", "crm", "grid", "spreadsheet"], icon: <Table {...EI} />,
+    run: (e, r) => {
+      fresh(e, r);
+      e.chain().focus().insertTable({ rows: 4, cols: 3, withHeaderRow: true }).updateAttributes("table", { tableStyle: "data" }).run();
+    },
+  },
+  {
+    title: "Chart", hint: "Bar, line, area, pie or donut", group: "Insert",
+    keywords: ["chart", "graph", "plot", "bar", "line", "area", "pie", "donut", "data"], icon: <ChartBar {...EI} />,
+    run: (e, r) => { fresh(e, r); e.chain().focus().insertContent({ type: "chart", attrs: { chartType: "bar", title: "", data: DEFAULT_CHART_CSV } }).run(); },
+  },
+  {
+    title: "Poll", hint: "Readers vote on one option", group: "Insert",
+    keywords: ["poll", "vote", "survey", "choice", "question"], icon: <ChartBarHorizontal {...EI} />,
+    run: (e, r) => { fresh(e, r); e.chain().focus().insertContent({ type: "poll", attrs: { pollId: newPollId(), question: "", options: ["", ""] } }).run(); },
+  },
+  {
+    title: "Citation", hint: "A numbered source, listed at the end", group: "Insert",
+    keywords: ["cite", "citation", "source", "reference", "footnote"], icon: <Quotes {...EI} />,
+    run: (e, r) => { e.chain().focus().deleteRange(r).insertContent({ type: "citation", attrs: { href: "" } }).run(); },
+  },
+];
 
 type ListProps = SuggestionProps<SlashItem>;
 type ListHandle = { onKeyDown: (props: SuggestionKeyDownProps) => boolean };

@@ -1,0 +1,1592 @@
+/*
+ * The component kit's own rules: the parts of Kobra's components that its
+ * Tailwind 4 class strings carry (sizes, radii, states) translated to plain
+ * CSS, because this project is Tailwind 3 and has no `bg-(--x)`,
+ * `has-data-[…]` or `not-data-[…]`. kit.css holds the shared material
+ * (tokens, t-surface, t-check, t-toggle, t-skel, t-spinner); this file is the
+ * components that use it, in app/components/kit.
+ *
+ * Base rules sit inside :where() so they carry no specificity: a Tailwind
+ * class passed through `className` always wins over the kit's default size,
+ * padding or colour. State rules (checked, highlighted, open) stay specific.
+ * Light only, like the site.
+ */
+
+/* The surface's two gradient stops, registered so hover can ease them. */
+@property --surface-top {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #0000;
+}
+@property --surface-bottom {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #0000;
+}
+
+/* kit.css carries the surfaces at rest; these are the hover tints. */
+@media (hover: hover) {
+  .t-surface-primary:hover::before,
+  .t-surface-destructive:hover::before {
+    --surface-top: color-mix(in srgb, var(--surface-base), white 6%);
+    --surface-bottom: color-mix(in srgb, var(--surface-lit), white 6%);
+  }
+  .t-surface-secondary:hover::before,
+  .t-surface-outline:hover::before {
+    --surface-top: color-mix(in srgb, var(--surface-base), black 4%);
+    --surface-bottom: color-mix(in srgb, var(--surface-lit), black 4%);
+  }
+}
+
+/* The focus ring every control shares: 3px of --ring at half strength. */
+:root {
+  --kit-ring: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+  --kit-ring-invalid: 0 0 0 3px color-mix(in oklab, var(--destructive) 20%, transparent);
+}
+
+/* ─── Button ──────────────────────────────────────────────────────────── */
+
+:where(.kit-button) {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 2rem;
+  padding-inline: 0.625rem;
+  border-radius: var(--radius);
+  background-clip: padding-box;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  transition-property: color, background-color, border-color, box-shadow, outline-color;
+  transition-duration: var(--ring-duration);
+  transition-timing-function: var(--ease-out);
+}
+
+/*
+ * The surface is the ::before, not the button: pressing scales the paint and
+ * leaves the label and the hit area where they are, so the press reads as
+ * give rather than as the button moving away from the pointer.
+ */
+.kit-button::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: 1px solid transparent;
+  border-radius: inherit;
+}
+.kit-button:not(.t-surface)::before {
+  transition: scale 0.15s var(--ease-out), background-color 0.15s var(--ease-out), border-color 0.15s var(--ease-out);
+}
+.kit-button:active:not([aria-haspopup])::before,
+.kit-button[data-pressed]::before {
+  scale: 0.99;
+}
+
+.kit-button:focus-visible {
+  box-shadow: var(--kit-ring);
+}
+.kit-button[aria-invalid="true"] {
+  box-shadow: var(--kit-ring-invalid);
+}
+.kit-button:disabled:not([aria-busy="true"]),
+.kit-button[data-disabled]:not([aria-busy="true"]) {
+  pointer-events: none;
+  opacity: 0.5;
+}
+.kit-button[aria-busy="true"] {
+  cursor: progress;
+}
+
+.kit-button svg {
+  pointer-events: none;
+  flex-shrink: 0;
+}
+.kit-button svg:not([class*="size-"]) {
+  width: 1rem;
+  height: 1rem;
+}
+
+:where(.kit-button[data-variant="default"]) { color: var(--primary-foreground); }
+:where(.kit-button[data-variant="secondary"]) { color: var(--secondary-foreground); }
+:where(.kit-button[data-variant="outline"]) { color: var(--foreground); }
+:where(.kit-button[data-variant="destructive"]) { color: #fff; }
+:where(.kit-button[data-variant="ghost"]) { color: var(--foreground); }
+:where(.kit-button[data-variant="link"]) {
+  color: var(--primary);
+  text-underline-offset: 4px;
+}
+
+@media (hover: hover) {
+  .kit-button[data-variant="ghost"]:hover::before {
+    background-color: var(--muted);
+  }
+  .kit-button[data-variant="link"]:hover {
+    text-decoration-line: underline;
+  }
+}
+.kit-button[data-variant="ghost"][aria-expanded="true"]::before,
+.kit-button[data-variant="ghost"][data-popup-open]::before {
+  background-color: var(--muted);
+}
+
+:where(.kit-button[data-size="xs"]) {
+  height: 1.5rem;
+  gap: 0.25rem;
+  padding-inline: 0.5rem;
+  border-radius: min(calc(var(--radius) - 2px), 10px);
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+:where(.kit-button[data-size="sm"]) {
+  height: 1.75rem;
+  gap: 0.25rem;
+  padding-inline: 0.625rem;
+  border-radius: min(calc(var(--radius) - 2px), 12px);
+  font-size: 0.8rem;
+}
+:where(.kit-button[data-size="lg"]) {
+  height: 2.25rem;
+  padding-inline: 1rem;
+}
+:where(.kit-button[data-size^="icon"]) {
+  padding: 0;
+}
+:where(.kit-button[data-size="icon"]) { width: 2rem; height: 2rem; }
+:where(.kit-button[data-size="icon-xs"]) { width: 1.5rem; height: 1.5rem; border-radius: min(calc(var(--radius) - 2px), 10px); }
+:where(.kit-button[data-size="icon-sm"]) { width: 1.75rem; height: 1.75rem; border-radius: min(calc(var(--radius) - 2px), 12px); }
+:where(.kit-button[data-size="icon-lg"]) { width: 2.25rem; height: 2.25rem; }
+
+/* An icon at the edge sits a little closer to it than text would. */
+:where(.kit-button[data-size="default"]:has([data-icon="inline-start"])) { padding-inline-start: 0.5rem; }
+:where(.kit-button[data-size="default"]:has([data-icon="inline-end"])) { padding-inline-end: 0.5rem; }
+:where(.kit-button[data-size="lg"]:has([data-icon="inline-start"])) { padding-inline-start: 0.75rem; }
+:where(.kit-button[data-size="lg"]:has([data-icon="inline-end"])) { padding-inline-end: 0.75rem; }
+
+/*
+ * Busy and done: the label, the spinner and the check share one grid cell,
+ * so the button never changes width. Each face turns over on the X axis as it
+ * leaves (Kobra's busy morph), blurring as it goes.
+ */
+.kit-button-faces {
+  display: grid;
+  place-items: center;
+  gap: inherit;
+}
+.kit-button-faces > * {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: inherit;
+}
+.busy-face {
+  transition-property: transform, opacity, filter, visibility;
+  transition-duration: 0.3s;
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+  transition-timing-function: linear(0, 0.079, 0.236, 0.403, 0.551, 0.672, 0.765, 0.834, 0.884, 0.92, 0.945, 0.963, 0.975, 0.984, 0.989, 0.993, 0.996, 0.998, 0.999, 0.999, 1);
+}
+.busy-label,
+[data-busy] > .busy-spinner,
+[data-done] > .busy-done {
+  opacity: 1;
+  filter: blur(0);
+  visibility: visible;
+  transform: perspective(320px) translateY(0) rotateX(0);
+}
+[data-busy] > .busy-label,
+[data-done] > .busy-label {
+  opacity: 0;
+  filter: blur(4px);
+  transform: perspective(320px) translateY(6px) rotateX(90deg);
+}
+.busy-spinner,
+.busy-done {
+  opacity: 0;
+  filter: blur(4px);
+  visibility: hidden;
+  transform: perspective(320px) translateY(-6px) rotateX(-90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kit-button::before,
+  .kit-button:not(.t-surface)::before {
+    transition-duration: 0s;
+  }
+  .kit-button:active::before,
+  .kit-button[data-pressed]::before {
+    scale: 1;
+  }
+  .busy-label,
+  .busy-spinner,
+  .busy-done,
+  [data-busy] > .busy-label,
+  [data-done] > .busy-label {
+    filter: none;
+    transform: none;
+  }
+}
+
+/* ─── Checkbox ────────────────────────────────────────────────────────── */
+
+:where(.kit-checkbox) {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid var(--input);
+  border-radius: 4px;
+  background-color: var(--background);
+  color: var(--primary-foreground);
+  outline: none;
+}
+/* A target a little bigger than the box, as Kobra draws it. */
+.kit-checkbox::after,
+.kit-radio::after,
+.kit-switch::after {
+  content: "";
+  position: absolute;
+  inset: -0.5rem -0.75rem;
+}
+.kit-checkbox[data-checked],
+.kit-checkbox[data-indeterminate] {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+.kit-checkbox:focus-visible {
+  border-color: var(--ring);
+  box-shadow: var(--kit-ring);
+}
+.kit-checkbox[aria-invalid="true"] {
+  border-color: var(--destructive);
+  box-shadow: var(--kit-ring-invalid);
+}
+.kit-checkbox[aria-invalid="true"][data-checked] {
+  border-color: var(--primary);
+}
+.kit-checkbox[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.kit-checkbox-indicator {
+  display: grid;
+  place-content: center;
+  color: currentColor;
+}
+.kit-checkbox-indicator svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+/* kit.css draws the tick on aria-checked=true; the dash draws on mixed. */
+.kit-checkbox[data-indeterminate] svg path {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset var(--check-draw) var(--check-ease) var(--check-delay);
+}
+
+/* ─── Radio group ─────────────────────────────────────────────────────── */
+
+:where(.kit-radio-group) {
+  display: grid;
+  gap: 0.5rem;
+}
+:where(.kit-radio) {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  aspect-ratio: 1;
+  border: 1px solid var(--input);
+  border-radius: 9999px;
+  background-color: var(--background);
+  outline: none;
+  transition-property: color, background-color, border-color, box-shadow;
+  transition-duration: var(--ring-duration);
+  transition-timing-function: var(--ease-out);
+}
+.kit-radio:focus-visible {
+  border-color: var(--ring);
+  box-shadow: var(--kit-ring);
+}
+.kit-radio[aria-invalid="true"] {
+  border-color: var(--destructive);
+  box-shadow: var(--kit-ring-invalid);
+}
+.kit-radio[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+/* The dot mounts with the choice, so it springs in once, a little past full. */
+.kit-radio-indicator {
+  pointer-events: none;
+  position: absolute;
+  inset: 3px;
+  z-index: 10;
+  border-radius: 9999px;
+  background-color: var(--primary);
+  animation: radio-dot-in 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .kit-radio-indicator {
+    animation: none;
+  }
+}
+
+/* ─── Switch ──────────────────────────────────────────────────────────── */
+
+:where(.kit-switch) {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  width: 32.66px;
+  height: 18.4px;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  background-color: var(--input);
+  outline: none;
+}
+.kit-switch[data-checked] {
+  background-color: var(--primary);
+}
+.kit-switch:focus-visible {
+  border-color: var(--ring);
+  box-shadow: var(--kit-ring);
+}
+.kit-switch[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+:where(.kit-switch-thumb) {
+  pointer-events: none;
+  display: block;
+  height: 0.875rem;
+  margin-inline-start: 1px;
+  border-radius: 9999px;
+  background-color: var(--background);
+}
+[dir="rtl"] .kit-switch-thumb {
+  scale: -1 1;
+}
+/*
+ * kit.css keys the thumb's travel on data-on; Base UI marks a switch with
+ * data-checked, so the same clip-path travel and hover grow, keyed on that.
+ * The thumb is one wide pill clipped to a circle: moving the clip is what
+ * slides it, and hovering widens the clip towards the far side.
+ */
+.kit-switch[data-checked] .t-toggle-thumb {
+  clip-path: inset(0 0 0 var(--toggle-travel) round 999px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .kit-switch[data-checked]:hover .t-toggle-thumb {
+    clip-path: inset(0 0 0 calc(var(--toggle-travel) - var(--toggle-grow)) round 999px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kit-switch[data-checked]:hover .t-toggle-thumb {
+    clip-path: inset(0 0 0 var(--toggle-travel) round 999px);
+  }
+}
+
+/* ─── Slider ──────────────────────────────────────────────────────────── */
+
+:where(.kit-slider) {
+  width: 100%;
+}
+.kit-slider-control {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 26px;
+  align-items: center;
+  touch-action: none;
+  user-select: none;
+}
+.kit-slider[data-disabled] .kit-slider-control {
+  opacity: 0.5;
+}
+:where(.kit-slider-track) {
+  position: relative;
+  flex-grow: 1;
+  width: 100%;
+  height: 0.375rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background-color: color-mix(in oklch, var(--muted), var(--foreground) 10%);
+}
+:where(.kit-slider-range) {
+  height: 100%;
+  background-color: var(--primary);
+}
+/* The painted thumb: an SVG blob under a goo filter, in its own layer. */
+.kit-slider-goo {
+  position: absolute;
+  inset: 0;
+  isolation: isolate;
+  pointer-events: none;
+}
+.kit-slider-goo svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.kit-slider-blob {
+  /* Scale about the blob's own centre, not the SVG's corner. */
+  transform-box: fill-box;
+  transform-origin: center;
+  scale: 0.85;
+  transition: scale 0.25s var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .kit-slider-control:hover .kit-slider-blob {
+    scale: 0.92;
+  }
+}
+.kit-slider[data-dragging] .kit-slider-blob {
+  scale: 1;
+}
+/* The thumb itself is the hit area and the focus target; the SVG paints it. */
+.kit-slider-thumb {
+  display: block;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: transparent;
+  outline: none;
+  transition: box-shadow var(--ring-duration) var(--ease-out);
+}
+.kit-slider-thumb::after {
+  content: "";
+  position: absolute;
+  inset: -0.5rem;
+}
+.kit-slider-thumb:has(:focus-visible) {
+  box-shadow: var(--kit-ring);
+}
+.kit-slider-thumb[data-disabled] {
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kit-slider-blob {
+    transition: none;
+  }
+}
+
+/* ─── Tabs ────────────────────────────────────────────────────────────── */
+
+:where(.kit-tabs) {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+:where(.kit-tabs-list) {
+  position: relative;
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  padding: 2px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  border-radius: 9999px;
+  background-color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.kit-tabs-list::-webkit-scrollbar {
+  display: none;
+}
+:where(.kit-tabs-trigger) {
+  position: relative;
+  z-index: 10;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.375rem 1rem;
+  border-radius: 9999px;
+  color: var(--muted-foreground);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.15s var(--ease-out), color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
+}
+@media (hover: hover) {
+  .kit-tabs-trigger:hover {
+    color: var(--foreground);
+  }
+}
+.kit-tabs-trigger:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+.kit-tabs-trigger:active:not([data-active]) {
+  transform: scale(0.96);
+}
+.kit-tabs-trigger[data-disabled] {
+  pointer-events: none;
+  opacity: 0.5;
+}
+/*
+ * The pill (Kobra's sliding-tab-pill) rides over the tabs and carries a
+ * second copy of the labels in the active colour. The copy is pinned to the
+ * list by translating it back by exactly what the pill travels, on the same
+ * curve, so as the pill slides the labels inside it never move: the active
+ * colour is wiped across by the pill's own edges rather than faded.
+ */
+.kit-tabs-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  width: var(--active-tab-width);
+  height: var(--active-tab-height);
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: 9999px;
+  background-color: var(--background);
+  box-shadow: 0 1px 2px #00000014, 0 0 0 1px #0000000a, 0 2px 6px -2px #0000000f;
+  transform: translate(var(--active-tab-left), var(--active-tab-top));
+  transition: transform var(--tabs-duration) var(--tabs-ease), width var(--tabs-duration) var(--tabs-ease);
+  will-change: transform, width;
+}
+.kit-tabs-labels {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  width: max-content;
+  padding: 2px;
+  transform: translate(calc(var(--active-tab-left) * -1), calc(var(--active-tab-top) * -1));
+  transition: transform var(--tabs-duration) var(--tabs-ease);
+  will-change: transform;
+}
+.kit-tabs-labels > .kit-tabs-trigger {
+  color: var(--foreground);
+}
+:where(.kit-tabs-panel) {
+  outline: none;
+  border-radius: var(--radius);
+}
+.kit-tabs-panel:focus-visible {
+  box-shadow: var(--kit-ring);
+}
+@media (prefers-reduced-motion: reduce) {
+  .kit-tabs-trigger,
+  .kit-tabs-indicator,
+  .kit-tabs-labels {
+    transition: none;
+  }
+  .kit-tabs-trigger:active:not([data-active]) {
+    transform: none;
+  }
+}
+
+/* ─── Popovers: the shared entrance ───────────────────────────────────── */
+
+/*
+ * Kobra's popover-panel: the panel tips in from the side it opens on (a few
+ * degrees of perspective tilt toward its anchor) as it scales up from .94,
+ * and drops straight to .96 and out when it closes.
+ */
+.kit-popover[data-side="bottom"] { --popover-tilt-x: -20deg; }
+.kit-popover[data-side="top"] { --popover-tilt-x: 20deg; }
+.kit-popover[data-side="right"],
+.kit-popover[data-side="inline-end"] { --popover-tilt-y: 20deg; }
+.kit-popover[data-side="left"],
+.kit-popover[data-side="inline-start"] { --popover-tilt-y: -20deg; }
+.kit-popover[data-open] {
+  animation: popover-flip-in 0.3s var(--ease-out), popover-fade-in 0.16s var(--ease-out);
+}
+.kit-popover[data-closed] {
+  animation: popover-flip-out 0.16s var(--ease-exit) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kit-popover[data-open] {
+    animation: popover-fade-in 0.14s var(--ease-out);
+  }
+  .kit-popover[data-closed] {
+    animation: popover-fade-out 0.14s var(--ease-exit) forwards;
+  }
+}
+
+/* ─── Tooltip ─────────────────────────────────────────────────────────── */
+
+.kit-tooltip-positioner {
+  z-index: 80;
+}
+:where(.kit-tooltip) {
+  position: relative;
+  width: fit-content;
+  max-width: 20rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: calc(var(--radius) - 2px);
+  background-color: var(--foreground);
+  color: var(--background);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  text-wrap: balance;
+}
+.kit-tooltip {
+  transform-origin: var(--transform-origin);
+  transition: opacity 0.15s var(--ease-out), scale 0.15s var(--ease-out);
+}
+.kit-tooltip[data-starting-style],
+.kit-tooltip[data-ending-style] {
+  opacity: 0;
+  scale: 0.96;
+}
+.kit-tooltip[data-instant] {
+  transition: none;
+}
+.kit-tooltip-arrow {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background-color: var(--foreground);
+  rotate: 45deg;
+}
+.kit-tooltip-arrow[data-side="top"] { bottom: -4px; }
+.kit-tooltip-arrow[data-side="bottom"] { top: -4px; }
+.kit-tooltip-arrow[data-side="left"],
+.kit-tooltip-arrow[data-side="inline-start"] { right: -4px; }
+.kit-tooltip-arrow[data-side="right"],
+.kit-tooltip-arrow[data-side="inline-end"] { left: -4px; }
+
+/*
+ * The gliding tooltip: one popup shared by a row of triggers. Moving between
+ * them slides the popup to the next one and resizes it on the navtip curve,
+ * and the old label leaves the way the pointer came from.
+ */
+.kit-tooltip-positioner[data-glide] {
+  width: var(--positioner-width);
+  height: var(--positioner-height);
+  max-width: var(--available-width);
+  transition: top var(--navtip-travel) var(--navtip-ease), left var(--navtip-travel) var(--navtip-ease),
+    right var(--navtip-travel) var(--navtip-ease), bottom var(--navtip-travel) var(--navtip-ease);
+}
+.kit-tooltip-positioner[data-glide][data-instant] {
+  transition: none;
+}
+.kit-tooltip[data-glide] {
+  width: var(--popup-width, auto);
+  height: var(--popup-height, auto);
+  padding: 0;
+  transition: opacity 0.15s var(--ease-out), scale 0.15s var(--ease-out), width var(--navtip-travel) var(--navtip-ease),
+    height var(--navtip-travel) var(--navtip-ease);
+}
+.kit-tooltip[data-glide] .kit-tooltip-arrow {
+  transition: left var(--navtip-travel) var(--navtip-ease), top var(--navtip-travel) var(--navtip-ease);
+}
+.kit-tooltip-viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: clip;
+  padding: 0.375rem 0.75rem;
+  white-space: nowrap;
+}
+.kit-tooltip-viewport [data-current],
+.kit-tooltip-viewport [data-previous] {
+  translate: 0;
+  opacity: 1;
+  transition: translate var(--navtip-travel) var(--navtip-ease), opacity calc(var(--navtip-travel) / 2) var(--navtip-ease);
+}
+.kit-tooltip-viewport [data-previous] {
+  position: absolute;
+  inset-inline: 0.75rem;
+}
+.kit-tooltip-viewport[data-activation-direction~="right"] [data-current][data-starting-style] { translate: 40% 0; opacity: 0; }
+.kit-tooltip-viewport[data-activation-direction~="left"] [data-current][data-starting-style] { translate: -40% 0; opacity: 0; }
+.kit-tooltip-viewport[data-activation-direction~="right"] [data-previous][data-ending-style] { translate: -40% 0; opacity: 0; }
+.kit-tooltip-viewport[data-activation-direction~="left"] [data-previous][data-ending-style] { translate: 40% 0; opacity: 0; }
+[data-instant] .kit-tooltip-viewport [data-current],
+[data-instant] .kit-tooltip-viewport [data-previous] {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kit-tooltip,
+  .kit-tooltip[data-glide],
+  .kit-tooltip-positioner[data-glide],
+  .kit-tooltip-viewport [data-current],
+  .kit-tooltip-viewport [data-previous] {
+    transition: opacity 0.12s linear;
+    translate: none;
+    scale: none;
+  }
+}
+
+/* ─── Dropdown menu ───────────────────────────────────────────────────── */
+
+.kit-menu-positioner {
+  z-index: 60;
+  outline: none;
+}
+:where(.kit-menu) {
+  min-width: 8rem;
+  max-height: var(--available-height);
+  padding: 0.25rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-radius: var(--radius);
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent), 0 4px 6px -1px #0000001a,
+    0 2px 4px -2px #0000001a;
+  outline: none;
+}
+.kit-menu {
+  transform-origin: var(--transform-origin);
+}
+:where(.kit-menu-item) {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 1.75rem;
+  padding: 0.25rem 0.375rem;
+  border-radius: calc(var(--radius) - 2px);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  cursor: default;
+  user-select: none;
+  outline: none;
+}
+.kit-menu-item[data-highlighted],
+.kit-menu-item[data-popup-open] {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+.kit-menu-item[data-disabled] {
+  pointer-events: none;
+  opacity: 0.5;
+}
+.kit-menu-item[data-inset] {
+  padding-inline-start: 1.75rem;
+}
+.kit-menu-item[data-variant="destructive"] {
+  color: var(--destructive);
+}
+.kit-menu-item[data-variant="destructive"][data-highlighted] {
+  background-color: color-mix(in oklab, var(--destructive) 10%, transparent);
+  color: var(--destructive);
+}
+.kit-menu-item svg {
+  pointer-events: none;
+  flex-shrink: 0;
+}
+.kit-menu-item svg:not([class*="size-"]) {
+  width: 1rem;
+  height: 1rem;
+}
+.kit-menu-item > svg:not([class*="text-"]) {
+  color: var(--muted-foreground);
+}
+.kit-menu-item[data-variant="destructive"] > svg {
+  color: currentColor;
+}
+.kit-menu-item[data-checkable] {
+  padding-inline-end: 2rem;
+}
+.kit-menu-indicator {
+  pointer-events: none;
+  position: absolute;
+  inset-inline-end: 0.5rem;
+  display: flex;
+  width: 0.875rem;
+  height: 0.875rem;
+  align-items: center;
+  justify-content: center;
+}
+/* The tick draws itself in, the same stroke as the checkbox's. */
+.kit-menu-indicator svg path {
+  stroke-dasharray: 13;
+  stroke-dashoffset: 13;
+  transition: stroke-dashoffset var(--check-uncheck) var(--check-ease);
+}
+[aria-checked="true"] > .kit-menu-indicator svg path {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset var(--check-draw) var(--check-ease) var(--check-delay);
+}
+.kit-menu-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background-color: currentColor;
+  animation: radio-dot-in 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.kit-menu-chevron {
+  margin-inline-start: auto;
+}
+[dir="rtl"] .kit-menu-chevron {
+  scale: -1 1;
+}
+:where(.kit-menu-label) {
+  padding: 0.25rem 0.375rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+}
+.kit-menu-label[data-inset] {
+  padding-inline-start: 1.75rem;
+}
+:where(.kit-menu-separator) {
+  height: 1px;
+  margin: 0.25rem -0.25rem;
+  background-color: var(--border);
+}
+:where(.kit-menu-shortcut) {
+  margin-inline-start: auto;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kit-menu-indicator svg path,
+  [aria-checked="true"] > .kit-menu-indicator svg path {
+    transition: none;
+  }
+  .kit-menu-dot {
+    animation: none;
+  }
+}
+
+/* ─── Dialog and sheet ────────────────────────────────────────────────── */
+
+.kit-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background-color: rgb(0 0 0 / 0.1);
+  transition: opacity 0.2s var(--ease-out);
+}
+@supports (backdrop-filter: blur(1px)) {
+  .kit-backdrop {
+    backdrop-filter: blur(4px);
+  }
+}
+.kit-backdrop[data-starting-style],
+.kit-backdrop[data-ending-style] {
+  opacity: 0;
+}
+.kit-backdrop[data-ending-style] {
+  transition-duration: 0.15s;
+  transition-timing-function: var(--ease-exit);
+}
+
+:where(.kit-dialog) {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  max-width: calc(100% - 2rem);
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  padding: 1rem;
+  border-radius: calc(var(--radius) + 4px);
+  background-color: var(--background);
+  color: var(--foreground);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent), 0 10px 15px -3px #0000001a,
+    0 4px 6px -4px #0000001a;
+  outline: none;
+}
+.kit-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 70;
+  translate: -50% -50%;
+  scale: calc(1 - 0.04 * var(--nested-dialogs, 0));
+  transition: opacity 0.2s var(--ease-out), scale 0.2s var(--ease-out);
+}
+@media (min-width: 640px) {
+  :where(.kit-dialog[data-size="sm"]) { max-width: 24rem; }
+  :where(.kit-dialog[data-size="md"]) { max-width: 28rem; }
+  :where(.kit-dialog[data-size="lg"]) { max-width: 32rem; }
+}
+.kit-dialog[data-starting-style],
+.kit-dialog[data-ending-style] {
+  opacity: 0;
+  scale: 0.96;
+}
+.kit-dialog[data-ending-style] {
+  transition-duration: 0.15s;
+  transition-timing-function: var(--ease-exit);
+}
+.kit-dialog-close {
+  position: absolute;
+  top: 0.5rem;
+  inset-inline-end: 0.5rem;
+}
+:where(.kit-dialog-header) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+:where(.kit-dialog-footer) {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 0.5rem;
+  margin: 0 -1rem -1rem;
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 calc(var(--radius) + 4px) calc(var(--radius) + 4px);
+  background-color: color-mix(in oklab, var(--muted) 50%, transparent);
+}
+@media (min-width: 640px) {
+  :where(.kit-dialog-footer) {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}
+:where(.kit-dialog-title) {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1;
+  font-weight: 500;
+}
+:where(.kit-dialog-description) {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+/*
+ * The sheet slides from its edge on the drawer curve Kobra's motion tokens
+ * use for surfaces that travel (fast out, long settle), and leaves faster
+ * than it came.
+ */
+:where(.kit-sheet) {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background-color: var(--background);
+  background-clip: padding-box;
+  color: var(--foreground);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  box-shadow: 0 10px 15px -3px #0000001a, 0 4px 6px -4px #0000001a;
+  outline: none;
+}
+.kit-sheet {
+  position: fixed;
+  z-index: 70;
+  transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.kit-sheet[data-ending-style] {
+  transition-duration: 0.22s;
+  transition-timing-function: var(--ease-in);
+}
+:where(.kit-sheet[data-side="right"]),
+:where(.kit-sheet[data-side="left"]) {
+  top: 0;
+  bottom: 0;
+  width: 75%;
+  height: 100%;
+}
+:where(.kit-sheet[data-side="right"]) { right: 0; border-left: 1px solid var(--border); }
+:where(.kit-sheet[data-side="left"]) { left: 0; border-right: 1px solid var(--border); }
+@media (min-width: 640px) {
+  :where(.kit-sheet[data-side="right"]),
+  :where(.kit-sheet[data-side="left"]) {
+    max-width: 24rem;
+  }
+}
+:where(.kit-sheet[data-side="top"]),
+:where(.kit-sheet[data-side="bottom"]) {
+  left: 0;
+  right: 0;
+  height: auto;
+}
+:where(.kit-sheet[data-side="top"]) { top: 0; border-bottom: 1px solid var(--border); }
+:where(.kit-sheet[data-side="bottom"]) { bottom: 0; border-top: 1px solid var(--border); }
+.kit-sheet[data-side="right"][data-starting-style],
+.kit-sheet[data-side="right"][data-ending-style] { transform: translateX(100%); }
+.kit-sheet[data-side="left"][data-starting-style],
+.kit-sheet[data-side="left"][data-ending-style] { transform: translateX(-100%); }
+.kit-sheet[data-side="top"][data-starting-style],
+.kit-sheet[data-side="top"][data-ending-style] { transform: translateY(-100%); }
+.kit-sheet[data-side="bottom"][data-starting-style],
+.kit-sheet[data-side="bottom"][data-ending-style] { transform: translateY(100%); }
+.kit-sheet-close {
+  position: absolute;
+  top: 0.75rem;
+  inset-inline-end: 0.75rem;
+}
+:where(.kit-sheet-header) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 1rem;
+}
+:where(.kit-sheet-footer) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding: 1rem;
+}
+:where(.kit-sheet-title) {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 500;
+}
+:where(.kit-sheet-description) {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kit-backdrop,
+  .kit-dialog,
+  .kit-sheet {
+    transition: opacity 0.15s linear;
+  }
+  .kit-dialog[data-starting-style],
+  .kit-dialog[data-ending-style] {
+    scale: 1;
+  }
+  .kit-sheet[data-starting-style],
+  .kit-sheet[data-ending-style] {
+    transform: none !important;
+    opacity: 0;
+  }
+}
+
+/* ─── Skeleton ────────────────────────────────────────────────────────── */
+
+:where(.kit-skeleton) {
+  border-radius: calc(var(--radius) - 2px);
+  background-color: var(--muted);
+}
+/* Kobra's shimmer: one soft sweep, left to right (right to left in RTL). */
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--skeleton-sweep), transparent);
+  transform: translate(-100%);
+  animation: skeleton-shimmer var(--skeleton-shimmer-duration) linear infinite;
+}
+[dir="rtl"] .skeleton-shimmer::after {
+  animation-direction: reverse;
+}
+.kit-skeleton[data-animation="pulse"] {
+  animation: t-skel-pulse calc(var(--pulse-dur) * 2) ease-in-out infinite;
+}
+/*
+ * The reveal: kit.css cross-fades the placeholder and the content with a
+ * blur. Kobra lays both layers absolutely in a box of known size; here they
+ * share one grid cell, so the box takes the size of whichever is larger and
+ * nothing has to be measured.
+ */
+.kit-skel {
+  display: grid;
+}
+.kit-skel > .t-skel-skeleton,
+.kit-skel > .t-skel-content {
+  position: relative;
+  inset: auto;
+  grid-area: 1 / 1;
+}
+.kit-skel:not(.is-revealed) > .t-skel-content,
+.kit-skel.is-revealed > .t-skel-skeleton {
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer::after,
+  .kit-skeleton[data-animation="pulse"],
+  .t-skel-skeleton.is-pulsing > * {
+    animation: none;
+  }
+}
+
+/* ─── Toast ───────────────────────────────────────────────────────────── */
+
+/*
+ * After Kobra's toast: a single-line pill on the page's frosted popover.
+ * Several make a pile, each one further back peeking 10px, 3% smaller and
+ * 15% fainter, three deep; pointing at the pile (or focusing it) fans it into
+ * a list. Base UI supplies the geometry as custom properties (--toast-index,
+ * --toast-offset-y, swipe movement); everything that moves rides one curve,
+ * the toast morph (a critically damped .3s spring, as a bezier).
+ * Bottom-centred, as the site's toasts have always been, so the pile rises.
+ */
+.kt-viewport {
+  position: fixed;
+  z-index: 90; /* over the page and the menus, under the custom cursors */
+  left: 1rem;
+  right: 1rem;
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  height: 2.25rem;
+  pointer-events: none;
+  outline: none;
+}
+.kt-toast {
+  --gap: 8px;
+  --peek: 10px;
+  --depth: min(var(--toast-index), 2);
+  --scale: calc(1 - var(--depth) * 0.03);
+  --alpha: calc((1 - var(--depth) * 0.15) * clamp(0, 3 - var(--toast-index), 1));
+  --offset-y: calc(var(--toast-offset-y) * -1 + var(--toast-index) * var(--gap) * -1 + var(--toast-swipe-movement-y));
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: calc(1000 - var(--toast-index));
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(32rem, 100%);
+  height: 2.25rem;
+  margin-inline: auto;
+  overflow: hidden;
+  border-radius: 9999px;
+  background-color: color-mix(in oklab, var(--popover) 80%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 18%), 0 8px 24px rgb(0 0 0 / 20%), 0 0 0 1px rgb(255 255 255 / 10%);
+  color: var(--foreground);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  outline: none;
+  opacity: var(--alpha);
+  transform-origin: bottom center;
+  transform: translateX(var(--toast-swipe-movement-x))
+    translateY(calc(var(--toast-swipe-movement-y) - var(--depth) * var(--peek))) scale(var(--scale));
+  transition: transform var(--toast-morph-duration) var(--toast-morph-ease),
+    opacity var(--toast-morph-duration) var(--toast-morph-ease),
+    max-width var(--toast-morph-duration) var(--toast-morph-ease);
+}
+/* Piled, a card behind is held to the front card's width, so the pile reads as one stack. */
+.kt-toast:not([data-expanded]):has(> [data-behind]) {
+  max-width: min(var(--kt-front-width, 32rem), 100%);
+}
+.kt-toast[data-expanded] {
+  opacity: clamp(0, 3 - var(--toast-index), 1);
+  transform: translateX(var(--toast-swipe-movement-x)) translateY(var(--offset-y));
+}
+.kt-toast[data-starting-style] {
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+}
+.kt-toast[data-ending-style] {
+  opacity: 0;
+  transform: translateY(calc(8px - var(--depth) * var(--peek))) scale(calc(var(--scale) * 0.96));
+  transition-duration: 0.2s;
+}
+.kt-toast[data-ending-style][data-swipe-direction="down"] {
+  transform: translateY(calc(var(--toast-swipe-movement-y) + 150%));
+}
+.kt-toast[data-ending-style][data-swipe-direction="left"] {
+  transform: translateX(calc(var(--toast-swipe-movement-x) - 60%)) translateY(var(--offset-y));
+}
+.kt-toast[data-ending-style][data-swipe-direction="right"] {
+  transform: translateX(calc(var(--toast-swipe-movement-x) + 60%)) translateY(var(--offset-y));
+}
+.kt-toast[data-limited] {
+  opacity: 0;
+}
+/* Keeps the fan open while the pointer crosses the gap between cards. */
+.kt-toast::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: calc(var(--gap) + 1px);
+}
+.kt-toast:focus-visible {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 18%), 0 8px 24px rgb(0 0 0 / 20%), var(--kit-ring);
+}
+.kt-toast-content {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  min-width: 0;
+  padding-inline: 1rem;
+  transition: opacity var(--toast-morph-duration) var(--toast-morph-ease),
+    padding var(--toast-morph-duration) var(--toast-morph-ease);
+}
+.kt-toast[data-glyph] .kt-toast-content {
+  padding-inline-start: 0.75rem;
+}
+.kt-toast[data-trailing] .kt-toast-content {
+  padding-inline-end: 0.375rem;
+}
+/* Behind the front card only the card shows, not its words. */
+.kt-toast-content[data-behind] {
+  opacity: 0;
+}
+.kt-toast-content[data-expanded] {
+  opacity: 1;
+}
+.kt-toast-glyph {
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.kt-toast-glyph-inner {
+  display: flex;
+  width: max-content;
+  align-items: center;
+  padding-inline-end: 0.5rem;
+}
+.kt-toast-mark {
+  display: flex;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+.kt-toast-mark[data-tone="error"] { color: var(--error); }
+.kt-toast-mark[data-tone="warning"] { color: var(--warning); }
+.kt-toast-mark[data-tone="info"] { color: var(--info); }
+.kt-toast-text {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  overflow: hidden;
+}
+.kt-toast-line {
+  display: flex;
+  min-width: 0;
+  max-width: 30rem;
+  align-items: baseline;
+  gap: 0.375rem;
+  white-space: nowrap;
+}
+.kt-toast-title {
+  flex: none;
+  margin: 0;
+  font-size: inherit;
+  font-weight: 500;
+  line-height: inherit;
+}
+.kt-toast-description {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: inherit;
+  line-height: inherit;
+  text-overflow: ellipsis;
+}
+.kt-toast-action {
+  margin-inline-start: 1rem;
+  border-radius: 9999px;
+}
+.kt-toast-action:empty {
+  display: none;
+}
+.kt-toast-close {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-inline-start: 0.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  outline: none;
+  transition: width var(--toast-morph-duration) var(--toast-morph-ease),
+    margin var(--toast-morph-duration) var(--toast-morph-ease),
+    opacity var(--toast-morph-duration) var(--toast-morph-ease), background-color 0.12s ease, color 0.12s ease;
+}
+/*
+ * A toast that will leave on its own needs no ×: it folds away until the
+ * pile is opened (pointer or keyboard focus fans it, so a focused × is never
+ * an invisible one). One that stays until dismissed always shows it.
+ */
+.kt-toast:not([data-expanded]):not([data-sticky]) .kt-toast-close {
+  width: 0;
+  margin-inline-start: 0;
+  opacity: 0;
+}
+.kt-toast-close:focus-visible {
+  box-shadow: var(--kit-ring);
+}
+@media (hover: hover) and (pointer: fine) {
+  .kt-toast-close:hover {
+    background-color: rgb(0 0 0 / 0.06);
+    color: var(--foreground);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .kt-toast {
+    background-color: var(--popover);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+/*
+ * Reduced motion: the pile keeps its places (they are transforms, and
+ * dropping them would stack every card on one spot) but cards jump there and
+ * arrive and leave by fading where they stand.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .kt-toast,
+  .kt-toast-content,
+  .kt-toast-close {
+    transition: opacity 0.2s linear;
+  }
+  .kt-toast[data-starting-style],
+  .kt-toast[data-ending-style] {
+    transform: translateY(calc(var(--depth) * var(--peek) * -1)) scale(var(--scale));
+  }
+}
+
+/* ─── Adoption: every existing menu and popover wears the kit ─────────── */
+
+/*
+ * The site and the admin already had their own menus (.menu-popup /
+ * .menu-item: the admin's ⋯ menus, the block handle, the right-click menus,
+ * selects' popovers, the pickers). Rather than rewrite each call site, they
+ * take Kobra's dropdown material here: the white panel with a hairline ring
+ * and soft drop, the tilt-in from the side it opens on, and the flat
+ * highlight. Base UI marks its popups with data-side; a hand-made popup
+ * (the article menu, the link card) keeps its own entrance and just the look.
+ */
+.menu-popup {
+  border-radius: var(--radius);
+  background-color: var(--popover);
+  background-image: none;
+  color: var(--popover-foreground);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent), 0 4px 6px -1px #0000001a,
+    0 2px 4px -2px #0000001a;
+}
+.menu-popup[data-side="bottom"] { --popover-tilt-x: -20deg; }
+.menu-popup[data-side="top"] { --popover-tilt-x: 20deg; }
+.menu-popup[data-side="right"],
+.menu-popup[data-side="inline-end"] { --popover-tilt-y: 20deg; }
+.menu-popup[data-side="left"],
+.menu-popup[data-side="inline-start"] { --popover-tilt-y: -20deg; }
+.menu-popup[data-side] {
+  transition: none;
+}
+.menu-popup[data-side][data-starting-style],
+.menu-popup[data-side][data-ending-style] {
+  opacity: 1;
+  transform: none;
+}
+.menu-popup[data-side][data-open] {
+  animation: popover-flip-in 0.3s var(--ease-out), popover-fade-in 0.16s var(--ease-out);
+}
+.menu-popup[data-side][data-closed] {
+  animation: popover-flip-out 0.16s var(--ease-exit) forwards;
+}
+.menu-item {
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: calc(var(--radius) - 2px);
+}
+.menu-item[data-highlighted],
+.menu-item[data-popup-open] {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+.menu-item .menu-item-icon {
+  color: var(--muted-foreground);
+}
+.menu-item[data-danger],
+.menu-item[data-danger] .menu-item-icon {
+  color: var(--destructive);
+}
+.menu-item[data-danger][data-highlighted] {
+  background-color: color-mix(in oklab, var(--destructive) 10%, transparent);
+}
+.menu-separator {
+  background-color: var(--border);
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-popup[data-side][data-open] {
+    animation: popover-fade-in 0.14s var(--ease-out);
+  }
+  .menu-popup[data-side][data-closed] {
+    animation: popover-fade-out 0.14s var(--ease-exit) forwards;
+  }
+}
+
+/*
+ * The admin's sheets and dialogs (admin/ui/Sheet.tsx) keep their drawer
+ * motion, which is already the curve Kobra's sheets travel on, and take
+ * Kobra's material: the blurred veil, the hairline ring around the panel,
+ * the dialog's .96 scale-in. .admin-body outranks admin.css, which loads later.
+ */
+.admin-body .sheet-backdrop {
+  background-color: rgb(0 0 0 / 0.1);
+}
+@supports (backdrop-filter: blur(1px)) {
+  .admin-body .sheet-backdrop {
+    backdrop-filter: blur(4px);
+  }
+}
+.admin-body .sheet {
+  background-color: var(--background);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent), 0 10px 15px -3px #0000001a,
+    0 4px 6px -4px #0000001a;
+}
+.admin-body .sheet[data-variant="center"][data-starting-style],
+.admin-body .sheet[data-variant="center"][data-ending-style] {
+  scale: 0.96;
+  translate: -50% -50%;
+}
+.admin-body .sheet-title {
+  font-weight: 500;
+}
+.admin-body .sheet-description {
+  color: var(--muted-foreground);
+}
+
+/*
+ * The admin's buttons (.admin-button and its variants, used everywhere in
+ * admin/ui) take Kobra's raised surface: a face painted on ::before as a
+ * soft top-to-bottom gradient with a lighter top edge, a hairline ring and a
+ * small drop, which flattens on hover and dips to .99 when pressed (the
+ * label doesn't move, the face does). Kobra's corner too: rounded, not pill.
+ * Quiet buttons stay ghosts; danger is an outline until it is confirming,
+ * when it fills with Kobra's destructive face.
+ */
+.admin-body .admin-button {
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--radius);
+  background: transparent;
+}
+.admin-body .admin-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: 1px solid transparent;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--sf-top), var(--sf-bottom)) padding-box,
+    linear-gradient(var(--sf-edge-top), var(--sf-edge-bottom)) border-box;
+  box-shadow: 0 0 0 1px var(--sf-ring), 0 1px 1px 0 var(--sf-drop-near, transparent), 0 2px 4px 0 var(--sf-drop, transparent);
+  transition: scale 0.15s var(--ease-out);
+  --sf-top: #f2f2f3;
+  --sf-bottom: #eaeaec;
+  --sf-edge-top: #fff0;
+  --sf-edge-bottom: #0000000f;
+  --sf-ring: #0000001c;
+  --sf-drop-near: #0000000a;
+  --sf-drop: #0000000d;
+}
+.admin-body .admin-button-primary,
+.admin-body .admin-button-danger[data-confirming] {
+  color: #fff;
+}
+.admin-body .admin-button-primary::before {
+  --sf-top: #323137;
+  --sf-bottom: #201e25;
+  --sf-edge-top: #4b4951;
+  --sf-edge-bottom: #18171b;
+  --sf-ring: #0d0d0d;
+  --sf-drop-near: transparent;
+  --sf-drop: #0000001a;
+}
+.admin-body .admin-button-primary[data-done] {
+  color: var(--a-ink-2);
+}
+.admin-body .admin-button-primary[data-done]::before {
+  --sf-top: #f2f2f3;
+  --sf-bottom: #eaeaec;
+  --sf-edge-top: #fff0;
+  --sf-edge-bottom: #0000000f;
+  --sf-ring: #0000001c;
+}
+.admin-body .admin-button-danger {
+  box-shadow: none;
+}
+.admin-body .admin-button-danger::before {
+  --sf-top: #fff;
+  --sf-bottom: #fff;
+  --sf-ring: rgb(220 38 38 / 0.3);
+  --sf-drop-near: transparent;
+  --sf-drop: transparent;
+}
+.admin-body .admin-button-danger[data-confirming]::before {
+  --sf-top: #d0262b;
+  --sf-bottom: #b81a1f;
+  --sf-edge-top: #ffffff47;
+  --sf-edge-bottom: #00000024;
+  --sf-ring: #a11216;
+  --sf-drop: #0000001a;
+}
+.admin-body .admin-button-quiet::before {
+  background: none;
+  box-shadow: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .admin-body .admin-button:hover:not(:disabled) {
+    background: transparent;
+  }
+  .admin-body .admin-button:hover:not(:disabled)::before {
+    --sf-bottom: var(--sf-top);
+  }
+  .admin-body .admin-button-quiet:hover:not(:disabled)::before {
+    background: var(--a-fill);
+  }
+  .admin-body .admin-button-danger:hover:not(:disabled):not([data-confirming])::before {
+    --sf-top: rgb(220 38 38 / 0.06);
+    --sf-bottom: rgb(220 38 38 / 0.06);
+  }
+}
+.admin-body .admin-button:active:not(:disabled) {
+  scale: 1;
+}
+.admin-body .admin-button:active:not(:disabled):not([aria-haspopup])::before {
+  scale: 0.99;
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-body .admin-button::before {
+    transition: none;
+  }
+  .admin-body .admin-button:active:not(:disabled)::before {
+    scale: 1;
+  }
+}
+/* The split "New post ▾" keeps its join: square inside, Kobra corners out. */
+.admin-body .split-main {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+.admin-body .split-more {
+  border-radius: 0 var(--radius) var(--radius) 0;
+}

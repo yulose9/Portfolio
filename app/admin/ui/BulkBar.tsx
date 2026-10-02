@@ -4,7 +4,6 @@ import {
   ArrowSquareOut,
   ArrowUUpLeft,
   CalendarBlank,
-  Check,
   CopySimple,
   LinkSimple,
   NotePencil,
@@ -82,9 +81,21 @@ export function Checkbox({ checked, mixed, onToggle, label }: { checked: boolean
         onToggle(e);
       }}
     >
-      <span className="check-box" aria-hidden="true">
-        <Check size={11} weight="bold" className="check-mark" data-on={(checked && !mixed) || undefined} />
-        <span className="check-dash" data-on={mixed || undefined} />
+      {/* Kobra's checkbox mark (kit.css t-check): the box fills as the tick
+          draws itself in, and un-draws faster. The button around it keeps the
+          row's 28px target and its reveal-on-hover. */}
+      <span
+        className="kit-checkbox t-check"
+        aria-hidden="true"
+        aria-checked={checked && !mixed}
+        data-checked={(checked && !mixed) || undefined}
+        data-indeterminate={mixed || undefined}
+      >
+        <span className="kit-checkbox-indicator">
+          <svg viewBox="-0.3 -0.3 11 8.6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {mixed ? <path d="M2 4h6.4" style={{ "--check-len": 7 } as React.CSSProperties} /> : <path d="M1 4L3.8 7L9.4 1" />}
+          </svg>
+        </span>
       </span>
     </button>
   );

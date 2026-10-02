@@ -1,6 +1,7 @@
 "use client";
 
 import type { Draft } from "./api";
+import { Switch } from "../../components/kit/switch";
 
 /** Small shared pieces: status wording, the status dot, relative times. */
 
@@ -18,8 +19,8 @@ export function statusLabel(p: { status: Draft["status"]; dirty: boolean; publis
  */
 export function PageSwitch({ page, slug, onChange }: { page: boolean; slug: string; onChange: (page: boolean) => void }) {
   return (
-    <label className="switch-row">
-      <span className="switch-text">
+    <div className="switch-row">
+      <span className="switch-text" id="page-switch-label">
         <span className="switch-title">Has its own page</span>
         <span className="field-help">
           {page
@@ -27,8 +28,8 @@ export function PageSwitch({ page, slug, onChange }: { page: boolean; slug: stri
             : "Only the title and date show in the Writing list. It isn’t a link, and it stays out of search and the feed."}
         </span>
       </span>
-      <input type="checkbox" role="switch" className="switch" checked={page} onChange={(e) => onChange(e.target.checked)} />
-    </label>
+      <Switch checked={page} onCheckedChange={(next) => onChange(next)} aria-labelledby="page-switch-label" />
+    </div>
   );
 }
 

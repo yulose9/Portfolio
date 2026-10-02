@@ -40,7 +40,6 @@
   /* The Sound layer's toggle (components/ui/sound.tsx). Light only: the site has no dark theme. */
   --shell-fg-muted: #333333;
   --shell-fg-faint: #6d6d6d;
-  --ease-out: var(--ease);
 
   /* Light only, said out loud, so a browser's auto-dark does not invert the page. */
   color-scheme: light;
@@ -873,27 +872,30 @@ html.has-smooth-cursor [contenteditable] {
 }
 
 /*
- * Hover preview, pinned to the viewport rather than to the row.
+ * Row preview: a sticky frame in a rail beside the list.
  *
- * Fixed at the vertical centre and just outside the right edge of the text
- * column, so it holds its place while the page scrolls instead of chasing
- * whichever row the pointer is on. Only the reveal animates; the panel itself
- * never moves, which is what makes it feel anchored.
+ * The rail is absolutely placed just outside the column (100% of the list,
+ * plus the page shell's 3rem padding, plus the gutter) and spans exactly the
+ * list's height. The frame sticks at the vertical centre of the viewport
+ * inside it, so while the rows scroll past it holds still, and when the list
+ * runs out it leaves with the list instead of floating over the footer. Only
+ * the reveal and the image swap animate; the frame never chases a row, which
+ * is what makes it feel anchored.
  *
  * Hidden unless there is a real pointer to drive it and room beside the
  * column to put it. Touch devices fire hover on tap, which would flash the
- * panel on every press.
+ * frame on every press. PREVIEW_ROOM in TabbedIndex mirrors this query.
  */
-.preview-panel {
+.preview-rail {
   display: none;
-  position: fixed;
-  top: 50%;
-  left: calc(50% + var(--column) / 2 + var(--preview-gutter));
-  transform: translateY(-50%);
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(100% + 3rem + var(--preview-gutter));
 }
 
 @media (hover: hover) and (pointer: fine) and (min-width: 1280px) {
-  .preview-panel {
+  .preview-rail {
     display: block;
   }
 }
@@ -912,6 +914,16 @@ html.has-smooth-cursor [contenteditable] {
   border-radius: inherit;
   pointer-events: none;
   background: var(--surface-sheen);
+}
+
+/*
+ * Centred in the viewport: half of the 13rem frame (12rem image + p-2).
+ * Scoped to the rail because the admin's page preview has its own
+ * .preview-frame, positioned absolutely, which this must not override.
+ */
+.preview-rail > .preview-frame {
+  position: sticky;
+  top: calc(50vh - 6.5rem);
 }
 
 .preview-frame {
@@ -1228,10 +1240,6 @@ html.has-smooth-cursor [contenteditable] {
     transition: opacity 120ms ease;
   }
 
-  .preview-panel {
-    transition: none;
-  }
-
   .preview-frame {
     transition: opacity 160ms ease;
   }
@@ -1253,17 +1261,16 @@ html.has-smooth-cursor [contenteditable] {
   }
 
   /*
-   * The stacked previews are opacity-driven, so the crossfade is kept — only
-   * the scale is dropped. An `animation` here would override .is-active and
-   * force every image in the stack visible at once.
+   * The stacked previews swap outright. The frame's own fade still says that
+   * a preview arrived or left, but scrolling now changes the image too, and a
+   * crossfade on every row that passes the frame is motion the visitor did
+   * not ask for. An `animation` here would override .is-active and force
+   * every image in the stack visible at once.
    */
   .preview-img,
   .preview-img.is-active {
     transform: none;
-  }
-
-  .preview-img {
-    transition: opacity 160ms ease;
+    transition: none;
   }
 
   .tab-hit:active {

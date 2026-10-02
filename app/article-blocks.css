@@ -276,3 +276,9 @@
   border-radius: 14px;
   background: #0a0a0a;
 }
+
+/* Several authors: the kit's avatar group sits where the stacked faces did. */
+.article-avatar-group {
+  margin-right: 0.25rem;
+  vertical-align: middle;
+}

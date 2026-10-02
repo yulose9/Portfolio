@@ -1,10 +1,10 @@
 "use client";
 
-import { CalendarBlank, CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { CalendarBlank } from "@phosphor-icons/react";
 import { Popover } from "@base-ui/react/popover";
 import AdminSelect from "./AdminSelect";
 import { useState } from "react";
-import { DayPicker } from "react-day-picker";
+import { Calendar } from "../../components/kit/inputs/calendar";
 import { onRadioKeys } from "./bits";
 
 /*
@@ -72,7 +72,7 @@ export function DateTimeFields({
             </button>
           ))}
       </div>
-      <DayPicker
+      <Calendar
         mode="single"
         selected={value}
         onSelect={(d) => d && onChange(within(withTime(d, value.getHours(), value.getMinutes())))}
@@ -82,9 +82,6 @@ export function DateTimeFields({
         showOutsideDays
         disabled={[...(min ? [{ before: new Date(min.getFullYear(), min.getMonth(), min.getDate()) }] : []), ...(max ? [{ after: max }] : [])]}
         className="dtp-calendar"
-        components={{
-          Chevron: ({ orientation }) => (orientation === "left" ? <CaretLeft size={14} weight="bold" /> : <CaretRight size={14} weight="bold" />),
-        }}
       />
       <div className="dtp-time">
         <div>

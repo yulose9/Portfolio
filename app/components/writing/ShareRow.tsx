@@ -1,12 +1,12 @@
 "use client";
 
-import { Export, FacebookLogo, LinkSimple, LinkedinLogo, ThreadsLogo, XLogo } from "@phosphor-icons/react";
+import { Export, FacebookLogo, LinkedinLogo, ThreadsLogo, XLogo } from "@phosphor-icons/react";
 import { useSyncExternalStore } from "react";
 
-import { copy } from "../menu/actions";
+import { CopyButton } from "../kit/inputs/copy-button";
 
 /**
- * Share, at the end of the article: copy the link (with the site's toast), or
+ * Share, at the end of the article: copy the link (its icon turns into a check), or
  * hand it to X, Threads, LinkedIn or Facebook. Plain links for those, so they
  * work before this island hydrates and with script off. On a phone, "Share…"
  * opens the system sheet (Messages, WhatsApp, Telegram, AirDrop…).
@@ -23,10 +23,10 @@ export default function ShareRow({ url, title }: { url: string; title: string })
 
   return (
     <div className="article-share" role="group" aria-label="Share">
-      <button type="button" data-keycap className="share-button" onClick={() => void copy(url, "Link copied")}>
-        <LinkSimple size={16} weight="bold" aria-hidden="true" />
+      {/* The icon turns into a check in place; the status line says it to a screen reader. */}
+      <CopyButton value={url} label="Copy link" copiedLabel="Link copied" className="share-button share-copy" data-keycap="">
         Copy link
-      </button>
+      </CopyButton>
       {native ? (
         <button type="button" data-keycap className="share-button" onClick={() => void navigator.share({ title, url }).catch(() => {})} aria-label="Share…">
           <Export size={16} weight="bold" aria-hidden="true" />

@@ -42,6 +42,8 @@ function headingLinks(root: HTMLElement) {
 function codeCopy(root: HTMLElement) {
   const buttons: HTMLButtonElement[] = [];
   root.querySelectorAll<HTMLPreElement>(".article-body pre").forEach((pre) => {
+    // Framed code (components/code) has its own copy button in its header.
+    if (pre.closest(".code-block, .code-tabs")) return;
     const holder = pre.closest("figure") ?? pre;
     if (holder.querySelector(".code-copy")) return;
     const language = pre.getAttribute("data-language");

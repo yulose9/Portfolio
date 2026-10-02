@@ -1,6 +1,5 @@
 "use client";
 import { Popover } from "@base-ui/react/popover";
-import { HexColorPicker } from "react-colorful";
 import { useEditorState, type Editor } from "@tiptap/react";
 import { TEXT_COLORS, textColor } from "../../../cms/inline";
 import { findFont } from "../../../cms/fonts";
@@ -9,6 +8,8 @@ import { useEffect, useState, useRef } from "react";
 import { ownInteraction } from "./editor-interactions";
 import FontPicker from "./FontPicker";
 import { ArrowCounterClockwise, X } from "@phosphor-icons/react";
+import { Slider } from "../../components/kit/slider";
+import { ColorPicker as KitColorPicker } from "../../components/kit/inputs/color-picker";
 
 export default function ColorPicker({ editor }: { editor: Editor }) {
   const selected = useEditorState({
@@ -44,11 +45,6 @@ export default function ColorPicker({ editor }: { editor: Editor }) {
     if (attrs) editor.commands.setMark("textColor", attrs);
     else editor.commands.unsetMark("textColor");
   };
-  const [hex, setHex] = useState({
-    base: selected,
-    value: selected ?? "#52525b",
-    edited: false,
-  });
   useEffect(() => {
     if (open) loadFont(findFont(appearance.font));
   }, [open, appearance.font]);
@@ -116,88 +112,41 @@ export default function ColorPicker({ editor }: { editor: Editor }) {
               onChange={(font) => format({ font: font?.family ?? null })}
             />
             <div className="appearance-section-label">Text color</div>
-            <HexColorPicker color={selected ?? "#52525b"} onChange={apply} />
-            <div className="color-options" role="group" aria-label="Text color">
-              <button
-                type="button"
-                className="color-option"
-                title="Page color"
-                aria-label="Page color"
-                aria-pressed={!selected}
-                onClick={() => apply(null)}
-              >
-                A
-              </button>
-              {TEXT_COLORS.map(([name, color]) => (
-                <button
-                  type="button"
-                  key={color}
-                  className="color-option"
-                  title={name}
-                  aria-label={name}
-                  aria-pressed={selected === color}
-                  onClick={() => apply(color)}
-                >
-                  <span
-                    className="color-swatch"
-                    style={{ backgroundColor: color }}
-                    aria-hidden="true"
-                  />
-                </button>
-              ))}
-            </div>
-            <div className="appearance-custom">
-              <label>
-                Hex
-                <input
-                  spellCheck={false}
-                  aria-label="Hex text color"
-                  value={
-                    hex.base === selected ? hex.value : (selected ?? "#52525b")
-                  }
-                  maxLength={7}
-                  onChange={(e) =>
-                    setHex({ base: selected, value: e.target.value, edited: true })
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      const color = textColor(e.currentTarget.value);
-                      if (color) {
-                        apply(color);
-                        setError("");
-                      } else
-                        setError(
-                          "Enter a six-digit hex color, such as #52525b.",
-                        );
-                    }
-                  }}
-                  onBlur={(e) => {
-                    // Only a value that was typed here is applied: tabbing
-                    // through the field must not paint the default grey onto
-                    // text that had no colour.
-                    if (hex.base !== selected || !hex.edited) return;
-                    const color = textColor(e.target.value);
-                    if (color) {
-                      apply(color);
-                      setError("");
-                    } else
-                      setError("Enter a six-digit hex color, such as #52525b.");
-                  }}
-                />
-              </label>
-            </div>
+            {/* The page's own colour is a choice of its own: no mark at all. */}
+            <button
+              type="button"
+              className="color-option color-option-page"
+              title="Page color"
+              aria-label="Page color"
+              aria-pressed={!selected}
+              onClick={() => apply(null)}
+            >
+              A
+            </button>
+            {/* The kit's picker: saturation area, hue rail, hex and HSL fields,
+                the named swatches, and the eyedropper where the browser has one. */}
+            <KitColorPicker
+              label="Text color"
+              value={selected ?? "#52525b"}
+              swatches={TEXT_COLORS.map(([name, color]) => ({ name, color }))}
+              onChange={(next) => {
+                const color = textColor(next);
+                if (color) {
+                  apply(color);
+                  setError("");
+                }
+              }}
+            />
             <label className="appearance-opacity">
               <span>
                 Opacity<output>{appearance.opacity}%</output>
               </span>
-              <input
-                type="range"
+              <Slider
                 aria-label="Text opacity"
-                min="0"
-                max="100"
+                min={0}
+                max={100}
                 value={appearance.opacity}
-                onChange={(e) => format({ opacity: Number(e.target.value) })}
+                onValueChange={(v) => format({ opacity: v })}
               />
             </label>
             <div className="picker-footer">
@@ -206,7 +155,6 @@ export default function ColorPicker({ editor }: { editor: Editor }) {
                 className="admin-button admin-button-quiet"
                 onClick={() => {
                   format(null);
-                  setHex({ base: null, value: "#52525b", edited: false });
                   setError("");
                 }}
               >

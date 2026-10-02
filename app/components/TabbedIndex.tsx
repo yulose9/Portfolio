@@ -23,7 +23,8 @@ import type { Entry, Post, Tab } from "../site-content";
  * Two motions carry this component:
  *  - a layout animation on a single shared highlight, which travels to the
  *    hovered row rather than one background fading in per row;
- *  - a scale-in + fade that reveals the hovered row image.
+ *  - a scale-in + fade that reveals the image of the hovered row, or of the
+ *    row scrolled level with the pinned frame.
  *
  * Both animate transform/opacity/filter only, and both use CSS transitions
  * rather than keyframes, so sweeping quickly down the list retargets the
@@ -431,11 +432,149 @@ function useTravellingHighlight() {
 /** Blank line between paragraphs when the bio is copied as one block. */
 const PARAGRAPH_BREAK = "\n\n";
 
+/*
+ * Where the preview has a real pointer to drive it and room beside the column.
+ * Mirrors the media query on .preview-rail in globals.css; the two must agree.
+ */
+const PREVIEW_ROOM = "(hover: hover) and (pointer: fine) and (min-width: 1280px)";
+
+/**
+ * The row level with the pinned preview, as the page scrolls.
+ *
+ * The frame is sticky at the middle of the viewport, so whichever row's
+ * centre sits nearest the frame's centre is the one beside it, and that is
+ * the image it should be showing. Measuring against the frame rather than a
+ * fixed line keeps that true at both ends of the list too, where the frame
+ * stops being stuck and rides along with the first or last row.
+ *
+ * Only runs where the preview exists. Everywhere else it reports nothing, and
+ * the preview falls back to hover alone (which, there, is no preview at all).
+ */
+function useRowBesideFrame(
+  rowRefs: React.RefObject<Array<HTMLLIElement | null>>,
+  frameRef: React.RefObject<HTMLDivElement | null>
+) {
+  const [beside, setBeside] = useState<number | null>(null);
+
+  useEffect(() => {
+    const room = window.matchMedia(PREVIEW_ROOM);
+    let frame = 0;
+
+    const measure = () => {
+      frame = 0;
+      const box = frameRef.current?.getBoundingClientRect();
+      if (!box) return;
+      const centre = box.top + box.height / 2;
+      let nearest: number | null = null;
+      let distance = Infinity;
+      rowRefs.current.forEach((row, index) => {
+        if (!row) return;
+        const rect = row.getBoundingClientRect();
+        const d = Math.abs(rect.top + rect.height / 2 - centre);
+        if (d < distance) {
+          distance = d;
+          nearest = index;
+        }
+      });
+      setBeside(nearest);
+    };
+
+    // One read per frame, however fast the wheel fires.
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+
+    const attach = () => {
+      window.addEventListener("scroll", schedule, { passive: true });
+      window.addEventListener("resize", schedule);
+      // The first read lands while the rows are still sliding in on their
+      // entrance; read again once they have settled where they will stay.
+      document.addEventListener("animationend", schedule);
+      schedule();
+    };
+    const detach = () => {
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      document.removeEventListener("animationend", schedule);
+      cancelAnimationFrame(frame);
+      frame = 0;
+    };
+
+    const onRoomChange = () => {
+      if (room.matches) {
+        attach();
+      } else {
+        detach();
+        setBeside(null);
+      }
+    };
+
+    if (room.matches) attach();
+    room.addEventListener("change", onRoomChange);
+    return () => {
+      room.removeEventListener("change", onRoomChange);
+      detach();
+    };
+  }, [rowRefs, frameRef]);
+
+  return beside;
+}
+
+/**
+ * The image the frame shows: the one asked for, once it is decoded.
+ *
+ * Swapping to a src that is still downloading would crossfade into an empty
+ * box, or paint the image in strips. Until the new one is ready the old one
+ * holds, and the crossfade starts only when there is something to fade to.
+ * Nothing is cleared when the request goes away, so a frame fading out keeps
+ * its picture all the way down.
+ */
+function useDecodedSrc(
+  wanted: string | undefined,
+  imgRefs: React.RefObject<Map<string, HTMLImageElement>>
+) {
+  const [shown, setShown] = useState<string>();
+
+  useEffect(() => {
+    if (!wanted) return;
+    const img = imgRefs.current.get(wanted);
+    if (!img) return;
+    let live = true;
+    // Lazy until asked for: a lazy image that is wanted now should not wait
+    // on the browser's own idea of when it is near enough to fetch.
+    img.loading = "eager";
+    img
+      .decode()
+      .catch(() => {
+        // decode() rejects for some formats that still render (older engines
+        // and SVG); a loaded image with a size is good enough to show.
+        if (!img.complete || !img.naturalWidth) throw new Error("unusable");
+      })
+      .then(
+        () => live && setShown(wanted),
+        () => live && setShown(undefined)
+      );
+    return () => {
+      live = false;
+    };
+  }, [wanted, imgRefs]);
+
+  return shown;
+}
+
 function EntryList({ items, kind }: { items: Entry[]; kind: string }) {
   const { hovered, rowRefs, highlightRef, enter, wrapperProps } =
     useTravellingHighlight();
 
-  const previewSrc = hovered === null ? undefined : items[hovered]?.image;
+  const frameRef = useRef<HTMLDivElement>(null);
+  const imgRefs = useRef(new Map<string, HTMLImageElement>());
+  const beside = useRowBesideFrame(rowRefs, frameRef);
+
+  // A row being pointed at or focused is a deliberate choice, so it outranks
+  // whichever row happens to be scrolled level with the frame.
+  const target = hovered ?? beside;
+  const wantedSrc = target === null ? undefined : items[target]?.image;
+  const previewSrc = useDecodedSrc(wantedSrc, imgRefs);
 
   // The stack of preview images, in list order. Narrowed so image is a string.
   const withImages = items.filter(
@@ -489,19 +628,23 @@ function EntryList({ items, kind }: { items: Entry[]; kind: string }) {
       </div>
 
       {/*
-        Sits outside the text column, and only renders where there is room for
-        it and a real pointer to drive it (see .preview-panel in globals.css).
+        A rail beside the column, as tall as the list, that the frame sticks
+        inside: it holds still while the rows scroll past and leaves with the
+        list. Absolutely placed, so it takes no space and moves nothing. Only
+        renders where there is room for it and a real pointer to drive it (see
+        .preview-rail in globals.css).
       */}
-      <div aria-hidden="true" className="preview-panel pointer-events-none w-60">
+      <div aria-hidden="true" className="preview-rail pointer-events-none w-60">
         <div
+          ref={frameRef}
           // Concentric corners: 8px padding around an 8px inner radius wants a
           // 16px outer radius, which is what rounded-2xl gives.
-          className={`preview-frame relative rounded-2xl p-2 ${
-            previewSrc ? "is-shown" : ""
+          className={`preview-frame rounded-2xl p-2 ${
+            wantedSrc && previewSrc ? "is-shown" : ""
           }`}
         >
           {/*
-            Every image in the list is mounted and stacked; only the hovered
+            Every image in the list is mounted and stacked; only the shown
             one is opaque.
 
             Swapping used to remount a single <img> keyed on src, which tore
@@ -515,8 +658,17 @@ function EntryList({ items, kind }: { items: Entry[]; kind: string }) {
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 key={item.image}
+                ref={(node) => {
+                  if (node) imgRefs.current.set(item.image, node);
+                  else imgRefs.current.delete(item.image);
+                }}
                 src={item.image}
                 alt=""
+                // Lazy: on a phone the rail is display:none, so these are never
+                // fetched at all. Async decode keeps a big badge off the main
+                // thread; useDecodedSrc waits for it before showing anything.
+                loading="lazy"
+                decoding="async"
                 className={`preview-img absolute inset-0 h-full w-full rounded-lg ${
                   item.fit === "contain"
                     ? "bg-gray-50 object-contain p-3"

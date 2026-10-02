@@ -4,10 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { toast } from "../../lib/toast";
 import { api, ApiError, type Draft, type Revision } from "./api";
-import { exactTime, relative, onRadioKeys } from "./bits";
+import { exactTime, relative } from "./bits";
 import { diffWords, wordDelta, type Piece } from "./diff";
 import { keys } from "./menu";
 import Sheet from "./Sheet";
+import { Tabs, TabsList, TabsTrigger } from "../../components/kit/tabs";
 
 /*
  * History: the post's timeline. Autosave keeps a revision every ten minutes
@@ -186,7 +187,7 @@ export default function RevisionsSheet({
       {revisions === null ? (
         <ul className="rev-list" aria-busy="true">
           {[0, 1, 2].map((i) => (
-            <li key={i} className="rev-skeleton" />
+            <li key={i} className="rev-skeleton kit-skeleton skeleton-shimmer" />
           ))}
         </ul>
       ) : listError ? (
@@ -237,14 +238,12 @@ export default function RevisionsSheet({
       {selected ? (
         <div className="rev-preview">
           <div className="rev-preview-head">
-            <div className="admin-segments" onKeyDown={onRadioKeys} role="radiogroup" aria-label="Compare">
-              <button type="button" role="radio" aria-checked={against === "previous"} tabIndex={against === "previous" ? 0 : -1} className="admin-segment" onClick={() => setAgainst("previous")}>
-                What changed
-              </button>
-              <button type="button" role="radio" aria-checked={against === "current"} tabIndex={against === "current" ? 0 : -1} className="admin-segment" onClick={() => setAgainst("current")}>
-                Compared with now
-              </button>
-            </div>
+            <Tabs value={against} onValueChange={(v) => setAgainst(v as "previous" | "current")}>
+              <TabsList aria-label="Compare">
+                <TabsTrigger value="previous">What changed</TabsTrigger>
+                <TabsTrigger value="current">Compared with now</TabsTrigger>
+              </TabsList>
+            </Tabs>
             {delta ? (
               <span className="rev-meta">
                 <span className="rev-delta" data-sign="up">
@@ -267,7 +266,7 @@ export default function RevisionsSheet({
               </button>
             </p>
           ) : (
-            <div className="rev-skeleton" />
+            <div className="rev-skeleton kit-skeleton skeleton-shimmer" />
           )}
           <button type="button" className="admin-button admin-button-primary" data-keycap onClick={restore} disabled={restoring || !pieces}>
             {restoring ? "Restoring…" : "Restore this revision"}

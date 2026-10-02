@@ -10,6 +10,7 @@ import {
 import { api, type PostSummary } from "./api";
 import type { Folders as Value, FolderAction } from "../../../cms/folders";
 import AdminSelect from "./AdminSelect";
+import { LongPressButton } from "../../components/kit/inputs/long-press-button";
 export default function Folders({
   pages,
   currentId,
@@ -181,14 +182,17 @@ export default function Folders({
             >
               <PencilSimple size={14} />
             </button>
-            <button
-              className="admin-icon-button"
+            {/* Hold to delete: removing a folder has no undo, and it had no confirm either. */}
+            <LongPressButton
+              className="folder-delete"
               disabled={busy}
-              aria-label={`Delete folder ${f.name}`}
-              onClick={() => void act({ type: "remove", id: f.id })}
+              duration={900}
+              holdingLabel={<Trash size={14} aria-hidden="true" />}
+              onConfirm={() => void act({ type: "remove", id: f.id })}
             >
-              <Trash size={14} />
-            </button>
+              <Trash size={14} aria-hidden="true" />
+              <span className="sr-only">Delete folder {f.name}</span>
+            </LongPressButton>
           </div>
         ))}
       </div>

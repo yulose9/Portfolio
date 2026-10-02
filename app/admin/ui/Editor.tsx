@@ -70,7 +70,7 @@ import { copy } from "../../components/menu/actions";
 import { useFinePointer } from "../../components/menu/useFinePointer";
 import { toast } from "../../lib/toast";
 import { altFromName, api, ApiError, type Draft } from "./api";
-import { exactTime, StatusDot, statusLabel, onRadioKeys } from "./bits";
+import { exactTime, StatusDot, statusLabel } from "./bits";
 import { ImageBubble, TextBubble } from "./Bubble";
 import { BLOCKS, currentBlock, duplicateBlock, inserts, MARKS, moveBlock, selectBlock, selectionMarkdown, turnInto } from "./commands";
 import DateTimePicker from "./DateTimePicker";
@@ -83,7 +83,13 @@ import { announceSave, usePulse, type Pulse } from "./live";
 import { keys, MenuSurface, MItem, MLabel } from "./menu";
 import { Outline } from "./Outline";
 import { Embed } from "./extensions/EmbedView";
-import { Media } from "./extensions/MediaView";
+import { MediaPlus as Media } from "./extensions/media-plus";
+import { CodeTabsBlock } from "./extensions/code-tabs";
+import { ChartBlock } from "./extensions/chart";
+import { PollBlock } from "./extensions/poll";
+import { CitationNode } from "./extensions/citation";
+import { TablePlus } from "./extensions/table-plus";
+import { TableStyleMarkdown } from "./extensions/blocks-schema";
 import { kindOf, uploadAudio, uploadMedia, type Uploaded, ACCEPT } from "./media";
 import { cleanPastedHtml, htmlIsWrappedMarkdown, looksLikeMarkdown, proseToParagraphs } from "./paste";
 import VoiceRecorder from "./VoiceRecorder";
@@ -106,10 +112,16 @@ import PageNavigator from "./PageNavigator";
 import { CLIPBOARD_TYPE, readClipboard } from "../../../cms/clipboard";
 import ImportReview from "./ImportReview";
 import { WritingClipboard, pasteWritingClipboard } from "./extensions/clipboard";
-import { WritingCodeBlock } from "./extensions/code-block";
+import { WritingCodeBlockPro as WritingCodeBlock } from "./extensions/code-pro";
 import { saveMediaJob, pendingMediaLabel } from "./media-journal";
 import { InteractionHighlight } from "./extensions/interaction-highlight";
 import { SlashCommand, slashItems, type SlashItem } from "./slash";
+import { Tabs, TabsList, TabsTrigger } from "../../components/kit/tabs";
+import { SlidingNumber } from "../../components/kit/inputs/counter";
+import { CopyButton } from "../../components/kit/inputs/copy-button";
+import { createTooltipHandle, GlidingTooltip, TooltipTrigger } from "../../components/kit/tooltip";
+import { Skeleton } from "../../components/kit/skeleton";
+import { DownloadButton } from "../../components/kit/inputs/download-button";
 
 /*
  * The editor is the article page, editable. Title, standfirst, byline, cover
@@ -168,7 +180,7 @@ export default function EditorScreen({ id, onBack, onOpen, options }: { id: stri
       </main>
     );
   }
-  return draft ? <Composer initial={draft} onBack={onBack} onOpen={onOpen} options={options} /> : <div className="admin-loading" aria-busy="true" />;
+  return draft ? <Composer initial={draft} onBack={onBack} onOpen={onOpen} options={options} /> : <EditorSkeleton />;
 }
 
 /**
@@ -207,6 +219,8 @@ const openBodyPicker = () => document.getElementById(BODY_PICK)?.click();
 const openEmojiPicker = () => window.dispatchEvent(new Event(EMOJI_EVENT));
 const openRecorder = () => window.dispatchEvent(new Event(VOICE_EVENT));
 const SLASH_ITEMS: SlashItem[] = slashItems(openBodyPicker, openEmojiPicker, openRecorder);
+/** The editor bar's shared tooltip. */
+const barTips = createTooltipHandle();
 
 /** Photos, GIFs, video and audio: anything the uploader can compress. */
 const mediaFiles = (list: FileList | null | undefined) => Array.from(list ?? []).filter((f) => kindOf(f) !== null);
@@ -285,7 +299,7 @@ const MARK_ICONS: Record<string, React.ReactNode> = {
 };
 
 /** Edit, or read it as the page (the site's renderer, in place). */
-type View = "edit" | "page";
+type View = "edit" | "page" | "markdown";
 
 function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack: () => void; onOpen: (id: string) => void; options?: OpenOptions }) {
   type EditCopy = Meta & { body:string; editorDocument?:EditorDocument|null };
@@ -371,7 +385,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      UniqueID.configure({attributeName:"blockId",types:["paragraph","heading","blockquote","codeBlock","bulletList","orderedList","listItem","taskList","taskItem","image","horizontalRule","table","tableRow","tableCell","tableHeader","callout","details","detailsSummary","detailsContent","embed","media"]}),
+      UniqueID.configure({attributeName:"blockId",types:["paragraph","heading","blockquote","codeBlock","bulletList","orderedList","listItem","taskList","taskItem","image","horizontalRule","table","tableRow","tableCell","tableHeader","callout","details","detailsSummary","detailsContent","embed","media","codeTabs","chart","poll"]}),
       StarterKit.configure({
         codeBlock: false,
         heading: { levels: [2, 3, 4] },
@@ -398,7 +412,9 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
       WritingClipboard,
       TaskList,
       TaskItem.configure({ nested: true }),
-      TableKit.configure({ table: { resizable: false } }),
+      TableKit.configure({ table: false }),
+      TablePlus,
+      TableStyleMarkdown,
       Highlight,
       Typography,
       Callout,
@@ -407,6 +423,10 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
       DetailsContent,
       Embed,
       Media,
+      CodeTabsBlock,
+      ChartBlock,
+      PollBlock,
+      CitationNode,
       FluentEmoji,
       Find,
       CurrentBlock,
@@ -1001,6 +1021,8 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
       data-view={view}
     >
       <header className="editor-bar">
+        {/* One tip for the bar's icon buttons: it glides from one to the next (Kobra's navtip). */}
+        <GlidingTooltip handle={barTips} side="bottom" />
         <div className="editor-bar-side">
           <button type="button" className="admin-icon-button" onClick={back} aria-label="All writing" title="All writing">
             <ArrowLeft size={16} weight="bold" />
@@ -1014,19 +1036,27 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
           {deploy ? <DeployPill key={deploy.updatedAt} deploy={deploy} onDismiss={() => setDeploy(null)} /> : null}
         </div>
         <div className="editor-bar-side">
-          <div className="admin-segments view-switch" onKeyDown={onRadioKeys} role="radiogroup" aria-label="View">
-            <button type="button" role="radio" aria-checked={view === "edit"} tabIndex={view === "edit" ? 0 : -1} className="admin-segment" onClick={() => setView("edit")} title={`Edit  ${keys(shortcutLabel("preview"))}`}>
-              <PencilSimple size={14} aria-hidden="true" />
-              <span className="admin-hide-sm">Edit</span>
-            </button>
-            <button type="button" role="radio" aria-checked={view === "page"} tabIndex={view === "page" ? 0 : -1} className="admin-segment" onClick={() => setView("page")} title={`Read as the page  ${keys(shortcutLabel("preview"))}`}>
-              <BookOpenText size={14} aria-hidden="true" />
-              <span className="admin-hide-sm">Page</span>
-            </button>
-          </div>
-          <button type="button" className="admin-icon-button admin-hide-sm" aria-label="Find in this post" title={`Find  ${keys(shortcutLabel("find"))}`} onClick={() => openFind.current()}>
+          {/* Kobra's sliding tabs. Markdown is the source as it will be saved
+              (PrimeUI's text editor keeps its Markdown a tab away too). */}
+          <Tabs value={view} onValueChange={(v) => setView(v as View)} className="view-switch">
+            <TabsList aria-label="View">
+              <TabsTrigger value="edit" title={`Edit  ${keys(shortcutLabel("preview"))}`}>
+                <PencilSimple size={14} aria-hidden="true" />
+                <span className="admin-hide-sm">Edit</span>
+              </TabsTrigger>
+              <TabsTrigger value="page" title={`Read as the page  ${keys(shortcutLabel("preview"))}`}>
+                <BookOpenText size={14} aria-hidden="true" />
+                <span className="admin-hide-sm">Page</span>
+              </TabsTrigger>
+              <TabsTrigger value="markdown" title="The Markdown this post saves as">
+                <MarkdownLogo size={14} aria-hidden="true" />
+                <span className="admin-hide-sm">Markdown</span>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <TooltipTrigger handle={barTips} payload={`Find  ${keys(shortcutLabel("find"))}`} render={<button type="button" className="admin-icon-button admin-hide-sm" aria-label="Find in this post" onClick={() => openFind.current()} />}>
             <MagnifyingGlass size={16} weight="bold" />
-          </button>
+          </TooltipTrigger>
           <Menu.Root>
             <Menu.Trigger className="admin-icon-button" aria-label="View" title="View">
               <Eye size={16} weight="bold" />
@@ -1065,13 +1095,13 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
             </MenuSurface>
           </Menu.Root>
           <SoundToggle className="admin-hide-sm size-8 rounded-full text-[color:var(--a-ink-2)]" />
-          <button type="button" className="admin-icon-button" aria-label="Research and references" title="Research and references" onClick={() => setPanel("research")}><BookOpenText size={16}/></button>
-          <button type="button" className="admin-icon-button admin-hide-sm" aria-label="History" title="History" onClick={() => setPanel("revisions")}>
+          <TooltipTrigger handle={barTips} payload="Research and references" render={<button type="button" className="admin-icon-button" aria-label="Research and references" onClick={() => setPanel("research")} />}><BookOpenText size={16}/></TooltipTrigger>
+          <TooltipTrigger handle={barTips} payload="History" render={<button type="button" className="admin-icon-button admin-hide-sm" aria-label="History" onClick={() => setPanel("revisions")} />}>
             <ClockCounterClockwise size={16} weight="bold" />
-          </button>
-          <button type="button" className="admin-icon-button" aria-label="Details" title={`Details  ${keys(shortcutLabel("details"))}`} onClick={() => setPanel("details")}>
+          </TooltipTrigger>
+          <TooltipTrigger handle={barTips} payload={`Details  ${keys(shortcutLabel("details"))}`} render={<button type="button" className="admin-icon-button" aria-label="Details" onClick={() => setPanel("details")} />}>
             <SlidersHorizontal size={16} weight="bold" />
-          </button>
+          </TooltipTrigger>
           <button
             type="button"
             className="admin-button admin-button-primary"
@@ -1088,8 +1118,9 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
       {editor ? <FindBar editor={editor} request={view === "edit" ? find : null} onClose={() => setFind(null)} /> : null}
 
       {view === "page" ? <PageView meta={meta} body={editor?.getMarkdown() ?? doc.body} doc={doc} /> : null}
+      {view === "markdown" ? <MarkdownView slug={meta.slug} source={serializePost(draftToPost({ ...doc, ...meta, body: editor?.getMarkdown() ?? doc.body }, doc.updatedAt))} /> : null}
 
-      <main hidden={view === "page"} className="page-shell editor-canvas article-shell w-full max-w-[672px]" style={fontVars(meta.fonts) as React.CSSProperties}>
+      <main hidden={view !== "edit"} className="page-shell editor-canvas article-shell w-full max-w-[672px]" style={fontVars(meta.fonts) as React.CSSProperties}>
         <article className="article" inert={!recoveryReady||Boolean(recovery)}>
           <header className="article-header">
             <div className="editor-page-tools" data-has-icon={meta.icon ? "" : undefined}>
@@ -1194,7 +1225,8 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
 
       <footer className="editor-foot">
         <span>
-          {words.toLocaleString()} {words === 1 ? "word" : "words"} · {minutes} min read
+          {/* The count rolls as you type, digit by digit. */}
+          <SlidingNumber value={words} group /> {words === 1 ? "word" : "words"} · <SlidingNumber value={minutes} /> min read
         </span>
         <span className="editor-foot-keys">
           <kbd className="admin-kbd">/</kbd> blocks <kbd className="admin-kbd">:</kbd> emoji <kbd className="admin-kbd">{keys(shortcutLabel("palette"))}</kbd> search and actions <kbd className="admin-kbd">{keys(shortcutLabel("publish"))}</kbd> publish
@@ -1419,5 +1451,38 @@ function EyebrowDate({
       <CalendarBlank size={13} aria-hidden="true" />
       {value ? exactTime(value.toISOString()) : "Set a date"}
     </DateTimePicker>
+  );
+}
+
+/** The post as the Markdown it saves to: read-only, selectable, copyable. */
+function MarkdownView({ source, slug }: { source: string; slug: string }) {
+  return (
+    <section className="markdown-view page-shell w-full max-w-[672px]" aria-label="Markdown source">
+      <header className="markdown-view-head">
+        <span>Markdown</span>
+        <span className="markdown-view-actions">
+          <CopyButton value={source} label="Copy Markdown" copiedLabel="Markdown copied" variant="outline" />
+          <DownloadButton source={async () => new Blob([source], { type: "text/markdown;charset=utf-8" })} filename={`${slug || "post"}.md`}>
+            Download .md
+          </DownloadButton>
+        </span>
+      </header>
+      <pre className="markdown-view-source" tabIndex={0}>
+        <code>{source}</code>
+      </pre>
+    </section>
+  );
+}
+
+/** While the post loads: the shape of the page it is about to be, shimmering. */
+function EditorSkeleton() {
+  return (
+    <div className="editor-skeleton page-shell w-full max-w-[672px]" aria-busy="true" aria-label="Loading the post">
+      <Skeleton className="editor-skeleton-title" />
+      <Skeleton className="editor-skeleton-dek" />
+      {["96%", "88%", "92%", "70%", "", "94%", "82%"].map((w, i) =>
+        w ? <Skeleton key={i} className="editor-skeleton-line" style={{ width: w }} /> : <span key={i} className="editor-skeleton-gap" />,
+      )}
+    </div>
   );
 }

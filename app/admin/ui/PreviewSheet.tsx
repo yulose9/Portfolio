@@ -3,10 +3,8 @@
 import { DesktopTower, DeviceMobile } from "@phosphor-icons/react";
 import { Dialog } from "@base-ui/react/dialog";
 import type { Root } from "hast";
-import { toJsxRuntime, type Components } from "hast-util-to-jsx-runtime";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 
 import { parseEmbed, threadsFrame, youtubeFrame, type Embed } from "../../../cms/embeds";
 import { fluentUrl } from "../../../cms/emoji";
@@ -16,7 +14,6 @@ import { markdownToTree, outline, setWikiResolver } from "../../../cms/render";
 import AudioPlayer from "../../components/writing/AudioPlayer";
 import AuthorCard from "../../components/writing/AuthorCard";
 import Byline from "../../components/writing/Byline";
-import { MentionSpan } from "../../components/writing/DateMention";
 import FluentText from "../../components/writing/FluentText";
 import ShareRow from "../../components/writing/ShareRow";
 import Tag from "../../components/writing/Tag";
@@ -24,7 +21,8 @@ import Toc from "../../components/writing/Toc";
 import { api, type Draft } from "./api";
 import { cursorMarkup, cursorTransform, shapeAt } from "../../lib/cursor";
 import type { Meta } from "./Editor";
-import { onRadioKeys } from "./bits";
+import { Tabs, TabsList, TabsTrigger } from "../../components/kit/tabs";
+import ArticleBody from "../../components/writing/ArticleBody";
 
 /*
  * Before it goes out: the post as readers will get it.
@@ -134,12 +132,10 @@ function AudioPreview(props: Record<string, unknown>) {
 function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
   const toc = outline(tree);
   const url = `${SITE}/writing/${meta.slug || "…"}`;
-  const body = toJsxRuntime(tree, {
-    Fragment,
-    jsx,
-    jsxs,
-    components: { "x-embed": EmbedPreview, "x-audio": AudioPreview, span: MentionSpan } as unknown as Partial<Components>,
-  });
+  // The same blocks the published page draws (code, tabs, charts, polls,
+  // citations, data tables, the video player), with the preview's own embed
+  // and audio stand-ins.
+  const body = <ArticleBody tree={tree} components={{ "x-embed": EmbedPreview, "x-audio": AudioPreview }} />;
   return (
     <div className="flex w-full justify-center bg-white">
       {[...new Set([...fontLinks(meta.fonts),...inlineFontLinks(doc.body)])].map((href) => (
@@ -470,14 +466,16 @@ export default function PreviewSheet({
               ))}
             </div>
             {tab === "page" ? (
-              <div className="admin-segments" onKeyDown={onRadioKeys} role="radiogroup" aria-label="Device">
-                <button type="button" role="radio" aria-checked={device === "desktop"} tabIndex={device === "desktop" ? 0 : -1} className="admin-segment" onClick={() => setDevice("desktop")} aria-label="Laptop">
-                  <DesktopTower size={14} />
-                </button>
-                <button type="button" role="radio" aria-checked={device === "phone"} tabIndex={device === "phone" ? 0 : -1} className="admin-segment" onClick={() => setDevice("phone")} aria-label="Phone">
-                  <DeviceMobile size={14} />
-                </button>
-              </div>
+              <Tabs value={device} onValueChange={(v) => setDevice(v as typeof device)}>
+                <TabsList aria-label="Device">
+                  <TabsTrigger value="desktop" aria-label="Laptop">
+                    <DesktopTower size={14} />
+                  </TabsTrigger>
+                  <TabsTrigger value="phone" aria-label="Phone">
+                    <DeviceMobile size={14} />
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
             ) : null}
             <div className="preview-actions">
               <Dialog.Close data-slot="dialog-close" className="admin-button admin-button-quiet">Keep editing</Dialog.Close>

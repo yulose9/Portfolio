@@ -13,6 +13,7 @@ import { imageInfo, videoInfo } from "./media";
 import { dateHref, fullMentionDate, pageMentionId, parseDateHref } from "./mentions";
 import { textColor, textOpacity, safeInlineUrl, decodeLogoLabel } from "./inline";
 import { FONT_CATALOG, findFont, fontStack } from "./fonts";
+import { CHART_TYPES, POLL_ID, TABLE_STYLES, isChartType, isTableStyle, parseCodeMeta, rangeLines, siteOf } from "./blocks";
 
 /*
  * Markdown → hast, the way the site renders a post: figures, callouts,
@@ -147,6 +148,7 @@ function decorateText(value: string): ElementContent[] {
 type PageResolver = (id: string) => { slug: string; title: string } | undefined;
 function rehypeEditorial(options: { resolvePage?: PageResolver } = {}) {
   return (tree: Root) => {
+    const citations: Source[] = [];
     const walk = (parent: Root | Element, literal: boolean, inLink = false) => {
       const kids = parent.children as (RootContent | ElementContent)[];
       for (let i = 0; i < kids.length; i++) {
@@ -161,6 +163,73 @@ function rehypeEditorial(options: { resolvePage?: PageResolver } = {}) {
           continue;
         }
         if (!isEl(node)) continue;
+
+        // Code: a framed block (header, copy, wrap), its fence meta kept.
+        if (node.tagName === "pre" && node.children.some((k) => isEl(k, "code"))) {
+          kids[i] = codeFrame(node);
+          continue;
+        }
+        if (node.tagName === "div" && node.properties.dataCodeTabs !== undefined) {
+          const panes = node.children.filter((k): k is Element => isEl(k, "pre"));
+          if (panes.length) {
+            const frames = panes.map((pre) => codeFrame(pre, true));
+            const tabs = frames.map((f, n) => ({ label: String(f.properties.dataTitle || `Tab ${n + 1}`), language: String(f.properties.dataLanguage ?? "") }));
+            kids[i] = el("x-code-tabs", { dataTabs: JSON.stringify(tabs) }, frames);
+            continue;
+          }
+        }
+        if (node.tagName === "div" && isTableStyle(node.properties.dataTable)) {
+          const table = node.children.find((k): k is Element => isEl(k, "table"));
+          if (table) {
+            walk(table, literal);
+            const style = node.properties.dataTable;
+            kids[i] = style === "data"
+              ? el("x-data-table", { dataTableStyle: "data" }, [table])
+              : el("div", { className: ["table-wrap"], dataTableStyle: style }, [table]);
+            continue;
+          }
+        }
+        if (node.tagName === "div" && isChartType(node.properties.dataChart)) {
+          const table = node.children.find((k): k is Element => isEl(k, "table"));
+          if (table) {
+            walk(table, literal);
+            kids[i] = el("x-chart", {
+              dataChart: node.properties.dataChart,
+              dataTitle: String(node.properties.dataTitle ?? ""),
+              dataChartData: JSON.stringify(tableRows(table)),
+            }, [el("div", { className: ["table-wrap"] }, [table])]);
+            continue;
+          }
+        }
+        if (node.tagName === "div" && typeof node.properties.dataPoll === "string" && POLL_ID.test(node.properties.dataPoll)) {
+          const question = node.children.find((k): k is Element => isEl(k, "p"));
+          const list = node.children.find((k): k is Element => isEl(k, "ul") || isEl(k, "ol"));
+          const options = (list?.children ?? []).filter((k): k is Element => isEl(k, "li")).map((li) => textOf(li).trim()).filter(Boolean).slice(0, 12);
+          if (question && options.length >= 2) {
+            walk(node, literal);
+            kids[i] = el("x-poll", { dataPoll: node.properties.dataPoll, dataQuestion: textOf(question).trim(), dataOptions: JSON.stringify(options) }, node.children);
+            continue;
+          }
+        }
+        // A citation: a numbered pill here, its source listed at the end.
+        if (node.tagName === "a" && node.properties.dataCite !== undefined) {
+          const href = safeInlineUrl(node.properties.href);
+          if (!inLink && href && /^https?:\/\//.test(href)) {
+            let index = citations.findIndex((c) => c.href === href) + 1;
+            const first = index === 0;
+            if (first) {
+              citations.push({ href, title: String(node.properties.dataTitle ?? ""), site: textOf(node).trim() || siteOf(href), snippet: String(node.properties.dataSnippet ?? "") });
+              index = citations.length;
+            }
+            const source = citations[index - 1];
+            kids[i] = el("x-cite", {
+              ...(first ? { id: `cite-ref-${index}` } : {}),
+              dataIndex: String(index), dataHref: href, dataTitle: source.title, dataSite: source.site, dataSnippet: source.snippet,
+            }, [{ type: "text", value: String(index) }]);
+            continue;
+          }
+          delete node.properties.dataCite;
+        }
 
         if (node.tagName === "img" && typeof node.properties.dataHeadingIcon === "string") {
           const icon=decodeLogoLabel(node.properties.dataHeadingIcon);
@@ -336,6 +405,107 @@ function rehypeEditorial(options: { resolvePage?: PageResolver } = {}) {
       }
     };
     walk(tree, false);
+    if (citations.length) tree.children.push(sourcesList(citations));
+  };
+}
+
+/* ── Code, chart data and citations: helpers for the pass above ──────── */
+
+type Source = { href: string; title: string; site: string; snippet: string };
+
+/** pre > code → <x-code> (the site's code frame), lines split and marked. */
+function codeFrame(pre: Element, bare = false): Element {
+  const code = pre.children.find((k): k is Element => isEl(k, "code"))!;
+  const raw = typeof code.properties.dataMeta === "string" ? code.properties.dataMeta : "";
+  delete code.properties.dataMeta;
+  const meta = parseCodeMeta(raw);
+  const language = ((code.properties.className as string[] | undefined) ?? []).map(String).find((c) => c.startsWith("language-"))?.slice(9) ?? "";
+  // Shiki (rehype-pretty-code, on the site) reads these from the meta; the
+  // frame draws the title itself rather than Shiki's figcaption.
+  const prettyMeta = [meta.lineNumbers ? "showLineNumbers" : "", meta.highlight ? `{${meta.highlight}}` : ""].filter(Boolean).join(" ");
+  code.data = { ...(code.data ?? {}), meta: prettyMeta } as Element["data"];
+  if (meta.highlight) code.properties.dataHighlight = meta.highlight;
+  if (meta.lineNumbers) code.properties.dataLineNumbers = "";
+  return el("x-code", {
+    dataLanguage: language,
+    dataTitle: meta.title,
+    ...(meta.lineNumbers ? { dataLineNumbers: "" } : {}),
+    ...(bare ? { dataBare: "" } : {}),
+  }, [pre]);
+}
+
+/** A table's cells as text, header row first. */
+function tableRows(table: Element): string[][] {
+  const rows: string[][] = [];
+  const visit = (n: Element) => {
+    for (const k of n.children) {
+      if (!isEl(k)) continue;
+      if (k.tagName === "tr") rows.push(k.children.filter((c): c is Element => isEl(c, "th") || isEl(c, "td")).map((c) => textOf(c).trim()));
+      else visit(k);
+    }
+  };
+  visit(table);
+  return rows.slice(0, 201);
+}
+
+/** The citations, numbered as they first appear, after the article's text. */
+function sourcesList(citations: Source[]): Element {
+  return el("section", { className: ["article-sources"], ariaLabelledBy: ["article-sources-title"] }, [
+    el("h2", { className: ["article-sources-title"], id: "article-sources-title" }, [{ type: "text", value: "Sources" }]),
+    el("ol", {}, citations.map((c, n) =>
+      el("li", { id: `source-${n + 1}` }, [
+        el("a", { href: c.href, target: "_blank", rel: ["noreferrer"], className: ["article-source-link"] }, [{ type: "text", value: c.title || c.site }]),
+        el("span", { className: ["article-source-site"] }, [{ type: "text", value: c.site }]),
+        ...(c.snippet ? [el("p", { className: ["article-source-snippet"] }, [{ type: "text", value: c.snippet }])] : []),
+        el("a", { href: `#cite-ref-${n + 1}`, className: ["article-source-back"], ariaLabel: `Back to citation ${n + 1}` }, [{ type: "text", value: "↩" }]),
+      ])
+    )),
+  ]);
+}
+
+/**
+ * Where nothing highlighted the code (the admin's preview), the same line
+ * spans Shiki makes, so line numbers and highlighted lines show there too.
+ * Shiki needs the code as one text node, so this runs after it.
+ */
+function rehypeCodeLines() {
+  return (tree: Root) => {
+    const visit = (n: Root | Element) => {
+      for (const k of n.children) {
+        if (!isEl(k)) continue;
+        if (k.tagName !== "code") {
+          visit(k);
+          continue;
+        }
+        const marked = rangeLines(String(k.properties.dataHighlight ?? ""));
+        delete k.properties.dataHighlight;
+        const only = k.children.length === 1 ? k.children[0] : undefined;
+        if ((marked.size || k.properties.dataLineNumbers !== undefined) && only?.type === "text") {
+          const lines = only.value.replace(/\n$/, "").split("\n");
+          k.children = lines.flatMap((line, i): ElementContent[] => [
+            ...(i ? [{ type: "text", value: "\n" } as Text] : []),
+            el("span", { dataLine: "", ...(marked.has(i + 1) ? { dataHighlightedLine: "" } : {}) }, line ? [{ type: "text", value: line }] : []),
+          ]);
+        }
+      }
+    };
+    visit(tree);
+  };
+}
+
+/** A fence's meta (title, line numbers, highlighted lines) lives on the
+ *  code's data, which the sanitizer drops; carry it across as a property. */
+function rehypeKeepMeta() {
+  return (tree: Root) => {
+    const visit = (n: Root | Element) => {
+      for (const k of n.children) {
+        if (!isEl(k)) continue;
+        const meta = (k.data as { meta?: unknown } | undefined)?.meta;
+        if (k.tagName === "code" && typeof meta === "string" && meta) k.properties.dataMeta = meta.slice(0, 400);
+        visit(k);
+      }
+    };
+    visit(tree);
   };
 }
 
@@ -347,6 +517,7 @@ export async function markdownToTree(markdown: string, extra: PluggableList = []
     // Parse HTML for media/toggles, then remove active content before any
     // trusted plugin generates custom components or syntax-highlight styles.
     .use(remarkRehype, { allowDangerousHtml: true })
+    .use(rehypeKeepMeta)
     .use(rehypeRaw)
     .use(rehypeSlug)
     .use(rehypeSanitize, {
@@ -358,14 +529,18 @@ export async function markdownToTree(markdown: string, extra: PluggableList = []
         ...defaultSchema.attributes,
         span: [...(defaultSchema.attributes?.span ?? []), ["dataTextColor", /^(#[0-9a-f]{6}|inherit)$/i], ["dataTextFont",...FONT_CATALOG.map(f=>f.family)], ["dataTextOpacity",/^\d{1,3}$/]],
         img: [...(defaultSchema.attributes?.img ?? []), "dataInlineLogo", "dataLogoHref", "dataHeadingIcon"],
-        video: ["src", "poster", "controls", "muted", "loop", "autoPlay", "playsInline", "preload", "width", "height", "title"],
+        code: [...(defaultSchema.attributes?.code ?? []), "dataMeta"],
+        div: [...(defaultSchema.attributes?.div ?? []), ["dataTable", ...TABLE_STYLES], ["dataChart", ...CHART_TYPES], "dataTitle", ["dataPoll", POLL_ID], "dataCodeTabs"],
+        a: [...(defaultSchema.attributes?.a ?? []), "dataCite", "dataTitle", "dataSnippet"],
+        video: ["src", "poster", "controls", "muted", "loop", "autoPlay", "playsInline", "preload", "width", "height", "title", ["dataCaptions", /^(?:\/(?!\/)|https:\/\/)[^\s"<>]+\.vtt$/i]],
         audio: ["src", "controls", "preload", "title"],
         source: ["src", "type"],
       },
       protocols: { ...defaultSchema.protocols, src: ["https", "http"], poster: ["https", "http"] },
     })
     .use(rehypeEditorial, { resolvePage })
-    .use(extra);
+    .use(extra)
+    .use(rehypeCodeLines);
   return (await pipeline.run(pipeline.parse(markdown))) as Root;
 }
 

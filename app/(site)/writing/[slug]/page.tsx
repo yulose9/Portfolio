@@ -91,6 +91,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ArticlePage({ params }: Props) {
   const post = postBySlug((await params).slug);
   if (!post) notFound();
+  // Every other post, as the hover card a link to it shows (kit Glimpse).
+  const previews = Object.fromEntries(
+    pagedPosts()
+      .filter((p) => p.slug !== post.slug)
+      .map((p) => [`/writing/${p.slug}`, { title: p.title, description: p.dek || undefined, image: p.cover?.src, site: "nazarene.dev" }]),
+  );
 
   const tree = await markdownTree(post.body);
   const toc = outline(tree);
@@ -220,7 +226,7 @@ export default async function ArticlePage({ params }: Props) {
           <div className="article-main">
             {toc.length >= 3 ? <Toc items={toc} /> : null}
             <div data-cursor="text" className="article-body">
-              <ArticleBody tree={tree} />
+              <ArticleBody tree={tree} previews={previews} />
             </div>
           </div>
 

@@ -3,6 +3,8 @@
 import { X } from "@phosphor-icons/react";
 import { Dialog } from "@base-ui/react/dialog";
 
+import { Button } from "../../components/kit/button";
+
 /**
  * A side sheet (Details, Revisions) or a centred dialog (Publish), on Base UI's
  * Dialog for focus trapping, Escape and scroll lock. Motion lives in
@@ -45,7 +47,7 @@ export default function Sheet({
               {description ? <Dialog.Description className="sheet-description">{description}</Dialog.Description> : null}
             </div>
             {dismissible ? (
-              <Dialog.Close data-slot="sheet-close" className="admin-icon-button" aria-label="Close">
+              <Dialog.Close data-slot="sheet-close" aria-label="Close" render={<Button variant="ghost" size="icon-sm" />}>
                 <X size={14} weight="bold" />
               </Dialog.Close>
             ) : null}
