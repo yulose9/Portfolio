@@ -7,11 +7,12 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { parseEmbed, threadsFrame, youtubeFrame, type Embed } from "../../../cms/embeds";
+import { coverStyle } from "../../../cms/cover";
 import { fluentUrl } from "../../../cms/emoji";
 import { fontLinks, inlineFontLinks, fontVars } from "../../../cms/fonts";
 import { readingMinutes, tagSlug } from "../../../cms/format";
 import { markdownToTree, outline, setWikiResolver } from "../../../cms/render";
-import AudioPlayer from "../../components/writing/AudioPlayer";
+import { AudioFigure } from "../../components/writing/AudioPlayer";
 import AuthorCard from "../../components/writing/AuthorCard";
 import Byline from "../../components/writing/Byline";
 import FluentText from "../../components/writing/FluentText";
@@ -122,11 +123,8 @@ function EmbedPreview(props: Record<string, unknown>) {
 
 function AudioPreview(props: Record<string, unknown>) {
   const src = String(props["data-src"] ?? "");
-  return src ? (
-    <figure className="article-audio">
-      <AudioPlayer src={src} />
-    </figure>
-  ) : null;
+  const title = String(props["data-title"] ?? "");
+  return src ? <AudioFigure src={src} title={title || undefined} /> : null;
 }
 
 function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
@@ -136,26 +134,47 @@ function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
   // citations, data tables, the video player), with the preview's own embed
   // and audio stand-ins.
   const body = <ArticleBody tree={tree} components={{ "x-embed": EmbedPreview, "x-audio": AudioPreview }} />;
+  // The banner cover, as the page draws it: across the top, the icon over its edge.
+  const banner = meta.cover && coverStyle(meta.cover) === "banner" ? meta.cover : null;
+  const breadcrumbs = (
+    <nav className="article-nav" aria-label="Breadcrumb">
+      <ol className="breadcrumbs">
+        <li>
+          <a href="#">Home</a>
+        </li>
+        <li>
+          <a href="#">Writing</a>
+        </li>
+        <li aria-current="page">{meta.title || "Untitled"}</li>
+      </ol>
+    </nav>
+  );
   return (
-    <div className="flex w-full justify-center bg-white">
+    <div className="flex w-full flex-col items-center bg-white">
       {[...new Set([...fontLinks(meta.fonts),...inlineFontLinks(doc.body)])].map((href) => (
         <link key={href} rel="stylesheet" href={href} />
       ))}
-      <main className="page-shell article-shell article-page preview-page w-full max-w-[672px] py-16" style={fontVars(meta.fonts) as React.CSSProperties}>
-        <nav className="article-nav" aria-label="Breadcrumb">
-          <ol className="breadcrumbs">
-            <li>
-              <a href="#">Home</a>
-            </li>
-            <li>
-              <a href="#">Writing</a>
-            </li>
-            <li aria-current="page">{meta.title || "Untitled"}</li>
-          </ol>
-        </nav>
+      {banner ? (
+        <figure className="article-banner">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={banner.src} alt={banner.alt} width={banner.width} height={banner.height} />
+        </figure>
+      ) : null}
+      <main className="page-shell article-shell article-page preview-page w-full max-w-[672px] py-16" data-cover={banner ? "banner" : undefined} style={fontVars(meta.fonts) as React.CSSProperties}>
+        {banner ? (
+          <div className="article-banner-row">
+            {meta.icon ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="article-banner-icon" src={fluentUrl(meta.icon)} alt="" width={88} height={88} />
+            ) : null}
+            {breadcrumbs}
+          </div>
+        ) : (
+          breadcrumbs
+        )}
         <article className="article" data-has-toc={toc.length >= 3 || undefined}>
           <header className="article-header">
-            {meta.icon ? (
+            {meta.icon && !banner ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img className="article-icon" src={fluentUrl(meta.icon)} alt="" width={72} height={72} />
             ) : null}
@@ -179,7 +198,7 @@ function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
             ) : null}
             <Byline authors={meta.authors} minutes={readingMinutes(doc.body)} updated={doc.updatedAt} />
           </header>
-          {meta.cover ? (
+          {meta.cover && !banner ? (
             <figure className="article-cover">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={meta.cover.src} alt={meta.cover.alt} width={meta.cover.width} height={meta.cover.height} />

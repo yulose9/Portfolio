@@ -3,7 +3,7 @@
 import { ArrowSquareOut, LinkSimple, Trash } from "@phosphor-icons/react";
 import { NodeViewWrapper, ReactNodeViewRenderer, type ReactNodeViewProps } from "@tiptap/react";
 import { useEffect, useState } from "react";
-import { EmbeddedTweet, TweetNotFound, TweetSkeleton } from "react-tweet";
+import { EmbeddedTweet, TweetSkeleton } from "react-tweet";
 import type { Tweet } from "react-tweet/api";
 
 import { parseEmbed, threadsFrame, youtubeFrame } from "../../../../cms/embeds";
@@ -15,16 +15,22 @@ import { EmbedBase } from "./blocks";
  * Threads and YouTube show their real players. An empty embed asks for a link.
  */
 
+type XCard = { author: string; handle: string; text: string; url: string };
+type XState = { tweet?: Tweet; card?: XCard; error?: string };
+
 function XPreview({ url }: { url: string }) {
-  const [state, setState] = useState<{ tweet?: Tweet; error?: string } | null>(null);
+  const [state, setState] = useState<XState | null>(null);
   useEffect(() => {
     let live = true;
     fetch(`/api/admin/embed?url=${encodeURIComponent(url)}`)
       .then(async (r) => {
-        const body = (await r.json()) as { tweet?: Tweet; error?: string };
-        if (live) setState(r.ok ? { tweet: body.tweet } : { error: body.error ?? "Couldn’t load that post." });
+        // Anything but JSON (a proxy page, a dev server without the API) is a miss, not a crash.
+        const body = (await r.json().catch(() => ({}))) as XState;
+        if (!live) return;
+        if (r.ok && (body.tweet || body.card)) setState({ tweet: body.tweet, card: body.card });
+        else setState({ error: body.error ?? "The preview isn’t available here." });
       })
-      .catch(() => live && setState({ error: "Couldn’t load that post." }));
+      .catch(() => live && setState({ error: "The preview isn’t available here." }));
     return () => {
       live = false;
     };
@@ -32,11 +38,29 @@ function XPreview({ url }: { url: string }) {
 
   if (!state) return <TweetSkeleton />;
   if (state.tweet) return <EmbeddedTweet tweet={state.tweet} />;
+  if (state.card) return <XCardView card={state.card} />;
+  // No data: still show what was embedded, as a link, rather than "not found".
+  const handle = url.split("/")[3] ?? "";
+  return <XCardView card={{ author: handle ? `@${handle}` : "Post on X", handle, text: "", url }} note={state.error} />;
+}
+
+/** A plain post card, for when X only shares the author and text (or nothing). */
+function XCardView({ card, note }: { card: XCard; note?: string }) {
   return (
-    <div className="embed-error">
-      <TweetNotFound />
-      <p>{state.error}</p>
-    </div>
+    <a className="x-card" href={card.url} target="_blank" rel="noreferrer">
+      <span className="x-card-head">
+        <span className="x-card-avatar" aria-hidden="true">{(card.author || "X").replace(/^@/, "").charAt(0).toUpperCase()}</span>
+        <span className="x-card-who">
+          <strong>{card.author}</strong>
+          {card.handle && card.author !== `@${card.handle}` ? <span>@{card.handle}</span> : null}
+        </span>
+        <svg className="x-card-logo" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M18.9 2H22l-6.8 7.8L23 22h-6.2l-4.9-6.4L6.3 22H3.2l7.3-8.3L1 2h6.3l4.4 5.9zm-1.1 18h1.7L6.3 3.9H4.5z" />
+        </svg>
+      </span>
+      {card.text ? <span className="x-card-text">{card.text}</span> : null}
+      <span className="x-card-foot">{note ?? "View on X"}</span>
+    </a>
   );
 }
 

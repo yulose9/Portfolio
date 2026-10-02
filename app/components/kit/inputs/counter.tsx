@@ -21,6 +21,9 @@ function Digit({ digit }: { digit: number }) {
   const still = useReducedMotion();
   return (
     <span className="ki-digit" aria-hidden="true">
+      {/* In-flow and invisible, so the column sits on the text baseline. */}
+      <span className="ki-digit-ghost">0</span>
+      <span className="ki-digit-window">
       <motion.span
         className="ki-digit-reel"
         initial={false}
@@ -31,6 +34,7 @@ function Digit({ digit }: { digit: number }) {
           <span key={n}>{n}</span>
         ))}
       </motion.span>
+      </span>
     </span>
   );
 }

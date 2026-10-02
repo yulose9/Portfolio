@@ -12,8 +12,12 @@ import { fluentUrl, splitEmoji } from "./emoji";
 import { imageInfo, videoInfo } from "./media";
 import { dateHref, fullMentionDate, pageMentionId, parseDateHref } from "./mentions";
 import { textColor, textOpacity, safeInlineUrl, decodeLogoLabel } from "./inline";
+import { calloutIconImage, NO_ICON, parseCalloutMeta } from "./callout-icon";
 import { FONT_CATALOG, findFont, fontStack } from "./fonts";
-import { CHART_TYPES, POLL_ID, TABLE_STYLES, isChartType, isTableStyle, parseCodeMeta, rangeLines, siteOf } from "./blocks";
+import {
+  CHART_TYPES, POLL_ID, TABLE_HEADERS, TABLE_STYLES, TABLE_WIDTHS, hasHeaderCol, hasHeaderRow, isChartType, isTableHeader, isTableStyle, isTableWidth,
+  parseCodeMeta, rangeLines, siteOf, tableHeader, type TableHeader,
+} from "./blocks";
 
 /*
  * Markdown → hast, the way the site renders a post: figures, callouts,
@@ -40,7 +44,7 @@ export const textOf = (n: ElementContent): string =>
  * extras — a title after the type, and "-" / "+" to make it foldable
  * (closed / open):  > [!question]- Why not just retry?
  */
-const CALLOUT = /^\s*\[!([a-z]+)\]([+-]?)[ \t]*([^\n]*)\n?/i;
+const CALLOUT = /^\s*\[!([a-z]+)(?:\|([^\]\n]*))?\]([+-]?)[ \t]*([^\n]*)\n?/i;
 export const CALLOUT_EMOJI: Record<string, string> = {
   note: "💡",
   tip: "✅",
@@ -183,9 +187,13 @@ function rehypeEditorial(options: { resolvePage?: PageResolver } = {}) {
           if (table) {
             walk(table, literal);
             const style = node.properties.dataTable;
+            const header = isTableHeader(node.properties.dataHeader) ? node.properties.dataHeader : "row";
+            const width = isTableWidth(node.properties.dataWidth) && node.properties.dataWidth !== "fit" ? { dataTableWidth: node.properties.dataWidth } : {};
+            // The data table sorts by its header row, so it always has one.
+            tableHeaders(table, style === "data" ? tableHeader(true, hasHeaderCol(header)) : header);
             kids[i] = style === "data"
-              ? el("x-data-table", { dataTableStyle: "data" }, [table])
-              : el("div", { className: ["table-wrap"], dataTableStyle: style }, [table]);
+              ? el("x-data-table", { dataTableStyle: "data", ...width }, [table])
+              : tableFrame(table, { dataTableStyle: style, ...width });
             continue;
           }
         }
@@ -286,22 +294,34 @@ function rehypeEditorial(options: { resolvePage?: PageResolver } = {}) {
           const raw = match?.[1].toLowerCase() ?? "";
           const kind = CALLOUT_ALIAS[raw] ?? raw;
           if (firstP && firstText?.type === "text" && match && CALLOUT_EMOJI[kind]) {
-            const fold = match[2];
-            const title = match[3].trim();
+            const fold = match[3];
+            const title = match[4].trim();
+            // Its own icon, from the metadata after a "|" (cms/callout-icon.ts):
+            // an emoji, an image, or none; else its kind's emoji.
+            const own = parseCalloutMeta(match[2]);
+            const image = own && own !== NO_ICON ? calloutIconImage(own) : "";
+            const emoji = own === NO_ICON || image ? "" : own || CALLOUT_EMOJI[kind];
             firstText.value = firstText.value.slice(match[0].length);
             if (!firstP.children.some((k) => textOf(k).trim())) node.children = node.children.filter((k) => k !== firstP);
-            const icon = el("span", { className: ["callout-icon"], ariaHidden: "true" }, [
-              el("span", { className: ["fe"], style: `--fe:url(${fluentUrl(CALLOUT_EMOJI[kind])})` }, [{ type: "text", value: CALLOUT_EMOJI[kind] }]),
-            ]);
+            const icon = own === NO_ICON
+              ? null
+              : el("span", { className: ["callout-icon"], ariaHidden: "true" }, [
+                  image
+                    ? el("img", { src: image, alt: "", className: ["callout-icon-image"], loading: "lazy", decoding: "async" })
+                    : el("span", { className: ["fe"], style: `--fe:url(${fluentUrl(emoji)})` }, [{ type: "text", value: emoji }]),
+                ]);
             const heading = title ? [el("p", { className: ["callout-title"] }, decorateText(title))] : [];
             const tone = CALLOUT_TONE[kind] ?? "note";
             kids[i] = fold
               ? el("details", { className: ["callout", "callout-fold"], dataType: tone, dataKind: kind, open: fold === "+" }, [
-                  el("summary", { className: ["callout-summary"] }, [icon, ...(title ? decorateText(title) : [{ type: "text", value: kind[0].toUpperCase() + kind.slice(1) } as Text])]),
+                  el("summary", { className: ["callout-summary"] }, title ? decorateText(title) : [{ type: "text", value: kind[0].toUpperCase() + kind.slice(1) } as Text]),
                   el("div", { className: ["callout-body"] }, node.children),
                 ])
-              : el("aside", { className: ["callout"], dataType: tone, dataKind: kind }, [icon, el("div", { className: ["callout-body"] }, [...heading, ...node.children])]);
+              : el("aside", { className: ["callout"], dataType: tone, dataKind: kind, ...(icon ? {} : { dataNoIcon: "" }) }, [el("div", { className: ["callout-body"] }, [...heading, ...node.children])]);
             walk(kids[i] as Element, literal);
+            // The icon goes in after the walk: it is finished, and its emoji
+            // and image need none of the text's or images' treatment.
+            if (icon) (fold ? ((kids[i] as Element).children[0] as Element) : (kids[i] as Element)).children.unshift(icon);
             continue;
           }
         }
@@ -323,7 +343,8 @@ function rehypeEditorial(options: { resolvePage?: PageResolver } = {}) {
 
         // Tables scroll sideways on a phone instead of breaking the page.
         if (node.tagName === "table" && !(isEl(parent as Element) && (parent as Element).tagName === "div")) {
-          kids[i] = el("div", { className: ["table-wrap"] }, [node]);
+          tableHeaders(node, "row");
+          kids[i] = tableFrame(node, { dataTableStyle: "default" });
           walk(node, literal);
           continue;
         }
@@ -434,6 +455,46 @@ function codeFrame(pre: Element, bare = false): Element {
   }, [pre]);
 }
 
+/**
+ * A table in its frame: the frame draws the border and the edge fades, the
+ * scroller inside it moves sideways when the table is wider than the frame.
+ */
+function tableFrame(table: Element, props: Element["properties"] = {}): Element {
+  return el("div", { className: ["table-wrap"], ...props }, [el("div", { className: ["table-scroll"] }, [table])]);
+}
+
+/**
+ * Makes a table's header cells what its wrapper says: a first row that isn't
+ * a header moves out of <thead> into the body as ordinary cells, a header
+ * column turns each row's first cell into <th scope="row">, and every
+ * column header gets scope="col".
+ */
+function tableHeaders(table: Element, header: TableHeader) {
+  const cellsOf = (tr: Element) => tr.children.filter((c): c is Element => isEl(c, "th") || isEl(c, "td"));
+  const rowsOf = (section: Element | undefined) => (section?.children ?? []).filter((k): k is Element => isEl(k, "tr"));
+  const thead = table.children.find((k): k is Element => isEl(k, "thead"));
+  let tbody = table.children.find((k): k is Element => isEl(k, "tbody"));
+  if (thead && !hasHeaderRow(header)) {
+    const moved = rowsOf(thead);
+    for (const tr of moved) for (const c of cellsOf(tr)) c.tagName = "td";
+    if (!tbody) {
+      tbody = el("tbody", {}, []);
+      table.children.push(tbody);
+    }
+    tbody.children.unshift(...moved);
+    table.children = table.children.filter((k) => k !== thead);
+  } else {
+    for (const tr of rowsOf(thead)) for (const c of cellsOf(tr)) c.properties.scope = "col";
+  }
+  if (!hasHeaderCol(header)) return;
+  for (const tr of rowsOf(tbody)) {
+    const first = cellsOf(tr)[0];
+    if (!first) continue;
+    first.tagName = "th";
+    first.properties.scope = "row";
+  }
+}
+
 /** A table's cells as text, header row first. */
 function tableRows(table: Element): string[][] {
   const rows: string[][] = [];
@@ -456,8 +517,9 @@ function sourcesList(citations: Source[]): Element {
       el("li", { id: `source-${n + 1}` }, [
         el("a", { href: c.href, target: "_blank", rel: ["noreferrer"], className: ["article-source-link"] }, [{ type: "text", value: c.title || c.site }]),
         el("span", { className: ["article-source-site"] }, [{ type: "text", value: c.site }]),
+        // U+FE0E keeps the arrow a text glyph; without it some systems draw an emoji.
+        el("a", { href: `#cite-ref-${n + 1}`, className: ["article-source-back"], ariaLabel: `Back to citation ${n + 1}` }, [{ type: "text", value: "↩︎" }]),
         ...(c.snippet ? [el("p", { className: ["article-source-snippet"] }, [{ type: "text", value: c.snippet }])] : []),
-        el("a", { href: `#cite-ref-${n + 1}`, className: ["article-source-back"], ariaLabel: `Back to citation ${n + 1}` }, [{ type: "text", value: "↩" }]),
       ])
     )),
   ]);
@@ -530,7 +592,7 @@ export async function markdownToTree(markdown: string, extra: PluggableList = []
         span: [...(defaultSchema.attributes?.span ?? []), ["dataTextColor", /^(#[0-9a-f]{6}|inherit)$/i], ["dataTextFont",...FONT_CATALOG.map(f=>f.family)], ["dataTextOpacity",/^\d{1,3}$/]],
         img: [...(defaultSchema.attributes?.img ?? []), "dataInlineLogo", "dataLogoHref", "dataHeadingIcon"],
         code: [...(defaultSchema.attributes?.code ?? []), "dataMeta"],
-        div: [...(defaultSchema.attributes?.div ?? []), ["dataTable", ...TABLE_STYLES], ["dataChart", ...CHART_TYPES], "dataTitle", ["dataPoll", POLL_ID], "dataCodeTabs"],
+        div: [...(defaultSchema.attributes?.div ?? []), ["dataTable", ...TABLE_STYLES], ["dataHeader", ...TABLE_HEADERS], ["dataWidth", ...TABLE_WIDTHS], ["dataChart", ...CHART_TYPES], "dataTitle", ["dataPoll", POLL_ID], "dataCodeTabs"],
         a: [...(defaultSchema.attributes?.a ?? []), "dataCite", "dataTitle", "dataSnippet"],
         video: ["src", "poster", "controls", "muted", "loop", "autoPlay", "playsInline", "preload", "width", "height", "title", ["dataCaptions", /^(?:\/(?!\/)|https:\/\/)[^\s"<>]+\.vtt$/i]],
         audio: ["src", "controls", "preload", "title"],

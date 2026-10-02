@@ -18,7 +18,10 @@ import {
   DEFAULT_CHART_CSV,
   fence,
   isChartType,
+  hasHeaderCol,
+  hasHeaderRow,
   isTableStyle,
+  isTableWidth,
   normalizeRanges,
   parseChartBlock,
   parseCitation,
@@ -28,7 +31,10 @@ import {
   parseStyledTableStart,
   pollMarkdown,
   siteOf,
+  tableHeader,
+  tableOpenTag,
   type CodeTab,
+  type TableHeader,
 } from "../../../../cms/blocks";
 import { safeInlineUrl } from "../../../../cms/inline";
 
@@ -243,10 +249,32 @@ export const CitationBase = Node.create({
     }),
 });
 
-/* ── Table: a style, kept in a <div data-table> around the GFM table ─── */
+/* ── Table: style, headers and width, kept in a <div data-table> around the GFM table ─── */
 
 type RenderTable = (node: JSONContent, h: MarkdownRendererHelpers) => string;
 const renderPlainTable = Table.config.renderMarkdown as unknown as RenderTable;
+
+const isHead = (c: JSONContent | undefined) => c?.type === "tableHeader";
+
+/** Which of a table's cells are headers: its first row, its first column, both or neither. */
+export function headerOf(table: JSONContent): TableHeader {
+  const rows = table.content ?? [];
+  const first = rows[0]?.content ?? [];
+  const row = first.length > 0 && first.every(isHead);
+  // A one-row table whose row is all headers has a header row, not a column.
+  const col = rows.length > 0 && rows.every((r) => isHead(r.content?.[0])) && !(row && rows.length === 1);
+  return tableHeader(row, col);
+}
+
+/** Makes the cells headers or not to match `header` (in place). */
+export function setHeaders(table: JSONContent, header: TableHeader) {
+  (table.content ?? []).forEach((r, ri) =>
+    (r.content ?? []).forEach((c, ci) => {
+      if (c.type !== "tableCell" && c.type !== "tableHeader") return;
+      c.type = (ri === 0 && hasHeaderRow(header)) || (ci === 0 && hasHeaderCol(header)) ? "tableHeader" : "tableCell";
+    }),
+  );
+}
 
 export const TableStyled = Table.extend({
   addAttributes() {
@@ -260,13 +288,27 @@ export const TableStyled = Table.extend({
         },
         renderHTML: (a) => (a.tableStyle && a.tableStyle !== "default" ? { "data-table-style": a.tableStyle } : {}),
       },
+      tableWidth: {
+        default: "fit",
+        parseHTML: (el) => {
+          const value = el.closest("[data-table-width]")?.getAttribute("data-table-width") ?? el.getAttribute("data-table-width");
+          return isTableWidth(value) ? value : "fit";
+        },
+        renderHTML: (a) => (a.tableWidth && a.tableWidth !== "fit" ? { "data-table-width": a.tableWidth } : {}),
+      },
     };
   },
   renderMarkdown: (node: JSONContent, h: MarkdownRendererHelpers) => {
-    const table = renderPlainTable(node, h);
-    const style = node.attrs?.tableStyle;
-    if (!isTableStyle(style) || style === "default") return table;
-    return `<div data-table="${style}">\n\n${table.trim()}\n\n</div>`;
+    const header = headerOf(node);
+    // GFM always reads its first line as the header, so the first row is
+    // written there whatever it is; data-header says what it really is.
+    const rows = node.content ?? [];
+    const asGfm = hasHeaderRow(header) || !rows.length
+      ? node
+      : { ...node, content: [{ ...rows[0], content: (rows[0].content ?? []).map((c) => ({ ...c, type: "tableHeader" })) }, ...rows.slice(1)] };
+    const table = renderPlainTable(asGfm, h);
+    const open = tableOpenTag({ style: node.attrs?.tableStyle, header, width: node.attrs?.tableWidth });
+    return open ? `${open}\n\n${table.trim()}\n\n</div>` : table;
   },
 });
 
@@ -287,12 +329,16 @@ export const TableStyleMarkdown = Extension.create({
       const inner = rest.slice(0, close.index).trim();
       const tokens = (config as Lexer).blockTokens(inner);
       if (tokens.filter((t) => t.type !== "space").length !== 1 || !tokens.some((t) => t.type === "table")) return undefined;
-      return { type: "styledTable", raw: open.open + rest.slice(0, close.index + close[0].length), style: open.style, tokens };
+      return { type: "styledTable", raw: open.open + rest.slice(0, close.index + close[0].length), style: open.style, header: open.header, width: open.width, tokens };
     },
   },
   parseMarkdown: (token: MarkdownToken, helpers: MarkdownParseHelpers) => {
     const nodes = helpers.parseChildren(token.tokens ?? []);
-    for (const n of nodes) if (n.type === "table") n.attrs = { ...(n.attrs ?? {}), tableStyle: token.style };
+    for (const n of nodes) {
+      if (n.type !== "table") continue;
+      n.attrs = { ...(n.attrs ?? {}), tableStyle: token.style, tableWidth: token.width };
+      setHeaders(n, token.header);
+    }
     return nodes;
   },
 });

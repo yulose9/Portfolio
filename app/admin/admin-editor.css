@@ -398,7 +398,7 @@
 .editor-body [data-resize-container].ProseMirror-selectednode [data-resize-handle],
 .editor-body [data-resize-container][data-resize-state="true"] [data-resize-handle] { opacity: 1; }
 
-/* Callout: the icon cycles its kind when clicked. */
+/* Callout: the icon opens its picker (extensions/callout-view.tsx). */
 .editor-body .callout-icon {
   cursor: pointer;
   border-radius: 6px;
@@ -461,6 +461,10 @@
 .editor-body [data-type="details"]:not(.is-open) [data-type="detailsContent"] {
   display: none;
 }
+/* A toggle heading's arrow sits on the heading's first line, not the body's. */
+.editor-body [data-type="details"]:has(> div > summary[data-level="2"]) > button { margin-top: calc(1.5rem * 1.25 / 2 - 0.65em); }
+.editor-body [data-type="details"]:has(> div > summary[data-level="3"]) > button { margin-top: calc(1.1875rem * 1.35 / 2 - 0.65em); }
+.editor-body [data-type="details"]:has(> div > summary[data-level="4"]) > button { margin-top: calc(1.0625rem * 1.4 / 2 - 0.65em); }
 
 /* Tables while editing: a selected cell tints. */
 .editor-body .tableWrapper {
@@ -547,6 +551,63 @@
   display: grid;
   justify-items: center;
   gap: 0.25rem;
+  font-size: 13px;
+  color: var(--a-ink-3);
+}
+
+/* An X post the API could only describe: author, text, a link out. */
+.x-card {
+  display: grid;
+  gap: 0.6rem;
+  width: min(100%, 550px);
+  margin: 0 auto;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.08), 0 1px 2px rgb(0 0 0 / 0.04);
+  color: var(--a-ink);
+  text-decoration: none;
+  transition: box-shadow 150ms ease;
+}
+.x-card:hover {
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.14), 0 2px 8px -2px rgb(0 0 0 / 0.08);
+}
+.x-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.x-card-avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 9999px;
+  background: #f1f1f2;
+  font-weight: 600;
+  font-size: 14px;
+}
+.x-card-who {
+  display: grid;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.25;
+}
+.x-card-who span {
+  color: var(--a-ink-3);
+}
+.x-card-logo {
+  width: 18px;
+  height: 18px;
+  margin-left: auto;
+}
+.x-card-text {
+  font-size: 15px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+.x-card-foot {
   font-size: 13px;
   color: var(--a-ink-3);
 }

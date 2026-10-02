@@ -15,6 +15,7 @@ import type { Node as PMNode } from "@tiptap/pm/model";
 
 import { parseEmbed } from "../../../../cms/embeds";
 import { fluentUrl, splitEmoji } from "../../../../cms/emoji";
+import { calloutIconImage, calloutMeta, cleanCalloutIcon, NO_ICON, parseCalloutMeta } from "../../../../cms/callout-icon";
 
 /*
  * The Notion-style blocks the editor adds to Tiptap's own, each with a
@@ -86,7 +87,16 @@ const TONE: Record<string, string> = {
   example: "note",
   quote: "note",
 };
-const toneOf = (kind: string) => TONE[kind] ?? kind;
+export const toneOf = (kind: string) => TONE[kind] ?? kind;
+
+/** What a callout's icon slot shows: its own emoji or image, nothing, or its kind's emoji. */
+export function calloutIcon(value: unknown, kind: string): { emoji: string; image: string; none: boolean } {
+  const icon = cleanCalloutIcon(value);
+  const fallback = CALLOUT_EMOJI[kind] ?? CALLOUT_EMOJI.note;
+  if (icon === NO_ICON) return { emoji: "", image: "", none: true };
+  const image = icon ? calloutIconImage(icon) : "";
+  return { emoji: image ? "" : icon || fallback, image, none: false };
+}
 
 export const Callout = Node.create({
   name: "callout",
@@ -105,6 +115,13 @@ export const Callout = Node.create({
       // type, and "-" / "+" for a foldable callout.
       title: { default: "", renderHTML: () => ({}) },
       fold: { default: "", renderHTML: () => ({}) },
+      // Its own icon (cms/callout-icon.ts): an emoji, an image's URL, "none",
+      // or "" for the kind's emoji.
+      icon: {
+        default: "",
+        parseHTML: (el) => cleanCalloutIcon(el.getAttribute("data-icon") ?? ""),
+        renderHTML: (attrs) => (attrs.icon ? { "data-icon": attrs.icon } : {}),
+      },
     };
   },
   parseHTML() {
@@ -112,15 +129,19 @@ export const Callout = Node.create({
   },
   renderHTML({ node, HTMLAttributes }) {
     const type = (node.attrs.type as string) ?? "note";
-    const emoji = CALLOUT_EMOJI[type] ?? CALLOUT_EMOJI.note;
+    const icon = calloutIcon(node.attrs.icon, type);
     return [
       "aside",
       mergeAttributes(HTMLAttributes, { class: "callout", "data-callout": "" }),
-      [
-        "span",
-        { class: "callout-icon", contenteditable: "false", "data-callout-toggle": "" },
-        ["span", { class: "fe", style: `--fe:url(${fluentUrl(emoji)})` }, emoji],
-      ],
+      icon.none
+        ? ["span", { class: "callout-icon", contenteditable: "false", "data-callout-toggle": "", "data-empty": "" }]
+        : [
+            "span",
+            { class: "callout-icon", contenteditable: "false", "data-callout-toggle": "" },
+            icon.image
+              ? ["img", { class: "callout-icon-image", src: icon.image, alt: "" }]
+              : ["span", { class: "fe", style: `--fe:url(${fluentUrl(icon.emoji)})` }, icon.emoji],
+          ],
       ["div", { class: "callout-body" }, 0],
     ];
   },
@@ -138,46 +159,32 @@ export const Callout = Node.create({
     };
   },
 
-  // Clicking the icon cycles the kind: note → tip → important → warning → caution.
-  addProseMirrorPlugins() {
-    return [
-      new Plugin({
-        props: {
-          handleClickOn: (view, _pos, node, nodePos, event) => {
-            if (node.type.name !== this.name) return false;
-            if (!(event.target as Element).closest?.("[data-callout-toggle]")) return false;
-            const i = CALLOUT_TYPES.indexOf(node.attrs.type as CalloutType);
-            const next = CALLOUT_TYPES[(i + 1) % CALLOUT_TYPES.length] ?? "note";
-            view.dispatch(view.state.tr.setNodeMarkup(nodePos, undefined, { ...node.attrs, type: next }));
-            return true;
-          },
-        },
-      }),
-    ];
-  },
+  // The icon opens a picker (emoji, an uploaded image, none, and the kind's
+  // colour): extensions/callout-view.tsx, the editor's view of this node.
 
   markdownTokenizer: {
     name: "callout",
     level: "block",
-    start: (src: string) => src.search(/^ {0,3}> ?\[![a-z]+\]/im),
+    start: (src: string) => src.search(/^ {0,3}> ?\[![a-z]+[\]|]/im),
     tokenize: (src: string, _tokens: MarkdownToken[], config: MarkdownLexerConfiguration) => {
       const lexer = config as Lexer;
-      const match = /^ {0,3}> ?\[!([a-z]+)\]([+-]?)[ \t]*([^\n]*)(?:\n|$)((?: {0,3}>[^\n]*(?:\n|$))*)/i.exec(src);
+      const match = /^ {0,3}> ?\[!([a-z]+)(?:\|([^\]\n]*))?\]([+-]?)[ \t]*([^\n]*)(?:\n|$)((?: {0,3}>[^\n]*(?:\n|$))*)/i.exec(src);
       if (!match || !CALLOUT_EMOJI[match[1].toLowerCase()]) return undefined;
-      const inner = match[4].replace(/^ {0,3}> ?/gm, "");
+      const inner = match[5].replace(/^ {0,3}> ?/gm, "");
       return {
         type: "callout",
         raw: match[0],
         calloutType: match[1].toLowerCase(),
-        fold: match[2],
-        title: match[3].trim(),
+        icon: parseCalloutMeta(match[2]),
+        fold: match[3],
+        title: match[4].trim(),
         tokens: lexer.blockTokens(inner || " "),
       };
     },
   },
   parseMarkdown: (token: MarkdownToken, helpers: MarkdownParseHelpers) => ({
     type: "callout",
-    attrs: { type: token.calloutType ?? "note", title: token.title ?? "", fold: token.fold ?? "" },
+    attrs: { type: token.calloutType ?? "note", title: token.title ?? "", fold: token.fold ?? "", icon: token.icon ?? "" },
     content: helpers.parseChildren(token.tokens ?? []),
   }),
   renderMarkdown: (node: JSONContent, helpers: MarkdownRendererHelpers) => {
@@ -187,7 +194,7 @@ export const Callout = Node.create({
       .map((line) => (line ? `> ${line}` : ">"))
       .join("\n");
     const title = node.attrs?.title ? ` ${node.attrs.title}` : "";
-    return `> [!${String(node.attrs?.type ?? "note").toUpperCase()}]${node.attrs?.fold ?? ""}${title}\n${quoted}`;
+    return `> [!${String(node.attrs?.type ?? "note").toUpperCase()}${calloutMeta(node.attrs?.icon)}]${node.attrs?.fold ?? ""}${title}\n${quoted}`;
   },
 });
 
@@ -202,10 +209,13 @@ export const Toggle = Details.extend({
       const lexer = config as Lexer;
       const match = /^<details(?: open)?>\s*<summary>([\s\S]*?)<\/summary>\s*\n([\s\S]*?)\n?<\/details>[ \t]*(?:\n|$)/.exec(src);
       if (!match) return undefined;
+      // A toggle heading: the summary holds one h2–h4 (HTML allows a heading in a summary).
+      const heading = /^<h([234])>([\s\S]*?)<\/h\1>$/.exec(match[1].trim());
       return {
         type: "details",
         raw: match[0],
-        summaryTokens: lexer.inlineTokens(match[1].trim()),
+        level: heading ? Number(heading[1]) : 0,
+        summaryTokens: lexer.inlineTokens((heading ? heading[2] : match[1]).trim()),
         tokens: lexer.blockTokens(match[2].trim()),
       };
     },
@@ -213,7 +223,7 @@ export const Toggle = Details.extend({
   parseMarkdown: (token: MarkdownToken, helpers: MarkdownParseHelpers) => ({
     type: "details",
     content: [
-      { type: "detailsSummary", content: helpers.parseInline(token.summaryTokens ?? []) },
+      { type: "detailsSummary", attrs: { level: token.level ?? 0 }, content: helpers.parseInline(token.summaryTokens ?? []) },
       {
         type: "detailsContent",
         content: (token.tokens?.length ? helpers.parseChildren(token.tokens) : null) ?? [{ type: "paragraph" }],
@@ -224,11 +234,41 @@ export const Toggle = Details.extend({
     const [summary, content] = node.content ?? [];
     const title = summary ? helpers.renderChildren(summary.content ?? []).trim() : "";
     const body = content ? helpers.renderChildren(content.content ?? [], "\n\n").trim() : "";
-    return `<details>\n<summary>${title || "Toggle"}</summary>\n\n${body}\n\n</details>`;
+    const level = Number(summary?.attrs?.level) || 0;
+    const label = title || "Toggle";
+    const line = TOGGLE_HEADINGS.includes(level) ? `<h${level}>${label}</h${level}>` : label;
+    return `<details>\n<summary>${line}</summary>\n\n${body}\n\n</details>`;
   },
 }).configure({ persist: true, HTMLAttributes: { class: "toggle" } });
 
-export { DetailsContent, DetailsSummary };
+/** Heading levels a toggle's summary can take: h2–h4, shown as Heading 1–3. */
+export const TOGGLE_HEADINGS = [2, 3, 4];
+
+/**
+ * The toggle's summary. `level` makes it a toggle heading (Notion's): 0 is a
+ * plain toggle; 2–4 set the summary as that heading, in the editor and, as a
+ * real <h2>–<h4> inside the <summary>, on the page.
+ */
+const ToggleSummary = DetailsSummary.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      level: {
+        default: 0,
+        parseHTML: (el: HTMLElement) => {
+          const own = Number(el.getAttribute("data-level"));
+          if (TOGGLE_HEADINGS.includes(own)) return own;
+          const inner = el.querySelector("h2, h3, h4");
+          return inner ? Number(inner.tagName.slice(1)) : 0;
+        },
+        renderHTML: (attrs: { level?: number }) =>
+          attrs.level && TOGGLE_HEADINGS.includes(attrs.level) ? { "data-level": String(attrs.level) } : {},
+      },
+    };
+  },
+});
+
+export { DetailsContent, ToggleSummary as DetailsSummary };
 
 /* ── Embed ───────────────────────────────────────────────────────────── */
 

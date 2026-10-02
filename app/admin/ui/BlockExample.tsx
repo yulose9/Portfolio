@@ -56,6 +56,16 @@ export default function BlockExample({ kind }: { kind: BlockKind }) {
         </div>
       );
       break;
+    case "toggleH1":
+    case "toggleH2":
+    case "toggleH3":
+      example = (
+        <div>
+          <strong className={`block-example-${kind.slice(-2).toLowerCase()}`}>▸ A section that folds</strong>
+          <p>Everything under it tucks away.</p>
+        </div>
+      );
+      break;
     case "code":
       example = (
         <pre>

@@ -496,7 +496,7 @@
   flex-direction: column;
   gap: 1rem;
 }
-:where(.kit-tabs-list) {
+.kit-tabs-list {
   position: relative;
   display: inline-flex;
   width: max-content;
@@ -513,7 +513,7 @@
 .kit-tabs-list::-webkit-scrollbar {
   display: none;
 }
-:where(.kit-tabs-trigger) {
+.kit-tabs-trigger {
   position: relative;
   z-index: 10;
   display: inline-flex;

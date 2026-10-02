@@ -248,14 +248,24 @@
 }
 /* A quote is quiet: regular weight, a step up in size, set in from the text. */
 .article-body blockquote {
-  padding-left: 1.25rem;
-  border-left: 2px solid var(--rule);
+  position: relative;
+  padding: 0.1em 0 0.1em 1.05em;
+  border-left: 3px solid #e4e4e7;
   font-size: 1.1875rem;
   line-height: 1.55;
   color: var(--ink-2);
 }
-.article-body blockquote p + p {
-  margin-top: 0.8em;
+/* Paragraphs inside a quote sit closer than the page's own: one thought. */
+.article-body blockquote > * {
+  margin: 0;
+}
+.article-body blockquote > * + * {
+  margin-top: 0.55em;
+}
+/* The same room above and below, measured in the body's em, not the quote's. */
+.article-body > * + blockquote,
+.article-body > blockquote + * {
+  margin-top: 1.5rem;
 }
 .article-body hr {
   border: 0;

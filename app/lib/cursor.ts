@@ -27,6 +27,8 @@ const INTERACTIVE = [
   "[data-keycap]",
   // Pointer affordance without link semantics, e.g. the placeholder articles.
   "[data-clickable]",
+  // Something to pick up and drag: a hand, as the native cursor's grab.
+  "[data-drag-handle]",
   "summary",
   "label",
   "select",

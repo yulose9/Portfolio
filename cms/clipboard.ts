@@ -6,7 +6,7 @@ import {
 import { safeInlineUrl } from "./inline";
 export const CLIPBOARD_TYPE = "application/x-nazarene-writing+json";
 const ATTRS = new Set(
-  "blockId level start checked src alt title width height href target rel color font opacity language kind url caption poster loop date time id label icon open colspan rowspan colwidth align tableStyle lineNumbers highlight tabs chartType data pollId question options site snippet captions".split(
+  "blockId level start checked src alt title width height href target rel color font opacity language kind url caption poster loop date time id label icon open colspan rowspan colwidth align tableStyle tableWidth lineNumbers highlight tabs chartType data pollId question options site snippet captions".split(
     " ",
   ),
 );

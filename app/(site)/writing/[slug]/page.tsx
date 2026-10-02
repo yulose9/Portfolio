@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { coverStyle } from "../../../../cms/cover";
 import { fluentUrl } from "../../../../cms/emoji";
 import { tagSlug } from "../../../../cms/format";
 import { fontLinks, inlineFontLinks, fontVars } from "../../../../cms/fonts";
@@ -148,37 +149,60 @@ export default async function ArticlePage({ params }: Props) {
     ],
   };
 
+  // A banner cover spans the page above the column, the icon over its edge.
+  const banner = post.cover && coverStyle(post.cover) === "banner" ? post.cover : null;
+  const breadcrumbs = (
+    <nav className="article-nav" aria-label="Breadcrumb">
+      <ol className="breadcrumbs">
+        <li>
+          <Link href="/">Home</Link>
+        </li>
+        <li>
+          <Link href="/writing">Writing</Link>
+        </li>
+        {parent ? <li><Link href={`/writing/${parent.slug}`}>{parent.title}</Link></li> : null}
+        <li aria-current="page">
+          <FluentText>{post.title}</FluentText>
+        </li>
+      </ol>
+    </nav>
+  );
+
   return (
-    <div className="flex w-full justify-center bg-white">
+    <div className="flex w-full flex-col items-center bg-white">
       {/* A post's own typefaces, if it has any; React hoists these into <head>. */}
       {[...new Set([...fontLinks(post.fonts),...inlineFontLinks(post.body)])].map((href) => (
         <link key={href} rel="stylesheet" href={href} precedence="default" />
       ))}
       <div className="reading-progress" aria-hidden="true" />
+      {banner ? (
+        <figure className="article-banner">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={banner.src} alt={banner.alt} width={banner.width} height={banner.height} fetchPriority="high" decoding="async" />
+        </figure>
+      ) : null}
       <main id="main" tabIndex={-1}
         data-cursor-frame
         className="page-shell page-enter article-shell article-page w-full max-w-[672px] py-16 sm:py-24"
         style={fontVars(post.fonts) as React.CSSProperties}
+        data-cover={banner ? "banner" : undefined}
       >
-        <nav className="article-nav" aria-label="Breadcrumb">
-          <ol className="breadcrumbs">
-            <li>
-              <Link href="/">Home</Link>
-            </li>
-            <li>
-              <Link href="/writing">Writing</Link>
-            </li>
-            {parent ? <li><Link href={`/writing/${parent.slug}`}>{parent.title}</Link></li> : null}
-            <li aria-current="page">
-              <FluentText>{post.title}</FluentText>
-            </li>
-          </ol>
-        </nav>
+        {banner ? (
+          <div className="article-banner-row">
+            {post.icon ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="article-banner-icon" src={fluentUrl(post.icon)} alt="" width={88} height={88} />
+            ) : null}
+            {breadcrumbs}
+          </div>
+        ) : (
+          breadcrumbs
+        )}
 
         <ArticleMenu title={post.title} url={url} markdownUrl={`/writing/${post.slug}/index.md`}>
         <article className="article" data-has-toc={toc.length >= 3 || undefined}>
           <header className="article-header">
-            {post.icon ? (
+            {post.icon && !banner ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img className="article-icon" src={fluentUrl(post.icon)} alt="" width={72} height={72} />
             ) : null}
@@ -207,7 +231,7 @@ export default async function ArticlePage({ params }: Props) {
             />
           </header>
 
-          {post.cover ? (
+          {post.cover && !banner ? (
             <figure className="article-cover">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img

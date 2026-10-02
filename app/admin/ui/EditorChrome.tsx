@@ -66,7 +66,7 @@ import {
 } from "./commands";
 import { findKey, type FindOptions } from "./extensions/blocks";
 import { alignColumns } from "./extensions/table-plus";
-import { TABLE_STYLES } from "../../../cms/blocks";
+import { TABLE_STYLES, TABLE_WIDTHS } from "../../../cms/blocks";
 import { keys, MenuSurface, MItem, MLabel, MSep, MSub } from "./menu";
 import { shortcutLabel } from "./shortcuts";
 
@@ -208,6 +208,11 @@ export function EditorContextMenu({ editor, children, ...pick }: { editor: Edito
             {TABLE_STYLES.map((style) => (
               <MItem key={style} onSelect={() => editor.chain().focus().updateAttributes("table", { tableStyle: style }).run()}>
                 <span data-current={editor.getAttributes("table").tableStyle === style || undefined}>Style: {style === "data" ? "data table" : style}</span>
+              </MItem>
+            ))}
+            {TABLE_WIDTHS.map((width) => (
+              <MItem key={width} onSelect={() => editor.chain().focus().updateAttributes("table", { tableWidth: width }).run()}>
+                <span data-current={(editor.getAttributes("table").tableWidth ?? "fit") === width || undefined}>Width: {width === "fit" ? "fit text" : width}</span>
               </MItem>
             ))}
             <MSep />

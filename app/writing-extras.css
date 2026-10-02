@@ -79,25 +79,39 @@ button.tag:active {
   background: none;
 }
 
-/* Voice notes (components/writing/AudioPlayer.tsx) */
-.article-audio {
-  display: grid;
-  gap: 0.6rem;
+/* Voice notes (components/writing/AudioPlayer.tsx): one card, the caption
+   its title line, the waveform across the whole width. The editor draws the
+   same card (admin-blocks.css adds only its field and tools). */
+:where(.article-audio) {
   margin: 0;
 }
-.article-audio figcaption {
-  font-size: 13px;
-  color: var(--ink-3, #a1a1aa);
+.article-audio {
+  position: relative;
+  display: grid;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 0.875rem 0.75rem 0.75rem;
+  border-radius: 18px;
+  background: #f6f6f7;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.05);
+}
+.article-audio .voice-caption,
+.article-body .article-audio figcaption.voice-caption {
+  margin: 0;
+  padding: 0.125rem 0.25rem 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  text-align: left;
+  color: var(--ink-2, #52525b);
+  text-wrap: pretty;
 }
 .voice {
   display: grid;
-  grid-template-columns: 40px 1fr auto auto;
+  grid-template-columns: 40px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.6rem 0.75rem 0.6rem 0.6rem;
-  border-radius: 999px;
-  background: #f4f4f5;
-  max-width: 460px;
+  min-width: 0;
 }
 .voice-play {
   display: grid;
@@ -113,6 +127,11 @@ button.tag:active {
 }
 .voice-play:active {
   scale: 0.94;
+}
+.voice-play:focus-visible,
+.voice-speed:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
 }
 .voice-play svg {
   width: 16px;
@@ -136,43 +155,86 @@ button.tag:active {
   scale: 1;
   filter: none;
 }
+/* The waveform: the bars three times over, the played part and the part
+   under the pointer clipped from the left so the fill glides, not steps. */
 .voice-wave {
+  position: relative;
+  height: 36px;
+  min-width: 0;
+  cursor: pointer;
+  touch-action: none;
+  border-radius: 6px;
+  outline-offset: 4px;
+}
+.voice-wave:focus-visible {
+  outline: 2px solid #2563eb;
+}
+.voice-bars {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   gap: 2px;
-  height: 32px;
-  cursor: pointer;
-  outline-offset: 4px;
+  pointer-events: none;
 }
 .voice-bar {
-  flex: 1;
-  min-width: 2px;
+  flex: 1 1 0;
+  min-width: 1px;
+  min-height: 3px;
   border-radius: 2px;
   background: #d4d4d8;
-  transition: background-color 120ms ease;
+  transition: height 320ms var(--ease);
 }
-.voice-bar[data-on] {
+.voice-bars-hover .voice-bar {
+  background: #a1a1aa;
+}
+.voice-bars-on .voice-bar {
   background: var(--ink, #0a0a0a);
 }
 .voice-time {
-  min-width: 2.6rem;
   font-family: "Paper Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
   letter-spacing: 0;
-  color: var(--ink-2, #52525b);
+  white-space: nowrap;
+  color: var(--ink, #0a0a0a);
   font-variant-numeric: tabular-nums;
 }
+.voice-time-total {
+  color: var(--ink-3, #a1a1aa);
+}
 .voice-speed {
-  min-width: 2.4rem;
-  height: 26px;
+  min-width: 2.75rem;
+  height: 28px;
+  padding: 0 0.5rem;
   border: 0;
   border-radius: 999px;
   background: #fff;
-  box-shadow: 0 0 0 1px #e4e4e7;
+  box-shadow: 0 0 0 1px #e4e4e7, 0 1px 2px rgb(0 0 0 / 0.04);
   font: inherit;
   font-size: 12px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink, #0a0a0a);
   cursor: pointer;
+  transition: scale 160ms var(--ease);
+}
+.voice-speed:active {
+  scale: 0.94;
+}
+@media (max-width: 479px) {
+  .voice {
+    gap: 0.5rem;
+  }
+  /* A phone keeps the time so far; the length is in the slider's label. */
+  .voice-time-total {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-bar,
+  .voice-speed {
+    transition: none;
+  }
 }
 
 /* Video: a figure like an image, rounded, the caption on the text measure. */
@@ -323,4 +385,89 @@ button.tag:active {
 }
 @media (max-width: 767px) {
   .writing-empty { padding: 1.5rem; margin-top: 2rem; }
+}
+
+/* ── Banner cover (cms/cover.ts) ───────────────────────────────────────
+   A profile header: the picture edge to edge across the top, about 3:1 and
+   never taller than 360px; the page icon overlaps its bottom edge, the
+   breadcrumbs sit beside it, the title below. */
+.article-banner {
+  position: relative;
+  width: 100%;
+  margin: 0;
+  aspect-ratio: 3 / 1;
+  max-height: 360px;
+  overflow: hidden;
+  background: #f4f4f5;
+}
+.article-banner img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.article-banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 -1px 0 rgb(0 0 0 / 0.06);
+}
+.article-page[data-cover="banner"] {
+  padding-top: 0;
+}
+.article-banner-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  min-width: 0;
+  padding-top: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+.article-banner-row:has(.article-banner-icon) {
+  padding-top: 0;
+  margin-top: -44px;
+}
+.article-banner-row .article-nav {
+  min-width: 0;
+  margin: 0 0 0.35rem;
+}
+/* The icon on a white tile, ringed in the page colour, over the edge. */
+.article-banner-icon {
+  position: relative;
+  flex-shrink: 0;
+  display: block;
+  width: 88px;
+  height: 88px;
+  padding: 8px;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 0 0 4px #fff, 0 6px 20px rgb(0 0 0 / 0.1);
+  user-select: none;
+}
+.article-page .article-banner-row {
+  animation: page-in 640ms var(--ease-soft) both;
+}
+.article-banner {
+  animation: article-fade 700ms ease both;
+}
+@media (max-width: 639px) {
+  .article-banner-row {
+    margin-bottom: 2rem;
+  }
+  .article-banner-row:has(.article-banner-icon) {
+    margin-top: -36px;
+  }
+  .article-banner-icon {
+    width: 72px;
+    height: 72px;
+    padding: 6px;
+    border-radius: 20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .article-banner,
+  .article-page .article-banner-row {
+    animation: article-fade 200ms ease both !important;
+  }
 }

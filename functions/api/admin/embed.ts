@@ -8,7 +8,39 @@ import { parseEmbed } from "../../../cms/embeds";
  * data from X's public syndication endpoint (the same one react-tweet uses
  * when the site builds), so the card in the editor is the card readers get.
  * Threads and YouTube preview as their own iframes and need nothing here.
+ *
+ * X refuses the syndication endpoint from some networks, Cloudflare's among
+ * them at times. When it does, X's oEmbed endpoint still answers with the
+ * author and the text, which is enough for the editor to show a faithful
+ * card instead of "not found". The site build fetches again on its own.
  */
+
+type Card = { author: string; handle: string; text: string; url: string };
+
+const decode = (s: string) =>
+  s
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&#x27;/g, "'")
+    .replace(/&mdash;/g, "—")
+    .replace(/&amp;/g, "&")
+    .trim();
+
+async function oembedCard(url: string): Promise<Card | null> {
+  const res = await fetch(`https://publish.x.com/oembed?omit_script=true&dnt=true&url=${encodeURIComponent(url)}`, {
+    headers: { accept: "application/json" },
+  });
+  if (!res.ok) return null;
+  const data = (await res.json()) as { author_name?: string; author_url?: string; html?: string };
+  // The post's text is the blockquote's first paragraph.
+  const text = decode(/<p[^>]*>([\s\S]*?)<\/p>/.exec(data.html ?? "")?.[1] ?? "");
+  const handle = (data.author_url ?? "").split("/").filter(Boolean).pop() ?? "";
+  return text || data.author_name ? { author: data.author_name ?? handle, handle, text, url } : null;
+}
+
 export const onRequestGet: AdminFunction = async ({ request }) => {
   const url = new URL(request.url).searchParams.get("url") ?? "";
   const embed = parseEmbed(url);
@@ -16,9 +48,15 @@ export const onRequestGet: AdminFunction = async ({ request }) => {
   if (embed.kind !== "x") return json({ embed });
   try {
     const tweet = await getTweet(embed.id);
-    if (!tweet) return fail("That post couldn't be found. It may be private or deleted.", 404);
-    return json({ embed, tweet });
+    if (tweet) return json({ embed, tweet });
   } catch {
-    return fail("X didn't answer. The embed will still show on the site.", 502);
+    // Fall through to oEmbed.
   }
+  try {
+    const card = await oembedCard(embed.url);
+    if (card) return json({ embed, card });
+  } catch {
+    // Fall through.
+  }
+  return fail("X didn't share this post's details here. It may be private or deleted; if it's public, the site will still show it.", 502);
 };

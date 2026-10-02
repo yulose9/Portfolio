@@ -77,6 +77,64 @@ test("table styles and column alignment survive Markdown and sanitizing", async 
   assert.equal(all(evil).some((n) => n.properties?.dataTable || n.properties?.dataTableStyle), false);
 });
 
+test("header row and column, and the table's width, survive Markdown and render with scopes", async () => {
+  const cellTypes = (table) => table.content.map((r) => r.content.map((c) => (c.type === "tableHeader" ? "H" : "c")).join(""));
+  const md = (open) => `${open}\n\n| Plan | Seats | Price |\n| --- | --- | --: |\n| Free | 1 | $0 |\n| Team | 10 | $99 |\n\n</div>`;
+
+  // Both: the first row and the first column are headers.
+  const both = roundTrip(md('<div data-table="striped" data-header="both" data-width="wide">'));
+  const t = both.doc.content[0];
+  assert.deepEqual([t.attrs.tableStyle, t.attrs.tableWidth], ["striped", "wide"]);
+  assert.deepEqual(cellTypes(t), ["HHH", "Hcc", "Hcc"]);
+  assert.match(both.md, /^<div data-table="striped" data-header="both" data-width="wide">\n/);
+  let tree = await markdownToTree(both.md);
+  const frame = all(tree).find((n) => n.properties?.className?.includes?.("table-wrap"));
+  assert.equal(frame.properties.dataTableWidth, "wide");
+  assert.ok(find(frame, "div").properties.className.includes("table-scroll"), "the table scrolls inside its frame");
+  const ths = all(tree).filter((n) => n.tagName === "th");
+  assert.deepEqual(ths.map((n) => n.properties.scope), ["col", "col", "col", "row", "row"]);
+
+  // Column only: the GFM header line is ordinary data on the page.
+  const col = roundTrip(md('<div data-table="default" data-header="col">'));
+  assert.deepEqual(cellTypes(col.doc.content[0]), ["Hcc", "Hcc", "Hcc"]);
+  assert.match(col.md, /^<div data-table="default" data-header="col">\n/);
+  tree = await markdownToTree(col.md);
+  assert.equal(find(tree, "thead"), undefined);
+  assert.equal(find(tree, "tbody").children.filter((n) => n.tagName === "tr").length, 3);
+  assert.deepEqual(all(tree).filter((n) => n.tagName === "th").map((n) => n.properties.scope), ["row", "row", "row"]);
+
+  // Neither: no header cells at all, and no empty header line is invented.
+  const none = roundTrip(md('<div data-table="minimal" data-header="none">'));
+  assert.deepEqual(cellTypes(none.doc.content[0]), ["ccc", "ccc", "ccc"]);
+  assert.match(none.md, /\| Plan +\| Seats +\| Price +\|/);
+  tree = await markdownToTree(none.md);
+  assert.equal(find(tree, "th"), undefined);
+
+  // Width alone puts a default table in a wrapper; the defaults need none.
+  const wide = roundTrip("<div data-table=\"default\" data-width=\"wide\">\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n\n</div>");
+  assert.equal(wide.doc.content[0].attrs.tableWidth, "wide");
+  assert.match(wide.md, /^<div data-table="default" data-width="wide">\n/);
+  const plain = roundTrip("| a | b |\n| --- | --- |\n| 1 | 2 |");
+  assert.equal(plain.doc.content[0].attrs?.tableWidth ?? "fit", "fit");
+  assert.doesNotMatch(plain.md, /<div/);
+  tree = await markdownToTree(plain.md);
+  assert.deepEqual(all(tree).filter((n) => n.tagName === "th").map((n) => n.properties.scope), ["col", "col"]);
+
+  // A data table always keeps its header row (it sorts by it).
+  tree = await markdownToTree(md('<div data-table="data" data-header="col" data-width="wide">'));
+  const data = find(tree, "x-data-table");
+  assert.equal(data.properties.dataTableWidth, "wide");
+  assert.ok(find(data, "thead"));
+  assert.equal(find(find(data, "tbody"), "th").properties.scope, "row");
+
+  // Unknown values fall back to the defaults and never reach the page.
+  tree = await markdownToTree('<div data-table="bordered" data-header="sideways" data-width="huge">\n\n| a |\n| --- |\n| 1 |\n\n</div>');
+  assert.equal(all(tree).some((n) => n.properties?.dataTableWidth || n.properties?.dataHeader || n.properties?.dataWidth), false);
+  assert.equal(find(tree, "th").properties.scope, "col");
+  const odd = manager.parse('<div data-table="bordered" data-header="sideways">\n\n| a |\n| --- |\n| 1 |\n\n</div>');
+  assert.deepEqual(cellTypes(odd.content[0]), ["H", "c"]);
+});
+
 test("charts keep type, title and data, and render with a data table fallback", async () => {
   const csv = "Month,Desktop,Mobile\nJan,186,80\n\"Feb, late\",305,200";
   const md = manager.serialize({ type: "doc", content: [{ type: "chart", attrs: { chartType: "area", title: 'Visits "weekly"', data: csv } }] });

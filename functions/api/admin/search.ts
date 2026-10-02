@@ -20,7 +20,7 @@ export function plainText(md: string): string {
     .replace(/<[^>]+>/g, "")
     .replace(/&(?:amp|lt|gt|quot|apos|nbsp);/g, e => ({"&amp;":"&","&lt;":"<","&gt;":">","&quot;":'"',"&apos;": "'", "&nbsp;":" "})[e]!)
     .replace(/^\s{0,3}(#{1,6}|>|[-*+]|\d+\.)\s+(\[[ xX]\]\s+)?/gm, "")
-    .replace(/\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/g, "")
+    .replace(/\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)(\|[^\]\n]*)?\]/g, "")
     .replace(/(\*\*|__|==|~~|`)/g, "")
     .replace(/(^|\s)[*_](\S)/g, "$1$2")
     .replace(/(\S)[*_](\s|$)/g, "$1$2")

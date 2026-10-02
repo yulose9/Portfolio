@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 
 import { copy } from "../menu/actions";
+import { scrollEdges } from "./scroll-edges";
 
 /*
  * The article's one island. Everything it touches is already in the HTML;
@@ -15,7 +16,8 @@ import { copy } from "../menu/actions";
  *    from where it sits to the middle of the screen (FLIP, on the
  *    compositor) and back, with the same drawer curve the admin's sheets
  *    use; Escape, a click or a scroll puts it back, and focus returns to it.
- *  - Code and wide tables: focusable, so a keyboard can scroll them sideways.
+ *  - Code and wide tables: focusable, so a keyboard can scroll them sideways;
+ *    tables also fade at an edge that has more beyond it (scroll-edges.ts).
  */
 
 const EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
@@ -172,10 +174,12 @@ function imageZoom(root: HTMLElement) {
   };
 }
 
-/** Code and wide tables scroll sideways; a keyboard needs to land on them to do it. */
+/** Code scrolls sideways; a keyboard needs to land on it to do it. */
 function scrollRegions(root: HTMLElement) {
   const touched: HTMLElement[] = [];
+  // Tables in a frame (.table-scroll) are scrollEdges'; this is code and the bare table a chart falls back to.
   for (const el of root.querySelectorAll<HTMLElement>(".article-body pre, .article-body .table-wrap")) {
+    if (el.querySelector(":scope > .table-scroll")) continue;
     if (el.scrollWidth <= el.clientWidth + 1 || el.hasAttribute("tabindex")) continue;
     const lang = el.dataset.language;
     el.tabIndex = 0;
@@ -192,11 +196,17 @@ function scrollRegions(root: HTMLElement) {
   };
 }
 
+/** Wide tables: edge fades on the side there's more to see, and a focusable region while they scroll. */
+function tableEdges(root: HTMLElement) {
+  const off = Array.from(root.querySelectorAll<HTMLElement>(".article-body .table-wrap > .table-scroll"), (el) => scrollEdges(el));
+  return () => off.forEach((fn) => fn());
+}
+
 export default function ArticleEnhance() {
   useEffect(() => {
     const root = document.querySelector<HTMLElement>(".article-page");
     if (!root) return;
-    const off = [headingLinks(root), codeCopy(root), imageZoom(root), scrollRegions(root)];
+    const off = [headingLinks(root), codeCopy(root), imageZoom(root), scrollRegions(root), tableEdges(root)];
     return () => off.forEach((fn) => fn());
   }, []);
   return null;

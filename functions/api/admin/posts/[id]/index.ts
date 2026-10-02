@@ -84,6 +84,8 @@ function cleanCover(value: unknown): Cover | null {
       result[key] = v[key];
     }
   }
+  // The banner layout (cms/cover.ts); classic is the default and isn't stored.
+  if (v.style === "banner") (result as Cover & { style?: "banner" }).style = "banner";
   return result;
 }
 

@@ -232,8 +232,52 @@
   outline-offset: -2px;
 }
 
-/* ── Tables: styles ──────────────────────────────────────────────────── */
+/* ── Tables ──────────────────────────────────────────────────────────────
+   The site: .table-wrap (the frame: border, radius, edge fades) holding
+   .table-scroll (moves sideways when the table is wider). The editor:
+   .table-block (the frame's fades) holding .tableWrapper (the scroller).
+   Both carry data-table-style; the cell rules below serve both. */
 
+.article-body [data-table-style] {
+  --table-head: #fafafa;
+  --table-hover: #fafafa;
+  --table-line: var(--rule);
+  --table-pad-y: 0.6rem;
+  --table-pad-x: 0.875rem;
+}
+.article-body [data-table-style] table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.article-body [data-table-style] :is(th, td) {
+  min-width: 4.5rem;
+  padding: var(--table-pad-y) var(--table-pad-x);
+  border-bottom: 1px solid var(--table-line);
+  vertical-align: top;
+  text-align: left;
+  overflow-wrap: break-word;
+}
+.article-body [data-table-style] thead th,
+.article-body [data-table-style] tr:first-child > th:not([scope="row"]) {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+/* A header column: the row's name, in the text's ink. */
+.article-body [data-table-style] th[scope="row"],
+.article-body [data-table-style] tbody th,
+.article-body [data-table-style] tr:not(:first-child) > th:first-child {
+  font-weight: 500;
+  color: var(--ink);
+}
+.article-body [data-table-style] tbody tr:last-child > * {
+  border-bottom: 0;
+}
 .article-body th[align="center"],
 .article-body td[align="center"] {
   text-align: center;
@@ -241,153 +285,347 @@
 .article-body th[align="right"],
 .article-body td[align="right"] {
   text-align: right;
-  font-variant-numeric: tabular-nums;
 }
-/* Default, refined: a framed card with a muted header (Kobra's table). */
-.article-body .table-wrap:not([data-table-style]),
-.article-body [data-table-style="default"] {
-  border: 1px solid var(--rule);
-  border-radius: 12px;
+
+/* The frame (site). The fades sit on it, over the scroller's edges. */
+.article-body .table-wrap[data-table-style] {
+  position: relative;
+  overflow: hidden;
   margin-inline: 0;
   padding-inline: 0;
-}
-.article-body .table-wrap:not([data-table-style]) th,
-.article-body [data-table-style="default"] th {
-  background: #fafafa;
-  font-weight: 500;
-  border-bottom-color: var(--rule);
-}
-.article-body .table-wrap:not([data-table-style]) tr:last-child td,
-.article-body [data-table-style="default"] tr:last-child td {
-  border-bottom: 0;
-}
-.article-body .table-wrap:not([data-table-style]) :is(th, td):not(:last-child),
-.article-body [data-table-style="default"] :is(th, td):not(:last-child) {
-  border-right: 1px solid var(--rule);
-}
-/* Minimal: rules between rows only, a stronger one under the header. */
-.article-body [data-table-style="minimal"] th {
-  padding-inline: 0 1rem;
-  font-size: 0.85em;
-  font-weight: 500;
-  color: var(--ink-2);
-  border-bottom: 1px solid #d4d4d8;
-}
-.article-body [data-table-style="minimal"] td {
-  padding-inline: 0 1rem;
-}
-/* Striped */
-.article-body [data-table-style="striped"] {
+  border: 1px solid var(--table-line);
   border-radius: 12px;
-  border: 1px solid var(--rule);
-  margin-inline: 0;
-  padding-inline: 0;
+  background: #fff;
 }
+.article-body .table-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+}
+.article-body .table-scroll:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: -2px;
+  border-radius: 11px;
+}
+
+/* A thin, rounded scrollbar, only there when the table is wider. */
+.article-body :is(.table-scroll, .tableWrapper, .data-table-scroll) {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(10 10 10 / 0.16) transparent;
+}
+.article-body :is(.table-scroll, .tableWrapper, .data-table-scroll):hover {
+  scrollbar-color: rgb(10 10 10 / 0.3) transparent;
+}
+.article-body :is(.table-scroll, .tableWrapper, .data-table-scroll)::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.article-body :is(.table-scroll, .tableWrapper, .data-table-scroll)::-webkit-scrollbar-track {
+  background: transparent;
+}
+.article-body :is(.table-scroll, .tableWrapper, .data-table-scroll)::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: rgb(10 10 10 / 0.16) padding-box;
+}
+.article-body :is(.table-scroll, .tableWrapper, .data-table-scroll)::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(10 10 10 / 0.3);
+}
+
+/* Edge fades: a soft shade on a side that has more table beyond it
+   (scroll-edges.ts sets data-scroll-start / -end). */
+.article-body :is(.table-wrap, .table-block, .data-table-frame)::before,
+.article-body :is(.table-wrap, .table-block, .data-table-frame)::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  bottom: 0;
+  width: 28px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+.article-body :is(.table-wrap, .table-block, .data-table-frame)::before {
+  left: 0;
+  background: linear-gradient(to right, rgb(10 10 10 / 0.07), rgb(10 10 10 / 0.02) 40%, transparent);
+}
+.article-body :is(.table-wrap, .table-block, .data-table-frame)::after {
+  right: 0;
+  background: linear-gradient(to left, rgb(10 10 10 / 0.07), rgb(10 10 10 / 0.02) 40%, transparent);
+}
+.article-body :is(.table-wrap, .table-block, .data-table-frame)[data-scroll-start]::before,
+.article-body :is(.table-wrap, .table-block, .data-table-frame)[data-scroll-end]::after {
+  opacity: 1;
+}
+
+/* Width. Fit (the default) keeps the text's column: the columns share it
+   and long words wrap. Wide breaks out to the wider frame, centred on the
+   column, and gives every column a little more room. */
+.article-body [data-table-width="wide"] {
+  --table-wide: min(880px, calc(100vw - 2rem));
+  width: var(--table-wide);
+  max-width: none;
+  margin-inline: min(0px, calc((100% - var(--table-wide)) / 2));
+}
+.article-body [data-table-width="wide"] :is(th, td) {
+  min-width: 6rem;
+}
+
+/* Default: a framed card, a shaded header, rules between rows (Kobra's table). */
+.article-body [data-table-style="default"] thead th,
+.article-body [data-table-style="default"] tr:first-child > th:not([scope="row"]) {
+  background: var(--table-head);
+}
+@media (hover: hover) {
+  .article-body .table-wrap:is([data-table-style="default"], [data-table-style="bordered"]) tbody tr:hover > * {
+    background: var(--table-hover);
+  }
+}
+/* Minimal: no frame, rules between rows only, a stronger one under the header. */
+.article-body .table-wrap[data-table-style="minimal"] {
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+.article-body [data-table-style="minimal"] :is(th, td) {
+  padding-inline: 0 1rem;
+}
+.article-body [data-table-style="minimal"] thead th,
+.article-body [data-table-style="minimal"] tr:first-child > th:not([scope="row"]) {
+  border-bottom-color: #d4d4d8;
+}
+/* Striped: every other body row shaded, no rules between them. */
 .article-body [data-table-style="striped"] :is(th, td) {
   border-bottom: 0;
 }
-.article-body [data-table-style="striped"] th {
-  border-bottom: 1px solid var(--rule);
-  font-weight: 500;
+.article-body [data-table-style="striped"] thead th,
+.article-body [data-table-style="striped"] tr:first-child > th:not([scope="row"]) {
+  border-bottom: 1px solid var(--table-line);
 }
-.article-body [data-table-style="striped"] tbody tr:nth-child(odd),
-.article-body [data-table-style="striped"] tr:nth-child(even):has(td) {
+/* The site's header row is in <thead>; the editor's is the body's first row. */
+.article-body .table-wrap[data-table-style="striped"] tbody tr:nth-child(even) > *,
+.article-body .table-block[data-table-style="striped"] tr:nth-child(odd):not(:first-child) > * {
   background: #fafafa;
 }
-.article-body [data-table-style="striped"] tr:first-child:has(th) {
-  background: #fff;
-}
-/* Bordered: every cell ruled. */
-.article-body [data-table-style="bordered"] table {
-  border: 1px solid #e4e4e7;
-}
+/* Bordered: every cell ruled, the header a shade darker. */
 .article-body [data-table-style="bordered"] :is(th, td) {
   border: 1px solid #e4e4e7;
 }
-.article-body [data-table-style="bordered"] th {
+.article-body [data-table-style="bordered"] tr > :first-child {
+  border-left: 0;
+}
+.article-body [data-table-style="bordered"] tr > :last-child {
+  border-right: 0;
+}
+.article-body [data-table-style="bordered"] tr:first-child > * {
+  border-top: 0;
+}
+.article-body [data-table-style="bordered"] tr:last-child > * {
+  border-bottom: 0;
+}
+.article-body .table-wrap[data-table-style="bordered"] {
+  border-color: #e4e4e7;
+}
+.article-body [data-table-style="bordered"] thead th,
+.article-body [data-table-style="bordered"] tr:first-child > th:not([scope="row"]),
+.article-body [data-table-style="bordered"] th[scope="row"],
+.article-body [data-table-style="bordered"] tr > th:first-child {
   background: #f4f4f5;
-  font-weight: 600;
 }
 /* "Data" while editing (the site draws DataTable). */
-.article-body [data-table-style="data"] th {
-  background: #fff;
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--ink-2);
+.article-body .table-block[data-table-style="data"] th {
+  background: var(--table-head);
+}
+.article-body .table-block[data-table-style="data"] td {
+  white-space: nowrap;
 }
 
 /* ── Data table (CRM-like) ───────────────────────────────────────────── */
 
 .article-body .data-table {
-  max-height: 32rem;
-  overflow: auto;
-  overscroll-behavior: contain;
   margin-block: 1.6em;
+}
+.article-body .data-table-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.data-table-filter {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 1 16rem;
+  min-width: 0;
+}
+.data-table-filter svg {
+  position: absolute;
+  left: 10px;
+  width: 14px;
+  height: 14px;
+  color: var(--ink-3);
+  pointer-events: none;
+}
+.data-table-filter input {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px 0 30px;
+  border: 1px solid #e4e4e7;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.data-table-filter input::placeholder {
+  color: var(--ink-3);
+}
+.data-table-filter input:hover {
+  border-color: #d4d4d8;
+}
+.data-table-filter input:focus-visible {
+  outline: none;
+  border-color: #a1a1aa;
+  box-shadow: 0 0 0 3px rgb(10 10 10 / 0.08);
+}
+.data-table-filter input::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+.data-table-count {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.article-body .data-table-frame {
+  position: relative;
+  overflow: hidden;
   border: 1px solid var(--rule);
   border-radius: 12px;
   background: #fff;
 }
-.article-body .data-table:focus-visible {
+/* Tall tables scroll inside the frame, the header held at the top; at
+   either end the page takes the wheel back (no trap). */
+.article-body .data-table-scroll {
+  max-height: min(32rem, 75vh);
+  overflow: auto;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
+}
+.article-body .data-table-scroll:focus-visible {
   outline: 2px solid #111;
-  outline-offset: 3px;
+  outline-offset: -2px;
+  border-radius: 11px;
 }
 .article-body .data-table table {
+  width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 14px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
 }
-.article-body .data-table th {
+.article-body .data-table thead th {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 2;
   height: 40px;
   padding: 0 0.5rem;
-  background: #fff;
+  background: #fafafa;
   border-bottom: 1px solid var(--rule);
   font-size: 13px;
-  font-weight: 400;
+  font-weight: 500;
   color: var(--ink-2);
+  text-align: left;
   white-space: nowrap;
 }
-.article-body .data-table :is(th, td):not(:last-child) {
-  border-right: 1px solid var(--rule);
-}
-.article-body .data-table td {
-  height: 40px;
-  padding: 0 0.75rem;
+.article-body .data-table :is(td, tbody th) {
+  height: 42px;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--rule);
   vertical-align: middle;
+  text-align: left;
   white-space: nowrap;
 }
-.article-body .data-table tbody tr:last-child td {
+.article-body .data-table tbody th {
+  font-weight: 500;
+  color: var(--ink);
+}
+/* With a header column, it stays put while the rest scrolls sideways. */
+.article-body .data-table-scroll[data-row-headers] tbody th {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #fff;
+  box-shadow: inset -1px 0 var(--rule);
+}
+.article-body .data-table-scroll[data-row-headers] thead th:first-child {
+  left: 0;
+  z-index: 3;
+  box-shadow: inset -1px 0 var(--rule);
+}
+.article-body .data-table tbody tr:last-child > * {
   border-bottom: 0;
 }
 @media (hover: hover) {
-  .article-body .data-table tbody tr:hover td {
-    background: color-mix(in oklch, #f4f4f5 70%, #fff);
+  .article-body .data-table tbody tr:hover > * {
+    background: #fafafa;
   }
 }
 .article-body .data-table [data-align="right"],
-.article-body .data-table [data-numeric] {
+.article-body .data-table td[data-numeric] {
   text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 .article-body .data-table [data-align="center"] {
   text-align: center;
 }
+.article-body .data-table td.data-table-empty {
+  height: auto;
+  padding: 2rem 1rem;
+  text-align: center;
+  white-space: normal;
+  color: var(--ink-2);
+}
+.data-table-empty button {
+  margin-left: 0.5rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: #d4d4d8;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.data-table-empty button:hover {
+  text-decoration-color: currentColor;
+}
+.data-table-empty button:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
 .data-table-sort {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   width: 100%;
   height: 28px;
+  margin: 0;
   padding: 0 0.25rem;
   border: 0;
   border-radius: 6px;
   background: none;
   font: inherit;
   color: inherit;
+  text-align: inherit;
   cursor: pointer;
-  transition: color 150ms ease;
+  transition: color 150ms ease, background-color 150ms ease;
 }
 [data-align="right"] > .data-table-sort {
   flex-direction: row-reverse;
@@ -395,7 +633,10 @@
 [data-align="center"] > .data-table-sort {
   justify-content: center;
 }
-.data-table-sort:hover,
+.data-table-sort:hover {
+  background: rgb(10 10 10 / 0.04);
+  color: var(--ink);
+}
 th[aria-sort="ascending"] .data-table-sort,
 th[aria-sort="descending"] .data-table-sort {
   color: var(--ink);
@@ -408,16 +649,36 @@ th[aria-sort="descending"] .data-table-sort {
   flex: none;
   width: 14px;
   height: 14px;
-  opacity: 0.35;
-  transition: rotate 200ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms ease;
 }
-.data-table-sort svg[data-dir="ascending"] {
-  opacity: 1;
-  clip-path: inset(0 0 50% 0);
+/* Both chevrons, faint, until a column sorts; then only its way, in ink. */
+.data-table-sort svg path {
+  opacity: 0.3;
+  transition: opacity 150ms ease, translate 200ms cubic-bezier(0.2, 0, 0, 1);
 }
-.data-table-sort svg[data-dir="descending"] {
+.data-table-sort:hover svg path {
+  opacity: 0.55;
+}
+.data-table-sort svg[data-dir="ascending"] .data-table-sort-up,
+.data-table-sort svg[data-dir="descending"] .data-table-sort-down {
   opacity: 1;
-  clip-path: inset(50% 0 0 0);
+}
+.data-table-sort svg[data-dir="ascending"] .data-table-sort-down,
+.data-table-sort svg[data-dir="descending"] .data-table-sort-up {
+  opacity: 0;
+}
+.data-table-sort svg[data-dir="ascending"] .data-table-sort-up {
+  translate: 0 2px;
+}
+.data-table-sort svg[data-dir="descending"] .data-table-sort-down {
+  translate: 0 -2px;
+}
+@media (max-width: 480px) {
+  .data-table-filter {
+    flex-basis: 100%;
+  }
+  .article-body .data-table :is(td, tbody th) {
+    padding-inline: 0.625rem;
+  }
 }
 
 /* ── Charts ──────────────────────────────────────────────────────────── */
@@ -504,52 +765,71 @@ th[aria-sort="descending"] .data-table-sort {
 /* ── Poll (after cult-ui's choice poll) ──────────────────────────────── */
 
 .article-body .poll {
-  min-width: 0;
-  margin: 1.8em 0;
-  padding: 1rem;
-  border: 1px solid var(--rule);
-  border-radius: 14px;
+  display: grid;
+  gap: 14px;
+  margin: 2em 0;
+  padding: 18px;
+  border-radius: 16px;
   background: #fff;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.07), 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 12px -6px rgb(0 0 0 / 0.06);
+}
+.poll-head {
+  display: grid;
+  gap: 4px;
+}
+.poll-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+.poll-kicker svg {
+  width: 13px;
+  height: 13px;
 }
 .article-body .poll-question {
-  padding: 0;
-  margin-bottom: 0.75rem;
+  margin: 0;
+  font-size: 1.05em;
   font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
   color: var(--ink);
+  text-wrap: balance;
 }
 .poll-options {
   display: grid;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  gap: 8px;
 }
-.poll-option {
+
+/* Voting: radio cards. */
+.poll-choice {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  margin: 0;
-  padding: 0 12px;
-  overflow: hidden;
-  border: 1px solid var(--rule);
-  border-radius: 10px;
+  gap: 12px;
+  min-height: 46px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fafafa;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06);
   font-size: 15px;
   line-height: 1.35;
-  isolation: isolate;
-}
-.poll-choice {
   cursor: pointer;
-  transition: border-color 150ms ease, background-color 150ms ease;
+  transition: background-color 150ms ease, box-shadow 150ms ease, scale 150ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 @media (hover: hover) {
   .poll-choice:hover {
-    background: #fafafa;
+    background: #f4f4f5;
   }
 }
+.poll-choice:active {
+  scale: 0.99;
+}
 .poll-choice[data-checked] {
-  border-color: #0a0a0a;
+  background: #fff;
+  box-shadow: inset 0 0 0 1.5px #0a0a0a, 0 1px 2px rgb(0 0 0 / 0.06);
 }
 .poll-choice input {
   position: absolute;
@@ -562,63 +842,91 @@ th[aria-sort="descending"] .data-table-sort {
 }
 .poll-indicator {
   flex: none;
-  width: 16px;
-  height: 16px;
-  border: 1.5px solid #d4d4d8;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  transition: border-color 150ms ease, border-width 180ms cubic-bezier(0.2, 0, 0, 1);
+  background: #fff;
+  box-shadow: inset 0 0 0 1.5px #d4d4d8;
+  transition: box-shadow 180ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 .poll-choice[data-checked] .poll-indicator {
-  border-color: #0a0a0a;
-  border-width: 5px;
+  box-shadow: inset 0 0 0 5.5px #0a0a0a;
 }
 .poll-label {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
 }
-.poll-you {
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: var(--badge-blue-bg, rgb(37 99 235 / 0.1));
-  color: var(--badge-blue-fg, #1d4ed8);
-  font-size: 11px;
-  font-weight: 500;
-  white-space: nowrap;
+
+/* Results: a label and share over a bar, yours ticked, the leader in ink. */
+.poll-result {
+  display: grid;
+  gap: 6px;
+  font-size: 15px;
+  line-height: 1.35;
 }
-.poll-bar {
-  position: absolute;
-  inset: 0 auto 0 0;
-  z-index: -1;
-  width: var(--share);
-  background: #f4f4f5;
-  animation: poll-grow 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+.poll-result-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
 }
-.poll-option[data-mine] .poll-bar {
-  background: rgb(37 99 235 / 0.1);
-}
-@keyframes poll-grow {
-  from {
-    width: 0;
-  }
+.poll-mine {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  align-self: center;
+  color: #0a0a0a;
 }
 .poll-share {
   margin-left: auto;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-  color: var(--ink-2);
+  color: var(--ink-3);
 }
+.poll-result[data-leading] .poll-share,
+.poll-result[data-leading] .poll-label {
+  font-weight: 600;
+  color: var(--ink);
+}
+.poll-track {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f1f1f2;
+}
+.poll-fill {
+  display: block;
+  width: var(--share);
+  height: 100%;
+  border-radius: inherit;
+  background: #c4c4ca;
+  transform-origin: left;
+  animation: poll-grow 800ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.poll-result[data-leading] .poll-fill {
+  background: #0a0a0a;
+}
+@keyframes poll-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
 .poll-footer {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  margin-top: 0.75rem;
+  min-height: 36px;
+  padding-top: 12px;
+  border-top: 1px solid rgb(0 0 0 / 0.06);
 }
 .poll-submit {
   height: 36px;
-  padding: 0 16px;
+  padding: 0 18px;
   border: 0;
   border-radius: 999px;
   background: #0a0a0a;
@@ -627,14 +935,14 @@ th[aria-sort="descending"] .data-table-sort {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: opacity 150ms ease, scale 150ms ease;
+  transition: opacity 150ms ease, scale 150ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 .poll-submit:disabled {
-  opacity: 0.35;
+  opacity: 0.3;
   cursor: default;
 }
 .poll-submit:not(:disabled):active {
-  scale: 0.97;
+  scale: 0.96;
 }
 .poll-submit:focus-visible {
   outline: 2px solid #111;
@@ -644,6 +952,14 @@ th[aria-sort="descending"] .data-table-sort {
   margin: 0;
   font-size: 13px;
   color: var(--ink-3);
+}
+@media (forced-colors: active) {
+  .poll-fill {
+    background: Highlight;
+  }
+  .poll-track {
+    border: 1px solid CanvasText;
+  }
 }
 
 /* ── Citations ───────────────────────────────────────────────────────── */
@@ -772,8 +1088,36 @@ th[aria-sort="descending"] .data-table-sort {
 }
 .article-body .article-source-back {
   margin-left: 0.4em;
+  padding: 0 0.2em;
+  border-radius: 4px;
   color: var(--ink-3);
+  font-family: system-ui, sans-serif;
   text-decoration: none;
+}
+.article-body .article-source-back:hover {
+  color: var(--ink-1, #111);
+  background: rgb(0 0 0 / 0.05);
+}
+/* Where a jump lands: a brief wash, so the eye finds it. */
+.article-body .is-cite-target {
+  animation: cite-flash 1.4s cubic-bezier(0.23, 1, 0.32, 1);
+  border-radius: 6px;
+}
+@keyframes cite-flash {
+  from {
+    background: rgb(37 99 235 / 0.16);
+    box-shadow: 0 0 0 4px rgb(37 99 235 / 0.16);
+  }
+  to {
+    background: transparent;
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .article-body .is-cite-target {
+    animation-duration: 0.01ms;
+    outline: 2px solid rgb(37 99 235 / 0.4);
+  }
 }
 .article-body x-cite[id],
 .article-body .citation[id] {
@@ -1043,10 +1387,14 @@ th[aria-sort="descending"] .data-table-sort {
 @media (prefers-reduced-motion: reduce) {
   .code-copy-button svg,
   .code-tabs-indicator,
-  .poll-bar,
+  .poll-fill,
+  .poll-choice,
   .video-controls,
   .citation-card,
-  .data-table-sort svg {
+  .data-table-sort svg,
+  .data-table-sort svg path,
+  .article-body :is(.table-wrap, .table-block, .data-table-frame)::before,
+  .article-body :is(.table-wrap, .table-block, .data-table-frame)::after {
     transition: none;
     animation: none;
   }

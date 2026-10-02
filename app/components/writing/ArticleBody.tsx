@@ -7,7 +7,7 @@ import { isChartType, isNumeric } from "../../../cms/blocks";
 import { parseEmbed, threadsFrame, youtubeFrame, type Embed } from "../../../cms/embeds";
 import CodeBlock from "../code/CodeBlock";
 import CodeTabs from "../code/CodeTabs";
-import AudioPlayer from "./AudioPlayer";
+import { AudioFigure } from "./AudioPlayer";
 import Chart from "./Chart";
 import ChoicePoll from "./ChoicePoll";
 import Citation from "./Citation";
@@ -38,7 +38,17 @@ function EmbedBlock(props: Record<string, unknown>) {
   if (embed.kind === "x") {
     return (
       <div className="embed embed-x" data-theme="light">
-        <Tweet id={embed.id} />
+        {/* If X won't share the post at build, a link to it beats "not found". */}
+        <Tweet
+          id={embed.id}
+          components={{
+            TweetNotFound: () => (
+              <a className="embed-source embed-x-missing" href={embed.url} target="_blank" rel="noreferrer">
+                View this post on X
+              </a>
+            ),
+          }}
+        />
       </div>
     );
   }
@@ -70,12 +80,7 @@ function AudioBlock(props: Record<string, unknown>) {
   const src = String(props["data-src"] ?? "");
   const title = String(props["data-title"] ?? "");
   if (!src) return null;
-  return (
-    <figure className="article-audio">
-      <AudioPlayer src={src} title={title || undefined} />
-      {title ? <figcaption>{title}</figcaption> : null}
-    </figure>
-  );
+  return <AudioFigure src={src} title={title || undefined} />;
 }
 
 // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
@@ -129,7 +134,10 @@ function dataTableProps(table: Element, render: (root: Root) => React.ReactNode)
       .map((c) => ({ node: render({ type: "root", children: c.children }), key: textOf(c).trim(), align: str(c.properties.align) || undefined }));
   const [head, ...body] = rows.map(cells);
   const numeric = head.map((_, i) => body.length > 0 && body.every((r) => !r[i]?.key || isNumeric(r[i].key)) && body.some((r) => r[i]?.key));
-  return { head, rows: body, numeric };
+  // A header column: the renderer made each body row's first cell a <th>.
+  const firstCells = rows.slice(1).map((tr) => tr.children.find((c): c is Element => c.type === "element" && (c.tagName === "th" || c.tagName === "td")));
+  const rowHeaders = firstCells.length > 0 && firstCells.every((c) => c?.tagName === "th");
+  return { head, rows: body, numeric, rowHeaders };
 }
 
 /**
@@ -163,7 +171,8 @@ export default function ArticleBody({
   const tables: DataTableProps[] = [];
   const DataTableBlock = (p: P) => {
     const props = tables[Number(p["data-index"])];
-    return props ? <DataTable {...props} /> : <div className="table-wrap">{p.children}</div>;
+    const width = p["data-table-width"] === "wide" ? "wide" : "fit";
+    return props ? <DataTable {...props} width={width} /> : <div className="table-wrap">{p.children}</div>;
   };
   const options = {
     Fragment,

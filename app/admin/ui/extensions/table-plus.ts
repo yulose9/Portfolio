@@ -4,24 +4,28 @@ import type { Node as PMNode } from "@tiptap/pm/model";
 import { selectedRect, TableMap } from "@tiptap/pm/tables";
 import type { EditorView, ViewMutationRecord } from "@tiptap/pm/view";
 
-import { TABLE_STYLES, type TableStyle } from "../../../../cms/blocks";
+import { isTableStyle, isTableWidth, TABLE_STYLES, TABLE_WIDTHS, type TableStyle, type TableWidth } from "../../../../cms/blocks";
+import { scrollEdges } from "../../../components/writing/scroll-edges";
 import { TableStyled } from "./blocks-schema";
+import { mountTableMenu, type TableMenuProps } from "./table-menu";
 
 /*
  * Tables, in the editor: Tiptap's table (Tab / Shift-Tab move between cells,
  * Tab in the last cell adds a row; columns resize by dragging their edge)
  * with a toolbar over the table you're in: rows and columns in and out,
- * header row and column, the column's alignment (written into the GFM
- * delimiter row), and the table's style:
+ * header row and column (either, both or neither), the column's alignment
+ * (written into the GFM delimiter row), and the table's style and width,
+ * picked from a menu that sketches each one (table-menu.tsx):
  *
  *   default · minimal · striped · bordered · data (sortable on the site)
+ *   fit text width · wide (breaks out past the text column)
  *
  * The toolbar is plain DOM, part of the table's node view; it shows while
  * the caret is in the table (the block gets .is-current, see blocks.ts).
+ * A table wider than the column scrolls sideways in its frame, the frame
+ * fading at the side there's more to see (scroll-edges.ts).
  * Column widths are kept while editing only: Markdown tables have none.
  */
-
-const STYLE_LABEL: Record<TableStyle, string> = { default: "Default", minimal: "Minimal", striped: "Striped", bordered: "Bordered", data: "Data table" };
 
 const svg = (d: string) => `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="${d}" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const ICON = {
@@ -78,8 +82,9 @@ function currentAlign(editor: Editor): Align {
 
 export class StyledTableView extends TableView {
   toolbar: HTMLDivElement;
-  select: HTMLSelectElement;
   editorView: EditorView | undefined;
+  private menu: ReturnType<typeof mountTableMenu>;
+  private edges: () => void;
 
   constructor(node: PMNode, cellMinWidth: number, view?: EditorView, HTMLAttributes: Record<string, unknown> = {}) {
     super(node, cellMinWidth, view, HTMLAttributes);
@@ -92,12 +97,9 @@ export class StyledTableView extends TableView {
     this.toolbar.contentEditable = "false";
     this.toolbar.setAttribute("role", "toolbar");
     this.toolbar.setAttribute("aria-label", "Table");
-    this.select = document.createElement("select");
-    this.select.className = "table-style-select";
-    this.select.setAttribute("aria-label", "Table style");
-    for (const style of TABLE_STYLES) this.select.add(new Option(STYLE_LABEL[style], style));
-    this.select.addEventListener("change", () => this.setStyle(this.select.value as TableStyle));
-    this.toolbar.append(this.select, this.sep());
+    const menuHost = document.createElement("span");
+    menuHost.className = "table-style-host";
+    this.toolbar.append(menuHost, this.sep());
     const add = (label: string, icon: string, run: (e: Editor) => boolean, extra?: string) => {
       const b = document.createElement("button");
       b.type = "button";
@@ -120,8 +122,8 @@ export class StyledTableView extends TableView {
     add("Add column left", ICON.colLeft, (e) => e.chain().focus().addColumnBefore().run());
     add("Add column right", ICON.colRight, (e) => e.chain().focus().addColumnAfter().run());
     this.toolbar.append(this.sep());
-    add("Header row", ICON.headRow, (e) => e.chain().focus().toggleHeaderRow().run(), "table-tool-toggle");
-    add("Header column", ICON.headCol, (e) => e.chain().focus().toggleHeaderColumn().run(), "table-tool-toggle");
+    add("Header row", ICON.headRow, (e) => e.chain().focus().toggleHeaderRow().run(), "table-tool-toggle").dataset.header = "row";
+    add("Header column", ICON.headCol, (e) => e.chain().focus().toggleHeaderColumn().run(), "table-tool-toggle").dataset.header = "col";
     this.toolbar.append(this.sep());
     for (const [align, icon, label] of [["left", ICON.left, "Align column left"], ["center", ICON.center, "Center column"], ["right", ICON.right, "Align column right"]] as const) {
       const b = add(label, icon, (e) => alignColumns(e, currentAlign(e) === align ? null : align), "table-tool-toggle");
@@ -134,9 +136,26 @@ export class StyledTableView extends TableView {
 
     outer.append(this.toolbar, wrapper);
     this.dom = outer;
+    this.menu = mountTableMenu(menuHost, this.menuProps(node));
+    // The fades at the frame's edges while the table is wider than the column.
+    this.edges = scrollEdges(wrapper, { frame: outer, label: false });
     this.applyStyle(node);
     this.toolbar.addEventListener("focusin", () => this.sync());
     outer.addEventListener("mouseenter", () => this.sync());
+  }
+
+  private menuProps(node: PMNode): TableMenuProps {
+    return {
+      style: isTableStyle(node.attrs.tableStyle) ? node.attrs.tableStyle : "default",
+      width: isTableWidth(node.attrs.tableWidth) ? node.attrs.tableWidth : "fit",
+      styles: TABLE_STYLES,
+      widths: TABLE_WIDTHS,
+      onStyle: (tableStyle) => this.setAttrs({ tableStyle }),
+      onWidth: (tableWidth) => this.setAttrs({ tableWidth }),
+      // The toolbar stays up while its menu is open, wherever focus is.
+      onOpenChange: (open) => this.dom.toggleAttribute("data-menu-open", open),
+      focusEditor: () => this.editorView?.focus(),
+    };
   }
 
   private sep() {
@@ -165,11 +184,11 @@ export class StyledTableView extends TableView {
     return found;
   }
 
-  private setStyle(style: TableStyle) {
+  private setAttrs(attrs: { tableStyle?: TableStyle; tableWidth?: TableWidth }) {
     const view = this.editorView;
     const pos = this.pos();
     if (!view || pos === null) return;
-    view.dispatch(view.state.tr.setNodeMarkup(pos, undefined, { ...this.node.attrs, tableStyle: style }));
+    view.dispatch(view.state.tr.setNodeMarkup(pos, undefined, { ...this.node.attrs, ...attrs }));
   }
 
   /** Pressed states for the header and alignment toggles. */
@@ -177,32 +196,35 @@ export class StyledTableView extends TableView {
     const editor = this.editor();
     if (!editor) return;
     const align = currentAlign(editor);
-    let headerRow = false;
-    let headerCol = false;
-    try {
-      const rect = selectedRect(editor.state);
-      const map = TableMap.get(rect.table);
-      headerRow = Array.from({ length: map.width }, (_, c) => rect.table.nodeAt(map.map[c])).every((n) => n?.type.name === "tableHeader");
-      headerCol = Array.from({ length: map.height }, (_, r) => rect.table.nodeAt(map.map[r * map.width])).every((n) => n?.type.name === "tableHeader");
-    } catch {
-      /* the caret is not in this table */
-    }
+    // Read from this table, not the caret's: the toolbar shows on hover too.
+    const map = TableMap.get(this.node);
+    const isHead = (pos: number) => this.node.nodeAt(pos)?.type.name === "tableHeader";
+    const headerRow = map.width > 0 && Array.from({ length: map.width }, (_, c) => map.map[c]).every(isHead);
+    const headerCol = map.height > 0 && Array.from({ length: map.height }, (_, r) => map.map[r * map.width]).every(isHead) && !(headerRow && map.height === 1);
     for (const b of this.toolbar.querySelectorAll<HTMLButtonElement>("[data-align]")) b.setAttribute("aria-pressed", String(b.dataset.align === align));
-    const [row, col] = this.toolbar.querySelectorAll<HTMLButtonElement>(".table-tool-toggle:not([data-align])");
-    row?.setAttribute("aria-pressed", String(headerRow));
-    col?.setAttribute("aria-pressed", String(headerCol));
+    this.toolbar.querySelector('[data-header="row"]')?.setAttribute("aria-pressed", String(headerRow));
+    this.toolbar.querySelector('[data-header="col"]')?.setAttribute("aria-pressed", String(headerCol));
   }
 
   private applyStyle(node: PMNode) {
-    const style = (node.attrs.tableStyle as TableStyle) ?? "default";
+    const style = isTableStyle(node.attrs.tableStyle) ? node.attrs.tableStyle : "default";
+    const width = isTableWidth(node.attrs.tableWidth) ? node.attrs.tableWidth : "fit";
     this.dom.dataset.tableStyle = style;
-    if (this.select.value !== style) this.select.value = style;
+    if (width === "fit") delete this.dom.dataset.tableWidth;
+    else this.dom.dataset.tableWidth = width;
+    this.menu.render(this.menuProps(node));
   }
 
   update(node: PMNode) {
     if (!super.update(node)) return false;
     this.applyStyle(node);
+    this.sync();
     return true;
+  }
+
+  destroy() {
+    this.edges();
+    this.menu.destroy();
   }
 
   stopEvent(event: Event) {

@@ -133,49 +133,126 @@
 .article-body .callout-body > * + * {
   margin-top: 0.7em;
 }
+/* A callout's own image icon: the emoji's box, so it sits where one would. */
+.callout-icon-image {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: -0.24em;
+  object-fit: contain;
+  border-radius: 0.2em;
+  user-select: none;
+}
+.article-body .callout-icon .callout-icon-image {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  max-height: none;
+  margin: 0;
+  border-radius: 0.2em;
+  outline: 0;
+  background: none;
+}
+/* No icon: the text takes the whole width. */
+.article-body .callout[data-no-icon] {
+  grid-template-columns: minmax(0, 1fr);
+}
 
-/* To-do list */
+/* To-do list
+   The box hangs in the list's indent, where a bullet would be, so a to-do's
+   text lines up with a bulleted list's. It's centred on the first line (1lh
+   tall), so a wrapped item keeps it beside its first line, nested ones too.
+   Same rules for the editor's markup (li > label + div) and the page's
+   (li.task-list-item > input, or > p > input when the list is loose). */
 .article-body ul.contains-task-list,
 .article-body ul[data-type="taskList"] {
   list-style: none;
-  padding-left: 0.1em;
+  padding-left: 0;
 }
 .article-body .task-list-item,
 .article-body ul[data-type="taskList"] > li {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6em;
+  position: relative;
+  padding-left: 1.3em;
 }
-.article-body .task-list-item > input,
 .article-body ul[data-type="taskList"] > li > label {
-  flex: none;
-  margin-top: 0.42em;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  height: 1lh;
+  margin: 0;
+}
+.article-body .task-list-item input[type="checkbox"] {
+  position: absolute;
+  left: 0;
+  top: calc((1lh - 1rem) / 2);
+  line-height: inherit;
+}
+.article-body .task-list-item > p {
+  margin: 0;
 }
 .article-body ul[data-type="taskList"] > li > div {
-  flex: 1;
   min-width: 0;
 }
+.article-body :is(ul, ol) :is(ul.contains-task-list, ul[data-type="taskList"]) {
+  margin-top: 0.4em;
+}
+/* Kobra's checkbox: 16px, 4px corners, a quiet border; filled with a white
+   tick once checked, the tick growing in. */
 .article-body input[type="checkbox"] {
   appearance: none;
-  width: 1em;
-  height: 1em;
+  flex: none;
+  width: 1rem;
+  height: 1rem;
   margin: 0;
-  border-radius: 5px;
-  box-shadow: inset 0 0 0 1.5px #d4d4d8;
-  background: #fff center / 70% no-repeat;
+  border: 1px solid #d4d4d8;
+  border-radius: 4px;
+  background: #fff center / 0% no-repeat;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
   vertical-align: middle;
-  transition: background-color 150ms ease, box-shadow 150ms ease;
+  transition-property: background-color, border-color, background-size, box-shadow;
+  transition-duration: 150ms, 150ms, 200ms, 150ms;
+  transition-timing-function: ease, ease, cubic-bezier(0.34, 1.56, 0.64, 1), ease;
 }
 .article-body input[type="checkbox"]:checked {
+  border-color: var(--ink);
   background-color: var(--ink);
-  box-shadow: none;
+  background-size: 75%;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2 5 8.5l4.5-5' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
+.article-body input[type="checkbox"]:not(:disabled) {
+  cursor: pointer;
+}
+@media (hover: hover) and (pointer: fine) {
+  .article-body input[type="checkbox"]:not(:disabled):not(:checked):hover {
+    border-color: #a1a1aa;
+  }
+}
+.article-body input[type="checkbox"]:focus-visible {
+  outline: none;
+  border-color: #71717a;
+  box-shadow: 0 0 0 3px rgb(113 113 122 / 0.25);
+}
+.article-body input[type="checkbox"]:not(:disabled):active {
+  scale: 0.92;
+}
+/* Done: muted and struck through. Only the item's own line, not its children. */
 .article-body .task-list-item:has(> input:checked),
-.article-body ul[data-type="taskList"] > li[data-checked="true"] > div {
+.article-body .task-list-item:has(> p > input:checked) > p,
+.article-body ul[data-type="taskList"] > li[data-checked="true"] > div > p {
   color: var(--ink-3);
   text-decoration: line-through;
   text-decoration-color: #d4d4d8;
+  transition: color 150ms ease;
+}
+.article-body ul[data-type="taskList"] > li[data-checked="true"] > div > :not(p) {
+  color: #27272a;
+}
+@media (prefers-reduced-motion: reduce) {
+  .article-body input[type="checkbox"] {
+    transition: none;
+  }
 }
 
 /* Tables */
@@ -239,6 +316,48 @@
 }
 .article-body details > :not(summary) {
   margin: 0.6em 0 0 1.35em;
+}
+
+/* Toggle heading (Notion's): the summary set as a heading. On the page it
+   holds a real h2–h4; in the editor the summary carries data-level. */
+.article-body summary > :is(h2, h3, h4) {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+.article-body summary[data-level] {
+  color: var(--ink);
+  font-family: var(--article-heading-font, inherit);
+  font-weight: 600;
+  text-wrap: balance;
+}
+.article-body summary[data-level="2"] {
+  font-size: 1.5rem;
+  line-height: 1.25;
+  letter-spacing: -0.022em;
+}
+.article-body summary[data-level="3"] {
+  font-size: 1.1875rem;
+  line-height: 1.35;
+  letter-spacing: -0.018em;
+}
+.article-body summary[data-level="4"] {
+  font-size: 1.0625rem;
+  line-height: 1.4;
+  letter-spacing: -0.012em;
+}
+/* The room a heading gets above it. */
+.article-body > * + details:has(> summary > h2),
+.article-body > * + [data-type="details"]:has(summary[data-level="2"]) {
+  margin-top: 2.4em;
+}
+.article-body > * + details:has(> summary > h3),
+.article-body > * + [data-type="details"]:has(summary[data-level="3"]) {
+  margin-top: 2em;
+}
+.article-body > * + details:has(> summary > h4),
+.article-body > * + [data-type="details"]:has(summary[data-level="4"]) {
+  margin-top: 1.8em;
 }
 
 /* Embeds */

@@ -36,7 +36,6 @@ import {
   TextOutdent,
   Textbox,
   Trash,
-  X,
 } from "@phosphor-icons/react";
 import { Menu } from "@base-ui/react/menu";
 import AdminSelect from "./AdminSelect";
@@ -77,13 +76,16 @@ import DateTimePicker from "./DateTimePicker";
 import { useCommands, type Command } from "./registry";
 import DetailsSheet from "./DetailsSheet";
 import { BlockHandle, EditorContextMenu, FindBar, MobileToolbar } from "./EditorChrome";
-import { Callout, CurrentBlock, DetailsContent, DetailsSummary, Find, FluentEmoji, Toggle } from "./extensions/blocks";
+import { CurrentBlock, DetailsContent, DetailsSummary, Find, FluentEmoji, Toggle } from "./extensions/blocks";
 import { EmojiPicker, EmojiSuggest } from "./extensions/emoji";
 import { announceSave, usePulse, type Pulse } from "./live";
 import { keys, MenuSurface, MItem, MLabel } from "./menu";
 import { Outline } from "./Outline";
 import { Embed } from "./extensions/EmbedView";
 import { MediaPlus as Media } from "./extensions/media-plus";
+import { CalloutIconPicker, CalloutWithPicker as Callout } from "./extensions/callout-view";
+import { CoverActions, EditorBanner } from "./CoverEditor";
+import { coverStyle, withCoverStyle } from "../../../cms/cover";
 import { CodeTabsBlock } from "./extensions/code-tabs";
 import { ChartBlock } from "./extensions/chart";
 import { PollBlock } from "./extensions/poll";
@@ -116,6 +118,8 @@ import { WritingCodeBlockPro as WritingCodeBlock } from "./extensions/code-pro";
 import { saveMediaJob, pendingMediaLabel } from "./media-journal";
 import { InteractionHighlight } from "./extensions/interaction-highlight";
 import { SlashCommand, slashItems, type SlashItem } from "./slash";
+import { TabKeys } from "./extensions/tab-keys";
+import { useClickBelowToWrite, useGrabbingCursor } from "./editor-gestures";
 import { Tabs, TabsList, TabsTrigger } from "../../components/kit/tabs";
 import { SlidingNumber } from "../../components/kit/inputs/counter";
 import { CopyButton } from "../../components/kit/inputs/copy-button";
@@ -393,7 +397,8 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
         dropcursor: { color: "#2563eb", width: 2 },
       }),
       ResizableImage,
-      WritingCodeBlock,
+      // Tab indents code by two spaces; Shift+Tab takes them back (see tab-keys.ts).
+      WritingCodeBlock.configure({ enableTabIndentation: true, tabSize: 2 }),
       InlineLogo,
       HeadingIcon,
       TextColor,
@@ -401,9 +406,15 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
       NodeRange.configure({ depth: 0, key: null }),
       Placeholder.configure({
         includeChildren: true,
-        placeholder: ({ node }) => {
+        placeholder: ({ editor: e, node, pos }) => {
+          // A table is a grid of empty cells at first; a hint in each reads as noise.
+          const $pos = e.state.doc.resolve(Math.min(pos, e.state.doc.content.size));
+          for (let d = $pos.depth; d > 0; d--) {
+            const name = $pos.node(d).type.name;
+            if (name === "tableCell" || name === "tableHeader") return "";
+          }
           if (node.type.name === "heading") return HEADING_PLACEHOLDER[node.attrs.level as number] ?? "Heading";
-          if (node.type.name === "detailsSummary") return "Toggle";
+          if (node.type.name === "detailsSummary") return HEADING_PLACEHOLDER[node.attrs.level as number] ?? "Toggle";
           if (node.type.name === "codeBlock") return "";
           return "Write, / for blocks, @ for dates and pages, : for emoji";
         },
@@ -434,6 +445,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
       EmojiSuggest,
       PostLinks(() => OPEN_POST.id),
       SlashCommand(() => SLASH_ITEMS),
+      TabKeys,
       Extension.create({
         name: "adminKeys",
         addKeyboardShortcuts: () => ({
@@ -536,6 +548,10 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
       scheduleSave();
     },
   });
+
+  // A closed hand while anything drags; a click under the last block writes there.
+  useGrabbingCursor();
+  useClickBelowToWrite(editor);
 
   useEffect(() => {
     insertImages.current = async (files, pos) => {
@@ -814,7 +830,8 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
   const setCover = async (file: File) => {
     const up = await withProgress("Adding cover", (p) => uploadMedia(file, p));
     if (up?.kind !== "image") return;
-    setMeta((m) => ({ ...m, cover: { src: up.src, width: up.width, height: up.height, alt: m.cover?.alt || altFromName(file.name), caption: m.cover?.caption ?? "" } }));
+    // A new picture keeps the cover's style (classic or banner).
+    setMeta((m) => ({ ...m, cover: withCoverStyle({ src: up.src, width: up.width, height: up.height, alt: m.cover?.alt || altFromName(file.name), caption: m.cover?.caption ?? "" }, coverStyle(m.cover)) }));
   };
   const patchCover = (patch: Partial<Cover>) => setMeta((m) => (m.cover ? { ...m, cover: { ...m.cover, ...patch } } : m));
 
@@ -1120,7 +1137,10 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
       {view === "page" ? <PageView meta={meta} body={editor?.getMarkdown() ?? doc.body} doc={doc} /> : null}
       {view === "markdown" ? <MarkdownView slug={meta.slug} source={serializePost(draftToPost({ ...doc, ...meta, body: editor?.getMarkdown() ?? doc.body }, doc.updatedAt))} /> : null}
 
-      <main hidden={view !== "edit"} className="page-shell editor-canvas article-shell w-full max-w-[672px]" style={fontVars(meta.fonts) as React.CSSProperties}>
+      {meta.cover && coverStyle(meta.cover) === "banner" && view === "edit" ? (
+        <EditorBanner cover={meta.cover} onChange={(cover) => setMeta((m) => ({ ...m, cover }))} onPick={() => coverPick.current?.click()} />
+      ) : null}
+      <main hidden={view !== "edit"} className="page-shell editor-canvas article-shell w-full max-w-[672px]" data-cover={meta.cover && coverStyle(meta.cover) === "banner" ? "banner" : undefined} style={fontVars(meta.fonts) as React.CSSProperties}>
         <article className="article" inert={!recoveryReady||Boolean(recovery)}>
           <header className="article-header">
             <div className="editor-page-tools" data-has-icon={meta.icon ? "" : undefined}>
@@ -1170,18 +1190,11 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
             <AuthorsEditor authors={meta.authors} minutes={minutes} onChange={(authors) => setMeta((m) => ({ ...m, authors }))} />
           </header>
 
-          {meta.cover ? (
+          {meta.cover && coverStyle(meta.cover) === "classic" ? (
             <figure className="article-cover editor-cover">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={meta.cover.src} alt={meta.cover.alt} width={meta.cover.width} height={meta.cover.height} />
-              <div className="editor-cover-actions">
-                <button type="button" className="admin-chip" onClick={() => coverPick.current?.click()}>
-                  Replace
-                </button>
-                <button type="button" className="admin-chip" onClick={() => setMeta((m) => ({ ...m, cover: null }))} aria-label="Remove cover">
-                  <X size={12} weight="bold" />
-                </button>
-              </div>
+              <CoverActions cover={meta.cover} onChange={(cover) => setMeta((m) => ({ ...m, cover }))} onPick={() => coverPick.current?.click()} />
               <input
                 className="editor-caption"
                 value={meta.cover.caption ?? ""}
@@ -1297,6 +1310,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
         if (!recoveryReady || recovery || !await flush()) throw new Error("Save or recover this page before pinning it.");
         const {post}=await api.save(initial.id,{pinned:!server.current.pinned,base:server.current.updatedAt});adopt(post);
       }}/>
+      <CalloutIconPicker />
       <MediaJobs documentId={initial.id} editor={editor} beforeSave={()=>flush()} enabled={recoveryReady&&!recovery}/>
       <ImportReview editor={editor}/>
       <MediaLibrary open={panel==="media"} onClose={()=>setPanel(null)} onInsert={asset=>{

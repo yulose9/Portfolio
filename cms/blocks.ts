@@ -8,7 +8,7 @@
  *
  *   code      ```ts title="app/page.tsx" showLineNumbers {2,4-5}
  *   tabs      <div data-code-tabs>  + one fence per tab, title="npm" …
- *   table     <div data-table="striped">  + a GFM table
+ *   table     <div data-table="striped" data-header="both" data-width="wide">  + a GFM table
  *   chart     <div data-chart="bar" data-title="…">  + a GFM table
  *   poll      <div data-poll="id">  + **question** + a bullet list
  *   citation  <a href="…" data-cite="" data-title="…" data-snippet="…">Site</a>
@@ -234,9 +234,51 @@ export function parseChartBlock(src: string): (ChartBlock & { raw: string }) | n
 
 /* ── Styled table wrapper ────────────────────────────────────────────── */
 
-export function parseStyledTableStart(src: string): { open: string; style: TableStyle } | null {
-  const m = /^<div data-table="([a-z]+)">[ \t]*\n/.exec(src);
-  return m && isTableStyle(m[1]) ? { open: m[0], style: m[1] } : null;
+/*
+ * A table's wrapper carries what GFM can't say:
+ *
+ *   <div data-table="striped" data-header="both" data-width="wide">
+ *
+ * data-header — which cells are headers. GFM always writes the first row
+ *   as its header line, so "none" and "col" mean that line is really data.
+ *   "row" (the default) is left out.
+ * data-width — "fit" (the default, the text column, left out) or "wide"
+ *   (breaks out of the column, centred).
+ *
+ * A table with the default style, a header row and the text's width needs
+ * no wrapper at all: it stays plain GFM, as before.
+ */
+export const TABLE_HEADERS = ["row", "col", "both", "none"] as const;
+export type TableHeader = (typeof TABLE_HEADERS)[number];
+export const isTableHeader = (v: unknown): v is TableHeader => typeof v === "string" && (TABLE_HEADERS as readonly string[]).includes(v);
+
+export const TABLE_WIDTHS = ["fit", "wide"] as const;
+export type TableWidth = (typeof TABLE_WIDTHS)[number];
+export const isTableWidth = (v: unknown): v is TableWidth => typeof v === "string" && (TABLE_WIDTHS as readonly string[]).includes(v);
+
+export type TableOptions = { style: TableStyle; header: TableHeader; width: TableWidth };
+
+/** Header row and column on/off → the data-header value. */
+export const tableHeader = (row: boolean, col: boolean): TableHeader => (row && col ? "both" : row ? "row" : col ? "col" : "none");
+export const hasHeaderRow = (h: TableHeader) => h === "row" || h === "both";
+export const hasHeaderCol = (h: TableHeader) => h === "col" || h === "both";
+
+/** The wrapper's opening tag, or "" when the table needs none. */
+export function tableOpenTag(o: Partial<TableOptions>): string {
+  const style = isTableStyle(o.style) ? o.style : "default";
+  const header = isTableHeader(o.header) ? o.header : "row";
+  const width = isTableWidth(o.width) ? o.width : "fit";
+  if (style === "default" && header === "row" && width === "fit") return "";
+  return `<div data-table="${style}"${header !== "row" ? ` data-header="${header}"` : ""}${width !== "fit" ? ` data-width="${width}"` : ""}>`;
+}
+
+export function parseStyledTableStart(src: string): ({ open: string } & TableOptions) | null {
+  const m = /^<div data-table="([a-z]+)"((?:[ \t]+data-[a-z]+="[a-z]*")*)[ \t]*>[ \t]*\n/.exec(src);
+  if (!m || !isTableStyle(m[1])) return null;
+  const attr = (name: string) => new RegExp(`data-${name}="([a-z]*)"`).exec(m[2])?.[1];
+  const header = attr("header");
+  const width = attr("width");
+  return { open: m[0], style: m[1], header: isTableHeader(header) ? header : "row", width: isTableWidth(width) ? width : "fit" };
 }
 
 /* ── Poll ────────────────────────────────────────────────────────────── */

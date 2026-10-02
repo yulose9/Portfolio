@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useState } from "react";
 
+import { SlidingNumber } from "../kit/inputs/counter";
+
 /*
  * A poll readers vote in, after cult-ui's choice poll: pick one option, vote,
  * and the options turn into bars with their share, yours marked. Votes go to
@@ -95,29 +97,59 @@ export default function ChoicePoll({ id, question, options }: { id: string; ques
   const voted = results?.voted ?? null;
   const showResults = voted !== null && results;
   const total = results?.total ?? 0;
+  const top = Math.max(0, ...(results?.counts ?? [0]));
+  const titleId = `${name}-q`;
 
   return (
-    <fieldset className="poll" data-state={showResults ? "results" : "voting"} aria-busy={busy || undefined}>
-      <legend className="poll-question">{question}</legend>
-      <div className="poll-options" role={showResults ? "list" : "radiogroup"} aria-label={showResults ? "Results" : question}>
+    <section className="poll" data-state={showResults ? "results" : "voting"} aria-labelledby={titleId} aria-busy={busy || undefined}>
+      <header className="poll-head">
+        <span className="poll-kicker">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M3 13V8M8 13V3M13 13v-3" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+          </svg>
+          Poll
+        </span>
+        <p className="poll-question" id={titleId}>
+          {question}
+        </p>
+      </header>
+      <div className="poll-options" role={showResults ? "list" : "radiogroup"} aria-labelledby={titleId}>
         {options.map((option, i) => {
           const count = results?.counts[i] ?? 0;
           const share = total ? Math.round((count / total) * 100) : 0;
           if (showResults) {
+            const mine = voted === i;
             return (
-              <div key={i} role="listitem" className="poll-option" data-mine={voted === i || undefined}
-                aria-label={`${option}: ${share}%${voted === i ? ", your vote" : ""}`}>
-                <span className="poll-bar" style={{ "--share": `${share}%` } as React.CSSProperties} aria-hidden="true" />
-                <span className="poll-label">
-                  {option}
-                  {voted === i ? <span className="poll-you">You voted</span> : null}
+              <div
+                key={i}
+                role="listitem"
+                className="poll-result"
+                data-mine={mine || undefined}
+                data-leading={(count > 0 && count === top) || undefined}
+                aria-label={`${option}: ${share}%, ${count} ${count === 1 ? "vote" : "votes"}${mine ? ", your vote" : ""}`}
+              >
+                <span className="poll-result-row" aria-hidden="true">
+                  <span className="poll-label">
+                    {option}
+                    {mine ? (
+                      <svg className="poll-mine" viewBox="0 0 16 16">
+                        <circle cx="8" cy="8" r="7" fill="currentColor" />
+                        <path d="M5 8.2 7 10.2 11 6" fill="none" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    ) : null}
+                  </span>
+                  <span className="poll-share">
+                    <SlidingNumber value={share} />%
+                  </span>
                 </span>
-                <span className="poll-share" aria-hidden="true">{share}%</span>
+                <span className="poll-track" aria-hidden="true">
+                  <span className="poll-fill" style={{ "--share": `${share}%` } as React.CSSProperties} />
+                </span>
               </div>
             );
           }
           return (
-            <label key={i} className="poll-option poll-choice" data-checked={choice === i || undefined}>
+            <label key={i} className="poll-choice" data-checked={choice === i || undefined}>
               <input type="radio" name={name} value={i} checked={choice === i} onChange={() => setChoice(i)} />
               <span className="poll-indicator" aria-hidden="true" />
               <span className="poll-label">{option}</span>
@@ -125,20 +157,22 @@ export default function ChoicePoll({ id, question, options }: { id: string; ques
           );
         })}
       </div>
-      <div className="poll-footer">
+      <footer className="poll-footer">
         {showResults ? (
           <p className="poll-note" role="status">
-            {mode === "live" ? `${total.toLocaleString("en-US")} ${total === 1 ? "vote" : "votes"}` : "Saved on this device. Live results aren’t available right now."}
+            {mode === "live"
+              ? `${total.toLocaleString("en-US")} ${total === 1 ? "vote" : "votes"} · Thanks for voting`
+              : "Saved on this device. Live results aren’t available right now."}
           </p>
         ) : (
           <>
+            <p className="poll-note">{mode === "loading" ? "Loading…" : choice === null ? "Pick one to vote." : "One vote per reader."}</p>
             <button type="button" className="poll-submit" disabled={choice === null || busy || mode === "loading"} onClick={() => void vote()}>
               {busy ? "Voting…" : "Vote"}
             </button>
-            <p className="poll-note">One vote per reader.</p>
           </>
         )}
-      </div>
-    </fieldset>
+      </footer>
+    </section>
   );
 }

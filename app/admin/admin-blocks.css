@@ -284,10 +284,23 @@
 .editor-poll .editor-block-toolbar {
   margin-bottom: 0.5rem;
 }
+.editor-poll-options {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* The option rows reuse the reader's radio cards; here they hold a text field. */
+.editor-poll-options .poll-choice {
+  padding-block: 0;
+  cursor: text;
+}
+.editor-poll-options .poll-choice:active {
+  scale: none;
+}
 .editor-poll-options input {
   flex: 1;
   min-width: 0;
-  height: 40px;
+  height: 44px;
   border: 0;
   background: transparent;
   font: inherit;
@@ -295,8 +308,9 @@
 .editor-poll-options input:focus-visible {
   outline: none;
 }
-.editor-poll-options .poll-option:focus-within {
-  border-color: #a1a1aa;
+.editor-poll-options .poll-choice:focus-within {
+  background: #fff;
+  box-shadow: inset 0 0 0 1.5px #a1a1aa;
 }
 .editor-poll .poll-footer .admin-button {
   display: inline-flex;
@@ -360,44 +374,50 @@
   margin: 0;
 }
 
-/* Table toolbar (extensions/table-plus.ts) */
+/* Tables while editing (extensions/table-plus.ts). The cells' look is the
+   site's (article-blocks-2.css); here the frame is .tableWrapper, which
+   scrolls, and the edge fades sit on .table-block around it. */
 .editor-body .table-block {
   position: relative;
   margin-block: 1.6em;
 }
 .editor-body .table-block .tableWrapper {
   overflow-x: auto;
-}
-.editor-body .table-block[data-table-style="default"] .tableWrapper,
-.editor-body .table-block[data-table-style="striped"] .tableWrapper,
-.editor-body .table-block[data-table-style="data"] .tableWrapper {
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  /* The base .tableWrapper rule's gutter left empty strips inside the frame. */
+  margin: 0;
+  padding: 0;
   border: 1px solid var(--rule);
   border-radius: 12px;
+  background: #fff;
 }
-.editor-body .table-block[data-table-style="default"] th {
-  background: #fafafa;
-  font-weight: 500;
+.editor-body .table-block[data-table-style="minimal"] .tableWrapper {
+  border-color: transparent;
+  border-radius: 0;
+  background: none;
 }
-.editor-body .table-block[data-table-style="default"] :is(th, td):not(:last-child),
-.editor-body .table-block[data-table-style="data"] :is(th, td):not(:last-child) {
-  border-right: 1px solid var(--rule);
+.editor-body .table-block[data-table-style="bordered"] .tableWrapper {
+  border-color: #e4e4e7;
 }
-.editor-body .table-block[data-table-style="striped"] tr:nth-child(even) td {
-  background: #fafafa;
+/* Tiptap sizes the table to its columns' minimum; it still fills the frame. */
+.editor-body .table-block .tableWrapper table {
+  width: 100%;
+  margin: 0;
 }
-.editor-body .table-block[data-table-style="bordered"] :is(th, td) {
-  border: 1px solid #e4e4e7;
+/* The fades cover the frame's inside only. */
+.editor-body .table-block::before,
+.editor-body .table-block::after {
+  top: 1px;
+  bottom: 1px;
 }
-.editor-body .table-block[data-table-style="bordered"] th {
-  background: #f4f4f5;
+.editor-body .table-block::before {
+  left: 1px;
+  border-radius: 11px 0 0 11px;
 }
-.editor-body .table-block[data-table-style="minimal"] th {
-  font-weight: 500;
-  color: var(--ink-2);
-  border-bottom-color: #d4d4d8;
-}
-.editor-body .table-block[data-table-style="data"] td {
-  font-variant-numeric: tabular-nums;
+.editor-body .table-block::after {
+  right: 1px;
+  border-radius: 0 11px 11px 0;
 }
 .table-toolbar {
   position: absolute;
@@ -422,19 +442,80 @@
   user-select: none;
 }
 .editor-body .table-block.is-current .table-toolbar,
+.editor-body .table-block[data-menu-open] .table-toolbar,
 .table-toolbar:focus-within {
   opacity: 1;
   translate: 0 0;
   pointer-events: auto;
 }
-.table-style-select {
+/* The style and width picker (table-menu.tsx): a button showing the current
+   style's sketch, and the kit's dropdown menu. */
+.table-style-host {
+  display: contents;
+}
+.table-style-trigger {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
   height: 28px;
-  padding: 0 6px;
-  border: 0;
+  padding: 0 6px 0 4px;
   border-radius: 7px;
-  background: #f4f4f5;
   font: inherit;
+  font-weight: 500;
   color: #0a0a0a;
+  white-space: nowrap;
+  transition: background-color 120ms ease;
+}
+.table-style-trigger:hover,
+.table-style-trigger[data-popup-open] {
+  background: #f4f4f5;
+}
+.table-style-trigger .table-menu-preview {
+  width: 21px;
+  height: 15px;
+}
+.table-style-badge {
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: #f4f4f5;
+  font-size: 11px;
+  font-weight: 500;
+  color: #52525b;
+}
+.table-style-trigger:hover .table-style-badge,
+.table-style-trigger[data-popup-open] .table-style-badge {
+  background: #fff;
+}
+.table-style-chevron {
+  width: 14px;
+  height: 14px;
+  color: #71717a;
+  transition: rotate 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+.table-style-trigger[data-popup-open] .table-style-chevron {
+  rotate: 180deg;
+}
+.table-menu {
+  width: 15.5rem;
+}
+.table-menu .table-menu-item {
+  gap: 10px;
+  padding-block: 6px;
+}
+.table-menu-preview {
+  flex: none;
+  width: 28px;
+  height: 20px;
+}
+.table-menu-text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+.table-menu-hint {
+  font-size: 12px;
+  color: var(--muted-foreground, #71717a);
 }
 .table-tool {
   display: grid;
@@ -460,7 +541,7 @@
   color: #b91c1c;
 }
 .table-tool:focus-visible,
-.table-style-select:focus-visible {
+.table-style-trigger:focus-visible {
   outline: 2px solid #111;
   outline-offset: -2px;
 }
@@ -486,7 +567,8 @@
   cursor: col-resize;
 }
 @media (prefers-reduced-motion: reduce) {
-  .table-toolbar {
+  .table-toolbar,
+  .table-style-chevron {
     transition: none;
   }
 }
@@ -535,3 +617,290 @@
 .editor-skeleton-line { height: 0.95rem; }
 .editor-skeleton-gap { height: 0.75rem; }
 .markdown-view-actions { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ── Callout icon (extensions/callout-view.tsx) ─────────────────────── */
+
+.editor-body .callout-icon {
+  display: grid;
+  place-items: center;
+  align-self: start;
+  width: 1.6rem;
+  height: 1.6rem;
+  outline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .editor-body .callout-icon:hover {
+    background: rgb(0 0 0 / 0.05);
+  }
+}
+.editor-body .callout-icon:focus-visible {
+  outline: 2px solid var(--a-blue);
+}
+/* No icon: an empty slot that offers one on hover. */
+.editor-body .callout-icon[data-empty]::before {
+  content: "";
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+  color: var(--a-ink-3);
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+.editor-body .callout:hover .callout-icon[data-empty]::before,
+.editor-body .callout-icon[data-empty]:focus-visible::before {
+  opacity: 0.6;
+}
+.callout-icon-panel {
+  width: min(372px, calc(100vw - 24px));
+  padding: 14px;
+  max-height: var(--available-height, calc(100dvh - 24px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.callout-icon-panel .picker-heading {
+  margin-bottom: 12px;
+}
+.callout-icon-tabs {
+  display: grid;
+  gap: 10px;
+}
+.callout-icon-panel .emoji-picker {
+  width: 100%;
+  height: 320px;
+}
+.callout-icon-custom {
+  display: grid;
+  gap: 12px;
+  min-height: 320px;
+  align-content: start;
+}
+.callout-icon-drop.ki-dropzone {
+  min-height: 150px;
+  padding: 20px 16px;
+}
+.callout-icon-current {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--a-ink-3);
+}
+.callout-icon-current img {
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--a-fill);
+  object-fit: contain;
+}
+.callout-icon-url {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+.callout-icon-url .admin-button {
+  min-height: 40px;
+}
+.callout-icon-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--a-line);
+}
+.callout-tones {
+  display: flex;
+  gap: 6px;
+}
+.callout-tone {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #f4f4f5;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+  cursor: pointer;
+  transition: box-shadow 150ms ease, scale var(--press, 120ms) var(--ease, ease);
+}
+.callout-tone[data-tone="tip"] { background: #dcfce7; }
+.callout-tone[data-tone="important"] { background: #dbeafe; }
+.callout-tone[data-tone="warning"] { background: #fef3c7; }
+.callout-tone[data-tone="caution"] { background: #fee2e2; }
+.callout-tone[aria-checked="true"] {
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12), 0 0 0 2px #fff, 0 0 0 4px var(--a-ink);
+}
+.callout-tone:active {
+  scale: 0.9;
+}
+.callout-tone:focus-visible {
+  outline: 2px solid var(--a-blue);
+  outline-offset: 4px;
+}
+.callout-icon-actions {
+  display: flex;
+  gap: 4px;
+}
+.callout-icon-actions .admin-button {
+  gap: 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .callout-tone,
+  .editor-body .callout-icon[data-empty]::before {
+    transition: none;
+  }
+}
+
+/* ── Voice notes in the editor (extensions/media-plus.tsx) ─────────── */
+/* The page's card (writing-extras.css), with its caption as a field on the
+   title line and the remove button in the corner, as on embeds and video. */
+
+.media-node .editor-audio {
+  margin: 0;
+}
+.media-node[data-selected] .editor-audio {
+  border-radius: 18px;
+}
+.editor-voice-caption {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  /* Room for the corner tools. */
+  padding-right: 2.5rem;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-family: inherit;
+}
+.editor-voice-caption::placeholder {
+  font-weight: 400;
+  color: var(--a-ink-3);
+}
+.editor-voice-caption:focus-visible {
+  border-radius: 6px;
+  box-shadow: 0 0 0 2px var(--a-blue);
+}
+
+/* ── Cover style: classic or banner (CoverEditor.tsx) ──────────────── */
+
+.cover-style {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.9);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+}
+.cover-style-option {
+  min-height: 24px;
+  padding: 0 0.6rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--a-ink-3);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.cover-style-option[aria-checked="true"] {
+  background: var(--a-ink);
+  color: #fff;
+}
+.cover-style-option:focus-visible {
+  outline: 2px solid var(--a-blue);
+  outline-offset: 1px;
+}
+.editor-cover-actions .admin-chip {
+  gap: 0.35rem;
+}
+/* The banner spans the editor pane, edge to edge, above the page. */
+.editor-banner {
+  margin: 0;
+}
+.editor-banner .editor-cover-actions {
+  top: auto;
+  bottom: 0.75rem;
+  right: 1rem;
+}
+.editor-banner-alt {
+  position: absolute;
+  left: 1rem;
+  bottom: 0.75rem;
+  width: min(320px, calc(100% - 2rem - 300px));
+  min-width: 160px;
+  height: 28px;
+  padding: 0 0.7rem;
+  border: 0;
+  border-radius: 999px;
+  outline: 0;
+  background: rgb(255 255 255 / 0.9);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+  font: inherit;
+  font-size: 12px;
+  color: var(--a-ink);
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+.editor-banner:hover .editor-banner-alt,
+.editor-banner:focus-within .editor-banner-alt,
+.editor-banner-alt[data-missing] {
+  opacity: 1;
+}
+.editor-banner-alt[data-missing]::placeholder {
+  color: var(--a-amber);
+}
+.editor-banner-alt:focus-visible {
+  box-shadow: 0 0 0 2px var(--a-blue);
+}
+@media (hover: none) {
+  .editor-banner-alt {
+    opacity: 1;
+  }
+}
+@media (max-width: 640px) {
+  .editor-banner .editor-cover-actions {
+    top: 0.5rem;
+    bottom: auto;
+    right: 0.5rem;
+  }
+  .editor-banner-alt {
+    left: 0.5rem;
+    bottom: 0.5rem;
+    width: calc(100% - 1rem);
+  }
+}
+/* The page under a banner: the icon rides up over its bottom edge. */
+.editor-canvas[data-cover="banner"] {
+  padding-top: 0;
+}
+.editor-canvas[data-cover="banner"] .editor-page-tools {
+  position: relative;
+  z-index: 1;
+  margin-top: 1.25rem;
+}
+.editor-canvas[data-cover="banner"] .editor-page-tools[data-has-icon] {
+  margin-top: -48px;
+  margin-bottom: 1rem;
+}
+.editor-canvas[data-cover="banner"] .page-icon {
+  width: 92px;
+  height: 92px;
+  margin-left: 0;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 0 0 4px #fff, 0 6px 20px rgb(0 0 0 / 0.1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cover-style-option,
+  .editor-banner-alt {
+    transition: none;
+  }
+}

@@ -110,3 +110,23 @@ test("selection-only updates do not erase a resize gesture before it commits", (
   view.update({attrs:{width:180,height:90}});
   assert.equal(img.style.width,"180px");
 });
+
+test("toggle headings keep their level through Markdown and render as headings on the page", async () => {
+  const { Toggle, DetailsSummary, DetailsContent } = await import("../app/admin/ui/extensions/blocks.ts");
+  const manager = new MarkdownManager({ extensions: [StarterKit, Toggle, DetailsSummary, DetailsContent] });
+  const doc = { type: "doc", content: [{ type: "details", content: [
+    { type: "detailsSummary", attrs: { level: 3 }, content: [{ type: "text", text: "Folded section" }] },
+    { type: "detailsContent", content: [{ type: "paragraph", content: [{ type: "text", text: "Inside." }] }] },
+  ] }] };
+  const md = manager.serialize(doc);
+  assert.match(md, /<summary><h3>Folded section<\/h3><\/summary>/);
+  const back = manager.parse(md).content[0];
+  assert.equal(back.type, "details");
+  assert.equal(back.content[0].attrs.level, 3);
+  assert.equal(back.content[0].content[0].text, "Folded section");
+  const plain = manager.serialize({ type: "doc", content: [{ ...doc.content[0], content: [{ ...doc.content[0].content[0], attrs: { level: 0 } }, doc.content[0].content[1]] }] });
+  assert.match(plain, /<summary>Folded section<\/summary>/);
+  const find = (n, tag) => n.tagName === tag ? n : (n.children ?? []).map((k) => find(k, tag)).find(Boolean);
+  const summary = find(await markdownToTree(md), "summary");
+  assert.ok(summary && find(summary, "h3"), "the summary holds a real h3");
+});

@@ -30,7 +30,7 @@ function PollView({ node, editor, updateAttributes, deleteNode, selected }: Reac
         </div>
         <ol className="poll-options editor-poll-options">
           {options.map((option, i) => (
-            <li key={i} className="poll-option">
+            <li key={i} className="poll-choice editor-poll-option">
               <span className="poll-indicator" aria-hidden="true" />
               <input value={option} placeholder={`Option ${i + 1}`} aria-label={`Option ${i + 1}`} maxLength={120} disabled={!editable}
                 onChange={(e) => set(i, e.target.value)}

@@ -23,6 +23,7 @@ import {
 } from "@phosphor-icons/react";
 import type { Editor } from "@tiptap/core";
 import { isNodeRangeSelection, NodeRangeSelection } from "@tiptap/extension-node-range";
+import { TextSelection } from "@tiptap/pm/state";
 
 /*
  * The editor's verbs, defined once. The slash menu, the right-click menu, the
@@ -43,6 +44,9 @@ export type BlockKind =
   | "quote"
   | "callout"
   | "toggle"
+  | "toggleH1"
+  | "toggleH2"
+  | "toggleH3"
   | "code";
 
 export type BlockDef = { kind: BlockKind; title: string; hint: string; md: string; keywords: string[]; icon: React.ReactNode };
@@ -57,12 +61,69 @@ export const BLOCKS: BlockDef[] = [
   { kind: "ordered", title: "Numbered list", hint: "Steps in order", md: "1.", keywords: ["ol", "ordered", "number", "list"], icon: <ListNumbers {...I} /> },
   { kind: "todo", title: "To-do list", hint: "Track tasks", md: "[]", keywords: ["todo", "task", "checkbox", "check"], icon: <CheckSquare {...I} /> },
   { kind: "toggle", title: "Toggle", hint: "Hide content inside", md: ">", keywords: ["toggle", "details", "collapse", "accordion"], icon: <CaretCircleRight {...I} /> },
+  { kind: "toggleH1", title: "Toggle heading 1", hint: "Section that folds", md: "", keywords: ["toggleh1", "toggleheading1", "th1", "toggle", "heading", "h1", "collapse", "fold", "section"], icon: <CaretCircleRight {...I} weight="bold" /> },
+  { kind: "toggleH2", title: "Toggle heading 2", hint: "Subsection that folds", md: "", keywords: ["toggleh2", "toggleheading2", "th2", "toggle", "heading", "h2", "collapse", "fold"], icon: <CaretCircleRight {...I} weight="bold" /> },
+  { kind: "toggleH3", title: "Toggle heading 3", hint: "Small heading that folds", md: "", keywords: ["toggleh3", "toggleheading3", "th3", "toggle", "heading", "h3", "collapse", "fold"], icon: <CaretCircleRight {...I} weight="bold" /> },
   { kind: "quote", title: "Quote", hint: "Pull a line out", md: '"', keywords: ["blockquote", "cite", "quote"], icon: <Quotes {...I} /> },
   { kind: "callout", title: "Callout", hint: "Note, tip or warning box", md: "", keywords: ["callout", "note", "tip", "warning", "alert", "info"], icon: <Info {...I} /> },
   { kind: "code", title: "Code", hint: "Code block", md: "```", keywords: ["code", "snippet", "pre"], icon: <CodeBlock {...I} /> },
 ];
 
 const HEADING_LEVEL = { h1: 2, h2: 3, h3: 4 } as const;
+const TOGGLE_LEVEL = { toggle: 0, toggleH1: 2, toggleH2: 3, toggleH3: 4 } as const;
+
+/** The toggle whose summary holds the caret, if it does. */
+function summaryAt(editor: Editor) {
+  const { $from } = editor.state.selection;
+  if ($from.parent.type.name !== "detailsSummary" || $from.depth < 2) return null;
+  return { pos: $from.before(), node: $from.parent };
+}
+
+/**
+ * A toggle, plain or as a heading (Notion's toggle heading). In a toggle's
+ * summary it only changes the summary's level. A single line becomes the
+ * toggle's summary, its words kept, with an empty line inside for what it
+ * folds away; a selection across several blocks is folded into a plain
+ * toggle as before.
+ */
+function toToggle(editor: Editor, level: number) {
+  const summary = summaryAt(editor);
+  if (summary) {
+    return editor.chain().focus().command(({ tr }) => {
+      tr.setNodeMarkup(summary.pos, undefined, { ...summary.node.attrs, level });
+      return true;
+    }).run();
+  }
+  const { $from, $to } = editor.state.selection;
+  if (!$from.sameParent($to) || !$from.parent.isTextblock) return editor.chain().focus().clearNodes().setDetails().run();
+  return editor
+    .chain()
+    .focus()
+    .clearNodes()
+    .command(({ tr, state }) => {
+      const { schema } = state;
+      const $at = tr.selection.$from;
+      const block = $at.parent;
+      if (!block.isTextblock || $at.depth < 1) return false;
+      const index = $at.index(-1);
+      if (!$at.node(-1).canReplaceWith(index, index + 1, schema.nodes.details)) return false;
+      // A summary takes text only: mentions, emoji and breaks stay behind.
+      const words: import("@tiptap/pm/model").Node[] = [];
+      block.content.forEach((child) => {
+        if (child.isText) words.push(child);
+      });
+      const node = schema.nodes.details.create({ open: true }, [
+        schema.nodes.detailsSummary.create({ level }, words),
+        schema.nodes.detailsContent.create(null, schema.nodes.paragraph.create()),
+      ]);
+      const start = $at.before();
+      tr.replaceWith(start, $at.after(), node);
+      const caret = start + 2 + node.firstChild!.content.size;
+      tr.setSelection(TextSelection.create(tr.doc, caret));
+      return true;
+    })
+    .run();
+}
 
 /** Turn the current block into `kind`, unwrapping whatever it was first. */
 export function turnInto(editor: Editor, kind: BlockKind) {
@@ -85,7 +146,10 @@ export function turnInto(editor: Editor, kind: BlockKind) {
     case "callout":
       return chain.clearNodes().setCallout("note").run();
     case "toggle":
-      return chain.clearNodes().setDetails().run();
+    case "toggleH1":
+    case "toggleH2":
+    case "toggleH3":
+      return toToggle(editor, TOGGLE_LEVEL[kind]);
     case "code":
       return chain.clearNodes().toggleCodeBlock().run();
   }
@@ -97,7 +161,10 @@ export function activeBlock(editor: Editor): BlockKind {
   if (editor.isActive("bulletList")) return "bullet";
   if (editor.isActive("orderedList")) return "ordered";
   if (editor.isActive("callout")) return "callout";
-  if (editor.isActive("details")) return "toggle";
+  if (editor.isActive("details")) {
+    const level = summaryAt(editor)?.node.attrs.level as number | undefined;
+    return level === 2 ? "toggleH1" : level === 3 ? "toggleH2" : level === 4 ? "toggleH3" : "toggle";
+  }
   if (editor.isActive("blockquote")) return "quote";
   if (editor.isActive("heading", { level: 2 })) return "h1";
   if (editor.isActive("heading", { level: 3 })) return "h2";
