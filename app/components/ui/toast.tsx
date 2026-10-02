@@ -1,6 +1,6 @@
 "use client";
 
-import { Info, Warning, WarningCircle } from "@phosphor-icons/react";
+import { Info, Trash, Warning, WarningCircle } from "@phosphor-icons/react";
 import { Toast } from "@base-ui/react/toast";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
@@ -22,20 +22,21 @@ import { isProgrammaticCopy, snippet, toast } from "../../lib/toast";
  *
  * Loaded as its own chunk after hydration (see LazyToaster), so none of this
  * weighs on the first load. Types pick the glyph: success, info, warning,
- * error, loading. Pending and success share one badge, which turns from a
+ * error, loading, and trash (a quiet bin for something just deleted, which
+ * can morph into the loading badge when it is undone). Pending and success share one badge, which turns from a
  * running arc into a filled tick in place.
  */
 
-type ToastType = "success" | "info" | "warning" | "error" | "loading";
+type ToastType = "success" | "info" | "warning" | "error" | "loading" | "trash";
 
 // Kobra's MORPH and EXIT: critically damped springs, .3s in, .2s out.
 const MORPH = { type: "spring", duration: 0.3, bounce: 0 } as const;
 const EXIT = { type: "spring", duration: 0.2, bounce: 0 } as const;
 
 const GLYPH_POP = {
-  initial: { opacity: 0, scale: 0.25, filter: "blur(4px)" },
+  initial: { opacity: 0, scale: 0.5, filter: "blur(4px)" },
   animate: { opacity: 1, scale: 1, filter: "blur(0px)" },
-  exit: { opacity: 0, scale: 0.25, filter: "blur(4px)", transition: EXIT },
+  exit: { opacity: 0, scale: 0.5, filter: "blur(4px)", transition: EXIT },
 } as const;
 
 const TEXT_SLIDE = {
@@ -45,13 +46,14 @@ const TEXT_SLIDE = {
 } as const;
 
 function isType(type: string | undefined): type is ToastType {
-  return type === "success" || type === "info" || type === "warning" || type === "error" || type === "loading";
+  return type === "success" || type === "info" || type === "warning" || type === "error" || type === "loading" || type === "trash";
 }
 
 function Glyph({ type }: { type: ToastType }) {
   if (type === "loading" || type === "success") return <StatusBadge state={type === "success" ? "done" : "loading"} />;
+  if (type === "trash") return <Trash size={16} weight="duotone" />;
   const Mark = type === "error" ? WarningCircle : type === "warning" ? Warning : Info;
-  return <Mark size={type === "error" ? 18 : 16} weight="fill" />;
+  return <Mark size={16} weight="fill" />;
 }
 
 // Pending and done are one badge morphing; the other kinds replace each other.
@@ -242,7 +244,7 @@ function ToastList({ viewport }: { viewport: RefObject<HTMLDivElement | null> })
               <Line key={wording} title={title} description={description} />
             </AnimatePresence>
 
-            <Toast.Action className={buttonClassName("default", "kt-toast-action")} data-variant="default" data-size="xs" />
+            <Toast.Action className={buttonClassName("secondary", "kt-toast-action")} data-variant="secondary" data-size="xs" />
             <Toast.Close className="kt-toast-close" aria-label="Dismiss" data-slot="toast-close">
               <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
                 <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />

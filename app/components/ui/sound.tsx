@@ -776,7 +776,7 @@ export function SoundToggle({ className, onClick, ...props }: React.ComponentPro
       data-slot="sound-toggle"
       {...props}
       className={cn(
-        "flex size-7 cursor-pointer items-center justify-center rounded text-shell-fg-faint transition-[transform,box-shadow] duration-100 ease-out outline-none hover:bg-black/5 hover:text-shell-fg-muted focus-visible:ring-2 focus-visible:ring-black/70 active:scale-[0.96] motion-reduce:transition-none",
+        "flex size-7 cursor-pointer items-center justify-center rounded text-shell-fg-faint transition-[transform,box-shadow] duration-100 ease-out outline-none hover:bg-black/5 hover:text-shell-fg-muted focus-visible:ring-2 focus-visible:ring-black/70 active:scale-[0.96] motion-reduce:transition-none dark:hover:bg-white/10 dark:focus-visible:ring-white/70",
         className
       )}
     >

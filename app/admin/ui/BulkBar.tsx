@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { copy } from "../../components/menu/actions";
 import { toast } from "../../lib/toast";
+import { trashToast } from "./trash-toast";
 import { api, ApiError, type BulkAction, type PostSummary } from "./api";
 import { exactTime } from "./bits";
 import DateTimePicker from "./DateTimePicker";
@@ -136,7 +137,9 @@ export function useBulk({
       const ok = action === "destroy" ? (r.deleted?.length ?? 0) : r.posts.length;
       const failed = r.failed;
       const why = failed.length ? `${failed.length} couldn’t ${VERB[action]}. “${title(failed[0].id)}”: ${failed[0].error}` : undefined;
-      if (ok) {
+      if (ok && action === "trash" && !failed.length) {
+        trashToast({ count: ok, name: title(ids[0]), live: selected.some((p) => p.liveSlug), restore: () => api.bulk("restore", ids).then(onDone) });
+      } else if (ok) {
         const t = toast.add({
           type: failed.length ? "warning" : "success",
           title: DONE[action](ok),
@@ -145,7 +148,7 @@ export function useBulk({
             (action === "publish"
               ? "One rebuild for all of them, in about 3 minutes."
               : action === "unpublish"
-                ? "They leave the site in about 3 minutes."
+                ? "Leaving the site in about 3 minutes."
                 : action === "schedule" && when
                   ? `Going live ${exactTime(when.toISOString())}.`
                   : action === "trash"
@@ -216,7 +219,7 @@ export function useBulk({
                         toast.add({ type: "success", title: "Duplicated", description: post.title || "Untitled", actionProps: { children: "Open", onClick: () => onOpen(post.id) } });
                         onDone();
                       })
-                      .catch(() => toast.add({ type: "error", title: "Couldn’t duplicate it" })),
+                      .catch(() => toast.add({ type: "error", title: "Couldn’t duplicate it", description: "Try again in a moment." })),
                 },
               ]
             : []),

@@ -4,7 +4,7 @@
   min-width: 0;
   border: 1px solid var(--rule);
   border-radius: 12px;
-  background: #fafafa;
+  background: var(--paper-sunk);
 }
 .editor-code-tools {
   display: flex;
@@ -30,7 +30,8 @@
   min-width: 64px;
   padding: 5px 8px;
   border-radius: 6px;
-  color: var(--muted);
+  /* --muted is the kit's fill colour, not a text colour; this is the muted text grey. */
+  color: var(--fg-3);
   transition: background-color 120ms ease, color 120ms ease;
 }
 .editor-code-actions button:hover,
@@ -46,3 +47,5 @@
 @media (prefers-reduced-motion: reduce) {
   .editor-code-actions button { transition: none; }
 }
+[data-theme="dark"] .editor-code-actions button:hover,
+[data-theme="dark"] .editor-code-actions button[aria-pressed="true"] { background: var(--wash-2); }

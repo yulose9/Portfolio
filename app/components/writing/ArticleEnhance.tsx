@@ -106,7 +106,10 @@ function imageZoom(root: HTMLElement) {
     const invert = `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${from.width / to.width}, ${from.height / to.height})`;
     const duration = reduced() ? 0 : 420;
     clone.animate([{ transform: invert, borderRadius: "14px" }, { transform: "none", borderRadius: "6px" }], { duration, easing: EASE, fill: "both" });
-    overlay.animate([{ backgroundColor: "rgb(255 255 255 / 0)" }, { backgroundColor: "rgb(255 255 255 / 0.94)" }], { duration: duration * 0.7, easing: "ease", fill: "both" });
+    // The veil is the page colour, so in the dark theme the picture lifts out
+    // of the dark rather than out of a white flash.
+    const veil = document.documentElement.dataset.theme === "dark" ? "25 25 25" : "255 255 255";
+    overlay.animate([{ backgroundColor: `rgb(${veil} / 0)` }, { backgroundColor: `rgb(${veil} / 0.94)` }], { duration: duration * 0.7, easing: "ease", fill: "both" });
 
     const close = () => {
       if (!open) return;
@@ -117,7 +120,7 @@ function imageZoom(root: HTMLElement) {
       const back = img.getBoundingClientRect();
       const home = `translate(${back.left - to.left}px, ${back.top - to.top}px) scale(${back.width / to.width}, ${back.height / to.height})`;
       const out = reduced() ? 0 : 280;
-      overlay.animate([{ backgroundColor: "rgb(255 255 255 / 0.94)" }, { backgroundColor: "rgb(255 255 255 / 0)" }], { duration: out, easing: "ease", fill: "both" });
+      overlay.animate([{ backgroundColor: `rgb(${veil} / 0.94)` }, { backgroundColor: `rgb(${veil} / 0)` }], { duration: out, easing: "ease", fill: "both" });
       clone.animate([{ transform: "none" }, { transform: home, borderRadius: "14px" }], { duration: out, easing: EASE, fill: "both" }).finished.then(() => {
         img.style.visibility = "";
         overlay.remove();

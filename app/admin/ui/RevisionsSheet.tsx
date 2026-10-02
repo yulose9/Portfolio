@@ -157,7 +157,7 @@ export default function RevisionsSheet({
     setRestoring(true);
     try {
       await api.restore(doc.id, selected);
-      toast.add({ type: "success", title: "Revision restored", description: "The text you had is kept in History too." });
+      toast.add({ type: "success", title: "Revision restored", description: "What you had is saved in History." });
       onRestored();
     } catch (error) {
       setRestoring(false);

@@ -207,9 +207,10 @@ export default function SmoothCursor() {
       className="smooth-cursor"
       data-shape="arrow"
       aria-hidden="true"
-      // Static markup from lib/cursor with a fixed colour — nothing from input
-      // reaches it. Shared with PeerCursors so both cursors are identical.
-      dangerouslySetInnerHTML={{ __html: cursorMarkup("#111") }}
+      // Static markup from lib/cursor — nothing from input reaches it. Shared
+      // with PeerCursors so both cursors are identical. The colour comes from
+      // .smooth-cursor (globals.css), so it follows the theme.
+      dangerouslySetInnerHTML={{ __html: cursorMarkup("currentColor") }}
     />
   );
 }

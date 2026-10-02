@@ -6,6 +6,7 @@ import TabbedIndex from "../components/TabbedIndex";
 import { buildTimeCommit } from "../last-commit";
 import ToolRow from "../components/ToolRow";
 import { SoundToggle } from "../components/ui/sound";
+import { ThemeToggle } from "../components/ui/theme";
 import type { Metadata } from "next";
 
 import { FEED, homeGraph, jsonLd } from "../constants/seo";
@@ -50,7 +51,7 @@ export default async function Page() {
         don't run.)
       */}
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(homeGraph(commit?.date ?? new Date().toISOString()))} />
-      <div className="flex w-full justify-center bg-white">
+      <div className="flex w-full justify-center bg-[color:var(--paper)]">
       {/*
         The design pins the text column to 672px and centres it. min-w is left
         off deliberately — the Figma frame is desktop-only, and a 512px floor
@@ -103,8 +104,9 @@ export default async function Page() {
           <div className="flex items-center gap-2">
             {/* Read during the build; refreshed from GitHub on the client. */}
             <LastUpdated initial={commit} />
-            {/* The one place the page offers its sound switch: with the other facts about the page. */}
-            <SoundToggle className="-my-1 -mr-1.5 self-center" />
+            {/* The page's two switches, sound and theme: with the other facts about the page. */}
+            <SoundToggle className="-my-1 self-center" />
+            <ThemeToggle className="-my-1 -ml-1 -mr-1.5 self-center" />
           </div>
         </footer>
       </main>

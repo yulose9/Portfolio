@@ -73,7 +73,7 @@ function PollView({ node, editor, updateAttributes, deleteNode, selected }: Reac
       const body = (await r.json().catch(() => ({}))) as { removed?: number; error?: string };
       if (!r.ok) throw new Error(body.error ?? "Couldn’t reset the votes.");
       setState({ status: "ready", tally: { counts: options.map(() => 0), total: 0 } });
-      toast.add({ type: "success", title: "Votes reset", description: `${body.removed ?? 0} removed.` });
+      toast.add({ type: "success", title: "Votes reset", description: `${body.removed ?? 0} ${body.removed === 1 ? "vote" : "votes"} cleared.` });
     } catch (e) {
       toast.add({ type: "error", title: "Couldn’t reset the votes", description: e instanceof Error ? e.message : undefined });
     }

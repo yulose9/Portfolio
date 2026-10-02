@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { isValidSlug, slugify } from "../../../cms/format";
 import { toast } from "../../lib/toast";
+import { trashToast } from "./trash-toast";
 import { api, ApiError, type Draft } from "./api";
 import { PageSwitch } from "./bits";
 import type { Meta } from "./Editor";
@@ -62,7 +63,7 @@ export default function DetailsSheet({
     setDeleting(true);
     try {
       await api.remove(doc.id);
-      toast.add({ type: "success", title: "Moved to Trash", description: live ? "Taken off the site with the next build. Restore it from Trash until you delete it permanently." : "Restore it from Trash until you delete it permanently." });
+      trashToast({ name: meta.title, live, restore: () => api.untrash(doc.id) });
       onDeleted();
     } catch (error) {
       setDeleting(false);

@@ -16,10 +16,15 @@
 
 .article-shell {
   --breakout: min(880px, calc(100vw - 2rem));
-  --ink: #0a0a0a;
-  --ink-2: #52525b;
+  /* The article's names for the theme tokens (globals.css). --ink-3 is the
+     faint caption grey: a step below --fg-3, as it always was in light. */
+  --ink: var(--fg);
+  --ink-2: var(--fg-2);
   --ink-3: #a1a1aa;
-  --rule: #ececee;
+  --rule: var(--line);
+}
+[data-theme="dark"] .article-shell {
+  --ink-3: #888888;
 }
 .article {
   color: var(--ink);
@@ -48,7 +53,7 @@
 @media (hover: hover) and (pointer: fine) {
   .article-back:hover {
     color: var(--ink);
-    background-color: #f4f4f5;
+    background-color: var(--wash);
   }
   .article-back:hover span {
     translate: -2px 0;
@@ -110,7 +115,7 @@
   height: 28px;
   border-radius: 999px;
   margin-right: 0.25rem;
-  outline: 1px solid oklch(0 0 0 / 0.1);
+  outline: 1px solid var(--img-outline);
   outline-offset: -1px;
 }
 .article-author {
@@ -138,9 +143,9 @@
   /* A tall (portrait) picture stops at most of a screen instead of towering. */
   max-height: min(80vh, 760px);
   border-radius: 14px;
-  outline: 1px solid oklch(0 0 0 / 0.1);
+  outline: 1px solid var(--img-outline);
   outline-offset: -1px;
-  background: #f4f4f5;
+  background: var(--wash);
 }
 /* In the body the box shrinks to the picture: a portrait shot capped by
    max-height narrows and centres rather than showing bars, and a small
@@ -362,7 +367,7 @@
 .article-body blockquote {
   position: relative;
   padding: 0.1em 0 0.1em 1.05em;
-  border-left: 3px solid #e4e4e7;
+  border-left: 3px solid var(--line-strong);
   font-size: 1.1875rem;
   line-height: 1.55;
   color: var(--ink-2);
@@ -393,14 +398,14 @@
 .article-body :not(pre) > code {
   padding: 0.12em 0.36em;
   border-radius: 6px;
-  background: #f4f4f5;
+  background: var(--wash);
   color: var(--ink);
 }
 .article-body pre {
   overflow-x: auto;
   padding: 1rem 1.15rem;
   border-radius: 12px;
-  background: #fafafa;
+  background: var(--paper-sunk);
   box-shadow: inset 0 0 0 1px var(--rule);
   font-size: 14px;
   line-height: 1.65;
@@ -438,7 +443,7 @@
 .article-tags li {
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
-  background: #f4f4f5;
+  background: var(--wash);
   font-size: 13px;
   line-height: 20px;
   color: var(--ink-2);
@@ -458,7 +463,7 @@
   padding: 0 0.7rem;
   border: 0;
   border-radius: 999px;
-  background: #f4f4f5;
+  background: var(--wash);
   color: var(--ink);
   font: inherit;
   font-size: 14px;
@@ -470,7 +475,7 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .share-button:hover {
-    background: #e9e9ec;
+    background: var(--wash-2);
   }
 }
 .share-button:active {
@@ -608,4 +613,24 @@
 @keyframes article-fade {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/*
+ * Dark theme. The prose sits at the page's full ink, link underlines and
+ * code switch to their dark forms (rehype-pretty-code emits both github-light
+ * and github-dark colours on every token).
+ */
+[data-theme="dark"] .article-body {
+  color: var(--fg);
+}
+[data-theme="dark"] .article-body a {
+  text-decoration-color: rgb(255 255 255 / 0.28);
+}
+@media (hover: hover) and (pointer: fine) {
+  [data-theme="dark"] .article-body a:hover {
+    text-decoration-color: currentColor;
+  }
+}
+[data-theme="dark"] .article-body pre code span {
+  color: var(--shiki-dark);
 }

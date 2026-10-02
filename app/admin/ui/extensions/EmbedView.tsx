@@ -83,7 +83,7 @@ function View({ node, updateAttributes, deleteNode, selected }: ReactNodeViewPro
             </button>
           </div>
           {embed.kind === "x" ? (
-            <div className="embed embed-x" data-theme="light">
+            <div className="embed embed-x">
               <XPreview url={embed.url} />
             </div>
           ) : embed.kind === "threads" ? (

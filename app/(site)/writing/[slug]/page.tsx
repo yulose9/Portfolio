@@ -14,6 +14,7 @@ import Byline from "../../../components/writing/Byline";
 import FluentText from "../../../components/writing/FluentText";
 import ShareRow from "../../../components/writing/ShareRow";
 import { SoundToggle } from "../../../components/ui/sound";
+import { ThemeToggle } from "../../../components/ui/theme";
 import Tag from "../../../components/writing/Tag";
 import Toc from "../../../components/writing/Toc";
 import { FEED, ID, jsonLd, SITE_INFO, TWITTER_METADATA } from "../../../constants/seo";
@@ -169,7 +170,7 @@ export default async function ArticlePage({ params }: Props) {
   );
 
   return (
-    <div className="flex w-full flex-col items-center bg-white">
+    <div className="flex w-full flex-col items-center bg-[color:var(--paper)]">
       {/* A post's own typefaces, if it has any; React hoists these into <head>. */}
       {[...new Set([...fontLinks(post.fonts),...inlineFontLinks(post.body)])].map((href) => (
         <link key={href} rel="stylesheet" href={href} precedence="default" />
@@ -257,6 +258,7 @@ export default async function ArticlePage({ params }: Props) {
           <footer className="article-footer">
             <ShareRow url={url} title={post.title} />
             <SoundToggle className="ml-auto size-9 rounded-full" />
+            <ThemeToggle className="size-9 rounded-full" />
           </footer>
 
           <AuthorCard authors={post.authors} />

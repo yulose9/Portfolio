@@ -80,23 +80,16 @@ const COLOR_LABEL: Record<TableColor, string> = {
   gray: "Gray", brown: "Brown", orange: "Orange", yellow: "Yellow", green: "Green",
   blue: "Blue", purple: "Purple", pink: "Pink", red: "Red",
 };
-/** The swatches: each colour's cell tint and its text colour (article-blocks-2.css). */
-const SWATCH: Record<TableColor, { bg: string; fg: string }> = {
-  gray: { bg: "#f1f1ef", fg: "#787774" },
-  brown: { bg: "#f4eeee", fg: "#9f6b53" },
-  orange: { bg: "#fbecdd", fg: "#d9730d" },
-  yellow: { bg: "#fbf3db", fg: "#cb912f" },
-  green: { bg: "#edf3ec", fg: "#448361" },
-  blue: { bg: "#e7f3f8", fg: "#337ea9" },
-  purple: { bg: "#f6f3f9", fg: "#9065b0" },
-  pink: { bg: "#faf1f5", fg: "#c14c8a" },
-  red: { bg: "#fdebec", fg: "#d44c47" },
-};
+/*
+ * The swatches: each colour's cell tint and its text colour, the same
+ * --tone-* tokens the cells use (globals.css), so they follow the theme.
+ */
+const tone = (color: TableColor) => ({ bg: `var(--tone-${color}-bg)`, fg: `var(--tone-${color})` });
 
 function Swatch({ color, attr }: { color: TableColor | null; attr: ColorAttr }) {
-  const s = color ? SWATCH[color] : { bg: "#fff", fg: "#37352f" };
+  const s = color ? tone(color) : { bg: "var(--paper-float)", fg: "var(--fg)" };
   return (
-    <span className="table-swatch" data-kind={attr} style={{ background: attr === "background" ? s.bg : "#fff", color: s.fg }}>
+    <span className="table-swatch" data-kind={attr} style={{ background: attr === "background" ? s.bg : "var(--paper-float)", color: s.fg }}>
       {attr === "textColor" ? "A" : null}
     </span>
   );

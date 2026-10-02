@@ -72,7 +72,7 @@
   line-height: 1.5;
 }
 .editor-interaction-selection {
-  background: rgba(37, 99, 235, 0.14);
+  background: rgb(37 99 235 / 0.14);
   border-radius: 2px;
 }
 .research-panel h3 {
@@ -104,7 +104,7 @@
   padding: 9px 11px;
   border: 1px solid var(--a-line, #ddd);
   border-radius: 8px;
-  background: var(--a-surface, #fff);
+  background: var(--paper-raised);
   color: inherit;
   font: inherit;
   box-sizing: border-box;
@@ -298,7 +298,7 @@
   display: flex;
   gap: 6px;
   padding: 12px 0;
-  background: #fff;
+  background: var(--paper-raised);
   border-bottom: 1px solid var(--a-line);
 }
 .research-tab {
@@ -434,7 +434,7 @@
   font-weight: 400;
   line-height: 1.5;
   color: var(--a-ink);
-  background: #fff;
+  background: var(--paper-raised);
 }
 .research-form textarea {
   min-height: 128px;
@@ -539,13 +539,13 @@
 }
 .research-board h3 span {
   margin-inline-start: auto;
-  background: #fff;
+  background: var(--paper-raised);
 }
 .research-board .research-row {
   margin-top: 8px;
-  background: #fff;
+  background: var(--paper-raised);
   border-bottom: 0;
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.06);
+  box-shadow: 0 0 0 1px rgb(var(--tint) / 0.06);
 }
 .research-board .research-help {
   font-size: 12px;
@@ -644,4 +644,20 @@
   .research-row {
     transition: none;
   }
+}
+
+/* Dark theme */
+[data-theme="dark"] .reference-lists mark {
+  background: #5a4a1c;
+}
+[data-theme="dark"] .editor-interaction-selection {
+  background: rgb(106 161 245 / 0.22);
+}
+[data-theme="dark"] .research-error {
+  border-left-color: var(--red);
+  background: rgb(242 113 107 / 0.1);
+  color: #f3a6a2;
+}
+[data-theme="dark"] :is(.research-sheet, .research-workspace-sheet) .sheet-body {
+  scrollbar-color: var(--scroll-thumb) transparent;
 }

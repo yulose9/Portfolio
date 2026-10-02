@@ -68,7 +68,7 @@ export default function WritingIndex() {
 
   return (
     <WritingMenu>
-    <div className="flex w-full justify-center bg-white">
+    <div className="flex w-full justify-center bg-[color:var(--paper)]">
       <main id="main" tabIndex={-1} data-cursor-frame className="page-shell page-enter article-shell article-page writing-index w-full max-w-[672px] py-16 sm:py-24">
         <nav className="article-nav" aria-label="Breadcrumb">
           <ol className="breadcrumbs">

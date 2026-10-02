@@ -4,6 +4,8 @@ import VendorScripts from "../analytics/VendorScripts";
 import { ENHANCED_METADATA } from "../constants/seo";
 import DeferredAnalytics from "../providers/DeferredAnalytics";
 import { SoundEffects } from "../components/ui/sound";
+import { ThemeSync } from "../components/ui/theme";
+import { THEME_PAPER, THEME_SCRIPT } from "../lib/theme";
 import LazyToaster from "../components/LazyToaster";
 import PeerCursors from "../components/PeerCursors";
 import SmoothCursor from "../components/SmoothCursor";
@@ -43,7 +45,11 @@ export const viewport: Viewport = {
   // env(safe-area-inset-*) so nothing lands underneath them.
   viewportFit: "cover",
   // Matching the page background removes the seam between chrome and content.
-  themeColor: "#ffffff",
+  // One per OS scheme; app/lib/theme.ts corrects both once a choice is known.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: THEME_PAPER.light },
+    { media: "(prefers-color-scheme: dark)", color: THEME_PAPER.dark },
+  ],
   // No maximumScale / userScalable lock — user zoom stays available (WCAG 1.4.4).
 };
 
@@ -63,8 +69,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
+    // suppressHydrationWarning: the pre-paint script sets data-theme and the
+    // colour scheme on <html> before React hydrates.
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>
+        <ThemeSync />
         <SoundEffects>
           <a href="#main" className="skip-link">
             Skip to content

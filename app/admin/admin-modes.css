@@ -178,3 +178,15 @@ body:has(.editor-canvas[hidden]) .page-outline[data-variant="editor"] {
     transition-duration: 0ms;
   }
 }
+
+/* Dark: the off track a mid grey, and the thumb flips to the page colour
+   once the track turns light, so it never vanishes into it. */
+[data-theme="dark"] .switch {
+  background: #5a5a5a;
+}
+[data-theme="dark"] .switch::after {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.5);
+}
+[data-theme="dark"] .switch:checked::after {
+  background: var(--paper);
+}

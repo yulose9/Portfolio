@@ -13,7 +13,7 @@
   overflow: hidden;
   border: 1px solid var(--rule);
   border-radius: 12px;
-  background: #fafafa;
+  background: var(--paper-sunk);
 }
 .code-block-header,
 .code-tabs-header {
@@ -24,7 +24,7 @@
   min-height: 40px;
   padding: 0 6px 0 14px;
   border-bottom: 1px solid var(--rule);
-  background: #fff;
+  background: var(--paper);
   font-size: 12.5px;
   line-height: 1.4;
   color: var(--ink-2);
@@ -76,19 +76,19 @@
 }
 @media (hover: hover) {
   .code-action:hover {
-    background: #f4f4f5;
+    background: var(--wash);
     color: var(--ink);
   }
 }
 .code-action[aria-pressed="true"] {
-  background: #f4f4f5;
+  background: var(--wash);
   color: var(--ink);
 }
 .code-action:active {
   scale: 0.96;
 }
 .code-action:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: 1px;
 }
 .code-action:disabled {
@@ -161,7 +161,7 @@
   width: 2ch;
   margin-right: 1.1rem;
   text-align: right;
-  color: #a1a1aa;
+  color: var(--ink-3);
   user-select: none;
 }
 .article-body code[data-line-numbers-max-digits="2"] > [data-line]::before {
@@ -208,7 +208,7 @@
   }
 }
 .code-tabs-tab:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: -4px;
   border-radius: 6px;
 }
@@ -228,7 +228,7 @@
   display: none;
 }
 .code-tabs-panel:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
 
@@ -239,8 +239,8 @@
    Both carry data-table-style; the cell rules below serve both. */
 
 .article-body [data-table-style] {
-  --table-head: #fafafa;
-  --table-hover: #fafafa;
+  --table-head: var(--paper-sunk);
+  --table-hover: var(--paper-sunk);
   --table-line: var(--rule);
   --table-pad-y: 0.6rem;
   --table-pad-x: 0.875rem;
@@ -295,7 +295,7 @@
   padding-inline: 0;
   border: 1px solid var(--table-line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--paper);
 }
 .article-body .table-scroll {
   overflow-x: auto;
@@ -303,7 +303,7 @@
   overscroll-behavior-x: contain;
 }
 .article-body .table-scroll:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
   border-radius: 11px;
 }
@@ -406,11 +406,11 @@
 /* The site's header row is in <thead>; the editor's is the body's first row. */
 .article-body .table-wrap[data-table-style="striped"] tbody tr:nth-child(even) > *,
 .article-body .table-block[data-table-style="striped"] tr:nth-child(odd):not(:first-child) > * {
-  background: #fafafa;
+  background: var(--paper-sunk);
 }
 /* Bordered: every cell ruled, the header a shade darker. */
 .article-body [data-table-style="bordered"] :is(th, td) {
-  border: 1px solid #e4e4e7;
+  border: 1px solid var(--line-strong);
 }
 .article-body [data-table-style="bordered"] tr > :first-child {
   border-left: 0;
@@ -425,13 +425,13 @@
   border-bottom: 0;
 }
 .article-body .table-wrap[data-table-style="bordered"] {
-  border-color: #e4e4e7;
+  border-color: var(--line-strong);
 }
 .article-body [data-table-style="bordered"] thead th,
 .article-body [data-table-style="bordered"] tr:first-child > th:not([scope="row"]),
 .article-body [data-table-style="bordered"] th[scope="row"],
 .article-body [data-table-style="bordered"] tr > th:first-child {
-  background: #f4f4f5;
+  background: var(--wash);
 }
 /* "Data" while editing (the site draws DataTable). */
 .article-body .table-block[data-table-style="data"] th {
@@ -441,30 +441,31 @@
   white-space: nowrap;
 }
 
-/* Cell colours (data-bg, data-fg; cms/blocks.ts), Notion's light palette.
+/* Cell colours (data-bg, data-fg; cms/blocks.ts), Notion's palette in
+   either theme (the --tone tokens in globals.css).
    They're the author's own choice for that cell, so they win over the
    table style's header shade, stripes and hover. */
-.article-body :is(td, th)[data-bg="gray"] { --cell-bg: #f1f1ef; }
-.article-body :is(td, th)[data-bg="brown"] { --cell-bg: #f4eeee; }
-.article-body :is(td, th)[data-bg="orange"] { --cell-bg: #fbecdd; }
-.article-body :is(td, th)[data-bg="yellow"] { --cell-bg: #fbf3db; }
-.article-body :is(td, th)[data-bg="green"] { --cell-bg: #edf3ec; }
-.article-body :is(td, th)[data-bg="blue"] { --cell-bg: #e7f3f8; }
-.article-body :is(td, th)[data-bg="purple"] { --cell-bg: #f6f3f9; }
-.article-body :is(td, th)[data-bg="pink"] { --cell-bg: #faf1f5; }
-.article-body :is(td, th)[data-bg="red"] { --cell-bg: #fdebec; }
+.article-body :is(td, th)[data-bg="gray"] { --cell-bg: var(--tone-gray-bg); }
+.article-body :is(td, th)[data-bg="brown"] { --cell-bg: var(--tone-brown-bg); }
+.article-body :is(td, th)[data-bg="orange"] { --cell-bg: var(--tone-orange-bg); }
+.article-body :is(td, th)[data-bg="yellow"] { --cell-bg: var(--tone-yellow-bg); }
+.article-body :is(td, th)[data-bg="green"] { --cell-bg: var(--tone-green-bg); }
+.article-body :is(td, th)[data-bg="blue"] { --cell-bg: var(--tone-blue-bg); }
+.article-body :is(td, th)[data-bg="purple"] { --cell-bg: var(--tone-purple-bg); }
+.article-body :is(td, th)[data-bg="pink"] { --cell-bg: var(--tone-pink-bg); }
+.article-body :is(td, th)[data-bg="red"] { --cell-bg: var(--tone-red-bg); }
 .article-body :is(td, th)[data-bg] {
   background-color: var(--cell-bg, transparent) !important;
 }
-.article-body :is(td, th)[data-fg="gray"] { --cell-fg: #787774; }
-.article-body :is(td, th)[data-fg="brown"] { --cell-fg: #9f6b53; }
-.article-body :is(td, th)[data-fg="orange"] { --cell-fg: #d9730d; }
-.article-body :is(td, th)[data-fg="yellow"] { --cell-fg: #cb912f; }
-.article-body :is(td, th)[data-fg="green"] { --cell-fg: #448361; }
-.article-body :is(td, th)[data-fg="blue"] { --cell-fg: #337ea9; }
-.article-body :is(td, th)[data-fg="purple"] { --cell-fg: #9065b0; }
-.article-body :is(td, th)[data-fg="pink"] { --cell-fg: #c14c8a; }
-.article-body :is(td, th)[data-fg="red"] { --cell-fg: #d44c47; }
+.article-body :is(td, th)[data-fg="gray"] { --cell-fg: var(--tone-gray); }
+.article-body :is(td, th)[data-fg="brown"] { --cell-fg: var(--tone-brown); }
+.article-body :is(td, th)[data-fg="orange"] { --cell-fg: var(--tone-orange); }
+.article-body :is(td, th)[data-fg="yellow"] { --cell-fg: var(--tone-yellow); }
+.article-body :is(td, th)[data-fg="green"] { --cell-fg: var(--tone-green); }
+.article-body :is(td, th)[data-fg="blue"] { --cell-fg: var(--tone-blue); }
+.article-body :is(td, th)[data-fg="purple"] { --cell-fg: var(--tone-purple); }
+.article-body :is(td, th)[data-fg="pink"] { --cell-fg: var(--tone-pink); }
+.article-body :is(td, th)[data-fg="red"] { --cell-fg: var(--tone-red); }
 .article-body :is(td, th)[data-fg] {
   color: var(--cell-fg, inherit) !important;
 }
@@ -499,9 +500,9 @@
   width: 100%;
   height: 34px;
   padding: 0 10px 0 30px;
-  border: 1px solid #e4e4e7;
+  border: 1px solid var(--line-strong);
   border-radius: 9px;
-  background: #fff;
+  background: var(--paper);
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
   font: inherit;
   font-size: 14px;
@@ -516,7 +517,7 @@
 }
 .data-table-filter input:focus-visible {
   outline: none;
-  border-color: #a1a1aa;
+  border-color: var(--fg-4);
   box-shadow: 0 0 0 3px rgb(10 10 10 / 0.08);
 }
 .data-table-filter input::-webkit-search-cancel-button {
@@ -534,7 +535,7 @@
   overflow: hidden;
   border: 1px solid var(--rule);
   border-radius: 12px;
-  background: #fff;
+  background: var(--paper);
 }
 /* Tall tables scroll inside the frame, the header held at the top; at
    either end the page takes the wheel back (no trap). */
@@ -545,7 +546,7 @@
   overscroll-behavior-y: auto;
 }
 .article-body .data-table-scroll:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
   border-radius: 11px;
 }
@@ -563,7 +564,7 @@
   z-index: 2;
   height: 40px;
   padding: 0 0.5rem;
-  background: #fafafa;
+  background: var(--paper-sunk);
   border-bottom: 1px solid var(--rule);
   font-size: 13px;
   font-weight: 500;
@@ -588,7 +589,7 @@
   position: sticky;
   left: 0;
   z-index: 1;
-  background: #fff;
+  background: var(--paper);
   box-shadow: inset -1px 0 var(--rule);
 }
 .article-body .data-table-scroll[data-row-headers] thead th:first-child {
@@ -601,7 +602,7 @@
 }
 @media (hover: hover) {
   .article-body .data-table tbody tr:hover > * {
-    background: #fafafa;
+    background: var(--paper-sunk);
   }
 }
 .article-body .data-table [data-align="right"],
@@ -634,7 +635,7 @@
   text-decoration-color: currentColor;
 }
 .data-table-empty button:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -670,7 +671,7 @@ th[aria-sort="descending"] .data-table-sort {
   color: var(--ink);
 }
 .data-table-sort:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
 .data-table-sort svg {
@@ -716,7 +717,7 @@ th[aria-sort="descending"] .data-table-sort {
   padding: 1rem 1rem 0.75rem;
   border: 1px solid var(--rule);
   border-radius: 12px;
-  background: #fff;
+  background: var(--paper);
 }
 .article-body .chart-title {
   margin: 0 0 0.75rem;
@@ -732,23 +733,23 @@ th[aria-sort="descending"] .data-table-sort {
 .chart-skeleton {
   height: 280px;
   border-radius: 8px;
-  background: linear-gradient(90deg, #fafafa, #f4f4f5, #fafafa);
+  background: linear-gradient(90deg, var(--paper-sunk), var(--wash), var(--paper-sunk));
 }
 .chart-canvas .recharts-surface:focus,
 .chart-canvas .recharts-wrapper:focus {
   outline: none;
 }
 .chart-canvas .recharts-wrapper:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: 4px;
   border-radius: 6px;
 }
 .chart-tooltip {
   min-width: 8rem;
   padding: 6px 8px;
-  border: 1px solid var(--rule, #ececee);
+  border: 1px solid var(--rule, var(--line));
   border-radius: 8px;
-  background: #fff;
+  background: var(--paper-float);
   box-shadow: 0 4px 16px rgb(0 0 0 / 0.08);
   font-size: 12px;
   line-height: 1.5;
@@ -758,19 +759,19 @@ th[aria-sort="descending"] .data-table-sort {
 }
 .chart-tooltip-label {
   font-weight: 500;
-  color: #0a0a0a;
+  color: var(--fg);
 }
 .chart-tooltip-row {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #52525b;
+  color: var(--fg-2);
 }
 .chart-tooltip-row strong {
   margin-left: auto;
   padding-left: 12px;
   font-weight: 500;
-  color: #0a0a0a;
+  color: var(--fg);
   font-variant-numeric: tabular-nums;
 }
 .chart-swatch {
@@ -798,7 +799,7 @@ th[aria-sort="descending"] .data-table-sort {
   margin: 2em 0;
   padding: 18px;
   border-radius: 16px;
-  background: #fff;
+  background: var(--paper-raised);
   box-shadow: 0 0 0 1px rgb(0 0 0 / 0.07), 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 12px -6px rgb(0 0 0 / 0.06);
 }
 .poll-head {
@@ -840,8 +841,8 @@ th[aria-sort="descending"] .data-table-sort {
   min-height: 46px;
   padding: 10px 14px;
   border-radius: 12px;
-  background: #fafafa;
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06);
+  background: var(--paper-sunk);
+  box-shadow: inset 0 0 0 1px rgb(var(--tint) / 0.06);
   font-size: 15px;
   line-height: 1.35;
   cursor: pointer;
@@ -849,15 +850,15 @@ th[aria-sort="descending"] .data-table-sort {
 }
 @media (hover: hover) {
   .poll-choice:hover {
-    background: #f4f4f5;
+    background: var(--wash);
   }
 }
 .poll-choice:active {
   scale: 0.99;
 }
 .poll-choice[data-checked] {
-  background: #fff;
-  box-shadow: inset 0 0 0 1.5px #0a0a0a, 0 1px 2px rgb(0 0 0 / 0.06);
+  background: var(--paper-float);
+  box-shadow: inset 0 0 0 1.5px var(--fg), 0 1px 2px rgb(0 0 0 / 0.06);
 }
 .poll-choice input {
   position: absolute;
@@ -865,7 +866,7 @@ th[aria-sort="descending"] .data-table-sort {
   pointer-events: none;
 }
 .poll-choice:has(input:focus-visible) {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 .poll-indicator {
@@ -873,12 +874,12 @@ th[aria-sort="descending"] .data-table-sort {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--paper);
   box-shadow: inset 0 0 0 1.5px #d4d4d8;
   transition: box-shadow 180ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 .poll-choice[data-checked] .poll-indicator {
-  box-shadow: inset 0 0 0 5.5px #0a0a0a;
+  box-shadow: inset 0 0 0 5.5px var(--fg);
 }
 .poll-label {
   display: inline-flex;
@@ -904,7 +905,7 @@ th[aria-sort="descending"] .data-table-sort {
   width: 15px;
   height: 15px;
   align-self: center;
-  color: #0a0a0a;
+  color: var(--fg);
 }
 .poll-share {
   margin-left: auto;
@@ -935,7 +936,7 @@ th[aria-sort="descending"] .data-table-sort {
   animation: poll-grow 800ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 .poll-result[data-leading] .poll-fill {
-  background: #0a0a0a;
+  background: var(--fg);
 }
 @keyframes poll-grow {
   from {
@@ -950,15 +951,15 @@ th[aria-sort="descending"] .data-table-sort {
   gap: 12px;
   min-height: 36px;
   padding-top: 12px;
-  border-top: 1px solid rgb(0 0 0 / 0.06);
+  border-top: 1px solid rgb(var(--tint) / 0.06);
 }
 .poll-submit {
   height: 36px;
   padding: 0 18px;
   border: 0;
   border-radius: 999px;
-  background: #0a0a0a;
-  color: #fff;
+  background: var(--fg);
+  color: var(--on-fg);
   font: inherit;
   font-size: 14px;
   font-weight: 500;
@@ -973,7 +974,7 @@ th[aria-sort="descending"] .data-table-sort {
   scale: 0.96;
 }
 .poll-submit:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 .article-body .poll-note {
@@ -1006,7 +1007,7 @@ th[aria-sort="descending"] .data-table-sort {
 }
 @media (hover: hover) {
   .poll-link:hover {
-    background: #f4f4f5;
+    background: var(--wash);
     color: var(--ink);
   }
 }
@@ -1018,7 +1019,7 @@ th[aria-sort="descending"] .data-table-sort {
   cursor: default;
 }
 .poll-link:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 @media (forced-colors: active) {
@@ -1041,7 +1042,7 @@ th[aria-sort="descending"] .data-table-sort {
   padding: 0 0.35em;
   border: 0;
   border-radius: 999px;
-  background: rgb(0 0 0 / 0.07);
+  background: rgb(var(--tint) / 0.07);
   color: var(--ink-2);
   font: inherit;
   font-size: 0.68em;
@@ -1055,11 +1056,11 @@ th[aria-sort="descending"] .data-table-sort {
 }
 .article-body .citation:hover,
 .article-body .citation[data-popup-open] {
-  background: #0a0a0a;
-  color: #fff;
+  background: var(--fg);
+  color: var(--on-fg);
 }
 .article-body .citation:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 .citation-positioner {
@@ -1068,9 +1069,9 @@ th[aria-sort="descending"] .data-table-sort {
 .citation-card {
   width: min(20rem, calc(100vw - 24px));
   padding: 12px 14px;
-  border: 1px solid #ececee;
+  border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--paper-float);
   box-shadow: 0 8px 28px rgb(0 0 0 / 0.1);
   font-size: 13px;
   line-height: 1.45;
@@ -1095,10 +1096,10 @@ th[aria-sort="descending"] .data-table-sort {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #f4f4f5;
+  background: var(--wash);
   font-size: 9px;
   font-weight: 600;
-  color: #52525b;
+  color: var(--fg-2);
 }
 .citation-index {
   margin-left: auto;
@@ -1107,7 +1108,7 @@ th[aria-sort="descending"] .data-table-sort {
 .citation-title {
   display: block;
   font-weight: 500;
-  color: #0a0a0a;
+  color: var(--fg);
   text-decoration: none;
 }
 .citation-title:hover {
@@ -1120,7 +1121,7 @@ th[aria-sort="descending"] .data-table-sort {
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
-  color: #52525b;
+  color: var(--fg-2);
 }
 
 /* The sources, after the article's text. */
@@ -1163,8 +1164,8 @@ th[aria-sort="descending"] .data-table-sort {
   text-decoration: none;
 }
 .article-body .article-source-back:hover {
-  color: var(--ink-1, #111);
-  background: rgb(0 0 0 / 0.05);
+  color: var(--ink-1, var(--fg));
+  background: rgb(var(--tint) / 0.05);
 }
 /* Where a jump lands: a brief wash, so the eye finds it. */
 .article-body .is-cite-target {
@@ -1203,7 +1204,7 @@ th[aria-sort="descending"] .data-table-sort {
   outline: none;
 }
 .video-player:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: 3px;
 }
 .video-player video {
@@ -1466,4 +1467,104 @@ th[aria-sort="descending"] .data-table-sort {
     transition: none;
     animation: none;
   }
+}
+
+/* ── Dark theme ──────────────────────────────────────────────────────────
+   What the tokens above can't carry: translucent black that has to turn
+   translucent white, light-only greys kept exact in light, and shadows that
+   need more weight to read on a dark page. */
+
+/* Code: highlighted lines need more tint to show on the dark frame. */
+[data-theme="dark"] .article-body pre [data-highlighted-line] {
+  background: rgb(106 161 245 / 0.14);
+  box-shadow: inset 2px 0 0 rgb(106 161 245 / 0.7);
+}
+
+/* Tables: scrollbars, edge fades and the stronger header rule. */
+[data-theme="dark"] .article-body :is(.table-scroll, .tableWrapper, .data-table-scroll) {
+  scrollbar-color: rgb(255 255 255 / 0.16) transparent;
+}
+[data-theme="dark"] .article-body :is(.table-scroll, .tableWrapper, .data-table-scroll):hover {
+  scrollbar-color: rgb(255 255 255 / 0.3) transparent;
+}
+[data-theme="dark"] .article-body :is(.table-scroll, .tableWrapper, .data-table-scroll)::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.16) padding-box;
+}
+[data-theme="dark"] .article-body :is(.table-scroll, .tableWrapper, .data-table-scroll)::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(255 255 255 / 0.3);
+}
+[data-theme="dark"] .article-body :is(.table-wrap, .table-block, .data-table-frame)::before {
+  background: linear-gradient(to right, rgb(0 0 0 / 0.35), rgb(0 0 0 / 0.1) 40%, transparent);
+}
+[data-theme="dark"] .article-body :is(.table-wrap, .table-block, .data-table-frame)::after {
+  background: linear-gradient(to left, rgb(0 0 0 / 0.35), rgb(0 0 0 / 0.1) 40%, transparent);
+}
+[data-theme="dark"] .article-body [data-table-style="minimal"] tr:first-child > th:not([scope="row"]) {
+  border-bottom-color: var(--line-strong);
+}
+
+/* Data table: the filter field and the sort and empty-state controls. */
+[data-theme="dark"] .data-table-filter input {
+  box-shadow: none;
+}
+[data-theme="dark"] .data-table-filter input:hover {
+  border-color: rgb(255 255 255 / 0.2);
+}
+[data-theme="dark"] .data-table-filter input:focus-visible {
+  box-shadow: 0 0 0 3px rgb(255 255 255 / 0.08);
+}
+[data-theme="dark"] .data-table-empty button {
+  text-decoration-color: var(--fg-4);
+}
+[data-theme="dark"] .data-table-sort:hover {
+  background: var(--wash);
+}
+
+/* Charts: a floating tooltip needs a deeper shadow on a dark page. */
+[data-theme="dark"] .chart-tooltip {
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.45);
+}
+
+/* Poll: the card's ring turns to a white hairline; the bars to greys that
+   read on the dark card. */
+[data-theme="dark"] .article-body .poll {
+  box-shadow: 0 0 0 1px var(--line), 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 12px -6px rgb(0 0 0 / 0.4);
+}
+[data-theme="dark"] .poll-choice[data-checked] {
+  box-shadow: inset 0 0 0 1.5px var(--fg), 0 1px 2px rgb(0 0 0 / 0.3);
+}
+[data-theme="dark"] .poll-indicator {
+  box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.25);
+}
+[data-theme="dark"] .poll-choice[data-checked] .poll-indicator {
+  box-shadow: inset 0 0 0 5.5px var(--fg);
+}
+[data-theme="dark"] .poll-track {
+  background: rgb(255 255 255 / 0.08);
+}
+[data-theme="dark"] .poll-fill {
+  background: #4a4a4a;
+}
+[data-theme="dark"] .poll-result[data-leading] .poll-fill {
+  background: var(--fg);
+}
+[data-theme="dark"] .article-body .poll-note[data-error] {
+  color: var(--red);
+}
+
+/* Citations: the card's shadow, the muted site name, the landing wash. */
+[data-theme="dark"] .citation-card {
+  box-shadow: 0 8px 28px rgb(0 0 0 / 0.5);
+}
+[data-theme="dark"] .citation-site {
+  color: var(--fg-3);
+}
+[data-theme="dark"] .article-body .article-sources li:target {
+  background: rgb(106 161 245 / 0.12);
+}
+
+/* Video: the player stays black in both themes; a hairline keeps its edge
+   from melting into the dark page. */
+[data-theme="dark"] .video-player {
+  box-shadow: 0 0 0 1px var(--img-outline);
 }

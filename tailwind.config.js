@@ -1,6 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ["./app/**/*.{js,ts,jsx,tsx,mdx}"],
+  // dark: utilities follow the resolved theme on <html> (app/lib/theme.ts),
+  // not the OS directly, so an explicit Light or Dark choice wins.
+  darkMode: ["selector", '[data-theme="dark"]'],
   theme: {
     extend: {
       // The Sound layer's tokens (globals.css :root), as utilities.

@@ -1,6 +1,7 @@
 "use client";
 
 import { SoundToggle } from "../../components/ui/sound";
+import { ThemeToggle } from "../../components/ui/theme";
 import {
   ArrowLeft,
   ArrowSquareOut,
@@ -68,6 +69,7 @@ import { draftToPost, readingMinutes, serializePost, slugify, type Cover } from 
 import { copy } from "../../components/menu/actions";
 import { useFinePointer } from "../../components/menu/useFinePointer";
 import { toast } from "../../lib/toast";
+import { trashToast } from "./trash-toast";
 import { altFromName, api, ApiError, type Draft } from "./api";
 import { exactTime, StatusDot, statusLabel } from "./bits";
 import { ImageBubble, TextBubble } from "./Bubble";
@@ -572,7 +574,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
           await saveMediaJob({version:1,id:jobId,documentId:initial.id,blockId,name:file.name,mime:file.type,file,state:"queued",attempts:0,updatedAt:Date.now()});
           if(editor.isDestroyed)return;
           editor.chain().focus().insertContentAt(insertion,{type:"paragraph",attrs:{blockId},content:[{type:"text",text:pendingMediaLabel(file.name)}]}).run();
-        } catch(error) {toast.add({type:"error",title:"Could not preserve this upload",description:error instanceof Error?error.message:"Local storage unavailable. Choose the file again."});}
+        } catch(error) {toast.add({type:"error",title:"Couldn’t keep this upload",description:error instanceof Error?error.message:"This browser won’t store it. Choose the file again."});}
       }}finally{editor.off("transaction",map);}
     };
   }, [editor,initial.id]);
@@ -593,7 +595,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
     if(!editor||!options?.block||!recoveryReady)return;
     let found=false;
     editor.state.doc.descendants((node,pos)=>{if(node.attrs.blockId===options.block){found=true;editor.chain().setTextSelection(Math.min(pos+1,editor.state.doc.content.size)).scrollIntoView().run();return false;}});
-    if(!found)toast.add({type:"info",title:"This block is no longer in the page",description:"The rest of the page is still available."});
+    if(!found)toast.add({type:"info",title:"That block isn’t on the page any more",description:"It was moved or deleted."});
   },[editor,options?.block,recoveryReady]);
 
   useEffect(() => {
@@ -870,13 +872,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
     try {
       await flush();
       await api.remove(doc.id);
-      const t = toast.add({
-        type: "success",
-        title: "Moved to Trash",
-        description: doc.liveSlug ? "Taken off the site with the next build." : "Kept in Trash until you delete it permanently.",
-        timeout: 6000,
-        actionProps: { children: "Undo", onClick: () => void api.untrash(doc.id).then(() => toast.close(t)) },
-      });
+      trashToast({ name: meta.title, live: Boolean(doc.liveSlug), restore: () => api.untrash(doc.id) });
       onBack();
     } catch (error) {
       toast.add({ type: "error", title: "Couldn’t move it to Trash", description: error instanceof ApiError ? error.message : undefined });
@@ -914,7 +910,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
           void flush()
             .then(() => api.save(doc.id, { pinned: !doc.pinned, base: server.current.updatedAt }))
             .then(({ post: p }) => adopt(p))
-            .catch(() => toast.add({ type: "error", title: "Couldn’t pin it" })),
+            .catch(() => toast.add({ type: "error", title: "Couldn’t pin it", description: "Try again in a moment." })),
       },
       {
         id: "duplicate",
@@ -945,7 +941,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
               title: doc.status === "scheduled" ? "Cancel schedule" : "Unpublish",
               icon: <ArrowUUpLeft {...CI} />,
               keywords: ["take down", "draft", "hide"],
-              run: () => void api.unpublish(doc.id).then(({ post: p }) => (adopt(p), toast.add({ type: "success", title: "Unpublished", description: "It leaves the site with the next build." }))),
+              run: () => void api.unpublish(doc.id).then(({ post: p }) => (adopt(p), toast.add({ type: "success", title: "Unpublished", description: "Leaves the site in about 3 minutes." }))),
             },
           ]
         : doc.status === "scheduled"
@@ -1118,6 +1114,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
             </MenuSurface>
           </Menu.Root>
           <SoundToggle className="admin-hide-sm size-8 rounded-full text-[color:var(--a-ink-2)]" />
+          <ThemeToggle className="admin-hide-sm size-8 rounded-full text-[color:var(--a-ink-2)]" />
           <TooltipTrigger handle={barTips} payload="Research and references" render={<button type="button" className="admin-icon-button" aria-label="Research and references" onClick={() => setPanel("research")} />}><BookOpenText size={16}/></TooltipTrigger>
           <TooltipTrigger handle={barTips} payload="History" render={<button type="button" className="admin-icon-button admin-hide-sm" aria-label="History" onClick={() => setPanel("revisions")} />}>
             <ClockCounterClockwise size={16} weight="bold" />

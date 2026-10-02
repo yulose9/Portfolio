@@ -110,7 +110,12 @@ export function cursorTransform(x: number, y: number): string {
  * Static markup with a fixed fill — never interpolated from input — so it is
  * safe to set as innerHTML for both cursors.
  *
- * @param fill the glyph colour: near-black locally, the peer's hue for guests.
+ * The white keylines carry .cursor-keyline (the zoom lens's white face,
+ * .cursor-keyline-fill), so the dark theme can turn the local cursor inside
+ * out in CSS: a light glyph on a dark keyline. Peers keep theirs white.
+ *
+ * @param fill the glyph colour: currentColor locally (set by .smooth-cursor),
+ *   the peer's hue for guests.
  */
 export function cursorMarkup(fill: string): string {
   const { width, height } = CURSOR_SIZE;
@@ -118,21 +123,21 @@ export function cursorMarkup(fill: string): string {
     `<span class="cursor-shape" style="width:${width}px;height:${height}px">` +
     // Arrow: the original mark, on its own 22x26 box.
     `<span class="cursor-glyph" data-glyph="arrow"><span class="cursor-spin">` +
-    `<svg viewBox="0 0 22 26" fill="none"><path d="M11 1.5 20 23.2a1.1 1.1 0 0 1-1.45 1.4L11.4 21.3a1.1 1.1 0 0 0-.8 0l-7.15 3.3A1.1 1.1 0 0 1 2 23.2Z" fill="${fill}" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>` +
+    `<svg viewBox="0 0 22 26" fill="none"><path d="M11 1.5 20 23.2a1.1 1.1 0 0 1-1.45 1.4L11.4 21.3a1.1 1.1 0 0 0-.8 0l-7.15 3.3A1.1 1.1 0 0 1 2 23.2Z" class="cursor-keyline" fill="${fill}" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>` +
     `</span></span>` +
     // I-beam: drawn twice, a wide white stroke under a narrow dark one, so it
     // keeps a keyline like the arrow's over any background.
     `<span class="cursor-glyph" data-glyph="text">` +
     `<svg viewBox="0 0 22 26" fill="none" stroke-linecap="round" stroke-linejoin="round">` +
-    `<path d="M7.5 2.5c2 0 3.5.8 3.5 2.5 0-1.7 1.5-2.5 3.5-2.5M11 5v16M7.5 23.5c2 0 3.5-.8 3.5-2.5 0 1.7 1.5 2.5 3.5 2.5M8.5 13h5" stroke="#fff" stroke-width="4.4"/>` +
+    `<path class="cursor-keyline" d="M7.5 2.5c2 0 3.5.8 3.5 2.5 0-1.7 1.5-2.5 3.5-2.5M11 5v16M7.5 23.5c2 0 3.5-.8 3.5-2.5 0 1.7 1.5 2.5 3.5 2.5M8.5 13h5" stroke="#fff" stroke-width="4.4"/>` +
     `<path d="M7.5 2.5c2 0 3.5.8 3.5 2.5 0-1.7 1.5-2.5 3.5-2.5M11 5v16M7.5 23.5c2 0 3.5-.8 3.5-2.5 0 1.7 1.5 2.5 3.5 2.5M8.5 13h5" stroke="${fill}" stroke-width="1.8"/>` +
     `</svg></span>` +
     // Hand: Phosphor's HandPointing (fill weight, MIT), the icon set the rest
     // of the page uses. paint-order puts the keyline behind the fill.
     `<span class="cursor-glyph" data-glyph="hand">` +
-    `<svg viewBox="0 0 256 256"><path d="M224,104v50.93c0,46.2-36.85,84.55-83,85.06A83.71,83.71,0,0,1,80.6,215.4C58.79,192.33,34.15,136,34.15,136a16,16,0,0,1,6.53-22.23c7.66-4,17.1-.84,21.4,6.62l21,36.44a6.09,6.09,0,0,0,6,3.09l.12,0A8.19,8.19,0,0,0,96,151.74V32a16,16,0,0,1,16.77-16c8.61.4,15.23,7.82,15.23,16.43V104a8,8,0,0,0,8.53,8,8.17,8.17,0,0,0,7.47-8.25V88a16,16,0,0,1,16.77-16c8.61.4,15.23,7.82,15.23,16.43V112a8,8,0,0,0,8.53,8,8.17,8.17,0,0,0,7.47-8.25v-7.28c0-8.61,6.62-16,15.23-16.43A16,16,0,0,1,224,104Z" fill="${fill}" stroke="#fff" stroke-width="24" stroke-linejoin="round" paint-order="stroke"/></svg>` +
+    `<svg viewBox="0 0 256 256"><path d="M224,104v50.93c0,46.2-36.85,84.55-83,85.06A83.71,83.71,0,0,1,80.6,215.4C58.79,192.33,34.15,136,34.15,136a16,16,0,0,1,6.53-22.23c7.66-4,17.1-.84,21.4,6.62l21,36.44a6.09,6.09,0,0,0,6,3.09l.12,0A8.19,8.19,0,0,0,96,151.74V32a16,16,0,0,1,16.77-16c8.61.4,15.23,7.82,15.23,16.43V104a8,8,0,0,0,8.53,8,8.17,8.17,0,0,0,7.47-8.25V88a16,16,0,0,1,16.77-16c8.61.4,15.23,7.82,15.23,16.43V112a8,8,0,0,0,8.53,8,8.17,8.17,0,0,0,7.47-8.25v-7.28c0-8.61,6.62-16,15.23-16.43A16,16,0,0,1,224,104Z" class="cursor-keyline" fill="${fill}" stroke="#fff" stroke-width="24" stroke-linejoin="round" paint-order="stroke"/></svg>` +
     `</span>` +
-    `<span class="cursor-glyph" data-glyph="zoom"><svg viewBox="0 0 24 24" fill="none" stroke="${fill}" stroke-width="2" stroke-linecap="round"><circle cx="10" cy="10" r="7" fill="white"/><path d="m15 15 7 7M7 10h6M10 7v6"/></svg></span>` +
+    `<span class="cursor-glyph" data-glyph="zoom"><svg viewBox="0 0 24 24" fill="none" stroke="${fill}" stroke-width="2" stroke-linecap="round"><circle class="cursor-keyline-fill" cx="10" cy="10" r="7" fill="white"/><path d="m15 15 7 7M7 10h6M10 7v6"/></svg></span>` +
     `</span>`
   );
 }

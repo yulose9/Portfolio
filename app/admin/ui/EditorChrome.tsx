@@ -143,7 +143,7 @@ export function EditorContextMenu({ editor, children, ...pick }: { editor: Edito
             void navigator.clipboard
               .readText()
               .then((t) => editor.chain().focus().insertContent(t).run())
-              .catch(() => toast.add({ type: "info", title: `Use ${keys("⌘V")} to paste`, description: "The browser didn't allow reading the clipboard from a menu." }))
+              .catch(() => toast.add({ type: "info", title: `Use ${keys("⌘V")} to paste`, description: "The browser won’t let a menu read the clipboard." }))
           )}
         >
           Paste
@@ -154,7 +154,7 @@ export function EditorContextMenu({ editor, children, ...pick }: { editor: Edito
             void navigator.clipboard
               .readText()
               .then((t) => editor.chain().focus().insertContent(t, { contentType: "markdown" } as never).run())
-              .catch(() => toast.add({ type: "info", title: "Couldn’t read the clipboard" }))
+              .catch(() => toast.add({ type: "info", title: "Couldn’t read the clipboard", description: `Paste with ${keys("⌘V")} instead.` }))
           )}
         >
           Paste as Markdown
@@ -504,7 +504,7 @@ export function FindBar({ editor, request, onClose }: { editor: Editor; request:
     const n = state.count;
     if (!n) return;
     editor.commands.replaceAll(replacement);
-    toast.add({ type: "success", title: `Replaced ${n} ${n === 1 ? "match" : "matches"}`, description: `${keys("⌘Z")} undoes it.`, timeout: 2400 });
+    toast.add({ type: "success", title: `Replaced ${n} ${n === 1 ? "match" : "matches"}`, description: `${keys("⌘Z")} to undo.`, timeout: 2400 });
   };
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {

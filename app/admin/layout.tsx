@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 
 import LazyToaster from "../components/LazyToaster";
 import { SoundEffects } from "../components/ui/sound";
+import { ThemeSync } from "../components/ui/theme";
+import { THEME_PAPER, THEME_SCRIPT } from "../lib/theme";
 import "../globals.css";
 import "../kit-inputs.css";
 import "../kit.css";
@@ -41,12 +43,25 @@ export const metadata: Metadata = {
   referrer: "same-origin",
 };
 
-export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#ffffff", viewportFit: "cover" };
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: THEME_PAPER.light },
+    { media: "(prefers-color-scheme: dark)", color: THEME_PAPER.dark },
+  ],
+  viewportFit: "cover",
+};
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
+    // The pre-paint script sets data-theme on <html> before hydration.
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="admin-body">
+        <ThemeSync />
         <SoundEffects>
           {children}
           <LazyToaster />

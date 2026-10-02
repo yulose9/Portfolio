@@ -13,7 +13,7 @@
   inset: 0 0 auto;
   z-index: 40;
   height: 2px;
-  background: var(--ink, #0a0a0a);
+  background: var(--ink, var(--fg));
   transform-origin: 0 50%;
   transform: scaleX(0);
   pointer-events: none;
@@ -84,7 +84,7 @@
   padding: 0.7rem 1rem;
   border: 1px solid var(--rule);
   border-radius: 10px;
-  background: #fff;
+  background: var(--paper);
   font-size: 14px;
   line-height: 1.45;
 }
@@ -284,7 +284,7 @@ html:not(.has-smooth-cursor) .article-page a[href] * { cursor: pointer; }
 .article-cover img[data-zoom]:focus-visible,
 .article-body pre[tabindex]:focus-visible,
 .article-body .table-wrap[tabindex]:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: 3px;
 }
 .zoom-overlay:focus {
@@ -313,7 +313,7 @@ html:not(.has-smooth-cursor) .article-page a[href] * { cursor: pointer; }
   margin-top: 2.5rem;
   padding: 1.25rem;
   border-radius: 16px;
-  background: #fafafa;
+  background: var(--paper-sunk);
 }
 .author-card-row {
   display: grid;
@@ -326,13 +326,13 @@ html:not(.has-smooth-cursor) .article-page a[href] * { cursor: pointer; }
   height: 56px;
   border-radius: 999px;
   object-fit: cover;
-  outline: 1px solid oklch(0 0 0 / 0.1);
+  outline: 1px solid var(--img-outline);
   outline-offset: -1px;
 }
 .author-card-initial {
   display: grid;
   place-items: center;
-  background: #f4f4f5;
+  background: var(--wash);
   font-weight: 600;
   color: var(--ink-2);
 }
@@ -466,9 +466,9 @@ html:not(.has-smooth-cursor) .article-page a[href] * { cursor: pointer; }
   }
 }
 
-.toc ol { scrollbar-width: thin; scrollbar-color: rgb(0 0 0 / .18) transparent; overscroll-behavior: contain; scroll-behavior: auto; }
+.toc ol { scrollbar-width: thin; scrollbar-color: rgb(var(--tint) / .18) transparent; overscroll-behavior: contain; scroll-behavior: auto; }
 .toc ol::-webkit-scrollbar { width: 4px; height: 4px; }
-.toc ol::-webkit-scrollbar-thumb { background: rgb(0 0 0 / .18); border-radius: 4px; }
+.toc ol::-webkit-scrollbar-thumb { background: rgb(var(--tint) / .18); border-radius: 4px; }
 .toc a { transition: color 120ms ease, background-color 120ms ease; }
 .article-eyebrow time { cursor: text; }
 
@@ -572,7 +572,7 @@ body:has(.article-banner, .editor-banner) .page-outline-strip {
   width: 248px;
   padding: 6px;
   border-radius: 12px;
-  background: #fff;
+  background: var(--paper-float);
   box-shadow:
     0 0 0 1px rgb(15 15 15 / 0.06),
     0 3px 6px rgb(15 15 15 / 0.06),
@@ -598,7 +598,7 @@ body:has(.article-banner, .editor-banner) .page-outline-strip {
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: rgb(0 0 0 / 0.18) transparent;
+  scrollbar-color: rgb(var(--tint) / 0.18) transparent;
 }
 .page-outline ol {
   position: relative;
@@ -748,5 +748,54 @@ body:has(.article-banner, .editor-banner) .page-outline-strip {
 @media print {
   .page-outline {
     display: none !important;
+  }
+}
+
+/*
+ * Dark theme. Hairline greys become white at low alpha, the frosted and
+ * floating layers turn dark, and the outline's palette is re-pointed at the
+ * theme tokens.
+ */
+[data-theme="dark"] .heading-anchor:not(:hover),
+[data-theme="dark"] .breadcrumbs li + li::before {
+  color: rgb(255 255 255 / 0.28);
+}
+[data-theme="dark"] .author-card-links a,
+[data-theme="dark"] .article-body .wikilink-missing {
+  text-decoration-color: rgb(255 255 255 / 0.28);
+}
+@media (hover: hover) and (pointer: fine) {
+  [data-theme="dark"] .author-card-links a:hover {
+    text-decoration-color: currentColor;
+  }
+}
+[data-theme="dark"] .code-copy {
+  background: rgb(37 37 37 / 0.9);
+}
+[data-theme="dark"] .code-copy[data-copied] {
+  color: var(--green);
+}
+[data-theme="dark"] .zoom-image {
+  box-shadow: 0 30px 80px -20px rgb(0 0 0 / 0.7);
+}
+[data-theme="dark"] .page-outline {
+  --po-ink: var(--fg);
+  --po-ink-2: var(--fg-2);
+  --po-line: rgb(255 255 255 / 0.2);
+  --po-line-active: #d4d4d2;
+  --po-hover: rgb(255 255 255 / 0.055);
+  --po-current: rgb(255 255 255 / 0.08);
+  --po-dot: #529cca;
+}
+[data-theme="dark"] body:has(.article-banner, .editor-banner) .page-outline-strip {
+  background: rgb(25 25 25 / 0.82);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+[data-theme="dark"] .page-outline-card {
+  box-shadow: var(--shadow-pop);
+}
+@media (prefers-reduced-transparency: reduce) {
+  [data-theme="dark"] body:has(.article-banner, .editor-banner) .page-outline-strip {
+    background: var(--paper);
   }
 }

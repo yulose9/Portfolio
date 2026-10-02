@@ -1,6 +1,7 @@
 "use client";
 
 import { SoundToggle } from "../../components/ui/sound";
+import { ThemeToggle } from "../../components/ui/theme";
 import { Tabs, TabsList, TabsTrigger } from "../../components/kit/tabs";
 import { SlidingNumber } from "../../components/kit/inputs/counter";
 import { MultiSelect, type MultiSelectMatch } from "../../components/kit/inputs/multi-select";
@@ -24,6 +25,7 @@ import {
   SidebarSimple,
 } from "@phosphor-icons/react";
 import { Menu } from "@base-ui/react/menu";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import UpdatedAt from "../../components/UpdatedAt";
@@ -63,6 +65,18 @@ const FILTERS = [
   { id: "trash", label: "Trash" },
 ] as const;
 type Filter = (typeof FILTERS)[number]["id"];
+
+/*
+ * Filtering is frequent, so its motion is quick: rows that still match slide
+ * to their new place, rows that stop matching fade out fast, and new ones come
+ * in on a light stagger. Long lists skip it; so does reduced motion.
+ */
+const ROW_MOTION_LIMIT = 60;
+const ROW_EASE = [0.23, 1, 0.32, 1] as const;
+const ROW_SLIDE = { type: "spring", duration: 0.3, bounce: 0 } as const;
+const ROW_EXIT = { opacity: 0, y: -4, transition: { duration: 0.12, ease: ROW_EASE } };
+const ROW_STAGGER = 0.03;
+const ROW_STAGGER_CAP = 5;
 
 export default function PostList({
   email,
@@ -212,6 +226,31 @@ export default function PostList({
           (a.updatedAt < b.updatedAt ? 1 : -1),
       );
   }, [posts, live, filter, tagFilter, tagMatch, query]);
+
+  // Which rows just came into view, in order, so they can stagger in. Worked
+  // out during render, the same way as the view key above.
+  const still = useReducedMotion();
+  const shownKey = shown.map((p) => p.id).join("\u0000");
+  const [rowsKey, setRowsKey] = useState(shownKey);
+  const [arrivals, setArrivals] = useState<ReadonlyMap<string, number>>(() => new Map());
+  if (rowsKey !== shownKey) {
+    const before = new Set(rowsKey.split("\u0000"));
+    const next = new Map<string, number>();
+    for (const p of shown) if (!before.has(p.id)) next.set(p.id, next.size);
+    setRowsKey(shownKey);
+    setArrivals(next);
+  }
+  const animateRows = !still && shown.length < ROW_MOTION_LIMIT;
+
+  // The first paint keeps its short CSS cascade (admin.css); once that has
+  // played, rows coming and going are animated here instead.
+  const loaded = posts !== null;
+  const [intro, setIntro] = useState(true);
+  useEffect(() => {
+    if (!loaded || !intro) return;
+    const timer = window.setTimeout(() => setIntro(false), 600);
+    return () => window.clearTimeout(timer);
+  }, [loaded, intro]);
 
   // N for a new post, / to filter: the two things this screen is for.
   useEffect(() => {
@@ -379,6 +418,7 @@ export default function PostList({
         </div>
         <div className="admin-list-actions">
           <SoundToggle className="size-8 rounded-full text-[color:var(--a-ink-2)]" />
+          <ThemeToggle className="size-8 rounded-full text-[color:var(--a-ink-2)]" />
           <Menu.Root modal={false}>
             <Menu.Trigger className="admin-button admin-button-quiet">
               Workspace
@@ -500,6 +540,7 @@ export default function PostList({
         {tagOptions.length && filter !== "trash" ? (
           <MultiSelect
             className="writing-tag-filter"
+            chipsAt="start"
             label="Tags"
             icon={<TagIcon size={14} aria-hidden="true" />}
             placeholder="Search tags…"
@@ -563,12 +604,27 @@ export default function PostList({
             <span className="rows-head-label">
               {selecting
                 ? `${picked.length} of ${shown.length}`
-                : `${shown.length} ${shown.length === 1 ? "post" : "posts"}`}
+                : <><SlidingNumber value={shown.length} /> {shown.length === 1 ? "post" : "posts"}</>}
             </span>
           </div>
-          <ul className="admin-rows">
+          {/* Positioned: a leaving row is lifted out of the flow against it. */}
+          <ul className="admin-rows" data-intro={intro || undefined} style={{ position: "relative" }}>
+            <AnimatePresence initial={!intro} mode="popLayout">
             {shown.map((p) => (
-              <li key={p.id} data-selected={selected.has(p.id) || undefined}>
+              <motion.li
+                key={p.id}
+                data-selected={selected.has(p.id) || undefined}
+                layout={animateRows ? "position" : false}
+                initial={animateRows ? { opacity: 0, y: 6 } : false}
+                animate={{ opacity: 1, y: 0 }}
+                exit={animateRows ? ROW_EXIT : undefined}
+                transition={{
+                  duration: 0.2,
+                  ease: ROW_EASE,
+                  delay: Math.min(arrivals.get(p.id) ?? 0, ROW_STAGGER_CAP) * ROW_STAGGER,
+                  layout: ROW_SLIDE,
+                }}
+              >
                 <Checkbox
                   checked={selected.has(p.id)}
                   label={`Select “${p.title.trim() || "Untitled"}”`}
@@ -656,8 +712,9 @@ export default function PostList({
                     ) : null}
                   </button>
                 </PostRow>
-              </li>
+              </motion.li>
             ))}
+            </AnimatePresence>
           </ul>
         </>
       )}

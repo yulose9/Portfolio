@@ -21,7 +21,7 @@ import {
 
 import type { ChartModel } from "./Chart";
 
-/* Recharts, in shadcn's chart manner: hairline grid, no axis lines, a small card tooltip. */
+/* Recharts, in shadcn's chart manner: hairline grid, no axis lines, a small card tooltip. Strokes are theme tokens (globals.css), so the chart follows dark mode. */
 
 const COLORS = ["var(--chart-2)", "var(--chart-5)", "var(--chart-3)", "var(--chart-1)", "var(--chart-4)", "#a1a1aa"];
 const fmt = (v: unknown) => (typeof v === "number" ? v.toLocaleString("en-US") : String(v ?? ""));
@@ -44,10 +44,10 @@ function Tip({ active, payload, label }: Partial<TooltipContentProps<number, str
 
 export default function ChartCanvas({ model }: { model: ChartModel }) {
   const { type, data, series, labelKey } = model;
-  const axis = { tickLine: false, axisLine: false, tickMargin: 8, fontSize: 12, stroke: "#71717a" } as const;
+  const axis = { tickLine: false, axisLine: false, tickMargin: 8, fontSize: 12, stroke: "var(--fg-3)" } as const;
   const legend = series.length > 1 ? <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} /> : null;
-  const grid = <CartesianGrid vertical={false} stroke="#ececee" />;
-  const tooltip = <Tooltip cursor={{ fill: "rgb(0 0 0 / 0.04)", stroke: "#d4d4d8" }} content={<Tip />} />;
+  const grid = <CartesianGrid vertical={false} stroke="var(--line)" />;
+  const tooltip = <Tooltip cursor={{ fill: "rgb(var(--tint) / 0.04)", stroke: "var(--line-strong)" }} content={<Tip />} />;
 
   if (type === "pie" || type === "donut") {
     const s = series[0];
@@ -55,7 +55,7 @@ export default function ChartCanvas({ model }: { model: ChartModel }) {
       <ResponsiveContainer width="100%" height={280}>
         <PieChart>
           <Tooltip content={<Tip />} />
-          <Pie data={data} dataKey={s?.key ?? "s0"} nameKey={labelKey} innerRadius={type === "donut" ? "55%" : 0} outerRadius="85%" paddingAngle={type === "donut" ? 2 : 0} stroke="#fff" strokeWidth={2}>
+          <Pie data={data} dataKey={s?.key ?? "s0"} nameKey={labelKey} innerRadius={type === "donut" ? "55%" : 0} outerRadius="85%" paddingAngle={type === "donut" ? 2 : 0} stroke="var(--paper)" strokeWidth={2}>
             {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
           </Pie>
           <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />

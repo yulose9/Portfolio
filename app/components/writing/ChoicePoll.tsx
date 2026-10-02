@@ -161,7 +161,7 @@ export default function ChoicePoll({ id, question, options }: { id: string; ques
                     {mine ? (
                       <svg className="poll-mine" viewBox="0 0 16 16">
                         <circle cx="8" cy="8" r="7" fill="currentColor" />
-                        <path d="M5 8.2 7 10.2 11 6" fill="none" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M5 8.2 7 10.2 11 6" fill="none" stroke="var(--on-fg)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     ) : null}
                   </span>

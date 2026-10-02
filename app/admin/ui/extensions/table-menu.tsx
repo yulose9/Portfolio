@@ -26,27 +26,41 @@ const STYLE_HINT: Record<TableStyle, string> = {
 export const WIDTH_LABEL: Record<TableWidth, string> = { fit: "Fit text width", wide: "Wide" };
 const WIDTH_HINT: Record<TableWidth, string> = { fit: "Stays in the column, text wraps", wide: "Breaks out past the text" };
 
+/*
+ * The sketches' greys, as theme tokens, so they invert with the menu:
+ * frame, header fill, stripe, rule, and the header and body "words".
+ */
+const SK = {
+  paper: "var(--paper-float)",
+  frame: "var(--line-strong)",
+  head: "var(--line)",
+  stripe: "var(--wash)",
+  rule: "var(--line-strong)",
+  strong: "var(--fg-3)",
+  faint: "var(--fg-4)",
+} as const;
+
 /** A 28×20 sketch of a table in each style. */
 function StylePreview({ style }: { style: TableStyle }) {
   const framed = style !== "minimal";
   const rows = [8, 12.5, 17];
   return (
     <svg className="table-menu-preview" viewBox="0 0 28 20" aria-hidden="true">
-      {framed ? <rect x="0.5" y="0.5" width="27" height="19" rx="3" fill="#fff" stroke="#d4d4d8" /> : null}
-      {style === "default" || style === "data" ? <path d="M1 3.5a3 3 0 0 1 3-3h20a3 3 0 0 1 3 3V6H1z" fill="#ececee" /> : null}
-      {style === "bordered" ? <path d="M1 1h26v5H1z" fill="#ececee" /> : null}
-      {style === "striped" ? <path d="M1 10.25h26v4.5H1z" fill="#f0f0f2" /> : null}
-      {style === "minimal" ? <path d="M1 6h26" stroke="#a1a1aa" strokeWidth="1" /> : null}
+      {framed ? <rect x="0.5" y="0.5" width="27" height="19" rx="3" fill={SK.paper} stroke={SK.frame} /> : null}
+      {style === "default" || style === "data" ? <path d="M1 3.5a3 3 0 0 1 3-3h20a3 3 0 0 1 3 3V6H1z" fill={SK.head} /> : null}
+      {style === "bordered" ? <path d="M1 1h26v5H1z" fill={SK.head} /> : null}
+      {style === "striped" ? <path d="M1 10.25h26v4.5H1z" fill={SK.stripe} /> : null}
+      {style === "minimal" ? <path d="M1 6h26" stroke={SK.faint} strokeWidth="1" /> : null}
       {style !== "striped"
-        ? rows.slice(style === "minimal" ? 1 : 0, 2).map((y) => <path key={y} d={`M1 ${y + 2.25}h26`} stroke="#e4e4e7" strokeWidth="0.75" />)
+        ? rows.slice(style === "minimal" ? 1 : 0, 2).map((y) => <path key={y} d={`M1 ${y + 2.25}h26`} stroke={SK.rule} strokeWidth="0.75" />)
         : null}
-      {style === "bordered" ? <path d="M10 1v18M18.5 1v18M1 10.25h26M1 14.75h26" stroke="#e4e4e7" strokeWidth="0.75" /> : null}
+      {style === "bordered" ? <path d="M10 1v18M18.5 1v18M1 10.25h26M1 14.75h26" stroke={SK.rule} strokeWidth="0.75" /> : null}
       {/* The cells' words: short bars; the data table's numbers sit right. */}
       {[3.25, ...rows].map((y, r) =>
         [3, 11.5, 20].map((x, c) => {
           const w = style === "data" && c === 2 && r > 0 ? 3.5 : r === 0 ? 4.5 : 5.5;
           const at = style === "data" && c === 2 && r > 0 ? 24.5 - w : x + (style === "minimal" ? -1.5 : 0);
-          return <rect key={`${r}-${c}`} x={at} y={y - 0.6} width={w} height="1.2" rx="0.6" fill={r === 0 ? "#71717a" : "#a1a1aa"} />;
+          return <rect key={`${r}-${c}`} x={at} y={y - 0.6} width={w} height="1.2" rx="0.6" fill={r === 0 ? SK.strong : SK.faint} />;
         }),
       )}
     </svg>
@@ -58,9 +72,9 @@ function WidthPreview({ width }: { width: TableWidth }) {
   const box = width === "wide" ? { x: 0.5, w: 27 } : { x: 6.5, w: 15 };
   return (
     <svg className="table-menu-preview" viewBox="0 0 28 20" aria-hidden="true">
-      <path d="M6.5 2.5h15M6.5 17.5h10" stroke="#d4d4d8" strokeWidth="1.2" strokeLinecap="round" />
-      <rect x={box.x} y="6" width={box.w} height="8" rx="1.5" fill="#fff" stroke="#a1a1aa" />
-      <path d={`M${box.x} 9h${box.w}`} stroke="#d4d4d8" strokeWidth="0.75" />
+      <path d="M6.5 2.5h15M6.5 17.5h10" stroke={SK.frame} strokeWidth="1.2" strokeLinecap="round" />
+      <rect x={box.x} y="6" width={box.w} height="8" rx="1.5" fill={SK.paper} stroke={SK.faint} />
+      <path d={`M${box.x} 9h${box.w}`} stroke={SK.frame} strokeWidth="0.75" />
     </svg>
   );
 }

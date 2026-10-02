@@ -27,6 +27,7 @@ import { serializePost, draftToPost } from "../../../cms/format";
 import { copy } from "../../components/menu/actions";
 import { useFinePointer } from "../../components/menu/useFinePointer";
 import { toast } from "../../lib/toast";
+import { trashToast } from "./trash-toast";
 import { api, ApiError, type PostSummary } from "./api";
 import type { Panel } from "./Editor";
 import { MenuSurface, MItem, MLabel, MSep } from "./menu";
@@ -66,7 +67,7 @@ function rowCommands(p: PostSummary, actions: RowActions, askDelete: () => void,
           icon={<ArrowUUpLeft {...I} />}
           onSelect={busy("restore it", async () => {
             const { post } = await api.untrash(p.id);
-            toast.add({ type: "success", title: "Restored", description: "It's a draft again." });
+            toast.add({ type: "success", title: "Restored", description: "It’s a draft again." });
             actions.replace({ ...p, trashedAt: null, status: post.status, liveSlug: post.liveSlug, updatedAt: post.updatedAt }, p.id);
           })}
         >
@@ -91,18 +92,10 @@ function rowCommands(p: PostSummary, actions: RowActions, askDelete: () => void,
   const toTrash = busy("move it to Trash", async () => {
     const { post } = await api.remove(p.id);
     actions.replace(post ? { ...p, trashedAt: post.trashedAt ?? new Date().toISOString(), status: "draft", liveSlug: null } : null, p.id);
-    const id = toast.add({
-      type: "success",
-      title: "Moved to Trash",
-      description: p.liveSlug ? "Taken off the site with the next build." : "Kept in Trash until you delete it permanently.",
-      timeout: 6000,
-      actionProps: {
-        children: "Undo",
-        onClick: () => {
-          toast.close(id);
-          void api.untrash(p.id).then(({ post: back }) => actions.replace({ ...p, trashedAt: null, status: back.status, liveSlug: back.liveSlug }, p.id));
-        },
-      },
+    trashToast({
+      name: p.title,
+      live: Boolean(p.liveSlug),
+      restore: () => api.untrash(p.id).then(({ post: back }) => actions.replace({ ...p, trashedAt: null, status: back.status, liveSlug: back.liveSlug }, p.id)),
     });
   });
 
@@ -131,7 +124,7 @@ function rowCommands(p: PostSummary, actions: RowActions, askDelete: () => void,
           icon={<PaperPlaneTilt {...I} />}
           onSelect={busy("publish", async () => {
             const { post } = await api.publish(p.id);
-            toast.add({ type: "success", title: "Published", description: "Live in about 3 minutes, once the site rebuilds." });
+            toast.add({ type: "success", title: "Published", description: "Live in about 3 minutes." });
             actions.replace({ ...p, status: post.status, liveSlug: post.liveSlug, dirty: post.dirty, publishedAt: post.publishedAt, updatedAt: post.updatedAt }, p.id);
           })}
         >
@@ -160,7 +153,7 @@ function rowCommands(p: PostSummary, actions: RowActions, askDelete: () => void,
           icon={<ArrowUUpLeft {...I} />}
           onSelect={busy(p.status === "scheduled" ? "cancel the schedule" : "unpublish", async () => {
             const { post } = await api.unpublish(p.id);
-            toast.add({ type: "success", title: p.status === "scheduled" ? "Schedule cancelled" : "Unpublished", description: p.status === "scheduled" ? undefined : "It leaves the site in about 3 minutes." });
+            toast.add({ type: "success", title: p.status === "scheduled" ? "Schedule cancelled" : "Unpublished", description: p.status === "scheduled" ? undefined : "Leaves the site in about 3 minutes." });
             actions.replace({ ...p, status: post.status, liveSlug: null, publishAt: null, dirty: true, updatedAt: post.updatedAt }, p.id);
           })}
         >

@@ -150,3 +150,136 @@
 @keyframes popover-fade-out{to{opacity:0}}
 @keyframes t-pro-btn-hue{0%{filter:hue-rotate(0deg) saturate(1.3) blur(var(--probtn-blur))}to{filter:hue-rotate(-360deg) saturate(1.3) blur(var(--probtn-blur))}}
 @keyframes t-pro-btn-drift{0%,to{background-position:100% 0,0%,100%,0 100%,0 0,50% 0,50% 100%}25%{background-position:100% 100%,50% 0,50% 100%,0 0,100% 0,100%,0%}50%{background-position:0 100%,100% 0,0 100%,100% 0,100% 100%,100% 100%,0 0}75%{background-position:0 0,100% 100%,0 0,100% 100%,50% 100%,0 100%,100%}}
+/*
+ * Dark theme (<html data-theme="dark">, see globals.css and app/lib/theme.ts).
+ * The kit's tokens re-pointed at the Notion-like dark palette: a near-black
+ * page, raised layers a step lighter, white hairlines at low alpha. The
+ * primary surface inverts, as the admin's ink button does, so the one
+ * strong button on a page stays the brightest thing on it. The QR code keeps
+ * its black on white: scanners need the contrast the right way round.
+ */
+:root[data-theme="dark"] {
+  --background: #191919;
+  --foreground: #e9e9e7;
+  --card: #202020;
+  --card-foreground: #e9e9e7;
+  --popover: #252525;
+  --popover-foreground: #e9e9e7;
+  --primary: #e9e9e7;
+  --primary-foreground: #191919;
+  --secondary: #2a2a2a;
+  --secondary-foreground: #e9e9e7;
+  --muted: #252525;
+  --nav-hover: #2c2c2c;
+  --muted-foreground: #9b9b9b;
+  --accent: #2a2a2a;
+  --accent-foreground: #e9e9e7;
+  --destructive: oklch(62% 0.2 25);
+  --destructive-foreground: #ffffff;
+  --error: oklch(72% 0.16 25);
+  --warning: oklch(78% 0.13 75);
+  --success: oklch(74% 0.14 152);
+  --info: oklch(72% 0.14 255);
+  --border: rgb(255 255 255 / 0.09);
+  --input: rgb(255 255 255 / 0.12);
+  --ring: oklch(62% 0 0);
+  --sidebar: #202020;
+  --sidebar-foreground: #c8c8c6;
+  --sidebar-primary: #e9e9e7;
+  --sidebar-primary-foreground: #191919;
+  --sidebar-accent: #2a2a2a;
+  --sidebar-accent-foreground: #e9e9e7;
+  --sidebar-border: rgb(255 255 255 / 0.09);
+  --sidebar-ring: #6aa1f5;
+  /* The chart blues, lifted so the darkest still reads against the page. */
+  --chart-1: oklch(52% 0.2 262.9);
+  --chart-2: oklch(58% 0.2 262.9);
+  --chart-3: oklch(65% 0.18 262.9);
+  --chart-4: oklch(72% 0.15 262.9);
+  --chart-5: oklch(80% 0.11 262.9);
+  --shell: #202020;
+  --shell-panel: #252525;
+  --shell-canvas: #1e1e1e;
+  --shell-field: #202020;
+  --shell-line: rgb(255 255 255 / 0.09);
+  --shell-line-strong: rgb(255 255 255 / 0.14);
+  --shell-fg: #e9e9e7;
+  --shell-fg-subtle: #a8a8a6;
+  --scrollbar-thumb: rgb(255 255 255 / 0.18);
+  --selection-background: rgb(255 255 255 / 0.16);
+  --selection-foreground: #ffffff;
+  --badge-blue-bg: oklch(62% 0.19 258 / 0.2);
+  --badge-blue-fg: oklch(78% 0.12 258);
+  --badge-green-bg: oklch(62% 0.16 152 / 0.2);
+  --badge-green-fg: oklch(78% 0.13 152);
+  --badge-amber-bg: oklch(62% 0.15 75 / 0.22);
+  --badge-amber-fg: oklch(80% 0.12 75);
+  --skeleton-sweep: rgb(255 255 255 / 0.06);
+  --otp-trail-color: rgb(255 255 255 / 0.45);
+  --check-ring-color: rgb(255 255 255 / 0.16);
+  --check-arc-color: #9b9b9b;
+  --check-fill-color: #3b82f6;
+}
+[data-theme="dark"] .t-well {
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.4), inset 0 0 0 1px rgb(255 255 255 / 0.06);
+}
+[data-theme="dark"] .t-surface-primary::before {
+  --surface-base: #ededeb;
+  --surface-lit: #dededc;
+  --surface-edge-top: #ffffff;
+  --surface-edge-bottom: #b9b9b7;
+  --surface-ring: #f5f5f3;
+  --surface-drop: rgb(0 0 0 / 0.4);
+}
+[data-theme="dark"] .t-surface-secondary::before {
+  --surface-base: #2c2c2c;
+  --surface-lit: #272727;
+  --surface-edge-top: rgb(255 255 255 / 0.06);
+  --surface-edge-mid: rgb(255 255 255 / 0);
+  --surface-edge-bottom: rgb(0 0 0 / 0.3);
+  --surface-ring: rgb(255 255 255 / 0.08);
+  --surface-drop-near: rgb(0 0 0 / 0.2);
+  --surface-drop: rgb(0 0 0 / 0.3);
+}
+[data-theme="dark"] .t-surface-outline::before {
+  --surface-base: #222222;
+  --surface-lit: #262626;
+  --surface-edge-top: rgb(255 255 255 / 0.05);
+  --surface-edge-mid: rgb(255 255 255 / 0);
+  --surface-edge-bottom: rgb(0 0 0 / 0.3);
+  --surface-ring: rgb(255 255 255 / 0.12);
+  --surface-drop-near: rgb(0 0 0 / 0.2);
+  --surface-drop: rgb(0 0 0 / 0.3);
+}
+[data-theme="dark"] .t-surface-destructive::before {
+  --surface-ring: #8f1a1d;
+  --surface-drop: rgb(0 0 0 / 0.35);
+}
+[data-theme="dark"] .t-surface-info::before {
+  --surface-base: #172a45;
+  --surface-lit: #1a3050;
+  --surface-edge-bottom: rgb(0 0 0 / 0.3);
+  --surface-ring: rgb(106 161 245 / 0.3);
+}
+[data-theme="dark"] .t-surface-warning::before {
+  --surface-base: #3b2e17;
+  --surface-lit: #43341a;
+  --surface-edge-bottom: rgb(0 0 0 / 0.3);
+  --surface-ring: rgb(224 161 74 / 0.3);
+}
+[data-theme="dark"] .t-surface-success::before {
+  --surface-base: #183324;
+  --surface-lit: #1b3a29;
+  --surface-edge-bottom: rgb(0 0 0 / 0.3);
+  --surface-ring: rgb(79 182 122 / 0.3);
+}
+[data-theme="dark"] .t-surface-danger::before {
+  --surface-base: #3d1c1a;
+  --surface-lit: #45201d;
+  --surface-edge-bottom: rgb(0 0 0 / 0.3);
+  --surface-ring: rgb(242 113 107 / 0.3);
+}
+[data-theme="dark"] .t-surface-tint::before {
+  --surface-drop-near: rgb(0 0 0 / 0.2);
+  --surface-drop: rgb(0 0 0 / 0.3);
+}

@@ -19,8 +19,8 @@
 }
 .editor-code-pro .code-block-header input:focus-visible {
   outline: none;
-  border-color: #a1a1aa;
-  background: #fff;
+  border-color: var(--fg-4);
+  background: var(--paper);
 }
 .editor-code-pro .code-file-input {
   width: min(22ch, 40vw);
@@ -113,7 +113,7 @@
   padding: 0 8px;
   border: 1px solid var(--rule);
   border-radius: 6px;
-  background: #fff;
+  background: var(--paper);
   font: inherit;
 }
 .editor-code-tabs-meta .admin-select-trigger {
@@ -165,13 +165,13 @@
 }
 .editor-block-title:focus-visible {
   outline: none;
-  border-color: #a1a1aa;
+  border-color: var(--fg-4);
 }
 .editor-segment {
   display: inline-flex;
   padding: 2px;
   border-radius: 9px;
-  background: #f4f4f5;
+  background: var(--wash);
 }
 .editor-segment button {
   display: grid;
@@ -188,7 +188,7 @@
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
 }
 .editor-segment button:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
 
@@ -198,7 +198,7 @@
   padding: 1rem;
   border: 1px solid var(--rule);
   border-radius: 12px;
-  background: #fff;
+  background: var(--paper);
 }
 .editor-chart[data-selected] {
   outline: 2px solid rgb(37 99 235 / 0.35);
@@ -229,7 +229,7 @@
   color: var(--ink-2);
 }
 .editor-chart-mode button[aria-pressed="true"] {
-  background: #f4f4f5;
+  background: var(--wash);
   color: var(--ink);
 }
 .editor-chart-grid {
@@ -309,8 +309,8 @@
   outline: none;
 }
 .editor-poll-options .poll-choice:focus-within {
-  background: #fff;
-  box-shadow: inset 0 0 0 1.5px #a1a1aa;
+  background: var(--paper);
+  box-shadow: inset 0 0 0 1.5px var(--fg-4);
 }
 /* The live share sits behind each option as a faint fill; the count at its end. */
 .editor-poll-option {
@@ -322,7 +322,7 @@
   inset: 0 auto 0 0;
   z-index: -1;
   width: var(--share, 0%);
-  background: rgb(0 0 0 / 0.045);
+  background: rgb(var(--tint) / 0.045);
   transition: width 400ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 .editor-poll-count {
@@ -373,11 +373,11 @@
 .citation-panel textarea {
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid #e4e4e7;
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
   font: inherit;
   font-size: 13px;
-  color: #0a0a0a;
+  color: var(--fg);
 }
 .citation-panel-note {
   margin: 0;
@@ -426,7 +426,7 @@
   padding: 0;
   border: 1px solid var(--rule);
   border-radius: 12px;
-  background: #fff;
+  background: var(--paper);
 }
 .editor-body .table-block[data-table-style="minimal"] .tableWrapper {
   border-color: transparent;
@@ -434,7 +434,7 @@
   background: none;
 }
 .editor-body .table-block[data-table-style="bordered"] .tableWrapper {
-  border-color: #e4e4e7;
+  border-color: var(--line-strong);
 }
 /* Tiptap sizes the table to its columns' minimum; it still fills the frame. */
 .editor-body .table-block .tableWrapper table {
@@ -466,9 +466,9 @@
   max-width: 100%;
   padding: 3px;
   overflow-x: auto;
-  border: 1px solid #e4e4e7;
+  border: 1px solid var(--line-strong);
   border-radius: 10px;
-  background: #fff;
+  background: var(--paper-float);
   box-shadow: 0 6px 20px rgb(0 0 0 / 0.08);
   font-size: 12px;
   opacity: 0;
@@ -499,13 +499,13 @@
   border-radius: 7px;
   font: inherit;
   font-weight: 500;
-  color: #0a0a0a;
+  color: var(--fg);
   white-space: nowrap;
   transition: background-color 120ms ease;
 }
 .table-style-trigger:hover,
 .table-style-trigger[data-popup-open] {
-  background: #f4f4f5;
+  background: var(--wash);
 }
 .table-style-trigger .table-menu-preview {
   width: 21px;
@@ -514,14 +514,14 @@
 .table-style-badge {
   padding: 1px 5px;
   border-radius: 999px;
-  background: #f4f4f5;
+  background: var(--wash);
   font-size: 11px;
   font-weight: 500;
-  color: #52525b;
+  color: var(--fg-2);
 }
 .table-style-trigger:hover .table-style-badge,
 .table-style-trigger[data-popup-open] .table-style-badge {
-  background: #fff;
+  background: var(--paper-float);
 }
 .table-style-chevron {
   width: 14px;
@@ -560,7 +560,7 @@
   width: 28px;
   height: 28px;
   border-radius: 7px;
-  color: #52525b;
+  color: var(--fg-2);
   transition: background-color 120ms ease, color 120ms ease;
 }
 .table-tool svg {
@@ -569,8 +569,8 @@
 }
 .table-tool:hover,
 .table-tool[aria-pressed="true"] {
-  background: #f4f4f5;
-  color: #0a0a0a;
+  background: var(--wash);
+  color: var(--fg);
 }
 .table-tool-danger:hover {
   background: #fef2f2;
@@ -578,7 +578,7 @@
 }
 .table-tool:focus-visible,
 .table-style-trigger:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
 .table-tool-sep {
@@ -586,7 +586,7 @@
   width: 1px;
   height: 16px;
   margin-inline: 3px;
-  background: #e4e4e7;
+  background: var(--line-strong);
 }
 /* Row and column handles (table-handles.tsx): a grip pill on the hovered
    row's left edge and column's top edge, in a layer over the frame so the
@@ -607,7 +607,7 @@
   border: 0;
   border-radius: 999px;
   background: #e4e4e7;
-  box-shadow: 0 0 0 1.5px #fff;
+  box-shadow: 0 0 0 1.5px var(--paper);
   color: #71717a;
   cursor: grab;
   opacity: 0;
@@ -652,7 +652,7 @@
   cursor: grabbing;
 }
 .table-handle:focus-visible {
-  outline: 2px solid #111;
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 /* The selected row or column, framed the way Notion does it. */
@@ -682,7 +682,7 @@
   gap: 8px;
   margin: 0 0 0.25rem;
   padding: 0.375rem 0.625rem;
-  border-bottom: 0.8px solid rgb(244 244 245);
+  border-bottom: 0.8px solid var(--wash);
   color: rgb(113 113 122);
 }
 .table-line-search input {
@@ -695,7 +695,7 @@
   color: #171717;
 }
 .table-line-search input::placeholder {
-  color: rgb(0 0 0 / 0.4);
+  color: rgb(var(--tint) / 0.4);
 }
 .table-line-search:focus-within {
   color: #171717;
@@ -703,7 +703,7 @@
 .table-line-empty {
   margin: 0;
   padding: 0.4375rem 0.625rem;
-  color: rgb(0 0 0 / 0.4);
+  color: rgb(var(--tint) / 0.4);
 }
 .table-swatch {
   display: grid;
@@ -711,7 +711,7 @@
   width: 18px;
   height: 18px;
   border-radius: 5px;
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.1);
+  box-shadow: inset 0 0 0 1px rgb(var(--tint) / 0.1);
   font-size: 12px;
   font-weight: 600;
   line-height: 1;
@@ -801,7 +801,7 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .editor-body .callout-icon:hover {
-    background: rgb(0 0 0 / 0.05);
+    background: rgb(var(--tint) / 0.05);
   }
 }
 .editor-body .callout-icon:focus-visible {
@@ -894,8 +894,8 @@
   padding: 0;
   border: 0;
   border-radius: 999px;
-  background: #f4f4f5;
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+  background: var(--wash);
+  box-shadow: inset 0 0 0 1px rgb(var(--tint) / 0.12);
   cursor: pointer;
   transition: box-shadow 150ms ease, scale var(--press, 120ms) var(--ease, ease);
 }
@@ -904,7 +904,7 @@
 .callout-tone[data-tone="warning"] { background: #fef3c7; }
 .callout-tone[data-tone="caution"] { background: #fee2e2; }
 .callout-tone[aria-checked="true"] {
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12), 0 0 0 2px #fff, 0 0 0 4px var(--a-ink);
+  box-shadow: inset 0 0 0 1px rgb(var(--tint) / 0.12), 0 0 0 2px var(--paper-float), 0 0 0 4px var(--a-ink);
 }
 .callout-tone:active {
   scale: 0.9;
@@ -982,7 +982,7 @@
 }
 .cover-style-option[aria-checked="true"] {
   background: var(--a-ink);
-  color: #fff;
+  color: var(--a-on-ink);
 }
 .cover-style-option:focus-visible {
   outline: 2px solid var(--a-blue);
@@ -1097,7 +1097,7 @@
 }
 .admin-chip.admin-chip-primary {
   background: var(--a-ink);
-  color: #fff;
+  color: var(--a-on-ink);
 }
 @media (prefers-reduced-motion: reduce) {
   .cover-style-option,
@@ -1120,7 +1120,7 @@
 }
 @media (prefers-reduced-transparency: reduce) {
   .editor-root:has(.editor-banner) .editor-outline {
-    background: #fff;
+    background: var(--paper);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -1160,7 +1160,7 @@
   transition: background-color 150ms ease, scale 150ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 .editor-banner-zoom-step:hover:not(:disabled) {
-  background: rgb(0 0 0 / 0.06);
+  background: rgb(var(--tint) / 0.06);
 }
 .editor-banner-zoom-step:active:not(:disabled) {
   scale: 0.96;
@@ -1232,7 +1232,7 @@ button.asset-preview-audio {
   height: 36px;
   border-radius: 999px;
   background: var(--a-ink);
-  color: #fff;
+  color: var(--a-on-ink);
   transition: scale 150ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 button.asset-preview-audio:active .asset-preview-play {
@@ -1250,7 +1250,7 @@ button.asset-preview-audio:active .asset-preview-play {
   flex: 1;
   max-width: 4px;
   border-radius: 2px;
-  background: rgb(0 0 0 / 0.16);
+  background: rgb(var(--tint) / 0.16);
 }
 /* Audio, playing: the post's own player card, filling the preview. */
 div.asset-preview-audio {
@@ -1346,7 +1346,7 @@ div.asset-preview-audio .article-audio {
   transition: background-color 150ms ease;
 }
 .media-lightbox-action:hover {
-  background: rgb(0 0 0 / 0.06);
+  background: rgb(var(--tint) / 0.06);
 }
 .media-lightbox-action:focus-visible {
   outline: 2px solid var(--a-blue);
@@ -1356,5 +1356,98 @@ div.asset-preview-audio .article-audio {
   .asset-preview-image img,
   .asset-preview-play {
     transition: none;
+  }
+}
+
+/* ── Dark theme ───────────────────────────────────────────────────────────
+   What the tokens above can't carry: greys with no token of the same light
+   value, the frosted pills over covers, and deeper shadows. */
+[data-theme="dark"] .editor-code-gutter {
+  color: #6b6b6b;
+}
+[data-theme="dark"] .editor-code-gutter span[data-highlighted] {
+  color: var(--blue);
+}
+[data-theme="dark"] .editor-segment button[aria-checked="true"] {
+  background: var(--wash-2);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+}
+[data-theme="dark"] .citation-panel label,
+[data-theme="dark"] .citation-panel-note,
+[data-theme="dark"] .table-style-chevron,
+[data-theme="dark"] .table-menu-hint,
+[data-theme="dark"] .table-line-search {
+  color: var(--fg-3);
+}
+[data-theme="dark"] .citation-panel input,
+[data-theme="dark"] .citation-panel textarea {
+  background: var(--paper);
+}
+[data-theme="dark"] .editor-captions-field[data-invalid] input {
+  color: var(--red);
+}
+[data-theme="dark"] .table-toolbar {
+  box-shadow: var(--shadow-pop);
+}
+[data-theme="dark"] .table-style-trigger:hover .table-style-badge,
+[data-theme="dark"] .table-style-trigger[data-popup-open] .table-style-badge {
+  background: var(--wash-2);
+}
+[data-theme="dark"] .table-tool-danger:hover {
+  background: rgb(242 113 107 / 0.12);
+  color: var(--red);
+}
+[data-theme="dark"] .table-handle {
+  background: #3a3a3a;
+  color: #9b9b9b;
+}
+[data-theme="dark"] .table-handle:hover {
+  background: #4a4a4a;
+  color: var(--fg);
+}
+[data-theme="dark"] .table-handle[data-active],
+[data-theme="dark"] .table-handle[data-popup-open] {
+  background: #2383e2;
+  color: #fff;
+}
+[data-theme="dark"] .editor-body .selectedCell[data-bg] {
+  box-shadow: inset 0 0 0 999px rgb(35 131 226 / 0.18);
+}
+[data-theme="dark"] .table-line-search input,
+[data-theme="dark"] .table-line-search:focus-within {
+  color: var(--fg);
+}
+[data-theme="dark"] .callout-tone[data-tone="tip"] { background: #1f3a29; }
+[data-theme="dark"] .callout-tone[data-tone="important"] { background: #1b2f4d; }
+[data-theme="dark"] .callout-tone[data-tone="warning"] { background: #42351a; }
+[data-theme="dark"] .callout-tone[data-tone="caution"] { background: #4a2222; }
+/* The frosted pills and bars that sit on a cover or over the lightbox. */
+[data-theme="dark"] .cover-style,
+[data-theme="dark"] .editor-banner-alt,
+[data-theme="dark"] .editor-banner-zoom,
+[data-theme="dark"] .asset-preview-close {
+  background: rgb(37 37 37 / 0.9);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08), 0 1px 3px rgb(0 0 0 / 0.4);
+}
+[data-theme="dark"] .media-lightbox-bar {
+  background: rgb(37 37 37 / 0.95);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08), 0 8px 24px -10px rgb(0 0 0 / 0.7);
+}
+[data-theme="dark"] .media-lightbox {
+  background: rgb(0 0 0 / 0.72);
+}
+[data-theme="dark"] .media-lightbox-img {
+  outline: 1px solid var(--img-outline);
+  box-shadow: 0 24px 60px -20px rgb(0 0 0 / 0.8);
+}
+@media (min-width: 1180px) {
+  [data-theme="dark"] .editor-root:has(.editor-banner) .editor-outline {
+    background: rgb(32 32 32 / 0.86);
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08), 0 10px 28px -14px rgb(0 0 0 / 0.6);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  [data-theme="dark"] .editor-root:has(.editor-banner) .editor-outline {
+    background: var(--paper-raised);
   }
 }

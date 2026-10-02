@@ -27,9 +27,9 @@
   width: 16px;
   height: 16px;
   border-radius: 5px;
-  background: #fff;
+  background: var(--paper);
   box-shadow: inset 0 0 0 1.5px #8a8a93;
-  color: #fff;
+  color: var(--a-on-ink);
   transition-property: background-color, box-shadow;
   transition-duration: 150ms;
   transition-timing-function: ease;
@@ -62,7 +62,7 @@
   width: 8px;
   height: 2px;
   border-radius: 2px;
-  background: #fff;
+  background: var(--a-on-ink);
 }
 .check-mark[data-on],
 .check-dash[data-on] {
@@ -374,7 +374,7 @@
 }
 .dtp-calendar .rdp-selected .rdp-day_button {
   background: var(--a-ink);
-  color: #fff;
+  color: var(--a-on-ink);
 }
 .dtp-calendar .rdp-day_button:focus-visible {
   outline: 2px solid var(--a-ink);
@@ -672,7 +672,7 @@
 .palette-command[aria-selected="true"] .palette-command-icon {
   background: #fff;
   color: var(--a-ink);
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.05), 0 1px 2px rgb(0 0 0 / 0.06);
+  box-shadow: 0 0 0 1px rgb(var(--tint) / 0.05), 0 1px 2px rgb(0 0 0 / 0.06);
 }
 .palette-command svg {
   color: currentColor;
@@ -941,10 +941,54 @@
 }
 
 /* Find is a compact panel with an explicit search scope. */
-.editor-root .find-bar{display:flex;flex-wrap:wrap;width:min(560px,calc(100vw - 24px));padding:12px;border-radius:12px;gap:8px;transition-duration:140ms;background:#fff;border:1px solid #e4e4e7;box-shadow:0 8px 30px #00000012}
+.editor-root .find-bar{display:flex;flex-wrap:wrap;width:min(560px,calc(100vw - 24px));padding:12px;border-radius:12px;gap:8px;transition-duration:140ms;background:var(--paper-float);border:1px solid var(--line-strong);box-shadow:0 8px 30px #00000012}
 .find-heading{display:flex;align-items:center;justify-content:space-between;width:100%;gap:12px;font-size:12px}.find-heading strong{font-weight:500}.find-heading button{font-size:11px}
-.editor-root .find-bar input{min-width:0;height:36px;background:#f7f7f8;border:1px solid #e4e4e7;border-radius:6px;padding:0 9px;font-size:13px}
+.editor-root .find-bar input{min-width:0;height:36px;background:#f7f7f8;border:1px solid var(--line-strong);border-radius:6px;padding:0 9px;font-size:13px}
 .editor-root .find-row{flex-wrap:wrap;gap:5px}.editor-root .find-row input{flex:1 1 180px}.editor-root .find-toggle{margin-top:4px}.editor-root .find-count{font-variant-numeric:tabular-nums;font-size:11px}.editor-root .find-replace{padding-top:8px}.editor-root .find-action{min-height:32px}
 .search-scope{display:flex;justify-content:space-between;gap:12px;padding:8px 16px;color:#71717a;font-size:11px;border-bottom:1px solid #f0f0f2}.search-scope span{white-space:nowrap}
 @media(max-width:480px){.search-scope span{display:none}.editor-root .find-row input{flex-basis:100%}.editor-root .find-count{margin-right:auto}}
 @media(prefers-reduced-motion:reduce){.editor-root .find-bar,.editor-root .find-replace-wrap{transition:none}}
+
+/* ── Dark theme ─────────────────────────────────────────────────────────── */
+[data-theme="dark"] .admin-rows > li[data-selected] .admin-row {
+  background: rgb(35 131 226 / 0.14);
+}
+@media (hover: hover) and (pointer: fine) {
+  [data-theme="dark"] .admin-rows > li[data-selected] .admin-row:hover {
+    background: rgb(35 131 226 / 0.2);
+  }
+}
+/* The bulk bar stays a dark pill, lifted off the dark page by a lighter
+   face, a hairline and a deeper shadow. */
+[data-theme="dark"] .bulk-bar {
+  background: #2c2c2c;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1) inset, 0 12px 32px -8px rgb(0 0 0 / 0.7), 0 4px 10px -4px rgb(0 0 0 / 0.5);
+}
+[data-theme="dark"] .find-option[aria-pressed="true"] {
+  background: rgb(106 161 245 / 0.18);
+  color: #9cc1f8;
+}
+[data-theme="dark"] .palette-command[aria-selected="true"] .palette-command-icon {
+  background: var(--wash-2);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.06);
+}
+[data-theme="dark"] .palette-switch {
+  background: #4a4a4a;
+}
+[data-theme="dark"] .palette-switch::after {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.5);
+}
+/* On, the track is the light ink: a dark knob keeps it visible. */
+[data-theme="dark"] .palette-switch[data-on]::after {
+  background: var(--a-on-ink);
+}
+[data-theme="dark"] .editor-root .find-bar {
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.5);
+}
+[data-theme="dark"] .editor-root .find-bar input {
+  background: var(--paper);
+}
+[data-theme="dark"] .search-scope {
+  color: var(--fg-3);
+  border-bottom-color: var(--line);
+}

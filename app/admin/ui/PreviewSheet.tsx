@@ -56,17 +56,25 @@ function Frame({ width, height, children }: { width: number; height: number; chi
     // Same stylesheets, same font variables, same classes as the real page.
     document.querySelectorAll('link[rel="stylesheet"], style').forEach((n) => doc.head.appendChild(n.cloneNode(true)));
     doc.documentElement.className = document.documentElement.className;
+    // The admin's theme, so the preview reads the same tokens as the page.
+    const theme = () => {
+      doc.documentElement.dataset.theme = document.documentElement.dataset.theme ?? "light";
+      doc.documentElement.style.colorScheme = document.documentElement.style.colorScheme;
+    };
+    theme();
+    const themeWatch = new MutationObserver(theme);
+    themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     doc.body.style.margin = "0";
-    doc.body.style.background = "#fff";
+    doc.body.style.background = "var(--paper)";
     setBody(doc.body);
     const viewport=doc.defaultView;
-    if(!viewport?.matchMedia("(any-pointer: fine)").matches || viewport.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
-    const cursor=doc.createElement("div");cursor.className="smooth-cursor";cursor.setAttribute("aria-hidden","true");cursor.innerHTML=cursorMarkup("#111");doc.body.appendChild(cursor);
+    if(!viewport?.matchMedia("(any-pointer: fine)").matches || viewport.matchMedia("(prefers-reduced-motion: reduce)").matches)return()=>themeWatch.disconnect();
+    const cursor=doc.createElement("div");cursor.className="smooth-cursor";cursor.setAttribute("aria-hidden","true");cursor.innerHTML=cursorMarkup("currentColor");doc.body.appendChild(cursor);
     doc.documentElement.classList.add("has-smooth-cursor");
     const move=(event:PointerEvent)=>{cursor.style.opacity="1";cursor.style.transform=cursorTransform(event.clientX,event.clientY);cursor.dataset.shape=shapeAt(event.clientX,event.clientY,doc);};
     const leave=()=>{cursor.style.opacity="0";};
     doc.addEventListener("pointermove",move);doc.addEventListener("pointerleave",leave);
-    return()=>{doc.removeEventListener("pointermove",move);doc.removeEventListener("pointerleave",leave);cursor.remove();doc.documentElement.classList.remove("has-smooth-cursor");};
+    return()=>{themeWatch.disconnect();doc.removeEventListener("pointermove",move);doc.removeEventListener("pointerleave",leave);cursor.remove();doc.documentElement.classList.remove("has-smooth-cursor");};
   }, []);
 
   useEffect(() => {
@@ -150,7 +158,7 @@ function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
     </nav>
   );
   return (
-    <div className="flex w-full flex-col items-center bg-white">
+    <div className="flex w-full flex-col items-center bg-[color:var(--paper)]">
       {[...new Set([...fontLinks(meta.fonts),...inlineFontLinks(doc.body)])].map((href) => (
         <link key={href} rel="stylesheet" href={href} />
       ))}

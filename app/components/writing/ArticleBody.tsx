@@ -37,7 +37,7 @@ function EmbedBlock(props: Record<string, unknown>) {
   }
   if (embed.kind === "x") {
     return (
-      <div className="embed embed-x" data-theme="light">
+      <div className="embed embed-x">
         {/* If X won't share the post at build, a link to it beats "not found". */}
         <Tweet
           id={embed.id}
