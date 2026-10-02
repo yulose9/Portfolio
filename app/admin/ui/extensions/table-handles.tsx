@@ -177,8 +177,14 @@ function TableHandles(p: TableHandlesProps) {
     const editor = (view.dom as HTMLElement & { editor?: Editor }).editor;
     if (!editor) return;
     const sync = () => {
-      const pos = getPos();
-      const next = pos !== null && view.hasFocus() ? caretCell(view.state, pos) : null;
+      // Runs inside every transaction: it must never throw, whatever state the table is in.
+      let next: CellAt | null = null;
+      try {
+        const pos = getPos();
+        next = pos !== null && view.hasFocus() ? caretCell(view.state, pos) : null;
+      } catch {
+        next = null;
+      }
       setCaret((c) => (same(c, next) ? c : next));
     };
     sync();

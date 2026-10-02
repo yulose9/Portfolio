@@ -85,6 +85,7 @@ export class StyledTableView extends TableView {
   private handles: ReturnType<typeof mountTableHandles> | null = null;
   private handleLayer: HTMLDivElement;
   private edges: () => void;
+  private destroyed = false;
 
   constructor(node: PMNode, cellMinWidth: number, view?: EditorView, HTMLAttributes: Record<string, unknown> = {}) {
     super(node, cellMinWidth, view, HTMLAttributes);
@@ -179,10 +180,19 @@ export class StyledTableView extends TableView {
 
   private pos(): number | null {
     const view = this.editorView;
-    if (!view) return null;
-    const at = view.posAtDOM(this.table, 0);
-    const $at = view.state.doc.resolve(at);
-    for (let d = $at.depth; d >= 0; d--) if ($at.node(d) === this.node) return d ? $at.before(d) : null;
+    // Torn down (the table was replaced or deleted): it has no place any more.
+    if (!view || this.destroyed || !this.table.isConnected) return null;
+    let at = -1;
+    try {
+      at = view.posAtDOM(this.table, 0);
+    } catch {
+      at = -1;
+    }
+    // Mid-transaction the DOM can be ahead of or behind the document.
+    if (at >= 0 && at <= view.state.doc.content.size) {
+      const $at = view.state.doc.resolve(at);
+      for (let d = $at.depth; d >= 0; d--) if ($at.node(d) === this.node) return d ? $at.before(d) : null;
+    }
     // Fall back to a scan (the table may be the selection itself).
     let found: number | null = null;
     view.state.doc.descendants((n, p) => {
@@ -233,6 +243,7 @@ export class StyledTableView extends TableView {
   }
 
   destroy() {
+    this.destroyed = true;
     this.edges();
     this.menu.destroy();
     this.handles?.destroy();
