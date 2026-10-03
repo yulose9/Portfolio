@@ -402,6 +402,7 @@ export default function PostList({
         <PageTree
           embedded
           pages={posts ?? []}
+          loading={!posts}
           onOpen={(id) => {
             setPagesOpen(false);
             onOpen(id);
@@ -536,10 +537,12 @@ export default function PostList({
             ))}
           </TabsList>
         </Tabs>
-        {/* Several tags at once, any or all of them, in the manner of Kobra's multi-select. */}
+        {/* Several tags at once, any or all of them, in the manner of Kobra's multi-select.
+            Its own row under the tabs, flush with "All". */}
         {tagOptions.length && filter !== "trash" ? (
           <MultiSelect
             className="writing-tag-filter"
+            align="start"
             label="Tags"
             icon={<TagIcon size={14} aria-hidden="true" />}
             placeholder="Search tags…"

@@ -65,7 +65,7 @@ const handle: AdminFunction = async (ctx) => {
   try {
     const response = await ctx.next();
     const out = new Response(response.body, response);
-    out.headers.set("Cache-Control", "no-store");
+    if (!iconAnswer(url, response)) out.headers.set("Cache-Control", "no-store");
     out.headers.set("X-Robots-Tag", "noindex");
     return out;
   } catch (error) {
@@ -87,12 +87,19 @@ const handle: AdminFunction = async (ctx) => {
 export const onRequest: AdminFunction = async (ctx) => {
   const response = await handle(ctx);
   const out = new Response(response.body, response);
-  out.headers.set("Cache-Control", "no-store");
+  const icon = iconAnswer(new URL(ctx.request.url), response);
+  if (!icon) out.headers.set("Cache-Control", "no-store");
   if (ctx.data.sessionExpiresAt) out.headers.set("X-Admin-Session-Expires", String(ctx.data.sessionExpiresAt));
   out.headers.set("X-Robots-Tag", "noindex, nofollow");
   out.headers.set("X-Content-Type-Options", "nosniff");
   out.headers.set("X-Frame-Options", "DENY");
   out.headers.set("Referrer-Policy", "no-referrer");
-  out.headers.set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+  const csp = icon ? response.headers.get("Content-Security-Policy") : null;
+  out.headers.set("Content-Security-Policy", csp ? `${csp}; frame-ancestors 'none'; base-uri 'none'` : "default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
   return out;
 };
+
+/** A good answer from the icon proxy keeps its own (private, long) caching. */
+function iconAnswer(url: URL, response: Response): boolean {
+  return response.ok && url.pathname.startsWith("/api/admin/icons/") && Boolean(response.headers.get("Cache-Control")?.startsWith("private"));
+}

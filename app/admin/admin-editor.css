@@ -122,6 +122,42 @@
 .editor-dek-hide:active {
   scale: 0.96;
 }
+/* A hidden subtitle leaves a quiet row in its place, always there (not only
+   on hover), so bringing it back is never a hunt. The text lines up with the
+   title; the hover fill reaches into the gutter. */
+.editor-dek-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  height: 28px;
+  margin-left: -8px;
+  padding: 0 10px 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--a-ink-3);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition-property: background-color, color, scale;
+  transition-duration: 150ms, 150ms, 160ms;
+  transition-timing-function: ease, ease, var(--ease);
+}
+@media (hover: hover) and (pointer: fine) {
+  .editor-dek-add:hover {
+    background: var(--a-fill);
+    color: var(--a-ink-2);
+  }
+}
+.editor-dek-add:active {
+  scale: 0.96;
+}
+.editor-dek-add:focus-visible {
+  outline: 2px solid var(--a-blue);
+  outline-offset: 2px;
+}
 @media (max-width: 760px) {
   .editor-dek {
     margin-right: 0;
@@ -464,33 +500,50 @@ html.is-block-dragging .editor-body .ProseMirror-selectednode {
 .editor-dropcursor.prosemirror-dropcursor-block::before { left: -3px; }
 .editor-dropcursor.prosemirror-dropcursor-block::after { right: -3px; }
 
-/* The drag image (see block-drag-ghost.ts): built offscreen, gone once the
-   browser has taken its snapshot. */
-.block-drag-ghost {
+/* The drag image (see block-drag-ghost.ts): a card that hugs the dragged
+   block, built offscreen and gone the frame after the browser snapshots it.
+   The grab point goes to setDragImage as an offset, so no padding for it. */
+.block-drag-ghost-card {
   position: fixed;
   top: -10000px;
   left: 0;
-  padding: 16px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--paper) 94%, transparent);
+  opacity: 0.75;
+  /* Inset ring: the snapshot clips anything painted outside the box. */
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--a-ink) 10%, transparent), 0 1px 2px color-mix(in oklab, var(--a-ink) 8%, transparent);
   pointer-events: none;
 }
-.block-drag-ghost-card {
-  box-sizing: content-box;
-  padding: 6px 10px;
-  border-radius: 8px;
-  background: var(--paper);
-  opacity: 0.85;
-  box-shadow: var(--shadow-pop);
-}
 .block-drag-ghost-card > .editor-body {
+  min-height: 0;
+  max-width: 600px;
   max-height: 228px;
   overflow: hidden;
 }
-.block-drag-ghost-card[data-clipped] > .editor-body {
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 56px), transparent);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 56px), transparent);
+.block-drag-ghost-card[data-clip-y] > .editor-body {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
 }
-.block-drag-ghost-card > .editor-body > :first-child { margin-top: 0; }
-.block-drag-ghost-card > .editor-body > :last-child { margin-bottom: 0; }
+.block-drag-ghost-card[data-clip-x] > .editor-body {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
+}
+.block-drag-ghost-card[data-clip-x][data-clip-y] > .editor-body {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent), linear-gradient(to right, #000 calc(100% - 48px), transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent), linear-gradient(to right, #000 calc(100% - 48px), transparent);
+  mask-composite: intersect;
+}
+/* Images and videos travel as a thumbnail. */
+.block-drag-ghost-card [data-ghost-media] { max-width: 280px; }
+.block-drag-ghost-card [data-ghost-media] :is(img, video) {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  margin: 0;
+}
 .bubble-count { padding-inline: 6px; font-size: 12px; white-space: nowrap; }
 .mention-trigger { padding: 0; border: 0; background: none; font: inherit; cursor: pointer; }
 .mention-trigger:focus-visible, .toc summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }

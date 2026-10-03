@@ -2,61 +2,27 @@
  * The icon library's data: which Iconify sets it offers, how their listings
  * are read, and how a picked icon becomes a file of our own.
  *
- * Browsing and search go to the public Iconify API (api.iconify.design), so
- * none of its 200k icons ship with the admin. A picked icon never stays on
- * Iconify: its SVG is fetched once, cleaned, and uploaded through the inline
- * logo path (app/admin/ui/media.ts), which draws it at 256px and stores a
- * WebP in the media library. The upload endpoint refuses SVG on purpose (an
- * SVG served from this origin can carry script), so a raster copy is what the
- * published page loads. Monochrome sets are therefore coloured before upload.
+ * Browsing and search use the Iconify API through our own admin proxy
+ * (functions/api/admin/icons), so none of its 200k icons ship with the admin
+ * and the browser never talks to Iconify itself: a third-party host gets
+ * rate-limited and blocked by privacy extensions, and its 429s carry no CORS
+ * header, which the browser reports as "Failed to fetch". The grid draws each
+ * page from one bulk request per set (IconifyJSON), not one image per icon.
  *
- * Apple's SF Symbols are not here: their licence allows them only in apps
- * for Apple platforms, never on a website. Phosphor, Lucide and Fluent are
- * the nearest in look.
+ * A picked icon never stays on Iconify: its SVG is fetched once, cleaned, and
+ * uploaded through the inline logo path (app/admin/ui/media.ts), which draws
+ * it at 256px and stores a WebP in the media library. The upload endpoint
+ * refuses SVG on purpose (an SVG served from this origin can carry script),
+ * so a raster copy is what the published page loads. Monochrome sets are
+ * therefore coloured before upload.
  */
 
-export const ICONIFY = "https://api.iconify.design";
+import { ICON_SETS } from "../../../cms/icon-sets";
 
-export type IconSet = {
-  prefix: string;
-  name: string;
-  /** Drawn in one colour (currentColor), so the colour option applies. */
-  mono: boolean;
-  licence: string;
-  /** Overrides the set's own style suffixes (Fluent's come in 20 sizes). */
-  styles?: Record<string, string>;
-};
+export { ICON_SETS, type IconSet } from "../../../cms/icon-sets";
 
-/** Every set offered, in the order the set menu lists them. */
-export const ICON_SETS: IconSet[] = [
-  { prefix: "ph", name: "Phosphor", mono: true, licence: "MIT" },
-  { prefix: "fluent", name: "Fluent", mono: true, licence: "MIT", styles: { "24-regular": "Regular", "24-filled": "Filled", "24-light": "Light" } },
-  { prefix: "fluent-color", name: "Fluent Color", mono: false, licence: "MIT" },
-  { prefix: "fluent-emoji", name: "Fluent Emoji 3D", mono: false, licence: "MIT" },
-  { prefix: "fluent-emoji-flat", name: "Fluent Emoji Flat", mono: false, licence: "MIT" },
-  { prefix: "lucide", name: "Lucide", mono: true, licence: "ISC" },
-  { prefix: "material-symbols", name: "Material Symbols", mono: true, licence: "Apache 2.0" },
-  { prefix: "mdi", name: "Material Design Icons", mono: true, licence: "Apache 2.0" },
-  { prefix: "tabler", name: "Tabler", mono: true, licence: "MIT" },
-  { prefix: "heroicons", name: "Heroicons", mono: true, licence: "MIT" },
-  { prefix: "ri", name: "Remix Icon", mono: true, licence: "Apache 2.0" },
-  { prefix: "carbon", name: "Carbon", mono: true, licence: "Apache 2.0" },
-  { prefix: "bi", name: "Bootstrap Icons", mono: true, licence: "MIT" },
-  { prefix: "fa6-solid", name: "Font Awesome 6 Solid", mono: true, licence: "CC BY 4.0" },
-  { prefix: "fa6-regular", name: "Font Awesome 6 Regular", mono: true, licence: "CC BY 4.0" },
-  { prefix: "fa6-brands", name: "Font Awesome 6 Brands", mono: true, licence: "CC BY 4.0" },
-  { prefix: "simple-icons", name: "Simple Icons (brands)", mono: true, licence: "CC0" },
-  { prefix: "logos", name: "SVG Logos (brands, colour)", mono: false, licence: "CC0" },
-  { prefix: "solar", name: "Solar", mono: true, licence: "CC BY 4.0" },
-  { prefix: "iconoir", name: "Iconoir", mono: true, licence: "MIT" },
-  { prefix: "mingcute", name: "MingCute", mono: true, licence: "Apache 2.0" },
-  { prefix: "streamline", name: "Streamline", mono: true, licence: "CC BY 4.0" },
-  { prefix: "streamline-color", name: "Streamline Color", mono: false, licence: "CC BY 4.0" },
-  { prefix: "noto", name: "Noto Emoji", mono: false, licence: "Apache 2.0" },
-  { prefix: "twemoji", name: "Twemoji", mono: false, licence: "CC BY 4.0" },
-  { prefix: "openmoji", name: "OpenMoji", mono: false, licence: "CC BY-SA 4.0" },
-  { prefix: "streamline-emojis", name: "Streamline Emojis", mono: false, licence: "CC BY 4.0" },
-];
+/** The admin's Iconify proxy; it forwards only the routes built below. */
+export const ICONIFY = "/api/admin/icons";
 
 /** The set menu's first entry: search across every set above at once. */
 export const ALL_SETS = "all";
@@ -69,18 +35,25 @@ export function splitIcon(id: string): { prefix: string; name: string } | null {
   return m ? { prefix: m[1], name: m[2] } : null;
 }
 
+const HEX = /^#[0-9a-f]{6}$/i;
+
 /** The colour param Iconify takes: only monochrome sets, only a hex. */
 function colourParam(id: string, colour: string | null): string {
   const set = iconSet(splitIcon(id)?.prefix ?? "");
-  return colour && set?.mono && /^#[0-9a-f]{6}$/i.test(colour) ? `color=${encodeURIComponent(colour.toLowerCase())}` : "";
+  return colour && set?.mono && HEX.test(colour) ? `color=${encodeURIComponent(colour.toLowerCase())}` : "";
 }
 
-/** One icon's SVG, for previews (and, at 256px, for the upload). */
+/** One icon's SVG, at 256px for the upload. */
 export function iconSvgUrl(id: string, colour: string | null = null, height?: number): string {
   const icon = splitIcon(id);
   if (!icon) return "";
   const params = [colourParam(id, colour), height ? `height=${height}` : ""].filter(Boolean).join("&");
   return `${ICONIFY}/${icon.prefix}/${icon.name}.svg${params ? `?${params}` : ""}`;
+}
+
+/** Many icons of one set in a single IconifyJSON answer. */
+export function iconDataUrl(prefix: string, names: string[]): string {
+  return `${ICONIFY}/${prefix}.json?icons=${names.join(",")}`;
 }
 
 export function searchUrl(query: string, prefix: string): string {
@@ -91,6 +64,105 @@ export function searchUrl(query: string, prefix: string): string {
 }
 
 export const collectionUrl = (prefix: string) => `${ICONIFY}/collection?prefix=${encodeURIComponent(prefix)}`;
+
+/* ── Drawing icons from IconifyJSON ──────────────────────────────────── */
+
+type IconProps = { left?: number; top?: number; width?: number; height?: number; rotate?: number; hFlip?: boolean; vFlip?: boolean };
+
+/** What /{prefix}.json?icons=… returns, as far as the library reads it. */
+export type IconifyJSON = IconProps & {
+  prefix: string;
+  icons: Record<string, IconProps & { body: string }>;
+  aliases?: Record<string, IconProps & { parent: string }>;
+  not_found?: string[];
+};
+
+/** One icon, aliases followed and defaults filled in. */
+export type IconData = Required<IconProps> & { body: string };
+
+/**
+ * An icon's data from an IconifyJSON answer, or null when it isn't there.
+ * Aliases point at a parent; their own rotation adds to the parent's and their
+ * flips toggle it, while any other property they set wins.
+ */
+export function readIcon(data: IconifyJSON, name: string): IconData | null {
+  const chain: IconProps[] = [];
+  let at = name;
+  for (let depth = 0; depth < 8; depth++) {
+    const icon = data.icons[at];
+    if (icon) {
+      let rotate = icon.rotate ?? 0;
+      let hFlip = Boolean(icon.hFlip);
+      let vFlip = Boolean(icon.vFlip);
+      const size: Required<Omit<IconProps, "rotate" | "hFlip" | "vFlip">> = {
+        left: icon.left ?? data.left ?? 0,
+        top: icon.top ?? data.top ?? 0,
+        width: icon.width ?? data.width ?? 16,
+        height: icon.height ?? data.height ?? 16,
+      };
+      // Nearest alias last, so its own sizes are the ones that stick.
+      for (const alias of chain.reverse()) {
+        rotate += alias.rotate ?? 0;
+        hFlip = hFlip !== Boolean(alias.hFlip);
+        vFlip = vFlip !== Boolean(alias.vFlip);
+        for (const key of ["left", "top", "width", "height"] as const) if (alias[key] !== undefined) size[key] = alias[key]!;
+      }
+      return { body: icon.body, ...size, rotate: ((rotate % 4) + 4) % 4, hFlip, vFlip };
+    }
+    const alias = data.aliases?.[at];
+    if (!alias) return null;
+    chain.push(alias);
+    at = alias.parent;
+  }
+  return null;
+}
+
+const num = (n: number) => String(Math.round(n * 1e4) / 1e4);
+
+/**
+ * An icon as standalone SVG markup, the way Iconify draws it: flips and
+ * quarter turns become a transform on the body. Monochrome icons draw in
+ * currentColor, which an image can't inherit, so a hex `colour` replaces it.
+ */
+export function iconMarkup(icon: IconData, colour: string | null = null): string {
+  const box = { left: icon.left, top: icon.top, width: icon.width, height: icon.height };
+  const transforms: string[] = [];
+  let rotate = icon.rotate;
+  if (icon.hFlip) {
+    if (icon.vFlip) rotate += 2;
+    else {
+      transforms.push(`translate(${num(box.width + box.left)} ${num(0 - box.top)})`, "scale(-1 1)");
+      box.top = box.left = 0;
+    }
+  } else if (icon.vFlip) {
+    transforms.push(`translate(${num(0 - box.left)} ${num(box.height + box.top)})`, "scale(1 -1)");
+    box.top = box.left = 0;
+  }
+  rotate %= 4;
+  if (rotate === 1) {
+    const c = box.height / 2 + box.top;
+    transforms.unshift(`rotate(90 ${num(c)} ${num(c)})`);
+  } else if (rotate === 2) {
+    transforms.unshift(`rotate(180 ${num(box.width / 2 + box.left)} ${num(box.height / 2 + box.top)})`);
+  } else if (rotate === 3) {
+    const c = box.width / 2 + box.left;
+    transforms.unshift(`rotate(-90 ${num(c)} ${num(c)})`);
+  }
+  if (rotate % 2 === 1) {
+    [box.left, box.top] = [box.top, box.left];
+    [box.width, box.height] = [box.height, box.width];
+  }
+  let body = transforms.length ? `<g transform="${transforms.join(" ")}">${icon.body}</g>` : icon.body;
+  if (colour && HEX.test(colour)) body = body.replace(/currentColor/g, colour.toLowerCase());
+  const viewBox = [box.left, box.top, box.width, box.height].map(num).join(" ");
+  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${num(box.width)}" height="${num(box.height)}" viewBox="${viewBox}">${body}</svg>`;
+}
+
+/**
+ * SVG markup as an image URL. An <img> runs no script and loads nothing
+ * outside itself, so this is the safe way to show markup from Iconify.
+ */
+export const svgImageUrl = (markup: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`;
 
 /** What /collection returns, as far as the library reads it. */
 export type CollectionResponse = {
@@ -224,6 +296,7 @@ export function toHex(colour: string): string | null {
   return `#${[r, g, b].map((n) => n.toString(16).padStart(2, "0")).join("")}`;
 }
 
+
 /**
  * Fetch, clean and upload one icon; resolves with the media URL to store.
  * `upload` is the inline logo path, passed in so this file stays free of the
@@ -232,14 +305,62 @@ export function toHex(colour: string): string | null {
 export async function persistIcon(id: string, colour: string | null, upload: (file: File) => Promise<string>, signal?: AbortSignal): Promise<string> {
   const icon = splitIcon(id);
   if (!icon) throw new Error("That icon name isn't valid.");
-  const res = await fetch(iconSvgUrl(id, colour, 256), { signal });
-  if (!res.ok) throw new Error("Iconify didn't send that icon. Try again in a moment.");
+  const res = await request(iconSvgUrl(id, colour, 256), signal);
   const clean = sanitizeSvg(await res.text());
   if (!clean) throw new Error("That icon couldn't be read.");
   return upload(new File([clean], `${icon.prefix}-${icon.name}.svg`, { type: "image/svg+xml" }));
 }
 
-/* ── Requests, cached for the session ────────────────────────────────── */
+/* ── Requests: queued, honest about failure, cached for the session ──── */
+
+export type IconErrorKind = "offline" | "busy" | "signin" | "missing" | "failed";
+
+/** A failed icon request, with what went wrong in words the admin can act on. */
+export class IconRequestError extends Error {
+  constructor(
+    message: string,
+    readonly kind: IconErrorKind,
+  ) {
+    super(message);
+  }
+}
+
+/** Requests in flight at once; the rest wait their turn. */
+const MAX_IN_FLIGHT = 3;
+let inFlight = 0;
+const waiting: (() => void)[] = [];
+
+async function queued<T>(work: () => Promise<T>): Promise<T> {
+  if (inFlight >= MAX_IN_FLIGHT) await new Promise<void>((go) => waiting.push(go));
+  inFlight++;
+  try {
+    return await work();
+  } finally {
+    inFlight--;
+    waiting.shift()?.();
+  }
+}
+
+/** GET through the proxy; resolves only with an OK response. */
+async function request(url: string, signal?: AbortSignal): Promise<Response> {
+  let res: Response;
+  try {
+    // Access answers an expired session with a redirect to its login page.
+    res = await queued(() => fetch(url, { credentials: "same-origin", redirect: "manual", signal }));
+  } catch (e) {
+    if (signal?.aborted) throw e;
+    throw new IconRequestError("You're offline, or something on this network is blocking the request.", "offline");
+  }
+  if (res.ok) return res;
+  if (res.type === "opaqueredirect" || res.status === 401 || res.status === 403) {
+    throw new IconRequestError("Your sign-in expired. Reload the admin to sign in again.", "signin");
+  }
+  if (res.status === 429 || res.status === 502 || res.status === 503 || res.status === 504) {
+    throw new IconRequestError("Iconify is busy right now. Wait a moment, then try again.", "busy");
+  }
+  if (res.status === 404) throw new IconRequestError("Iconify doesn't have that icon.", "missing");
+  throw new IconRequestError(`The icon request failed (error ${res.status}). Try again.`, "failed");
+}
 
 const cache = new Map<string, Promise<unknown>>();
 
@@ -247,12 +368,79 @@ const cache = new Map<string, Promise<unknown>>();
 export function cachedJson<T>(url: string): Promise<T> {
   let hit = cache.get(url) as Promise<T> | undefined;
   if (!hit) {
-    hit = fetch(url).then((r) => {
-      if (!r.ok) throw new Error(r.status === 429 ? "Iconify is busy. Wait a moment and try again." : "Couldn't reach Iconify.");
-      return r.json() as Promise<T>;
-    });
+    hit = request(url).then((r) => r.json() as Promise<T>);
     hit.catch(() => cache.delete(url));
     cache.set(url, hit);
   }
   return hit;
+}
+
+/* ── Icon data for the grid, in bulk ─────────────────────────────────── */
+
+/** Icons one bulk request asks for: a page of the grid. */
+const BULK = 120;
+/** id → its data, or null when Iconify doesn't have it. */
+const icons = new Map<string, IconData | null>();
+const loading = new Map<string, Promise<void>>();
+
+/** Data already loaded for an icon: undefined while unknown, null when missing. */
+export const iconData = (id: string) => icons.get(id);
+
+const images = new Map<string, string>();
+
+/**
+ * A loaded icon as an image URL, in `colour` when its set is monochrome:
+ * undefined while its data is unknown, null when it can't be drawn.
+ */
+export function iconImage(id: string, colour: string | null): string | null | undefined {
+  const data = icons.get(id);
+  if (!data) return data;
+  const tint = iconSet(splitIcon(id)?.prefix ?? "")?.mono ? colour : null;
+  const key = `${id}|${tint ?? ""}`;
+  let url = images.get(key);
+  if (!url) {
+    url = svgImageUrl(iconMarkup(data, tint));
+    images.set(key, url);
+  }
+  return url;
+}
+
+/**
+ * Load the data for these icons: one request per set per page of names,
+ * however many sets a search spans. Rejects when a request fails; what did
+ * arrive is kept, and the rest can be asked for again.
+ */
+export async function loadIcons(ids: string[]): Promise<void> {
+  const bySet = new Map<string, string[]>();
+  const pending: Promise<void>[] = [];
+  for (const id of new Set(ids)) {
+    if (icons.has(id)) continue;
+    const already = loading.get(id);
+    if (already) {
+      pending.push(already);
+      continue;
+    }
+    const icon = splitIcon(id);
+    if (!icon || !iconSet(icon.prefix)) {
+      icons.set(id, null);
+      continue;
+    }
+    bySet.set(icon.prefix, [...(bySet.get(icon.prefix) ?? []), icon.name]);
+  }
+  for (const [prefix, names] of bySet) {
+    for (let i = 0; i < names.length; i += BULK) {
+      const chunk = names.slice(i, i + BULK);
+      const work = request(iconDataUrl(prefix, chunk))
+        .then((r) => r.json() as Promise<IconifyJSON>)
+        .then((data) => {
+          for (const name of chunk) icons.set(`${prefix}:${name}`, data && data.icons ? readIcon(data, name) : null);
+        })
+        .finally(() => chunk.forEach((name) => loading.delete(`${prefix}:${name}`)));
+      for (const name of chunk) loading.set(`${prefix}:${name}`, work);
+      pending.push(work);
+    }
+  }
+  const results = await Promise.allSettled(pending);
+  const failed = results.find((r): r is PromiseRejectedResult => r.status === "rejected");
+  if (failed) throw failed.reason;
 }

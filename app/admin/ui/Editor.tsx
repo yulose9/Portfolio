@@ -30,6 +30,7 @@ import {
   MarkdownLogo,
   PaperPlaneTilt,
   PencilSimple,
+  Plus,
   PushPin,
   SelectionPlus,
   SlidersHorizontal,
@@ -880,11 +881,27 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
   const titleRef = useAutosize(meta.title);
   const subtitleShown = showsSubtitle(meta.fonts);
   const dekRef = useAutosize(meta.dek, subtitleShown);
-  /** Hiding keeps the text: it still serves as the meta description. */
-  const setSubtitle = (shown: boolean) => {
+  /** The quiet "Add subtitle" row that stands in for a hidden subtitle. */
+  const dekAddRef = useRef<HTMLButtonElement>(null);
+  /**
+   * Hiding keeps the text: it still serves as the meta description. A hide
+   * says so in a toast with Undo, since the field (and its button) is gone.
+   * `focus` says where focus goes: the field (or, on a hide, the row that
+   * brings it back), the body, or nowhere (from the Details sheet).
+   */
+  const setSubtitle = (shown: boolean, focus: "field" | "body" | "none" = shown ? "field" : "body") => {
     setMeta((m) => ({ ...m, fonts: withSubtitle(m.fonts, shown) }));
-    if (shown) requestAnimationFrame(() => dekRef.current?.focus());
-    else editor?.commands.focus("start");
+    if (shown) toast.close("subtitle-hidden");
+    if (focus === "field") requestAnimationFrame(() => (shown ? dekRef.current : dekAddRef.current)?.focus());
+    else if (focus === "body") editor?.commands.focus("start");
+    if (shown) return;
+    toast.add({
+      id: "subtitle-hidden",
+      type: "success",
+      title: "Subtitle hidden",
+      timeout: 5000,
+      actionProps: { children: "Undo", onClick: () => setSubtitle(true) },
+    });
   };
 
   const setCover = async (file: File) => {
@@ -1241,11 +1258,6 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
                   onBrowseAll={browseForCover}
                 />
               ) : null}
-              {!subtitleShown ? (
-                <button type="button" className="admin-chip page-icon-add" onClick={() => setSubtitle(true)}>
-                  <Subtitles size={14} aria-hidden="true" /> Add subtitle
-                </button>
-              ) : null}
             </div>
             <p className="article-eyebrow">
               <EyebrowDate doc={doc} publishedAt={meta.publishedAt} onDate={(publishedAt) => setMeta((m) => ({ ...m, publishedAt }))} onReschedule={reschedule} />
@@ -1261,6 +1273,20 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
                   e.preventDefault();
                   if (subtitleShown) dekRef.current?.focus();
                   else editor?.commands.focus("start");
+                  return;
+                }
+                // From the end of the title, ArrowDown goes to the subtitle;
+                // when it is hidden, Tab does too, to the row that brings it
+                // back (the tags sit between them in the tab order).
+                const t = e.currentTarget;
+                const atEnd = t.selectionStart === t.value.length && t.selectionEnd === t.value.length;
+                const down = e.key === "ArrowDown" || (!subtitleShown && e.key === "Tab" && !e.shiftKey);
+                if (atEnd && down && !e.altKey && !e.metaKey && !e.ctrlKey) {
+                  const next = subtitleShown ? dekRef.current : dekAddRef.current;
+                  if (next) {
+                    e.preventDefault();
+                    next.focus();
+                  }
                 }
               }}
               placeholder="Title"
@@ -1286,11 +1312,16 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
                   rows={1}
                   aria-label="Standfirst"
                 />
-                <button type="button" className="editor-dek-hide" aria-label="Hide subtitle" title="Hide subtitle" onClick={() => setSubtitle(false)}>
+                <button type="button" className="editor-dek-hide" aria-label="Hide subtitle" title="Hide subtitle" onClick={() => setSubtitle(false, "field")}>
                   <EyeSlash size={15} aria-hidden="true" />
                 </button>
               </div>
-            ) : null}
+            ) : (
+              <button ref={dekAddRef} type="button" className="editor-dek-add" onClick={() => setSubtitle(true)}>
+                <Plus size={13} weight="bold" aria-hidden="true" />
+                Add subtitle
+              </button>
+            )}
             <AuthorsEditor authors={meta.authors} minutes={minutes} onChange={(authors) => setMeta((m) => ({ ...m, authors }))} />
           </header>
 
@@ -1458,6 +1489,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
         onSlugEdited={() => setSlugTouched(true)}
         onPickCover={() => coverPick.current?.click()}
         onDeleted={onBack}
+        onSubtitle={(shown) => setSubtitle(shown, "none")}
       />
       <RevisionsSheet
         open={panel === "revisions"}

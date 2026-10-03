@@ -12,6 +12,8 @@ import { FontsEditor, ShareImageField } from "./MetaEditors";
 import Sheet from "./Sheet";
 import AdminSelect from "./AdminSelect";
 import { Checkbox } from "../../components/kit/checkbox";
+import { Switch } from "../../components/kit/switch";
+import { showsSubtitle } from "../../../cms/subtitle";
 import { DayTimeButton } from "./DayTimeFields";
 import { addDays } from "./clock";
 
@@ -31,6 +33,7 @@ export default function DetailsSheet({
   onSlugEdited,
   onPickCover,
   onDeleted,
+  onSubtitle,
 }: {
   open: boolean;
   onClose: () => void;
@@ -40,6 +43,8 @@ export default function DetailsSheet({
   onSlugEdited: () => void;
   onPickCover: () => void;
   onDeleted: () => void;
+  /** Shows or hides the subtitle on the page (the editor's own toggle, with its Undo toast). */
+  onSubtitle: (shown: boolean) => void;
 }) {
   const [tagInput, setTagInput] = useState("");
   const [confirming, setConfirming] = useState(false);
@@ -174,6 +179,20 @@ export default function DetailsSheet({
             Add a cover image
           </button>
         )}
+      </section>
+
+      <section className="field">
+        <div className="switch-row">
+          <span className="switch-text" id="subtitle-switch-label">
+            <span className="switch-title">Show subtitle on the page</span>
+            <span className="field-help">
+              {showsSubtitle(meta.fonts)
+                ? "The standfirst sits under the title."
+                : "Hidden from the page. Its text still describes the post in search and when shared."}
+            </span>
+          </span>
+          <Switch checked={showsSubtitle(meta.fonts)} onCheckedChange={(next) => onSubtitle(next)} aria-labelledby="subtitle-switch-label" />
+        </div>
       </section>
 
       <section className="field">

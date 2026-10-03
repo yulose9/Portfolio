@@ -59,6 +59,8 @@ export type MultiSelectProps = {
   itemProps?: (value: string) => Record<string, string | undefined>;
   /** How many picks the trigger names before "+N". */
   maxShown?: number;
+  /** Which edge of the trigger the popover lines up with. */
+  align?: "start" | "center" | "end";
   disabled?: boolean;
   className?: string;
 };
@@ -79,6 +81,7 @@ export function MultiSelect({
   onMatchChange,
   itemProps,
   maxShown = 2,
+  align = "end",
   disabled,
   className,
 }: MultiSelectProps) {
@@ -193,7 +196,7 @@ export function MultiSelect({
         </Tooltip>
 
         <Combobox.Portal>
-          <Combobox.Positioner anchor={trigger} align="end" sideOffset={6} className="ki-positioner">
+          <Combobox.Positioner anchor={trigger} align={align} sideOffset={6} className="ki-positioner">
             <Combobox.Popup className="ki-popup ki-ms-popup" aria-label={label} data-lenis-prevent>
               <div className="ki-ms-search">
                 <MagnifyingGlass size={14} aria-hidden="true" />

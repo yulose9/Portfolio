@@ -214,37 +214,123 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-/* Page navigation shares the same controls in the list and editor sheet. */
+/*
+ * Page navigator, in the list's Pages sheet and the editor's Browse pages.
+ * One surface: the sheet's padding is the only frame. Rows are 32px with an
+ * 8px inset, section headers start at that same inset, and each tree level
+ * steps in 16px with a faint guide under its parent's caret. Spacing keeps
+ * to 8, 12 and 16.
+ */
 .page-tree-embedded nav { position: static; width: 100%; max-height: none; padding: 0; border: 0; border-radius: 0; box-shadow: none; overflow: visible; }
 .page-tree nav { scrollbar-width: thin; scrollbar-color: var(--a-line) transparent; }
-.page-tree-search { display: grid; gap: 7px; font-size: 12px; color: var(--a-ink-3); }
-.page-tree-search input { width: 100%; min-width: 0; min-height: 38px; padding: 8px 10px; color: var(--a-ink); border: 1px solid var(--a-line); border-radius: 8px; font: inherit; font-size: 14px; }
-.page-tree h3 { margin: 18px 4px 6px; color: var(--a-ink-3); font-size: 11px; font-weight: 600; letter-spacing: .04em; }
-.page-tree-row { display: flex; align-items: center; min-width: 0; border-radius: 8px; gap: 2px; position: relative; }
-.page-tree-row[data-current], .page-tree-link[aria-current="page"] { background: var(--a-fill); font-weight: 600; }
-.page-tree-row[data-drop] { box-shadow: 0 -2px 0 var(--a-ink); background: var(--a-fill); }
-.page-tree-row .page-tree-link { flex: 1; min-width: 0; width: auto; padding: 8px 4px; }
-.page-tree-link > span:first-child { flex: 0 0 18px; display: grid; place-items: center; }
-.page-tree-link > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.page-tree-toggle, .page-tree-grip { display: grid; place-items: center; flex: 0 0 20px; width: 20px; height: 32px; color: var(--a-ink-3); border-radius: 4px; }
+.page-tree nav ul { list-style: none; margin: 0; padding: 0; }
+.page-tree nav li { margin: 0; }
+
+/* The sheet hugs the list up to the viewport, and its padding is 16px on both sides. */
+.sheet:has(> .sheet-body > .page-tree-embedded) .sheet-header { padding-left: 16px; padding-right: 12px; }
+.sheet:has(> .sheet-body > .page-tree-embedded) .sheet-title { line-height: 24px; }
+.sheet:has(> .sheet-body > .page-tree-embedded) [data-slot="sheet-close"] { margin-top: -2px; }
+.sheet:has(> .sheet-body > .page-tree-embedded) .sheet-body { flex: 0 1 auto; min-height: 0; padding: 4px 16px 16px; }
+@media (min-width: 640px) {
+  .sheet[data-variant="side"]:has(> .sheet-body > .page-tree-embedded) { bottom: auto; max-height: calc(100dvh - 16px); }
+}
+
+/* Search: a quiet well that firms up into a field on focus. */
+.page-tree-search { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 8px 0 10px; border-radius: 8px; background: var(--a-fill); color: var(--a-ink-3); transition: background-color 150ms ease, box-shadow 150ms ease; }
+.page-tree-search:focus-within { background: var(--paper-raised); box-shadow: inset 0 0 0 1px var(--a-ink-3); }
+.page-tree-search svg { flex: none; }
+.page-tree .page-tree-search input { flex: 1; min-width: 0; height: 100%; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--a-ink); font: inherit; font-size: 14px; outline: none; }
+.page-tree-search input::placeholder { color: var(--a-ink-3); }
+.page-tree-search .admin-kbd { flex: none; }
+
+/* Toolbar: the live status on the left, three ghost tools on the right. */
+.page-tree-tools { display: flex; align-items: center; gap: 8px; min-height: 28px; margin-top: 8px; }
+.page-tree-status { flex: 1; min-width: 0; margin: 0 0 0 8px; overflow: hidden; color: var(--a-ink-3); font-size: 12px; line-height: 16px; text-overflow: ellipsis; white-space: nowrap; }
+.page-tree-tool-group { display: flex; gap: 2px; margin-left: auto; }
+.page-tree-tool, .page-tree-info { position: relative; display: grid; place-items: center; flex: none; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--a-ink-3); cursor: pointer; transition-property: background-color, color, scale; transition-duration: 150ms, 150ms, 160ms; transition-timing-function: ease, ease, var(--ease); }
+.page-tree-tool:active:not(:disabled), .page-tree-info:active { scale: 0.96; }
+.page-tree-tool[data-spinning] svg { animation: page-tree-spin 700ms linear infinite; }
+@keyframes page-tree-spin { to { rotate: 360deg; } }
+
+/* Section headers: 12px, medium, muted, with a count; they stay put while their list scrolls. */
+.page-tree-heading { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 6px; height: 32px; margin: 12px 0 0; padding: 0 8px; background: var(--paper-raised); color: var(--a-ink-3); font-size: 12px; font-weight: 500; letter-spacing: 0; }
+.page-tree-count { font-weight: 400; font-variant-numeric: tabular-nums; }
+.page-tree-heading .page-tree-info { margin-left: auto; margin-right: -4px; }
+.page-tree-tip { max-width: 260px; }
+.page-tree-folders .page-tree-heading { padding: 0; }
+.page-tree-section-toggle { display: flex; align-items: center; gap: 6px; width: 100%; height: 100%; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: background-color 150ms ease, color 150ms ease; }
+.page-tree-section-toggle svg, button.page-tree-toggle svg { transition: rotate 200ms cubic-bezier(0.23, 1, 0.32, 1); }
+.page-tree-section-toggle[data-open] svg, .page-tree-toggle[data-open] svg { rotate: 90deg; }
+.page-tree-folders-body { overflow: hidden; }
+.page-tree-folders-body .folder-workspace { padding: 4px 0 8px; }
+.page-tree-folders-body .folder-workspace > .field-help { margin: 0; padding: 0 8px; }
+.page-tree-folders-body .folder-row { padding-inline: 8px; }
+
+/* Rows. --row-bg feeds the hover actions' fade so they mask the title beneath. */
+.page-tree-row, .page-tree-shortcut { --row-bg: transparent; position: relative; display: flex; align-items: center; height: 32px; border-radius: 6px; background: var(--row-bg); transition: background-color 100ms ease; }
+.page-tree-row { gap: 4px; padding: 0 4px 0 calc(8px + var(--depth, 0) * 16px); }
+.page-tree-row:focus-within, .page-tree-row[data-current], .page-tree-shortcut[aria-current="page"], .page-tree-shortcut:focus-visible { --row-bg: var(--a-fill); }
+.page-tree-row[data-drop] { box-shadow: 0 -2px 0 var(--a-ink); }
+.page-tree-row:has(.page-tree-link:focus-visible), .page-tree-shortcut:focus-visible { outline: 2px solid var(--a-ink); outline-offset: -2px; }
+.page-tree-link { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; height: 100%; min-height: 0; padding: 0; border: 0; background: none; color: var(--a-ink-2); font: inherit; font-size: 14px; text-align: left; overflow-wrap: normal; cursor: pointer; }
+.page-tree-row .page-tree-link:focus-visible { outline: none; }
+.page-tree-shortcut { width: 100%; height: 32px; gap: 8px; padding: 0 8px; }
+.page-tree .page-tree-link:disabled { opacity: 1; cursor: progress; }
+.page-tree-row[data-current] .page-tree-link, .page-tree-link[aria-current="page"] { color: var(--a-ink); font-weight: 600; }
+.page-tree-row[data-context] .page-tree-link { color: var(--a-ink-3); }
+.page-tree-icon { display: grid; place-items: center; flex: 0 0 16px; height: 16px; color: var(--a-ink-3); font-size: 14px; line-height: 1; }
+.page-tree-title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page-tree-pin { flex: none; color: var(--a-ink-3); }
+.page-tree nav mark { margin: 0 -1px; padding: 0 1px; border-radius: 3px; background: color-mix(in srgb, var(--a-blue) 22%, transparent); color: inherit; }
+
+/* The caret, grip and actions are small glyphs with row-sized hit areas. */
+.page-tree-toggle { position: relative; display: grid; place-items: center; flex: 0 0 16px; width: 16px; height: 16px; padding: 0; border: 0; border-radius: 4px; background: none; color: var(--a-ink-3); cursor: pointer; }
+button.page-tree-toggle::after { content: ""; position: absolute; inset: -8px -4px; }
+.page-tree-toggle:disabled { cursor: default; }
+.page-tree-row-actions { display: flex; align-items: center; flex: none; }
+.page-tree-grip, .page-tree-actions { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: none; color: var(--a-ink-3); cursor: pointer; }
 .page-tree-grip { cursor: grab; }
 .page-tree-grip:active { cursor: grabbing; }
-.page-tree-toggle:focus-visible, .page-tree-grip:focus-visible, .page-tree-tools button:focus-visible { outline: 2px solid var(--a-ink); outline-offset: 2px; }
-.page-tree-tools { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0; font-size: 11px; color: var(--a-ink-2); }
-.page-tree-tools button { min-height: 28px; }
-.page-tree-tools button:last-child { margin-left: auto; }
-.page-tree button:disabled { cursor: default; opacity: .45; }
-.page-tree-help, .page-tree-status, .page-tree-error { font-size: 12px; line-height: 1.5; margin: 12px 4px; color: var(--a-ink-3); }
-.page-tree-status:empty { display: none; }
-.page-tree-error { color: var(--a-red, #b42318); }
+.page-tree-toggle:focus-visible, .page-tree-grip:focus-visible, .page-tree-actions:focus-visible, .page-tree-tool:focus-visible, .page-tree-info:focus-visible, .page-tree-section-toggle:focus-visible { outline: 2px solid var(--a-ink); outline-offset: -2px; }
+.page-tree button:disabled { cursor: default; opacity: 0.45; }
+
+/* Nesting: 16px per level, a hairline under the parent's caret. */
+.page-tree-children { position: relative; overflow: hidden; }
+.page-tree-children::before { content: ""; position: absolute; top: 2px; bottom: 2px; left: calc(var(--depth) * 16px - 0.5px); width: 1px; background: var(--a-line); pointer-events: none; }
+
+/* Loading, empty and error. */
+.page-tree-skeleton { display: grid; margin-top: 12px; }
+.page-tree-skeleton .kit-skeleton { height: 10px; border-radius: 4px; }
+.page-tree .page-tree-skeleton-heading { width: 88px; margin: 11px 8px; }
+.page-tree-skeleton-row { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; }
+.page-tree .page-tree-skeleton-icon { flex: none; width: 16px; height: 16px; }
+.page-tree-empty { display: grid; justify-items: start; gap: 8px; margin: 4px 0 0; padding: 0 8px; color: var(--a-ink-3); font-size: 13px; line-height: 1.5; }
+.page-tree-empty p { margin: 0; }
+.page-tree-empty .admin-button, .page-tree-error .admin-button { height: 28px; margin-left: -8px; padding: 0 8px; font-size: 13px; }
+.page-tree-error { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin: 8px 0 0; padding: 8px 8px 8px 12px; border-radius: 8px; background: color-mix(in srgb, var(--a-red) 8%, transparent); color: var(--a-red); font-size: 13px; line-height: 1.5; }
+.page-tree-error p { flex: 1 1 180px; min-width: 0; margin: 0; }
+.page-tree-error .admin-button { margin-left: 0; }
+
 @media (hover: hover) and (pointer: fine) {
-  .page-tree-grip, .page-tree-actions { opacity: 0; transition: opacity 100ms ease; }
-  .page-tree-row:hover .page-tree-grip, .page-tree-row:hover .page-tree-actions, .page-tree-row:focus-within .page-tree-grip, .page-tree-row:focus-within .page-tree-actions { opacity: 1; }
+  .page-tree-row:hover, .page-tree-shortcut:hover { --row-bg: var(--a-fill); }
+  .page-tree-row[data-current]:hover, .page-tree-shortcut[aria-current="page"]:hover { --row-bg: var(--wash-2); }
+  .page-tree-link:hover .page-tree-title { color: var(--a-ink); }
+  .page-tree-tool:hover:not(:disabled), .page-tree-info:hover, .page-tree-section-toggle:hover { background: var(--a-fill); color: var(--a-ink); }
+  button.page-tree-toggle:hover:not(:disabled), .page-tree-grip:hover, .page-tree-actions:hover { background: var(--wash-2); color: var(--a-ink); }
+  /* The actions sit over the row's end, so a title only gives way while you point at it. */
+  .page-tree-row-actions { position: absolute; top: 4px; right: 4px; bottom: 4px; padding-left: 16px; border-radius: 0 4px 4px 0; background: linear-gradient(to right, transparent, var(--row-bg) 16px); opacity: 0; transition: opacity 100ms ease; }
+  .page-tree-row:hover .page-tree-row-actions, .page-tree-row:focus-within .page-tree-row-actions, .page-tree-row-actions:has([data-popup-open]) { opacity: 1; }
 }
 @media (pointer: coarse) {
-  .page-tree-row .admin-icon-button, .page-tree-toggle { min-width: 32px; min-height: 44px; }
+  .page-tree-row, .page-tree-shortcut, .page-tree-heading { height: 44px; }
   .page-tree-grip { display: none; }
-  .page-tree-tools button { min-height: 44px; }
+  .page-tree-actions { width: 40px; height: 40px; }
+  .page-tree-tool, .page-tree-info { width: 44px; height: 44px; }
+  button.page-tree-toggle::after { inset: -14px -8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-tree-tool[data-spinning] svg { animation: none; }
+  .page-tree-section-toggle svg, button.page-tree-toggle svg { transition: none; }
 }
 
 /* Examples stay beside the options on desktop; mobile keeps the description. */
@@ -274,11 +360,6 @@
   .slash-preview .block-example, .slash-preview small, .slash-preview strong { display: none; }
   .slash-preview p { margin: 0; }
 }
-@media (hover: hover) and (pointer: fine) {
-  .page-tree-link:hover {
-    background: var(--a-fill);
-  }
-}
 @media (max-width: 600px) {
   .media-jobs {
     margin: 16px 12px;
@@ -286,7 +367,6 @@
   .page-location {
     padding: 12px;
   }
-  .page-tree-link,
   .page-tree summary,
   .media-job button {
     min-height: 44px;
@@ -449,7 +529,8 @@
 .writing-list-tools { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
 .writing-list-tools .admin-search { flex:1; border-radius:8px; height:38px; }
 .writing-list-tools .admin-search input { width:100%; min-width:0; }
-.writing-status-toolbar { border-bottom:1px solid var(--a-line); margin-bottom:16px; padding-bottom:14px; }
+/* Tabs on top, the tag filter on its own row under them, flush left with "All", then the divider. */
+.writing-status-toolbar { flex-direction:column; align-items:stretch; justify-content:flex-start; gap:10px; border-bottom:1px solid var(--a-line); margin-bottom:16px; padding-bottom:14px; }
 /* The sliding tabs in the admin: a 3px well around 30px pills (outer radius = pill + well), the count a quiet step after its label. */
 .writing-status-toolbar .kit-tabs-trigger { height:32px; padding:0 14px; gap:7px; font-size:13.5px; }
 .writing-status-toolbar .kit-tabs-trigger .admin-segment-count { margin-left:-1px; }
@@ -546,7 +627,8 @@
 [data-theme="dark"] .research-diff del {
   background: rgb(242 113 107 / 0.22);
 }
-[data-theme="dark"] .page-tree nav {
+/* The floating popover only; embedded in a sheet, the navigator has no frame of its own. */
+[data-theme="dark"] .page-tree:not(.page-tree-embedded) nav {
   box-shadow: var(--shadow-pop);
 }
 [data-theme="dark"] .admin-select-list {

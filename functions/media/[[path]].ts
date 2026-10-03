@@ -3,6 +3,11 @@
  * served, so drafts and revisions in the same bucket can't be fetched by
  * guessing a path. File names are random and never reused, so each response
  * is cached for a year, at the edge and in the browser.
+ *
+ * The one exception is a file replaced in the admin (it carries a `version`
+ * in its custom metadata): the same URL now has new bytes, so its plain URL
+ * is cached for minutes rather than a year and revalidates by ETag. The
+ * admin asks for `?v=<version>`, which is a new URL and stays immutable.
  */
 
 type Env = { WRITING: R2Bucket };
@@ -22,7 +27,8 @@ export const onRequestGet: PagesFunction<Env, "path"> = async ({ env, params, re
   const headers = new Headers();
   obj.writeHttpMetadata(headers);
   headers.set("ETag", obj.httpEtag);
-  headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  const replaced = Boolean(obj.customMetadata?.version) && !new URL(request.url).searchParams.has("v");
+  headers.set("Cache-Control", replaced ? "public, max-age=300, must-revalidate" : "public, max-age=31536000, immutable");
   headers.set("X-Content-Type-Options", "nosniff");
   // Direct navigation to a media object must not create an active document.
   headers.set("Content-Security-Policy", "default-src 'none'; sandbox; frame-ancestors 'none'");

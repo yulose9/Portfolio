@@ -54,35 +54,23 @@ export default function PageNavigator({
       open={open}
       onClose={onClose}
       title="Pages"
-      description="Pinned pages, recent work and your page hierarchy."
+      description="Your page hierarchy and shortcuts."
       className="page-navigator-sheet"
     >
-      {error ? (
-        <div role="alert">
-          <p>{error}</p>
-          <button
-            className="admin-button"
-            type="button"
-            onClick={() => setRetry((n) => n + 1)}
-          >
-            Retry loading pages
-          </button>
-        </div>
-      ) : pages ? (
-        <PageTree
-          pages={pages}
-          currentId={currentId}
-          embedded
-          beforeNavigate={beforeNavigate}
-          onPinCurrent={onPinCurrent}
-          onOpen={(id) => {
-            onClose();
-            if (id !== currentId) onOpen(id);
-          }}
-        />
-      ) : (
-        <p role="status">Loading pages…</p>
-      )}
+      <PageTree
+        pages={pages ?? []}
+        loading={!pages && !error}
+        loadError={error || undefined}
+        onRetry={() => setRetry((n) => n + 1)}
+        currentId={currentId}
+        embedded
+        beforeNavigate={beforeNavigate}
+        onPinCurrent={onPinCurrent}
+        onOpen={(id) => {
+          onClose();
+          if (id !== currentId) onOpen(id);
+        }}
+      />
     </Sheet>
   );
 }

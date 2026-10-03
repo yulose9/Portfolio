@@ -15,9 +15,10 @@ import {
   defaultStyle,
   filterNames,
   ICON_SETS,
+  iconImage,
   iconLabel,
   iconSet,
-  iconSvgUrl,
+  loadIcons,
   persistIcon,
   readCollection,
   recentIcons,
@@ -39,8 +40,10 @@ import { beginPendingWork } from "./session";
  * style and category, or searched across all of them. Picking one copies it
  * into the media library (see iconify.ts), so `onPick` receives our own URL.
  *
- * Pages of 120 load as the grid scrolls. One Tab stop for the grid, arrows
- * to move, Enter to pick; a shared tooltip names the icon under the pointer.
+ * Pages of 120 load as the grid scrolls, each drawn from one bulk request per
+ * set through the admin's Iconify proxy rather than 120 image requests, which
+ * Iconify throttles. One Tab stop for the grid, arrows to move, Enter to
+ * pick; a shared tooltip names the icon under the pointer.
  */
 
 const PAGE = 120;
@@ -97,6 +100,10 @@ export default function IconLibrary({ onPick, onBusy }: { onPick: (src: string) 
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
+  // Bumped when icon data arrives, so the cells redraw from it.
+  const [, setDrawn] = useState(0);
+  const [drawError, setDrawError] = useState("");
+  const [broken, setBroken] = useState<ReadonlySet<string>>(() => new Set());
   const ink = useSyncExternalStore(watchTheme, readInk, () => null);
 
   const set = iconSet(prefix);
@@ -223,11 +230,34 @@ export default function IconLibrary({ onPick, onBusy }: { onPick: (src: string) 
   const browsingAll = prefix === ALL_SETS && !debounced;
   const showRecent = !debounced && !category && recent.length > 0;
 
+  // The drawings for what's on screen: one bulk request per set per page.
+  const wanted = useMemo(() => [...(showRecent ? recent.map((r) => r.id) : []), ...shown].join(","), [showRecent, recent, shown]);
+  useEffect(() => {
+    if (!wanted) return;
+    let live = true;
+    void loadIcons(wanted.split(","))
+      .then(() => live && setDrawError(""))
+      .catch((e: unknown) => live && setDrawError(e instanceof Error ? e.message : "Some icons couldn't be loaded."))
+      .finally(() => live && setDrawn((n) => n + 1));
+    return () => {
+      live = false;
+    };
+  }, [wanted, retry]);
+
+  const tryAgain = () => {
+    setLoaded(null);
+    setFound(null);
+    setDrawError("");
+    setBroken(new Set());
+    setRetry((r) => r + 1);
+  };
+
   const cell = (id: string, index: number, pickColour: string | null, group: string) => {
     const icon = splitIcon(id)!;
     const iconSetOf = iconSet(icon.prefix);
     const label = iconLabel(icon.name, collection?.prefix === icon.prefix ? collection.styles : iconSetOf?.styles);
     const tip = prefix === ALL_SETS || group === "recent" ? `${label} (${iconSetOf?.name ?? icon.prefix})` : label;
+    const image = iconImage(id, pickColour);
     return (
       <TooltipTrigger
         key={`${group}:${id}:${pickColour ?? ""}`}
@@ -246,8 +276,12 @@ export default function IconLibrary({ onPick, onBusy }: { onPick: (src: string) 
           />
         }
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={iconSvgUrl(id, pickColour)} alt="" width={22} height={22} loading="lazy" decoding="async" draggable={false} />
+        {image && !broken.has(image) ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={image} alt="" width={22} height={22} decoding="async" draggable={false} onError={() => setBroken((b) => new Set(b).add(image))} />
+        ) : (
+          <span className="icon-cell-placeholder" data-state={image === undefined ? "loading" : "missing"} aria-hidden="true" />
+        )}
         {pending === id ? <Spinner className="icon-cell-spinner" aria-hidden="true" /> : null}
       </TooltipTrigger>
     );
@@ -316,12 +350,8 @@ export default function IconLibrary({ onPick, onBusy }: { onPick: (src: string) 
           {showRecent && !browsingAll ? <p className="icon-section-title">{category ?? set?.name}</p> : null}
           {listing.state === "error" ? (
             <div className="icon-empty">
-              <p>{listing.error} Check your connection, then try again.</p>
-              <button type="button" className="admin-button" onClick={() => {
-                  setLoaded(null);
-                  setFound(null);
-                  setRetry((r) => r + 1);
-                }}>
+              <p>{listing.error}</p>
+              <button type="button" className="admin-button" onClick={tryAgain}>
                 Try again
               </button>
             </div>
@@ -332,9 +362,19 @@ export default function IconLibrary({ onPick, onBusy }: { onPick: (src: string) 
               <Spinner aria-hidden="true" /> {debounced ? "Searching…" : `Loading ${set?.name ?? "icons"}…`}
             </p>
           ) : shown.length ? (
-            <div className="icon-grid" role="group" aria-label={debounced ? `Icons matching ${debounced}` : `${set?.name ?? ""} icons`} onKeyDown={onGridKeys}>
-              {shown.map((id, i) => cell(id, i, colour, "main"))}
-            </div>
+            <>
+              {drawError ? (
+                <p className="icon-grid-note" role="status">
+                  {drawError}
+                  <button type="button" className="icon-link" onClick={tryAgain}>
+                    Try again
+                  </button>
+                </p>
+              ) : null}
+              <div className="icon-grid" role="group" aria-label={debounced ? `Icons matching ${debounced}` : `${set?.name ?? ""} icons`} onKeyDown={onGridKeys}>
+                {shown.map((id, i) => cell(id, i, colour, "main"))}
+              </div>
+            </>
           ) : (
             <p className="icon-empty">
               {debounced ? `No icons in ${prefix === ALL_SETS ? "any set" : (set?.name ?? "this set")} match “${debounced}”.` : "This style has no icons here. Try another style."}
