@@ -10,11 +10,14 @@ Deploy the entire `out/` directory. This project uses static export; `next start
 
 ## Images
 
-Keep source photos in `public/`. `npm run images:optimize` generates responsive WebP variants in
-`public/optimized/` and updates `app/image-manifest.json`. It also runs automatically before dev/build.
-Use `next/image` with accurate `sizes`; the custom loader selects a generated variant without a runtime image server.
-Generated images have content hashes and are rebuilt in CI. Original photos stay intact.
-If resizing or encoding settings change, increment the pipeline version string used in the hash.
+Keep source images in `public/`. `scripts/optimize-images.mjs` (run by next.config.js on every
+`next build`/`next dev`, or by hand with `node scripts/optimize-images.mjs`) finds the PNG/JPEG/WebP
+files under `/images/` and `/tools/` that the content references, writes AVIF and WebP copies at
+responsive widths to `public/optimized/` (gitignored), and records them in `app/image-manifest.json`.
+`responsiveImage()` in `app/lib/images.ts` turns a src into `<picture>` srcsets from that manifest.
+Without sharp the manifest is empty and the originals are served. Generated names carry a content
+hash; if widths or encoder settings change, bump `PIPELINE` in the script. Original files stay intact.
+Uploaded media (`/media/...`) is converted in the browser at upload time (`app/admin/ui/media.ts`).
 Cloudflare's `public/_headers` gives hashed images and Next static chunks immutable caching.
 
 ## Interaction checks

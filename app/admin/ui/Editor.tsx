@@ -71,6 +71,7 @@ import { imageInfo } from "../../../cms/media";
 
 import { fontVars } from "../../../cms/fonts";
 import { draftToPost, readingMinutes, serializePost, slugify, type Cover } from "../../../cms/format";
+import { suggestSlug } from "../../../cms/slug";
 import { copy } from "../../components/menu/actions";
 import { useFinePointer } from "../../components/menu/useFinePointer";
 import { toast } from "../../lib/toast";
@@ -138,6 +139,9 @@ import { CopyButton } from "../../components/kit/inputs/copy-button";
 import { createTooltipHandle, GlidingTooltip, TooltipTrigger } from "../../components/kit/tooltip";
 import { Skeleton } from "../../components/kit/skeleton";
 import { DownloadButton } from "../../components/kit/inputs/download-button";
+import { AltAssist } from "./AltAssist";
+import { altPage, altTextAvailable, generateAltText, suggestAltForUpload } from "./alt-text";
+import { needsAltText } from "../../../cms/alt-text";
 
 /*
  * The editor is the article page, editable. Title, standfirst, byline, cover
@@ -355,7 +359,8 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
   useEffect(() => {
     const previous = document.title;
     document.title = `${meta.icon ? `${meta.icon} ` : ""}${meta.title.trim() || "Untitled"} · Writing admin`;
-    return () => { document.title = previous; };
+    altPage.title = meta.title.trim();
+    return () => { document.title = previous; altPage.title = ""; };
   }, [meta.title, meta.icon]);
   useEffect(() => {
     const toggle = (event: KeyboardEvent) => {
@@ -366,7 +371,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
     window.addEventListener("keydown", toggle);
     return () => window.removeEventListener("keydown", toggle);
   }, []);
-  const [slugTouched, setSlugTouched] = useState(() => Boolean(initial.slug) && initial.slug !== slugify(initial.title));
+  const [slugTouched, setSlugTouched] = useState(() => Boolean(initial.slug) && initial.slug !== slugify(initial.title) && initial.slug !== suggestSlug(initial.title));
   const [save, setSave] = useState<SaveStatus>("saved");
   const [savedAt, setSavedAt] = useState<string | null>(initial.updatedAt);
   const [panel, setPanel] = useState<Panel>(options?.panel ?? null);
@@ -876,7 +881,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
   /* ── Fields ─────────────────────────────────────────────────────────── */
 
   const setTitle = (title: string) =>
-    setMeta((m) => ({ ...m, title, slug: !doc.liveSlug && !slugTouched ? slugify(title) : m.slug }));
+    setMeta((m) => ({ ...m, title, slug: !doc.liveSlug && !slugTouched ? suggestSlug(title) : m.slug }));
 
   const titleRef = useAutosize(meta.title);
   const subtitleShown = showsSubtitle(meta.fonts);
@@ -908,11 +913,30 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
     const up = await withProgress("Adding cover", (p) => uploadMedia(file, p));
     if (up?.kind !== "image") return;
     // A new picture keeps the cover's style (classic or banner).
-    setMeta((m) => ({ ...m, cover: withCoverStyle({ src: up.src, width: up.width, height: up.height, alt: m.cover?.alt || altFromName(file.name), caption: m.cover?.caption ?? "" }, coverStyle(m.cover)) }));
+    const placeholder = altFromName(file.name);
+    setMeta((m) => ({ ...m, cover: withCoverStyle({ src: up.src, width: up.width, height: up.height, alt: m.cover?.alt || placeholder, caption: m.cover?.caption ?? "" }, coverStyle(m.cover)) }));
+    void suggestCoverAlt(up.src, placeholder, file.name);
+  };
+  /**
+   * A new cover whose alt is empty or only its file name: ask for a suggestion
+   * in the background, and keep it only if the cover and its alt haven't
+   * changed meanwhile.
+   */
+  const suggestCoverAlt = async (src: string, placeholder: string, fileName?: string) => {
+    if (!(await altTextAvailable())) return;
+    let alt: string;
+    try {
+      alt = await generateAltText(src, { caption: meta.cover?.caption, fileName });
+    } catch {
+      return;
+    }
+    setMeta((m) => (m.cover?.src === src && needsAltText(m.cover.alt, placeholder) ? { ...m, cover: { ...m.cover, alt } } : m));
   };
   /** A cover from the picker: a new picture keeps the cover's style and alt text. */
-  const pickCover = (pick: MediaPick) =>
+  const pickCover = (pick: MediaPick) => {
     setMeta((m) => ({ ...m, cover: withCoverStyle({ src: pick.src, width: pick.width, height: pick.height, alt: m.cover?.alt || pick.alt || "", caption: m.cover?.caption ?? "" }, coverStyle(m.cover)) }));
+    if (pick.kind === "image" && pick.fileName && !meta.cover?.alt) void suggestCoverAlt(pick.src, pick.alt ?? "", pick.fileName);
+  };
   const browseForCover = () => {
     libraryFor.current = "cover";
     setPanel("media");
@@ -1345,6 +1369,8 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
                 aria-label="Cover alt text"
                 data-missing={!meta.cover.alt.trim() || undefined}
               />
+              <AltAssist className="alt-assist-cover" src={meta.cover.src} value={meta.cover.alt} onAlt={(alt) => patchCover({ alt })}
+                context={() => ({ caption: meta.cover?.caption })} />
             </figure>
           ) : null}
 
@@ -1456,7 +1482,12 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
           onOpenChange={(open) => { if (!open) setBodyMedia(null); }}
           anchor={caretAnchor}
           finalFocus={() => editor.view.dom}
-          onPick={(pick) => { if (bodyMedia !== null) editor.chain().focus().insertContentAt(Math.min(bodyMedia, editor.state.doc.content.size), pickedNode(pick)).run(); }}
+          onPick={(pick) => {
+            if (bodyMedia === null) return;
+            editor.chain().focus().insertContentAt(Math.min(bodyMedia, editor.state.doc.content.size), pickedNode(pick)).run();
+            // A fresh upload carries only its file name as alt: ask for a real one.
+            if (pick.kind === "image" && pick.fileName) void suggestAltForUpload(editor, pick.src, pick.alt ?? "", pick.fileName);
+          }}
           onFiles={(files) => void insertImages.current(files, bodyMedia ?? undefined)}
           onBrowseAll={() => { libraryFor.current = "body"; setPanel("media"); }}
         />

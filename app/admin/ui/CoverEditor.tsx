@@ -8,6 +8,7 @@ import {
   MAX_COVER_ZOOM, coverImageStyle, coverPosition, coverStyle, coverZoom, withCoverPosition, withCoverStyle, withCoverZoom, type CoverStyle,
 } from "../../../cms/cover";
 import { Slider } from "../../components/kit/slider";
+import { AltAssist } from "./AltAssist";
 import MediaPicker, { COVER_SWATCHES, type MediaPick } from "./MediaPicker";
 
 /**
@@ -212,14 +213,18 @@ export function EditorBanner({
               setZoom(coverZoom(cover));
               setMoving(coverPosition(cover));
             }} />
-          <input
-            className="editor-banner-alt"
-            value={cover.alt}
-            onChange={(e) => onChange({ ...cover, alt: e.target.value })}
-            placeholder="Alt text: what the image shows"
-            aria-label="Cover alt text"
-            data-missing={!cover.alt.trim() || undefined}
-          />
+          <div className="editor-banner-alt-row">
+            <input
+              className="editor-banner-alt"
+              value={cover.alt}
+              onChange={(e) => onChange({ ...cover, alt: e.target.value })}
+              placeholder="Alt text: what the image shows"
+              aria-label="Cover alt text"
+              data-missing={!cover.alt.trim() || undefined}
+            />
+            <AltAssist className="alt-assist-banner" src={cover.src} value={cover.alt} onAlt={(alt) => onChange({ ...cover, alt })}
+              context={() => ({ caption: cover.caption })} />
+          </div>
         </>
       )}
     </figure>

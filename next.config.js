@@ -63,6 +63,25 @@ function writeRedirects() {
 }
 writeRedirects();
 
+/*
+ * Responsive AVIF/WebP copies of the raster images in public/ that the
+ * content references (scripts/optimize-images.mjs). It runs here so every
+ * `next build` and `next dev` gets them, whatever the build command is. It is
+ * incremental, runs once per command (Next loads this file again in its
+ * workers), and never fails the build. Without sharp the originals are served.
+ */
+if (
+  ["build", "dev"].some((cmd) => process.argv.includes(cmd)) &&
+  !process.env.PORTFOLIO_IMAGES_OPTIMIZED
+) {
+  process.env.PORTFOLIO_IMAGES_OPTIMIZED = "1";
+  require("node:child_process").spawnSync(
+    process.execPath,
+    [path.join(__dirname, "scripts", "optimize-images.mjs")],
+    { stdio: "inherit" }
+  );
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "export",

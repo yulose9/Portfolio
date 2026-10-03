@@ -1,8 +1,12 @@
 # https://nazarene.dev/robots.txt
 #
 # Everything public is open to search engines and to AI assistants that cite
-# their sources. They're named individually so the policy reads as a choice,
-# and so a future "User-agent: *" change can't quietly shut them out.
+# their sources. /admin and /api/ are disallowed so they stay out of crawls,
+# but robots.txt is a request, not a lock: /admin is protected by Cloudflare
+# Access and sends X-Robots-Tag: noindex.
+#
+# Crawlers are named individually so the policy reads as a choice, and so a
+# future "User-agent: *" change can't quietly shut them out.
 # A summary for language models lives at /llms.txt.
 #
 # Content signals (contentsignals.org) say what the content may be used for,
@@ -16,9 +20,11 @@ Content-Signal: search=yes, ai-input=yes, ai-train=yes
 
 # Search
 User-agent: Googlebot
+User-agent: Googlebot-Image
 User-agent: Bingbot
 User-agent: DuckDuckBot
 User-agent: Applebot
+User-agent: YandexBot
 Allow: /
 Disallow: /admin
 Disallow: /api/
@@ -31,10 +37,20 @@ User-agent: GPTBot
 User-agent: Claude-SearchBot
 User-agent: Claude-User
 User-agent: ClaudeBot
+User-agent: anthropic-ai
 User-agent: PerplexityBot
 User-agent: Perplexity-User
 User-agent: Google-Extended
+User-agent: Google-CloudVertexBot
 User-agent: Applebot-Extended
+User-agent: Amazonbot
+User-agent: DuckAssistBot
+User-agent: MistralAI-User
+User-agent: Meta-ExternalAgent
+User-agent: Meta-ExternalFetcher
+User-agent: cohere-ai
+User-agent: YouBot
+User-agent: CCBot
 Allow: /
 Disallow: /admin
 Disallow: /api/

@@ -109,13 +109,15 @@ export function mediaParts(src: string, type: string): MediaPart[] {
   const file = src.split("/").pop() ?? "";
   const m = NAMED.exec(src);
   if (!m) return [{ name: file, role: "main" }];
-  const [, , id, w, h] = m;
+  const [, , id, w, h, ext] = m;
   const width = Number(w);
   const height = Number(h);
   const main: MediaPart = { name: file, role: "main", ...(width && height ? { width, height } : {}) };
   if (family(type) === "image" && width && height) {
+    // Variants share the main file's format: WebP, or JPEG from Safari.
+    const variantExt = ext === "jpg" ? "jpg" : "webp";
     return [
-      ...LADDER.filter((x) => x < width).map((x) => ({ name: `${id}-${x}.webp`, role: "variant" as const, width: x, height: Math.round((height * x) / width) })),
+      ...LADDER.filter((x) => x < width).map((x) => ({ name: `${id}-${x}.${variantExt}`, role: "variant" as const, width: x, height: Math.round((height * x) / width) })),
       main,
     ];
   }

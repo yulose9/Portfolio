@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import type { Editor } from "@tiptap/core";
 import { ApiError } from "./api";
+import { suggestAltForUpload } from "./alt-text";
 import { uploadMedia, type Uploaded } from "./media";
 import {
   MEDIA_JOBS_EVENT,
@@ -133,6 +134,8 @@ export default function MediaJobs({
           uploadedNode(job.result, job.name, job.blockId),
         )
         .run();
+      // The file name stands in as alt text; ask for a real one meanwhile.
+      if (job.result.kind === "image") void suggestAltForUpload(editor, job.result.src, job.name.replace(/\.[^.]+$/, ""), job.name);
     }
     if (await beforeSave()) await removeMediaJob(job.id);
     else

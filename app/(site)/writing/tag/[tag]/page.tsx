@@ -7,7 +7,8 @@ import { notFound } from "next/navigation";
 import { tagSlug } from "../../../../../cms/format";
 import FluentText from "../../../../components/writing/FluentText";
 import Tag from "../../../../components/writing/Tag";
-import { FEED, ID, jsonLd, OG_METADATA, SITE_INFO } from "../../../../constants/seo";
+import { FEED, ID, jsonLd, OG_IMAGE, OG_METADATA, PERSON, SITE_INFO, TWITTER_METADATA } from "../../../../constants/seo";
+import { clip } from "../../../../lib/seo";
 import { formatLongDate, publishedPosts } from "../../../../lib/writing";
 
 /*
@@ -31,18 +32,33 @@ export function generateStaticParams() {
 
 type Props = { params: Promise<{ tag: string }> };
 
+const postsTagged = (slug: string) => publishedPosts().filter((p) => p.tags.some((t) => tagSlug(t) === slug));
+
+/**
+ * The tag's description: the one written for it in the admin, else one built
+ * from what's filed there, so each tag page has its own snippet, not a stub.
+ */
+function tagDescription(slug: string, name: string, custom?: string): string {
+  if (custom) return clip(custom, 160);
+  const posts = postsTagged(slug);
+  const count = `${posts.length} ${posts.length === 1 ? "post" : "posts"}`;
+  const titles = posts.slice(0, 3).map((p) => `“${p.title}”`).join(", ");
+  return clip(`${count} on ${name} by ${SITE_INFO.name}, AI specialist${titles ? `: ${titles}` : ""}.`, 160);
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const slug = (await params).tag;
   const name = allTags().get(slug);
   if (!name) return { title: "Not found", robots: { index: false } };
   const custom=readTagPage(slug);
   const title=custom.title||name;
-  const description = custom.description || `Writing by ${SITE_INFO.name} on ${name}.`;
+  const description = tagDescription(slug, name, custom.description);
   return {
     title: `${title} · Writing`,
     description,
     alternates: { canonical: `/writing/tag/${slug}`, types: FEED },
     openGraph: { ...OG_METADATA, title: `${title} · Writing by ${SITE_INFO.name}`, description, url: `${SITE_INFO.url}/writing/tag/${slug}` },
+    twitter: { ...TWITTER_METADATA, title: `${title} · Writing by ${SITE_INFO.name}`, description, images: [OG_IMAGE] },
   };
 }
 
@@ -54,21 +70,36 @@ export default async function TagPage({ params }: Props) {
   const name = tags.get(slug);
   if (!name) notFound();
   const custom=readTagPage(slug);
-  const posts = publishedPosts().filter((p) => p.tags.some((t) => tagSlug(t) === slug));
+  const posts = postsTagged(slug);
+  const url = `${SITE_INFO.url}/writing/tag/${slug}`;
+  const paged = posts.filter((p) => p.page);
 
   const graph = {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "CollectionPage",
-        name: `${name} · Writing`,
-        url: `${SITE_INFO.url}/writing/tag/${slug}`,
+        "@id": url,
+        name: `${custom.title || name} · Writing`,
+        description: tagDescription(slug, name, custom.description),
+        url,
+        inLanguage: "en",
         isPartOf: { "@id": ID.website },
-        about: name,
-        hasPart: posts.filter((p) => p.page).map((p) => ({ "@id": `${SITE_INFO.url}/writing/${p.slug}#article` })),
+        about: { "@type": "Thing", name },
+        author: { "@id": ID.person },
+        breadcrumb: { "@id": `${url}#breadcrumb` },
+        ...(paged[0] ? { dateModified: paged.reduce((a, p) => (p.updatedAt > a ? p.updatedAt : a), paged[0].updatedAt) } : {}),
+        hasPart: paged.map((p) => ({ "@id": `${SITE_INFO.url}/writing/${p.slug}#article` })),
+        mainEntity: {
+          "@type": "ItemList",
+          numberOfItems: paged.length,
+          itemListElement: paged.map((p, i) => ({ "@type": "ListItem", position: i + 1, url: `${SITE_INFO.url}/writing/${p.slug}`, name: p.title })),
+        },
       },
+      PERSON,
       {
         "@type": "BreadcrumbList",
+        "@id": `${url}#breadcrumb`,
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "Home", item: SITE_INFO.url },
           { "@type": "ListItem", position: 2, name: "Writing", item: `${SITE_INFO.url}/writing` },

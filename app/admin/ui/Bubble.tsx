@@ -17,6 +17,8 @@ import type { Editor } from "@tiptap/react";
 import { useEditorState } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { memo, useEffect, useRef } from "react";
+import { AltAssist } from "./AltAssist";
+import { editorAltContext } from "./alt-text";
 import ColorPicker from "./ColorPicker";
 import { shortcutLabel } from "./shortcuts";
 import { keys } from "./menu";
@@ -211,10 +213,16 @@ export const ImageBubble = memo(function ImageBubble({ editor }: { editor: Edito
               onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); } }} />
           </label>
           <button type="button" className="admin-button image-reset" onClick={() => set({ width: null, height: null })}>Reset size</button>
-          <label>
-            <span>Alt text</span>
-            <input value={attrs.alt ?? ""} onChange={(e) => set({ alt: e.target.value })} placeholder="What the image shows, for screen readers" />
-          </label>
+          <div className="bubble-alt">
+            <label>
+              <span>Alt text</span>
+              <input value={attrs.alt ?? ""} onChange={(e) => set({ alt: e.target.value })} placeholder="What the image shows, for screen readers" />
+            </label>
+            {attrs.src ? (
+              <AltAssist src={attrs.src} value={attrs.alt ?? ""} onAlt={(alt) => set({ alt })}
+                context={() => (imagePos === null ? {} : editorAltContext(editor, imagePos))} />
+            ) : null}
+          </div>
           <label>
             <span>Caption</span>
             <input value={attrs.title ?? ""} onChange={(e) => set({ title: e.target.value })} placeholder="Shown under the image (optional)" />

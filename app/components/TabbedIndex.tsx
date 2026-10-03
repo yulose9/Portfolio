@@ -13,6 +13,7 @@ import {
   Robot,
 } from "@phosphor-icons/react";
 import { haptic } from "../lib/haptics";
+import { responsiveImage } from "../lib/images";
 import AboutMenu from "./menu/AboutMenu";
 import RowMenu from "./menu/RowMenu";
 import type { Entry, Post, Tab } from "../site-content";
@@ -654,15 +655,24 @@ function EntryList({ items, kind }: { items: Entry[]; kind: string }) {
             crossfade between two already-decoded images.
           */}
           <div className="relative h-48 w-full">
-            {withImages.map((item) => (
-              /* eslint-disable-next-line @next/next/no-img-element */
+            {withImages.map((item) => {
+              // AVIF/WebP at the frame's size (224px, 2x on retina) in place
+              // of the original upload (scripts/optimize-images.mjs).
+              const picked = responsiveImage(item.image);
+              return (
+              <picture key={item.image}>
+                {picked?.avifSrcSet ? <source type="image/avif" srcSet={picked.avifSrcSet} sizes="224px" /> : null}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                key={item.image}
                 ref={(node) => {
                   if (node) imgRefs.current.set(item.image, node);
                   else imgRefs.current.delete(item.image);
                 }}
-                src={item.image}
+                src={picked?.src ?? item.image}
+                srcSet={picked?.srcSet}
+                sizes={picked?.srcSet ? "224px" : undefined}
+                width={picked?.width}
+                height={picked?.height}
                 alt=""
                 // Lazy: on a phone the rail is display:none, so these are never
                 // fetched at all. Async decode keeps a big badge off the main
@@ -675,7 +685,9 @@ function EntryList({ items, kind }: { items: Entry[]; kind: string }) {
                     : "object-cover"
                 } ${item.image === previewSrc ? "is-active" : ""}`}
               />
-            ))}
+              </picture>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { responsiveImage } from "../lib/images";
 import type { Tool } from "../site-content";
 
 /**
@@ -16,12 +17,19 @@ import type { Tool } from "../site-content";
 export default function ToolRow({ tools }: { tools: Tool[] }) {
   return (
     <ul className="tool-row" aria-label="Tools I work with">
-      {tools.map((tool) => (
+      {tools.map((tool) => {
+        // A raster logo gets its 64/96px AVIF and WebP copies; SVGs pass through.
+        const picked = responsiveImage(tool.src);
+        return (
         <li key={tool.src} className="tool-badge" data-label={tool.label} data-keycap="">
           <a href={tool.href || undefined} target={tool.href ? "_blank" : undefined} rel={tool.href ? "noreferrer" : undefined}>
+          <picture>
+          {picked?.avifSrcSet ? <source type="image/avif" srcSet={picked.avifSrcSet} sizes="32px" /> : null}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={tool.src}
+            src={picked?.src ?? tool.src}
+            srcSet={picked?.srcSet}
+            sizes={picked?.srcSet ? "32px" : undefined}
             alt={tool.label}
             width={32}
             height={32}
@@ -31,9 +39,11 @@ export default function ToolRow({ tools }: { tools: Tool[] }) {
             decoding="async"
             draggable={false}
           />
+          </picture>
           </a>
         </li>
-      ))}
+        );
+      })}
     </ul>
   );
 }

@@ -1,0 +1,187 @@
+/*
+ * Suggested alt text (app/admin/ui/AltAssist.tsx): a sparkle beside each
+ * alt-text field, and a quiet "Generated, review it" note while the field
+ * still holds what the model wrote.
+ */
+.alt-assist {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.alt-assist-button {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--a-ink-3);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, opacity 150ms ease;
+}
+.alt-assist-button:hover {
+  background: var(--a-fill-2);
+  color: var(--a-ink);
+}
+.alt-assist-button:focus-visible {
+  outline: 2px solid var(--a-blue);
+  outline-offset: 1px;
+}
+.alt-assist-button[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.alt-assist-button[aria-disabled="true"]:hover {
+  background: transparent;
+  color: var(--a-ink-3);
+}
+.alt-assist-button[data-busy] {
+  cursor: progress;
+  opacity: 1;
+}
+.alt-assist-spin {
+  animation: alt-assist-spin 0.8s linear infinite;
+}
+@keyframes alt-assist-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+.alt-assist-note {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--a-ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.alt-assist-note[data-error] {
+  color: var(--a-red);
+  white-space: normal;
+}
+
+/* The image bubble: the sparkle sits at the end of the alt input's row. */
+.bubble-image .bubble-alt {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  column-gap: 6px;
+  row-gap: 4px;
+  min-width: 0;
+}
+.bubble-image .bubble-alt .alt-assist {
+  display: contents;
+}
+.bubble-image .bubble-alt .alt-assist-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--a-fill-2);
+}
+.bubble-image .bubble-alt .alt-assist-note {
+  grid-column: 1 / -1;
+  padding: 0 0.4rem;
+  font-weight: 400;
+}
+
+/* The classic cover: centred under its alt line, shown with the cover's tools. */
+.alt-assist-cover {
+  display: flex;
+  justify-content: center;
+  width: min(576px, calc(100vw - 3rem));
+  margin: 0.15rem auto 0;
+}
+.editor-cover .alt-assist-cover .alt-assist-button {
+  opacity: 0;
+}
+.editor-cover:hover .alt-assist-cover .alt-assist-button,
+.editor-cover:focus-within .alt-assist-cover .alt-assist-button,
+.editor-alt[data-missing] + .alt-assist-cover .alt-assist-button {
+  opacity: 1;
+}
+
+/* The banner: the alt pill and the sparkle share one row on the picture. */
+.editor-banner-alt-row {
+  position: absolute;
+  left: 1rem;
+  bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: min(356px, calc(100% - 2rem - 300px));
+  min-width: 194px;
+}
+.editor-banner-alt-row .editor-banner-alt {
+  position: static;
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+.alt-assist-banner .alt-assist-button {
+  background: rgb(255 255 255 / 0.9);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+  color: var(--a-ink);
+  opacity: 0;
+}
+.alt-assist-banner .alt-assist-button:hover {
+  background: #fff;
+}
+.editor-banner:hover .alt-assist-banner .alt-assist-button,
+.editor-banner:focus-within .alt-assist-banner .alt-assist-button,
+.editor-banner-alt[data-missing] + .alt-assist-banner .alt-assist-button {
+  opacity: 1;
+}
+.alt-assist-banner .alt-assist-note {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.9);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+}
+[data-theme="dark"] .alt-assist-banner .alt-assist-button,
+[data-theme="dark"] .alt-assist-banner .alt-assist-note {
+  background: rgb(37 37 37 / 0.9);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08), 0 1px 3px rgb(0 0 0 / 0.4);
+}
+@media (max-width: 640px) {
+  .editor-banner-alt-row {
+    left: 0.5rem;
+    bottom: 0.5rem;
+    width: calc(100% - 1rem);
+  }
+}
+
+/* The Details sheet and the media library's details form. */
+.alt-assist-field {
+  display: flex;
+  margin-top: 6px;
+}
+.media-field-label .alt-assist {
+  margin-left: auto;
+  align-self: center;
+}
+
+@media (hover: none) {
+  .editor-cover .alt-assist-cover .alt-assist-button,
+  .alt-assist-banner .alt-assist-button {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .alt-assist-button {
+    transition: none;
+  }
+  .alt-assist-spin {
+    animation-duration: 2.4s;
+  }
+}

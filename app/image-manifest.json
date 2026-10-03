@@ -1,0 +1,83 @@
+{
+  "/images/certifications/Github_Copilot_badge.png": {
+    "width": 340,
+    "height": 340,
+    "hash": "1208b2ac2db78407",
+    "widths": [
+      64,
+      128,
+      256,
+      340
+    ]
+  },
+  "/images/certifications/TerraformAssociate.png": {
+    "width": 680,
+    "height": 680,
+    "hash": "efffe66625197cd2",
+    "widths": [
+      64,
+      128,
+      256,
+      480,
+      680
+    ]
+  },
+  "/images/certifications/googlecloudpractitioner.png": {
+    "width": 680,
+    "height": 680,
+    "hash": "9a2619ef2fc46444",
+    "widths": [
+      64,
+      128,
+      256,
+      480,
+      680
+    ]
+  },
+  "/images/company-logos/archicoders.jpg": {
+    "width": 2000,
+    "height": 2000,
+    "hash": "26fd1f7500ff2aa1",
+    "widths": [
+      64,
+      128,
+      256,
+      480,
+      960,
+      1600
+    ]
+  },
+  "/images/company-logos/trends-and-technologies.png": {
+    "width": 300,
+    "height": 300,
+    "hash": "46fb5222e2deb7ff",
+    "widths": [
+      64,
+      128,
+      256,
+      300
+    ]
+  },
+  "/images/other/heyyo.png": {
+    "width": 1200,
+    "height": 630,
+    "hash": "50607328f774e511",
+    "widths": [
+      64,
+      128,
+      256,
+      480,
+      960,
+      1200
+    ]
+  },
+  "/tools/antigravity.png": {
+    "width": 96,
+    "height": 88,
+    "hash": "f837ebec40843278",
+    "widths": [
+      64,
+      96
+    ]
+  }
+}

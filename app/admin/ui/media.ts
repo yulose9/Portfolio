@@ -116,10 +116,14 @@ async function uploadPhoto(file: File, progress: Progress, id = newMediaId(), op
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(bitmap, 0, 0, width, height);
     let blob = await canvasBlob(canvas, "image/webp", quality);
+    // Safari's canvas can't encode WebP and hands back a PNG. JPEG is the
+    // fallback, and the name has to say .jpg: the upload API checks the bytes
+    // against the extension and refuses a JPEG called .webp.
     if (blob.type !== "image/webp") blob = await canvasBlob(canvas, "image/jpeg", 0.86);
+    const ext = blob.type === "image/webp" ? "webp" : "jpg";
     const largest = width === top;
     progress(0.15 + (0.8 * (i + 1)) / widths.length, `Uploading ${width}px`);
-    const name = mediaName(id, largest ? { width, height } : { variant: width });
+    const name = mediaName(id, largest ? { width, height } : { variant: width }, ext);
     const res = await api.uploadNamed(blob, name, options.signal, options.year);
     if (largest) {
       main = { src: res.src, width, height };

@@ -1,6 +1,5 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
 import {
   useEffect,
   useLayoutEffect,
@@ -50,10 +49,9 @@ type Props = {
   variant?: "site" | "editor";
 };
 
-// Kobra's glide: 300ms, no overshoot. A spring, so a change mid-flight
-// carries its speed instead of restarting.
-const GLIDE = { type: "spring", visualDuration: 0.3, bounce: 0 } as const;
-const INSTANT = { duration: 0 } as const;
+// Kobra's glide: 300ms, no overshoot. CSS transitions on transform (see
+// .page-outline-marker in article-extras.css), so the outline ships no
+// animation library; reduced motion turns them off there too.
 
 /** Vertical pitch of the collapsed lines; long outlines squeeze together. */
 function pitchFor(count: number) {
@@ -139,7 +137,6 @@ export function PageOutline({
   renderAction,
   variant = "site",
 }: Props) {
-  const reduce = useReducedMotion();
   const [open, setOpen] = useState(false);
   // Escape closes the card while focus stays put; arrows reopen it.
   const [dismissed, setDismissed] = useState(false);
@@ -297,8 +294,8 @@ export function PageOutline({
 
   if (headings.length < 2) return <span ref={anchor} hidden />;
 
-  const glide = reduce || !open ? INSTANT : GLIDE;
-  const lineGlide = reduce ? INSTANT : GLIDE;
+  // While the card is closed the marker jumps, so it is already in place when the card opens.
+  const markerInstant = !open;
   const activeDepth = activeIndex >= 0 ? headings[activeIndex].level - top : 0;
 
   const outline = (
@@ -350,11 +347,9 @@ export function PageOutline({
           />
         ))}
         {activeIndex >= 0 ? (
-          <motion.span
+          <span
             className="page-outline-line page-outline-line-active"
-            initial={false}
-            animate={{ y: activeIndex * pitch, width: lineWidth(activeDepth) + 6 }}
-            transition={lineGlide}
+            style={{ transform: `translateY(${activeIndex * pitch}px)`, width: lineWidth(activeDepth) + 6 }}
           />
         ) : null}
       </div>
@@ -362,15 +357,13 @@ export function PageOutline({
       <div className="page-outline-card">
         <div ref={list} className="page-outline-scroll" data-lenis-prevent>
           {marker ? (
-            <motion.span
+            <span
               className="page-outline-marker"
               aria-hidden="true"
-              initial={false}
-              animate={{ y: marker.y, height: marker.h }}
-              transition={glide}
+              style={{ transform: `translateY(${marker.y}px)`, height: marker.h, transition: markerInstant ? "none" : undefined }}
             >
               <span className="page-outline-dot" />
-            </motion.span>
+            </span>
           ) : null}
           <ol>
           {headings.map((h, i) => {

@@ -6,6 +6,7 @@ import {
   UploadSimple,
   Trash,
   ArrowCounterClockwise,
+  Sparkle,
 } from "@phosphor-icons/react";
 import Sheet from "./Sheet";
 import {
@@ -16,7 +17,8 @@ import {
   usedLabel,
 } from "./MediaPreview";
 import MediaDetails from "./MediaDetails";
-import { api } from "./api";
+import { api, ApiError } from "./api";
+import { ALT_UNAVAILABLE, altTextAvailable, canDescribe, generateAltText } from "./alt-text";
 import { mediaApi } from "./media-api";
 import { uploadMedia, ACCEPT } from "./media";
 import { beginPendingWork } from "./session";
@@ -67,6 +69,7 @@ export default function MediaLibrary({
     // The image open full size, and the audio playing, if any (one at a time).
     [viewing, setViewing] = useState<string | null>(null),
     [playing, setPlaying] = useState<string | null>(null);
+  const [aiReady, setAiReady] = useState<boolean | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const gridScroll = useRef(0);
   const [previousOpen, setPreviousOpen] = useState(open);
@@ -82,6 +85,9 @@ export default function MediaLibrary({
   useEffect(() => {
     if (!open) return;
     let alive = true;
+    void altTextAvailable().then((on) => {
+      if (alive) setAiReady(on);
+    });
     api
       .media()
       .then((r) => {
@@ -197,6 +203,45 @@ export default function MediaLibrary({
         .toLowerCase()
         .includes(query.toLowerCase()),
   );
+  // Images in the library (not the trash) whose default alt is still empty.
+  const missingAlt = unique.filter((a) => !a.trashed && !a.alt?.trim() && a.type.startsWith("image/") && canDescribe(a.src));
+  /*
+   * One after another, each saved as it arrives so a stop part-way keeps what
+   * was done. A failure on one image skips it; losing the AI binding or the
+   * sign-in stops the run.
+   */
+  const generateMissingAlt = () =>
+    void perform(async () => {
+      let done = 0;
+      let failed = 0;
+      for (const [i, asset] of missingAlt.entries()) {
+        setProgress(`${i + 1} of ${missingAlt.length} · Describing ${asset.title || asset.src.split("/").pop()}…`);
+        let alt: string;
+        try {
+          alt = await generateAltText(asset.src, { fileName: asset.title, caption: asset.caption, title: asset.usedIn[0]?.title });
+        } catch (e) {
+          if (e instanceof ApiError && (e.status === 503 || e.status === 401 || e.status === 0)) throw e;
+          if (e instanceof ApiError && e.status === 429) throw new Error(`${done} described. ${e.message}`);
+          failed++;
+          continue;
+        }
+        const r = await mediaApi.saveDetails({
+          src: asset.src,
+          title: asset.title ?? "",
+          alt,
+          caption: asset.caption ?? "",
+          trashed: false,
+          base: asset.base ?? null,
+        });
+        done++;
+        setAssets((rows) =>
+          rows.map((a) =>
+            assetIdentity(a.src, a.digest) === assetIdentity(asset.src, asset.digest) ? { ...a, alt, base: r.base } : a,
+          ),
+        );
+      }
+      if (failed) setError(`${done} described; ${failed} couldn't be. Open their details to write alt text by hand.`);
+    });
   // The pictures the full view steps through: the images in this view, in order.
   const lightboxItems = shown.filter((a) => a.type.startsWith("image/"));
   return (
@@ -263,6 +308,18 @@ export default function MediaLibrary({
                 <List size={18} />
               </button>
             </div>
+            {!trash && missingAlt.length ? (
+              <button
+                className="admin-button admin-button-quiet"
+                disabled={busy}
+                aria-disabled={aiReady === false || undefined}
+                title={aiReady === false ? ALT_UNAVAILABLE : "Suggest alt text for every image without it. Review them in each image's details."}
+                onClick={() => { if (aiReady !== false) generateMissingAlt(); }}
+              >
+                <Sparkle size={15} weight="fill" />
+                Generate missing alt text ({missingAlt.length})
+              </button>
+            ) : null}
             <button
               className="admin-button admin-button-quiet"
               aria-pressed={trash}

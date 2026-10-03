@@ -23,6 +23,7 @@ export function GET() {
           `URL: ${SITE_INFO.url}/writing/${p.slug}`,
           `Published: ${formatLongDate(p.publishedAt)}${p.updatedAt !== p.publishedAt ? ` · Updated: ${formatLongDate(p.updatedAt)}` : ""}`,
           `By: ${p.authors.map((a) => a.name).join(", ")}`,
+          ...(p.tags.length ? [`Topics: ${p.tags.join(", ")}`] : []),
           ...(p.dek ? ["", `> ${p.dek}`] : []),
           "",
           p.body.trim(),

@@ -4,25 +4,21 @@ import path from "node:path";
 
 import { ImageResponse } from "next/og";
 
-import { fluentUrl } from "../../../../cms/emoji";
-import { formatLongDate, pagedPosts, postBySlug } from "../../../lib/writing";
+import { fluentUrl } from "../../cms/emoji";
+import { formatLongDate, type Listed } from "./writing";
 
 /*
  * The share card for a post, drawn at build time (1200×630): what shows when
  * the link is pasted into X, Threads, LinkedIn, WhatsApp, iMessage, Slack.
  * The site's type and greys; the page icon, the headline large, the
  * standfirst, the tags; my face and name at the foot.
+ *
+ * Served by app/og/writing/[file]/route.ts at /og/writing/<slug>.png: a
+ * stable URL with a real .png extension, so the host sends image/png and the
+ * JSON-LD, the meta tags and the image sitemap can all name the same file.
  */
 
 export const size = { width: 1200, height: 630 };
-export const contentType = "image/png";
-export const alt = "Article preview";
-export const dynamic = "force-static";
-
-export function generateStaticParams() {
-  const posts = pagedPosts();
-  return posts.length ? posts.map((p) => ({ slug: p.slug })) : [{ slug: "_" }];
-}
 
 /** Inter from Google Fonts as TTF (what the renderer reads); the built-in face if offline. */
 async function inter(weight: number): Promise<ArrayBuffer | null> {
@@ -57,8 +53,7 @@ function face(): string | null {
   }
 }
 
-export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
-  const post = postBySlug((await params).slug);
+export async function drawPostCard(post: Listed | undefined): Promise<Response> {
   const [regular, semibold, icon] = await Promise.all([inter(400), inter(600), iconPng(post?.icon ?? null)]);
   const fonts = [
     ...(regular ? [{ name: "Inter", data: regular, weight: 400 as const, style: "normal" as const }] : []),

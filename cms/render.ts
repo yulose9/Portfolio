@@ -599,6 +599,85 @@ function rehypeKeepMeta() {
   };
 }
 
+/**
+ * The page owns the one <h1> (the post's title), so a body's headings start
+ * at h2: a Markdown "# Heading" becomes h2, and a level that skips (h2 → h4)
+ * is pulled up to the next one down (h3). Walks in document order, toggle
+ * headings inside <summary> included, so the outline stays a real tree.
+ */
+function rehypeHeadingOrder() {
+  return (tree: Root) => {
+    let last = 1;
+    const visit = (n: Root | Element) => {
+      for (const k of n.children) {
+        if (!isEl(k)) continue;
+        const m = /^h([1-6])$/.exec(k.tagName);
+        if (m) {
+          const level = Math.min(Math.max(Number(m[1]), 2), last + 1);
+          k.tagName = `h${level}`;
+          last = level;
+        }
+        visit(k);
+      }
+    };
+    visit(tree);
+  };
+}
+
+/**
+ * A pasted http:// image, video or poster would be mixed content on the
+ * https site: blocked, or upgraded by the browser with a console warning.
+ * Requesting https:// directly is what the browser would try anyway.
+ */
+function rehypeUpgradeMedia() {
+  return (tree: Root) => {
+    const visit = (n: Root | Element) => {
+      for (const k of n.children) {
+        if (!isEl(k)) continue;
+        for (const key of ["src", "poster"] as const) {
+          const v = k.properties?.[key];
+          if (typeof v === "string" && /^http:\/\//i.test(v)) k.properties[key] = `https://${v.slice(7)}`;
+        }
+        visit(k);
+      }
+    };
+    visit(tree);
+  };
+}
+
+/**
+ * Every body image is rendered lazy. When a post has no cover, a picture in
+ * its opening blocks is probably the largest thing in the first viewport (the
+ * LCP element), and lazy loading would delay it. This loads that one image
+ * eagerly at high priority. React also emits a <link rel="preload"> for it.
+ * Only the first `within` top-level blocks are searched, because an image far
+ * down the page is not worth putting ahead of the text. Returns true when an
+ * image was promoted.
+ */
+export function prioritizeLeadImage(tree: Root, within = 4): boolean {
+  const find = (n: Element): Element | null => {
+    if (n.tagName === "img") return n;
+    // Inline logos and heading icons are tiny; they're never the LCP.
+    if (n.tagName === "x-embed" || n.tagName === "x-audio") return null;
+    for (const k of n.children) {
+      if (!isEl(k)) continue;
+      const hit = find(k);
+      if (hit) return hit;
+    }
+    return null;
+  };
+  const blocks = tree.children.filter((k): k is Element => isEl(k)).slice(0, within);
+  for (const block of blocks) {
+    const img = find(block);
+    if (!img) continue;
+    const cls = ([] as unknown[]).concat(img.properties?.className ?? []).map(String);
+    if (cls.includes("inline-logo-image") || cls.includes("heading-icon-image")) continue;
+    img.properties = { ...img.properties, loading: "eager", fetchPriority: "high" };
+    return true;
+  }
+  return false;
+}
+
 /** Markdown → hast, with every editorial touch. `extra` adds plugins at the end (the site adds Shiki). */
 export async function markdownToTree(markdown: string, extra: PluggableList = [], resolvePage?: PageResolver): Promise<Root> {
   const pipeline = unified()
@@ -628,6 +707,8 @@ export async function markdownToTree(markdown: string, extra: PluggableList = []
       },
       protocols: { ...defaultSchema.protocols, src: ["https", "http"], poster: ["https", "http"] },
     })
+    .use(rehypeUpgradeMedia)
+    .use(rehypeHeadingOrder)
     .use(rehypeEditorial, { resolvePage })
     .use(extra)
     .use(rehypeCodeLines);

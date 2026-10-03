@@ -36,6 +36,8 @@ export type MediaPick = {
   alt?: string;
   poster?: string | null;
   loop?: boolean;
+  /** Set on a fresh upload, whose alt is only its file name: a cue to suggest a real one. */
+  fileName?: string;
 };
 
 type Tab = "gallery" | "upload" | "link";
@@ -73,12 +75,12 @@ const NOUN: Record<MediaAccept, string> = { image: "an image", "image+video": "a
 function usable(asset: Asset, accept: MediaAccept): { pick: MediaPick; thumb: string | null } | null {
   if (asset.trashed) return null;
   // Smaller widths and posters sit beside the file they belong to.
-  if (/-(\d{2,5}|poster)\.webp$/.test(asset.src)) return null;
+  if (/-(\d{2,5}|poster)\.(webp|jpg)$/.test(asset.src)) return null;
   const alt = asset.alt ?? "";
   if (asset.type.startsWith("image/")) {
     if (!allows(accept, "image")) return null;
     const info = imageInfo(asset.src);
-    const thumb = info && info.width > 640 ? asset.src.replace(/-\d+x\d+\.webp$/, "-640.webp") : asset.src;
+    const thumb = info && info.width > 640 ? asset.src.replace(/-\d+x\d+\.(webp|jpg)$/, "-640.$1") : asset.src;
     return { pick: { src: asset.src, kind: "image", width: info?.width, height: info?.height, alt }, thumb };
   }
   if (asset.type.startsWith("video/")) {
@@ -212,7 +214,7 @@ export default function MediaPicker({
     try {
       const up = await uploadMedia(file, (fraction, label) => setProgress({ fraction, label }));
       const alt = altFromName(file.name);
-      if (up.kind === "image") choose({ kind: "image", src: up.src, width: up.width, height: up.height, alt });
+      if (up.kind === "image") choose({ kind: "image", src: up.src, width: up.width, height: up.height, alt, fileName: file.name });
       else if (up.kind === "video") choose({ kind: "video", src: up.src, width: up.width, height: up.height, poster: up.poster, loop: up.loop, alt });
       else choose({ kind: "audio", src: up.src, alt });
     } catch (e) {

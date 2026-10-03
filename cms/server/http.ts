@@ -13,6 +13,8 @@ export type AdminEnv = CmsEnv & {
   ADMIN_EMAIL?: string;
   /** "1" skips Access on localhost only, for `wrangler pages dev`. */
   ADMIN_DEV_BYPASS?: string;
+  /** Workers AI ([ai] in wrangler.toml), for generated alt text. Absent in plain local dev. */
+  AI?: Ai;
 };
 
 export type AdminData = { email: string; sessionExpiresAt?: number };

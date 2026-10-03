@@ -127,6 +127,7 @@ test("toggle headings keep their level through Markdown and render as headings o
   const plain = manager.serialize({ type: "doc", content: [{ ...doc.content[0], content: [{ ...doc.content[0].content[0], attrs: { level: 0 } }, doc.content[0].content[1]] }] });
   assert.match(plain, /<summary>Folded section<\/summary>/);
   const find = (n, tag) => n.tagName === tag ? n : (n.children ?? []).map((k) => find(k, tag)).find(Boolean);
-  const summary = find(await markdownToTree(md), "summary");
+  // After an h2, as on a real page: a lone h3 would skip a level and be pulled up to h2.
+  const summary = find(await markdownToTree(`## Section\n\n${md}`), "summary");
   assert.ok(summary && find(summary, "h3"), "the summary holds a real h3");
 });

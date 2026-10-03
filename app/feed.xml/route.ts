@@ -1,4 +1,5 @@
 import { SITE_INFO } from "../constants/seo";
+import { postDescription } from "../lib/seo";
 import { pagedPosts, renderMarkdown } from "../lib/writing";
 import { PROFILE } from "../site-content";
 
@@ -23,7 +24,7 @@ export async function GET() {
       <guid isPermaLink="false">${post.id}</guid>
       <pubDate>${new Date(post.publishedAt).toUTCString()}</pubDate>
       <dc:creator>${escape(post.authors.map((a) => a.name).join(", "))}</dc:creator>
-      ${post.dek ? `<description>${escape(post.dek)}</description>` : ""}
+      <description>${escape(postDescription(post, 300))}</description>
       ${post.tags.map((t) => `<category>${escape(t)}</category>`).join("")}
       <content:encoded><![CDATA[${html.replace(/]]>/g, "]]]]><![CDATA[>")}]]></content:encoded>
     </item>`;
@@ -36,9 +37,9 @@ export async function GET() {
     <title>${escape(PROFILE.name)} · Writing</title>
     <link>${SITE}/writing</link>
     <atom:link href="${SITE}/feed.xml" rel="self" type="application/rss+xml" />
-    <description>Writing by ${escape(PROFILE.name)}.</description>
+    <description>Writing by ${escape(PROFILE.name)}. ${escape(SITE_INFO.identity)}</description>
     <language>en</language>
-    <lastBuildDate>${new Date(posts[0]?.updatedAt ?? Date.now()).toUTCString()}</lastBuildDate>
+    <lastBuildDate>${new Date(posts.reduce((a, p) => (p.updatedAt > a ? p.updatedAt : a), posts[0]?.updatedAt ?? new Date().toISOString())).toUTCString()}</lastBuildDate>
     <image>
       <url>${SITE}/icon-512.png</url>
       <title>${escape(PROFILE.name)} · Writing</title>

@@ -2,7 +2,7 @@
 
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { ArrowCounterClockwise, ArrowLeft, ArrowSquareOut, Swap, Trash } from "@phosphor-icons/react";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import { AudioFigure } from "../../components/writing/AudioPlayer";
 import { CopyButton } from "../../components/kit/inputs/copy-button";
@@ -10,6 +10,7 @@ import { Tooltip } from "../../components/kit/tooltip";
 import { MEDIA_LIMITS, mediaDimensions, validateMediaDetails, versionedSrc, type MediaDetailErrors } from "../../../cms/media-details";
 import type { Asset } from "./MediaLibrary";
 import { formatBytes, formatDay, usedLabel } from "./MediaPreview";
+import { AltAssist } from "./AltAssist";
 import { detailErrors, mediaApi } from "./media-api";
 import { replaceAccept, replaceMedia, replaceNotice } from "./media-replace";
 
@@ -172,7 +173,7 @@ export default function MediaDetails({
       onDeleted();
     });
 
-  const field = (name: keyof Form, labelText: string, hint?: string, rows?: number) => {
+  const field = (name: keyof Form, labelText: string, hint?: string, rows?: number, tools?: ReactNode) => {
     const value = form[name];
     const error = errors[name];
     const limit = MEDIA_LIMITS[name];
@@ -188,6 +189,7 @@ export default function MediaDetails({
       <div className="media-field" data-invalid={error ? "" : undefined}>
         <div className="media-field-label">
           <label htmlFor={`${id}-${name}`}>{labelText}</label>
+          {tools}
           {near || error ? (
             <span className="media-field-count" aria-hidden="true">
               {value.length.toLocaleString()} / {limit.toLocaleString()}
@@ -310,7 +312,11 @@ export default function MediaDetails({
       >
         <h4>Details</h4>
         {field("title", "Name")}
-        {isImage ? field("alt", "Default alt text", "Used for new insertions. Pages already using it keep their own alt text.", 2) : null}
+        {isImage
+          ? field("alt", "Default alt text", "Used for new insertions. Pages already using it keep their own alt text.", 2,
+              <AltAssist src={asset.src} value={form.alt} onAlt={(alt) => edit("alt", alt)}
+                context={() => ({ title: asset.usedIn[0]?.title, caption: form.caption, fileName: form.title || file })} />)
+          : null}
         {field("caption", "Caption", "A description for your own reference and for new insertions.", 3)}
         <div className="media-detail-actions">
           <button className="admin-button admin-button-primary" disabled={busy || !dirty}>

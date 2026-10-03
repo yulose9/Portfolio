@@ -28,6 +28,7 @@ import "./admin-code.css";
 import "./admin-blocks.css";
 import "./admin-icons.css";
 import "./admin-workspace.css";
+import "./admin-alt.css";
 import "./control-center.css";
 import "../projects.css";
 

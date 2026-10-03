@@ -1,39 +1,30 @@
 "use client";
 
 import { Minus, Plus } from "@phosphor-icons/react";
-import { motion, useReducedMotion } from "motion/react";
 import { type KeyboardEvent } from "react";
 
 import { cn } from "../../../lib/cn";
 
 /*
- * A number that rolls. Each digit is a column 0–9 that slides to its place on
- * a spring, the shadcn.io counter's sliding number. Digits are keyed by their
- * place from the right, so going from 99 to 100 rolls the two nines over and
+ * A number that rolls. Each digit is a column 0–9 that slides to its place
+ * (a CSS transition on .ki-digit-reel in kit-inputs.css), the shadcn.io
+ * counter's sliding number. Digits are keyed by their place from the right, so going from 99 to 100 rolls the two nines over and
  * adds a column, rather than redrawing all three.
  *
  * The columns are decoration; assistive tech reads one plain number.
  */
 
-const SPRING = { type: "spring", stiffness: 280, damping: 30, mass: 0.8 } as const;
-
 function Digit({ digit }: { digit: number }) {
-  const still = useReducedMotion();
   return (
     <span className="ki-digit" aria-hidden="true">
       {/* In-flow and invisible, so the column sits on the text baseline. */}
       <span className="ki-digit-ghost">0</span>
       <span className="ki-digit-window">
-      <motion.span
-        className="ki-digit-reel"
-        initial={false}
-        animate={{ y: `${-digit * 10}%` }}
-        transition={still ? { duration: 0 } : SPRING}
-      >
+      <span className="ki-digit-reel" style={{ transform: `translateY(${-digit * 10}%)` }}>
         {Array.from({ length: 10 }, (_, n) => (
           <span key={n}>{n}</span>
         ))}
-      </motion.span>
+      </span>
       </span>
     </span>
   );

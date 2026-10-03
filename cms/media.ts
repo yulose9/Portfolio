@@ -42,13 +42,14 @@ const COLUMN = 576;
 
 /** From an image src, its size and the smaller widths uploaded beside it. */
 export function imageInfo(src: string): { width: number; height: number; srcSet: string; sizes: string } | null {
-  const m = /^(\/media\/\d{4}\/([a-z0-9]{10,24}))-(\d+)x(\d+)\.webp$/.exec(src);
+  // .jpg when the uploading browser couldn't encode WebP (Safari).
+  const m = /^(\/media\/\d{4}\/([a-z0-9]{10,24}))-(\d+)x(\d+)\.(webp|jpg)$/.exec(src);
   if (!m) return null;
-  const [, base, , w, h] = m;
+  const [, base, , w, h, ext] = m;
   const width = Number(w);
   const height = Number(h);
   if (!width || !height) return null;
-  const smaller = IMAGE_LADDER.filter((x) => x < width).map((x) => `${base}-${x}.webp ${x}w`);
+  const smaller = IMAGE_LADDER.filter((x) => x < width).map((x) => `${base}-${x}.${ext} ${x}w`);
   return {
     width,
     height,

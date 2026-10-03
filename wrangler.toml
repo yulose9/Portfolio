@@ -20,6 +20,12 @@ bucket_name = "portfolio-writing"
 binding = "POLLS"
 id = "e8acdae732924098a26fee37de60eb2f"
 
+# Workers AI, for suggested alt text (functions/api/admin/alt-text.ts). Runs
+# on the account's free daily Neurons; `wrangler pages dev` still calls the
+# real service and counts against them.
+[ai]
+binding = "AI"
+
 [vars]
 GITHUB_REPO = "yulose9/Portfolio"
 GITHUB_BRANCH = "master"

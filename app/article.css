@@ -182,6 +182,9 @@
   line-height: 1.68;
   letter-spacing: -0.012em;
   color: #27272a;
+  /* A long URL or identifier wraps instead of running past a 320px screen,
+     where body's overflow-x: hidden would clip it. */
+  overflow-wrap: break-word;
 }
 .article-body > * {
   margin: 0;

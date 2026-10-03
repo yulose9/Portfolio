@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { coverImageStyle, coverStyle } from "../../../../cms/cover";
+import { imageInfo } from "../../../../cms/media";
+import { prioritizeLeadImage } from "../../../../cms/render";
 import { fluentUrl } from "../../../../cms/emoji";
 import { tagSlug } from "../../../../cms/format";
 import { fontLinks, inlineFontLinks, fontVars } from "../../../../cms/fonts";
@@ -18,7 +20,8 @@ import { SoundToggle } from "../../../components/ui/sound";
 import { ThemeToggle } from "../../../components/ui/theme";
 import Tag from "../../../components/writing/Tag";
 import Toc from "../../../components/writing/Toc";
-import { FEED, ID, jsonLd, SITE_INFO, TWITTER_METADATA } from "../../../constants/seo";
+import { FEED, ID, jsonLd, PERSON, SITE_INFO, TWITTER_METADATA } from "../../../constants/seo";
+import { postDescription, postImages, shareImage } from "../../../lib/seo";
 import {
   backlinks,
   formatLongDate,
@@ -56,24 +59,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const post = postBySlug((await params).slug);
   if (!post) return { title: "Not found", robots: { index: false, follow: false } };
   const url = `${SITE_INFO.url}/writing/${post.slug}`;
-  const description = post.dek || `${post.title}, by ${post.authors.map((a) => a.name).join(" and ")}.`;
-  // The share image as chosen in the admin: an uploaded one, the cover, or
-  // (null) the card drawn for this post by opengraph-image.tsx, which Next
-  // adds itself when nothing is named here.
-  const cover =
-    post.ogImage && post.ogImage !== "cover"
-      ? [{ url: new URL(post.ogImage, SITE_INFO.url).toString(), width: 1200, height: 630, alt: post.title }]
-      : post.ogImage === "cover" && post.cover
-        ? [{ url: new URL(post.cover.src, SITE_INFO.url).toString(), alt: post.cover.alt }]
-        : undefined;
+  const description = postDescription(post);
+  // The share image as chosen in the admin (an upload, or a raster cover),
+  // else the card drawn for this post at /og/writing/<slug>.png.
+  const cover = [shareImage(post)];
   return {
     title: post.title,
     description,
     authors: post.authors.map((a) => ({ name: a.name, ...(a.name === SITE_INFO.name ? { url: SITE_INFO.url } : {}) })),
     keywords: post.tags,
     alternates: { canonical: url, types: { ...FEED, "text/markdown": [{ url: `${url}/index.md`, title: "Markdown" }] } },
-    // No default image spread in: the post's own share card (opengraph-image.tsx)
-    // only appears when openGraph doesn't name one.
     openGraph: {
       type: "article",
       locale: "en_US",
@@ -85,9 +80,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       modifiedTime: post.updatedAt,
       authors: post.authors.map((a) => a.name),
       tags: post.tags,
-      ...(cover ? { images: cover } : {}),
+      images: cover,
     },
-    twitter: { ...TWITTER_METADATA, title: post.title, description, ...(cover ? { images: cover } : {}) },
+    twitter: { ...TWITTER_METADATA, title: post.title, description, images: cover },
   };
 }
 
@@ -102,17 +97,18 @@ export default async function ArticlePage({ params }: Props) {
   );
 
   const tree = await markdownTree(post.body);
+  // No cover: an image near the top of the body is the likely LCP, so it
+  // loads eagerly rather than lazily.
+  if (!post.cover) prioritizeLeadImage(tree);
+  // A cover's uploaded widths, so a phone downloads the 640px or 1280px file.
+  const coverSizes = post.cover ? imageInfo(post.cover.src) : null;
   const toc = outline(tree);
   const parent = post.parentId ? pagedPosts().find(p => p.id === post.parentId) : undefined;
   const linksHere = backlinks(post);
   const next = related(post);
   const url = `${SITE_INFO.url}/writing/${post.slug}`;
-  const image =
-    post.ogImage && post.ogImage !== "cover"
-      ? new URL(post.ogImage, SITE_INFO.url).toString()
-      : post.cover
-        ? new URL(post.cover.src, SITE_INFO.url).toString()
-        : `${url}/opengraph-image`;
+  const description = postDescription(post);
+  const authors = post.authors.filter((a) => a.name.trim());
 
   const graph = {
     "@context": "https://schema.org",
@@ -121,31 +117,54 @@ export default async function ArticlePage({ params }: Props) {
         "@type": "BlogPosting",
         "@id": `${url}#article`,
         headline: post.title,
-        description: post.dek || undefined,
+        description,
+        ...(post.dek ? { abstract: post.dek } : {}),
         url,
-        mainEntityOfPage: { "@type": "WebPage", "@id": url },
+        mainEntityOfPage: { "@id": url },
         datePublished: post.publishedAt,
         dateModified: post.updatedAt,
         inLanguage: "en",
         wordCount: wordCount(post.body),
         timeRequired: `PT${post.minutes}M`,
-        image: [image],
-        keywords: post.tags.join(", ") || undefined,
+        image: postImages(post),
+        thumbnailUrl: shareImage(post).url,
+        keywords: post.tags.length ? post.tags : undefined,
         articleSection: post.tags[0],
-        isPartOf: { "@id": ID.website },
+        about: post.tags.map((t) => ({ "@type": "Thing", name: t, url: `${SITE_INFO.url}/writing/tag/${tagSlug(t)}` })),
+        isPartOf: [{ "@id": ID.website }, { "@id": `${SITE_INFO.url}/writing#blog` }],
         publisher: { "@id": ID.person },
-        author: post.authors.filter((a) => a.name.trim()).map((a) =>
+        author: authors.map((a) =>
           a.name === SITE_INFO.name
             ? { "@id": ID.person }
             : { "@type": "Person", name: a.name, ...(a.avatar ? { image: new URL(a.avatar, SITE_INFO.url).toString() } : {}) }
         ),
+        ...(next.length ? { relatedLink: next.map((p) => `${SITE_INFO.url}/writing/${p.slug}`) } : {}),
       },
+      // The page itself, so mainEntityOfPage and the breadcrumbs have a node to point at.
+      {
+        "@type": "WebPage",
+        "@id": url,
+        url,
+        name: post.title,
+        description,
+        inLanguage: "en",
+        datePublished: post.publishedAt,
+        dateModified: post.updatedAt,
+        isPartOf: { "@id": ID.website },
+        breadcrumb: { "@id": `${url}#breadcrumb` },
+        primaryImageOfPage: { "@type": "ImageObject", url: shareImage(post).url },
+      },
+      // The author in full, here as well as on the home page: each page's graph
+      // has to stand on its own for validators and for engines that read one URL.
+      PERSON,
       {
         "@type": "BreadcrumbList",
+        "@id": `${url}#breadcrumb`,
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "Home", item: SITE_INFO.url },
           { "@type": "ListItem", position: 2, name: "Writing", item: `${SITE_INFO.url}/writing` },
-          { "@type": "ListItem", position: 3, name: post.title, item: url },
+          ...(parent ? [{ "@type": "ListItem", position: 3, name: parent.title, item: `${SITE_INFO.url}/writing/${parent.slug}` }] : []),
+          { "@type": "ListItem", position: parent ? 4 : 3, name: post.title, item: url },
         ],
       },
     ],
@@ -180,7 +199,7 @@ export default async function ArticlePage({ params }: Props) {
       {banner ? (
         <figure className="article-banner">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={banner.src} alt={banner.alt} width={banner.width} height={banner.height} style={coverImageStyle(banner)} fetchPriority="high" decoding="async" />
+          <img src={banner.src} srcSet={coverSizes?.srcSet} sizes={coverSizes ? "100vw" : undefined} alt={banner.alt} width={banner.width} height={banner.height} style={coverImageStyle(banner)} fetchPriority="high" decoding="async" />
         </figure>
       ) : null}
       <main id="main" tabIndex={-1}
@@ -238,6 +257,8 @@ export default async function ArticlePage({ params }: Props) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={post.cover.src}
+                srcSet={coverSizes?.srcSet}
+                sizes={coverSizes?.sizes}
                 alt={post.cover.alt}
                 width={post.cover.width}
                 height={post.cover.height}

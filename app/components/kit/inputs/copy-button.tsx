@@ -1,7 +1,6 @@
 "use client";
 
 import { Check, Copy } from "@phosphor-icons/react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, type ComponentProps, type MouseEvent } from "react";
 
 import { cn } from "../../../lib/cn";
@@ -63,7 +62,6 @@ export function CopyButton({
   const [copied, setCopied] = useState(false);
   const [failed, setFailed] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const still = useReducedMotion();
   useEffect(() => () => clearTimeout(timer.current), []);
 
   const press = async (e: MouseEvent<HTMLButtonElement>) => {
@@ -82,14 +80,6 @@ export function CopyButton({
     timer.current = setTimeout(() => setCopied(false), timeout);
   };
 
-  const swap = still
-    ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
-    : {
-        initial: { opacity: 0, scale: 0.5, filter: "blur(3px)" },
-        animate: { opacity: 1, scale: 1, filter: "blur(0px)" },
-        exit: { opacity: 0, scale: 0.5, filter: "blur(3px)" },
-      };
-
   return (
     <>
     <button
@@ -104,12 +94,14 @@ export function CopyButton({
       onClick={press}
       {...props}
     >
+      {/*
+        Both glyphs stay mounted in one grid cell and cross-fade on
+        [data-copied] (kit-inputs.css): the same swap the motion library used
+        to run, as a CSS transition, so pages with a copy button don't load it.
+      */}
       <span className="ki-swap" aria-hidden="true">
-        <AnimatePresence mode="popLayout" initial={false}>
-          <motion.span key={copied ? "check" : "copy"} className="ki-swap-glyph" transition={{ duration: 0.16 }} {...swap}>
-            {copied ? <Check size={15} weight="bold" /> : <Copy size={15} />}
-          </motion.span>
-        </AnimatePresence>
+        <span className="ki-swap-glyph" data-swap="idle"><Copy size={15} /></span>
+        <span className="ki-swap-glyph" data-swap="done"><Check size={15} weight="bold" /></span>
       </span>
       {children}
     </button>

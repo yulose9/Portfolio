@@ -78,7 +78,29 @@ npx wrangler deploy
 npx wrangler secret put GITHUB_TOKEN
 ```
 
-### 5. Check it
+### 5. Suggested alt text (Workers AI)
+
+The admin can describe an uploaded image and fill its alt text as a draft
+(the sparkle beside every alt field, and "Generate missing alt text" in the
+media library). It calls `functions/api/admin/alt-text.ts`, which runs
+`@cf/meta/llama-4-scout-17b-16e-instruct` through the `[ai]` binding in
+`wrangler.toml`. Workers AI is on for every account; there is nothing to
+enable and no secret to set. Usage comes out of the free 10,000 Neurons a
+day (a few hundred images, at an estimated 30 to 50 Neurons each); past that, requests fail until the next day unless
+the account is on Workers Paid ($0.011 per 1,000 Neurons).
+
+If the binding doesn't show up on the next deployment, add it in the
+dashboard: Workers & Pages → portfolio → Settings → Bindings → Add → Workers
+AI, variable name `AI`, then redeploy.
+
+To use the cheaper `@cf/meta/llama-3.2-11b-vision-instruct` instead, change
+`MODEL` in the endpoint and accept Meta's licence once for the account:
+
+```sh
+curl https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/ai/run/@cf/meta/llama-3.2-11b-vision-instruct   -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -d '{ "prompt": "agree" }'
+```
+
+### 6. Check it
 
 Open https://nazarene.dev/admin. Access asks for your email and sends a code;
 after that you land on the post list. Press **N** to start a post.
@@ -153,6 +175,10 @@ fixed by hand in the repo too; the admin adopts it the first time it's opened.
 npm run build
 npx wrangler pages dev out --binding ADMIN_DEV_BYPASS=1 --binding GITHUB_TOKEN=<a token>
 ```
+
+Suggested alt text runs locally through the `[ai]` binding (or `--ai=AI`); it
+calls the real Workers AI and counts against the day's Neurons. Where the
+binding is missing, the sparkle buttons are disabled and say why.
 
 `ADMIN_DEV_BYPASS` only works on `localhost`. With a real token, publishing
 locally commits to the real repo; `GITHUB_BRANCH` in `wrangler.toml` can point

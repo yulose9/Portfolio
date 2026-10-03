@@ -14,6 +14,9 @@ export type AvatarStyle = (typeof AVATAR_STYLES)[number];
 
 const PALETTE = ["#D97757", "#F0E6DA", "#C15F3C", "#E8C9A9", "#3D3929"];
 
+/** public/avatar-*.webp, the widths cut from the 1024px portrait. */
+const AVATAR_LADDER = [96, 144, 216, 288, 432, 1024].map((w) => `/avatar-${w}.webp ${w}w`).join(", ");
+
 export function parseGenerated(avatar: string | undefined): { style: AvatarStyle; seed: string } | null {
   const m = /^gen:([a-z]+):([\w-]{1,64})$/.exec(avatar ?? "");
   if (!m || !(AVATAR_STYLES as readonly string[]).includes(m[1])) return null;
@@ -36,8 +39,13 @@ export default function Avatar({ author, size = 28, className = "article-avatar"
     );
   }
   if (author.avatar) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={author.avatar} alt="" width={size} height={size} className={className} loading="lazy" />;
+    // The site's own portrait has smaller copies beside it. A 28px byline face
+    // then downloads the 2 KB 96px file, not the 86 KB 1024px one.
+    const ladder = author.avatar === "/avatar-1024.webp" ? AVATAR_LADDER : undefined;
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={author.avatar} srcSet={ladder} sizes={ladder ? `${size}px` : undefined} alt="" width={size} height={size} className={className} loading="lazy" decoding="async" />
+    );
   }
   return (
     <span className={`${className} article-avatar-initial`} style={{ width: size, height: size }} aria-hidden="true">

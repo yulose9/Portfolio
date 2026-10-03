@@ -1,25 +1,42 @@
+# Site-wide. Pages joins a header set by two matching rules with a comma, so a
+# narrower rule that needs its own value detaches this one first ("! Name").
+/*
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), geolocation=(), payment=(), usb=(), browsing-topics=()
+
 /_next/static/*
   Cache-Control: public, max-age=31536000, immutable
 
 /optimized/*
   Cache-Control: public, max-age=31536000, immutable
 
+# The admin. Content-Security-Policy stays loose because the static export's
+# inline scripts and the editor's embeds, fonts and HEIC decoder have not been
+# exercised under a strict policy; the Report-Only one is that strict policy,
+# and the browser console lists what it would block. Enforce it once that
+# list is empty in daily use.
 /admin
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-store
+  ! Referrer-Policy
   Referrer-Policy: same-origin
-  X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Content-Security-Policy: base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src-attr 'none'
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com; font-src 'self' data: https://fonts.gstatic.com https://cdn.fontshare.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://cloudflareinsights.com; worker-src 'self' blob:; frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.facebook.com https://www.threads.com https://www.threads.net https://threads.com https://threads.net; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src-attr 'none'
+  ! Permissions-Policy
   Permissions-Policy: camera=(), geolocation=(), microphone=(self), payment=(), usb=()
 
 /admin/*
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-store
+  ! Referrer-Policy
   Referrer-Policy: same-origin
-  X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Content-Security-Policy: base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src-attr 'none'
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com; font-src 'self' data: https://fonts.gstatic.com https://cdn.fontshare.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://cloudflareinsights.com; worker-src 'self' blob:; frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.facebook.com https://www.threads.com https://www.threads.net https://threads.com https://threads.net; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src-attr 'none'
+  ! Permissions-Policy
   Permissions-Policy: camera=(), geolocation=(), microphone=(self), payment=(), usb=()
 
 # The placeholder a static export needs while nothing is published.

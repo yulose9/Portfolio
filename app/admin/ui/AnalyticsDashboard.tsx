@@ -292,8 +292,8 @@ export default function AnalyticsDashboard({
                         <Table.Row key={row.label}>
                           <Table.Cell>
                             {kind === "page" &&
-                            row.label.startsWith("/") &&
-                            !row.label.startsWith("//") ? (
+                            // Visitor-supplied: "/\evil.com" or "/\t/evil.com" would leave the site.
+                            /^\/(?:[^/\\\s][^\\\s]*)?$/.test(row.label) ? (
                               <a
                                 href={row.label}
                                 target="_blank"

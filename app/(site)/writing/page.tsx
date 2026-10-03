@@ -5,7 +5,7 @@ import Link from "next/link";
 import FluentText from "../../components/writing/FluentText";
 import WritingMenu from "../../components/writing/WritingMenu";
 import { NotePencil } from "@phosphor-icons/react/dist/ssr";
-import { FEED, ID, jsonLd, OG_METADATA, SITE_INFO } from "../../constants/seo";
+import { FEED, ID, jsonLd, OG_IMAGE, OG_METADATA, PERSON, SITE_INFO, TWITTER_METADATA } from "../../constants/seo";
 import { formatLongDate, publishedPosts } from "../../lib/writing";
 
 /*
@@ -22,6 +22,7 @@ export const metadata: Metadata = {
   description,
   alternates: { canonical: "/writing", types: { ...FEED, "text/markdown": [{ url: "/writing/index.md", title: "Markdown" }] } },
   openGraph: { ...OG_METADATA, title: `Writing · ${SITE_INFO.name}`, description, url: `${SITE_INFO.url}/writing` },
+  twitter: { ...TWITTER_METADATA, title: `Writing · ${SITE_INFO.name}`, description, images: [OG_IMAGE] },
 };
 
 const monthDay = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Manila", day: "2-digit", month: "2-digit" });
@@ -32,9 +33,28 @@ export default function WritingIndex() {
   const years = new Map<string, typeof posts>();
   for (const p of posts) years.set(yearOf(p.publishedAt), [...(years.get(yearOf(p.publishedAt)) ?? []), p]);
 
+  const paged = posts.filter((p) => p.page);
   const graph = {
     "@context": "https://schema.org",
     "@graph": [
+      {
+        "@type": "CollectionPage",
+        "@id": `${SITE_INFO.url}/writing`,
+        url: `${SITE_INFO.url}/writing`,
+        name: `Writing · ${SITE_INFO.name}`,
+        description,
+        inLanguage: "en",
+        isPartOf: { "@id": ID.website },
+        about: { "@id": `${SITE_INFO.url}/writing#blog` },
+        breadcrumb: { "@id": `${SITE_INFO.url}/writing#breadcrumb` },
+        ...(paged[0] ? { dateModified: paged.reduce((a, p) => (p.updatedAt > a ? p.updatedAt : a), paged[0].updatedAt) } : {}),
+        mainEntity: {
+          "@type": "ItemList",
+          numberOfItems: paged.length,
+          itemListOrder: "https://schema.org/ItemListOrderDescending",
+          itemListElement: paged.map((p, i) => ({ "@type": "ListItem", position: i + 1, url: `${SITE_INFO.url}/writing/${p.slug}`, name: p.title })),
+        },
+      },
       {
         "@type": "Blog",
         "@id": `${SITE_INFO.url}/writing#blog`,
@@ -45,8 +65,7 @@ export default function WritingIndex() {
         author: { "@id": ID.person },
         publisher: { "@id": ID.person },
         isPartOf: { "@id": ID.website },
-        blogPost: posts
-          .filter((p) => p.page)
+        blogPost: paged
           .map((p) => ({
             "@type": "BlogPosting",
             "@id": `${SITE_INFO.url}/writing/${p.slug}#article`,
@@ -54,10 +73,13 @@ export default function WritingIndex() {
             url: `${SITE_INFO.url}/writing/${p.slug}`,
             datePublished: p.publishedAt,
             dateModified: p.updatedAt,
+            author: { "@id": ID.person },
           })),
       },
+      PERSON,
       {
         "@type": "BreadcrumbList",
+        "@id": `${SITE_INFO.url}/writing#breadcrumb`,
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "Home", item: SITE_INFO.url },
           { "@type": "ListItem", position: 2, name: "Writing", item: `${SITE_INFO.url}/writing` },

@@ -3,7 +3,9 @@
 import { useState } from "react";
 
 import { isValidSlug, slugify } from "../../../cms/format";
+import { suggestSlug } from "../../../cms/slug";
 import { toast } from "../../lib/toast";
+import { AltAssist } from "./AltAssist";
 import { trashToast } from "./trash-toast";
 import { api, ApiError, type Draft } from "./api";
 import { PageSwitch } from "./bits";
@@ -103,7 +105,7 @@ export default function DetailsSheet({
               onSlugEdited();
               onChange({ slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-{2,}/g, "-") });
             }}
-            onBlur={() => onChange({ slug: slugify(meta.slug) || slugify(meta.title) })}
+            onBlur={() => onChange({ slug: slugify(meta.slug) || suggestSlug(meta.title) })}
           />
         </div>
         <p className="field-help" data-tone={moved ? "warn" : undefined}>
@@ -173,6 +175,9 @@ export default function DetailsSheet({
               placeholder="Alt text: what the image shows"
               aria-label="Cover alt text"
             />
+            <AltAssist className="alt-assist-field" src={meta.cover.src} value={meta.cover.alt}
+              onAlt={(alt) => onChange({ cover: { ...meta.cover!, alt } })}
+              context={() => ({ title: meta.title, caption: meta.cover?.caption })} />
           </>
         ) : (
           <button type="button" className="admin-button" onClick={onPickCover}>

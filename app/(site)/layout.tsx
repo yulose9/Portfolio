@@ -18,9 +18,10 @@ import "../kit-inputs.css";
 import "../kit.css";
 import "../kit-components.css";
 import "../article.css";
-import "../article-blocks.css";
+// article-blocks.css and article-blocks-2.css (the body's blocks: tables,
+// callouts, charts, polls, video, embeds) load from writing/layout.tsx and
+// projects/layout.tsx, so the home page doesn't block on 58 KB it never uses.
 import "../article-extras.css";
-import "../article-blocks-2.css";
 import "../writing-extras.css";
 import "../projects.css";
 
