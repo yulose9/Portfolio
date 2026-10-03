@@ -171,7 +171,7 @@
   --secondary-foreground: #e9e9e7;
   --muted: #252525;
   --nav-hover: #2c2c2c;
-  --muted-foreground: #9b9b9b;
+  --muted-foreground: #adadab;
   --accent: #2a2a2a;
   --accent-foreground: #e9e9e7;
   --destructive: oklch(62% 0.2 25);
@@ -180,8 +180,10 @@
   --warning: oklch(78% 0.13 75);
   --success: oklch(74% 0.14 152);
   --info: oklch(72% 0.14 255);
-  --border: rgb(255 255 255 / 0.09);
-  --input: rgb(255 255 255 / 0.12);
+  --border: rgb(255 255 255 / 0.1);
+  /* Field edges. Checkboxes, radios and switch tracks get 3:1 in
+     kit-components.css. */
+  --input: rgb(255 255 255 / 0.16);
   --ring: oklch(62% 0 0);
   --sidebar: #202020;
   --sidebar-foreground: #c8c8c6;
@@ -189,11 +191,11 @@
   --sidebar-primary-foreground: #191919;
   --sidebar-accent: #2a2a2a;
   --sidebar-accent-foreground: #e9e9e7;
-  --sidebar-border: rgb(255 255 255 / 0.09);
+  --sidebar-border: rgb(255 255 255 / 0.1);
   --sidebar-ring: #6aa1f5;
   /* The chart blues, lifted so the darkest still reads against the page. */
-  --chart-1: oklch(52% 0.2 262.9);
-  --chart-2: oklch(58% 0.2 262.9);
+  --chart-1: oklch(56% 0.2 262.9);
+  --chart-2: oklch(61% 0.19 262.9);
   --chart-3: oklch(65% 0.18 262.9);
   --chart-4: oklch(72% 0.15 262.9);
   --chart-5: oklch(80% 0.11 262.9);
@@ -201,8 +203,8 @@
   --shell-panel: #252525;
   --shell-canvas: #1e1e1e;
   --shell-field: #202020;
-  --shell-line: rgb(255 255 255 / 0.09);
-  --shell-line-strong: rgb(255 255 255 / 0.14);
+  --shell-line: rgb(255 255 255 / 0.1);
+  --shell-line-strong: rgb(255 255 255 / 0.16);
   --shell-fg: #e9e9e7;
   --shell-fg-subtle: #a8a8a6;
   --scrollbar-thumb: rgb(255 255 255 / 0.18);

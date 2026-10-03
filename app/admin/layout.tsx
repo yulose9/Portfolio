@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import LazyToaster from "../components/LazyToaster";
 import { SoundEffects } from "../components/ui/sound";
 import { ThemeSync } from "../components/ui/theme";
+import { TitleTooltips } from "../components/ui/title-tooltips";
 import { THEME_PAPER, THEME_SCRIPT } from "../lib/theme";
 import "../globals.css";
 import "../kit-inputs.css";
@@ -24,6 +25,7 @@ import "./admin-research.css";
 import "./admin-controls.css";
 import "./admin-code.css";
 import "./admin-blocks.css";
+import "./admin-icons.css";
 import "./admin-workspace.css";
 
 /*
@@ -62,6 +64,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </head>
       <body className="admin-body">
         <ThemeSync />
+        <TitleTooltips />
         <SoundEffects>
           {children}
           <LazyToaster />

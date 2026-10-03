@@ -737,6 +737,67 @@
   }
 }
 
+/*
+ * Every plain `title` on the page, styled (components/ui/title-tooltips.tsx).
+ * Inverted like the kit tooltip: a dark pill on the light page, a light one
+ * on the dark page. Placed with `translate`, scaled from its anchor.
+ */
+.title-tip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 260px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--fg);
+  color: var(--on-fg);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  opacity: 0;
+  scale: 0.97;
+  visibility: hidden;
+  transition: opacity 125ms var(--ease-out), scale 125ms var(--ease-out), visibility 0s linear 125ms;
+}
+.title-tip[data-open] {
+  opacity: 1;
+  scale: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+.title-tip[data-instant] {
+  transition-duration: 0s;
+}
+.title-tip-keys {
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
+}
+.title-tip kbd {
+  min-width: 18px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--on-fg) 18%, transparent);
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+  opacity: 0.85;
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-tip {
+    scale: none;
+  }
+}
+
 /* ─── Dropdown menu ───────────────────────────────────────────────────── */
 
 .kit-menu-positioner {
@@ -1324,19 +1385,90 @@
   -webkit-line-clamp: 3;
   line-clamp: 3;
 }
+/*
+ * The action ("Undo", "Open"): an inline text button on a faint tint of the
+ * ink, so it reads as the thing to press without becoming a block. 28px tall
+ * and pulled up 4px, its centre sits on the first line's (18px down), and with
+ * 4px to the pill's edge its 14px radius is concentric with the toast's 18px.
+ */
 .kt-toast-action {
-  margin-inline-start: 1rem;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-self: flex-start;
+  align-items: center;
+  gap: 0.375rem;
+  height: 1.75rem;
+  margin-block: -0.25rem;
+  margin-inline-start: 0.75rem;
+  padding: 0 0.625rem;
+  border: 0;
   border-radius: 9999px;
+  background-color: rgb(var(--tint) / 0.07);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.15s var(--ease-out), scale 0.16s var(--ease-out);
 }
-.kt-toast-action:empty {
-  display: none;
+.kt-toast-action:active {
+  scale: 0.96;
+}
+.kt-toast-action:focus-visible {
+  box-shadow: var(--kit-ring);
+}
+@media (hover: hover) and (pointer: fine) {
+  .kt-toast-action:hover {
+    background-color: rgb(var(--tint) / 0.12);
+  }
+}
+.kt-toast-action:has(> .kt-toast-ring) {
+  padding-inline-start: 0.5rem;
+}
+/* The time left to act: a ring that runs out with the toast's own timer, and
+   holds wherever the timer holds (pointer or focus on the pile, window away). */
+.kt-toast-ring {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+  rotate: -90deg;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-opacity: 0.16;
+}
+.kt-toast-ring-run {
+  stroke-opacity: 0.7;
+  stroke-dasharray: 1;
+  animation: kt-toast-ring var(--kt-timeout, 8s) linear forwards;
+}
+.kt-viewport:is([data-expanded], [data-window-blurred]) .kt-toast-ring-run {
+  animation-play-state: paused;
+}
+@keyframes kt-toast-ring {
+  to {
+    stroke-dashoffset: 1;
+  }
+}
+/* With an action last and the × folded, the action takes the 4px inset. */
+.kt-toast[data-action]:not([data-expanded]):not([data-sticky]) .kt-toast-content {
+  padding-inline-end: 0.25rem;
+}
+.kt-toast-action + .kt-toast-close {
+  margin-inline-start: 0.25rem;
 }
 .kt-toast-close {
   display: grid;
   flex-shrink: 0;
+  /* Centred on the first line, like the action: 24px pulled up 2px. */
+  align-self: flex-start;
   place-items: center;
   width: 1.5rem;
   height: 1.5rem;
+  margin-block: -0.125rem;
   margin-inline-start: 0.5rem;
   padding: 0;
   border: 0;
@@ -1630,7 +1762,7 @@
 /* The sliding tab pill: a lit chip on the darker rail, not a hole in it. */
 [data-theme="dark"] .kit-tabs-indicator {
   background-color: #333333;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 0 0 1px rgb(255 255 255 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 0 0 1px rgb(255 255 255 / 0.12), 0 2px 6px -2px rgb(0 0 0 / 0.4);
 }
 
 /* The switch thumb: light on the off track, dark on the light on-track. */
@@ -1639,6 +1771,15 @@
 }
 [data-theme="dark"] .kit-switch[data-checked] .kit-switch-thumb {
   background-color: var(--background);
+}
+
+/* A control's own edge has to read at 3:1 against the page (WCAG 1.4.11);
+   the 0.16 field hairline is 1.6:1. The off switch track gets the same step. */
+[data-theme="dark"] :is(.kit-checkbox, .kit-radio):not([data-checked], [data-indeterminate]) {
+  border-color: rgb(255 255 255 / 0.4);
+}
+[data-theme="dark"] .kit-switch:not([data-checked]) {
+  background-color: #6e6e6c;
 }
 
 [data-theme="dark"] .kit-tooltip {
@@ -1650,7 +1791,7 @@
    it already turns white); the drop underneath deepens. */
 [data-theme="dark"] .kit-menu,
 [data-theme="dark"] .menu-popup {
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.09), 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.12), 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
 }
 [data-theme="dark"] .kit-backdrop,
 [data-theme="dark"] .admin-body .sheet-backdrop {
@@ -1660,7 +1801,7 @@
 [data-theme="dark"] .kit-sheet,
 [data-theme="dark"] .admin-body .sheet {
   background-color: var(--card);
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.09), 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.12), 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
 }
 [data-theme="dark"] .kt-toast {
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(255 255 255 / 0.1);

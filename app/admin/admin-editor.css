@@ -81,6 +81,53 @@
     color: var(--a-ink-2);
   }
 }
+
+/* The subtitle, and the ghost button that hides it. The button hangs in the
+   right gutter on wide screens, so the field keeps the column's full width. */
+.editor-dek {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  align-items: start;
+  column-gap: 0.25rem;
+  margin-right: -2rem;
+}
+.editor-dek-hide {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-top: 0.1rem;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--a-ink-3);
+  cursor: pointer;
+  opacity: 0;
+  transition-property: opacity, background-color, color, scale;
+  transition-duration: 150ms, 150ms, 150ms, 160ms;
+  transition-timing-function: ease, ease, ease, var(--ease);
+}
+.editor-dek:hover .editor-dek-hide,
+.editor-dek:focus-within .editor-dek-hide,
+.editor-root[data-touch] .editor-dek-hide {
+  opacity: 1;
+}
+@media (hover: hover) and (pointer: fine) {
+  .editor-dek-hide:hover {
+    background: var(--a-fill);
+    color: var(--a-ink-2);
+  }
+}
+.editor-dek-hide:active {
+  scale: 0.96;
+}
+@media (max-width: 760px) {
+  .editor-dek {
+    margin-right: 0;
+  }
+}
+
 .page-icon {
   display: grid;
   place-items: center;
@@ -376,13 +423,98 @@
   border-radius: 4px;
 }
 .editor-body.ProseMirror-noderangeselection ::selection { background: transparent; }
+
+/* ⌘D's copies: a soft wash that says "here", then gets out of the way. */
+@keyframes block-flash {
+  from { background-color: var(--block-flash, rgb(37 99 235 / 0.12)); }
+  to { background-color: transparent; }
+}
+.editor-body .block-flash {
+  border-radius: 4px;
+  animation: block-flash 600ms ease-out;
+}
+[data-theme="dark"] .editor-body .block-flash {
+  --block-flash: rgb(106 161 245 / 0.16);
+}
+
+/* A block being dragged by its handle stays put, faded, until it lands. */
+html.is-block-dragging .editor-body .ProseMirror-selectednoderange,
+html.is-block-dragging .editor-body .ProseMirror-selectednode {
+  opacity: 0.4;
+  background: none;
+  outline-color: transparent;
+}
+
+/* Where a dragged block will land: a 3px line with a dot at each end. */
+.editor-dropcursor {
+  border-radius: 999px;
+  pointer-events: none;
+}
+.editor-dropcursor.prosemirror-dropcursor-block::before,
+.editor-dropcursor.prosemirror-dropcursor-block::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: inherit;
+  translate: 0 -50%;
+}
+.editor-dropcursor.prosemirror-dropcursor-block::before { left: -3px; }
+.editor-dropcursor.prosemirror-dropcursor-block::after { right: -3px; }
+
+/* The drag image (see block-drag-ghost.ts): built offscreen, gone once the
+   browser has taken its snapshot. */
+.block-drag-ghost {
+  position: fixed;
+  top: -10000px;
+  left: 0;
+  padding: 16px;
+  pointer-events: none;
+}
+.block-drag-ghost-card {
+  box-sizing: content-box;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--paper);
+  opacity: 0.85;
+  box-shadow: var(--shadow-pop);
+}
+.block-drag-ghost-card > .editor-body {
+  max-height: 228px;
+  overflow: hidden;
+}
+.block-drag-ghost-card[data-clipped] > .editor-body {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 56px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 56px), transparent);
+}
+.block-drag-ghost-card > .editor-body > :first-child { margin-top: 0; }
+.block-drag-ghost-card > .editor-body > :last-child { margin-bottom: 0; }
 .bubble-count { padding-inline: 6px; font-size: 12px; white-space: nowrap; }
 .mention-trigger { padding: 0; border: 0; background: none; font: inherit; cursor: pointer; }
 .mention-trigger:focus-visible, .toc summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
-.mention-date-editor { display: grid; gap: 12px; padding: 16px; width: min(300px, calc(100vw - 24px)); }
-.mention-date-editor label { display: grid; gap: 5px; font-size: 13px; }
-.mention-date-editor input { min-height: 40px; padding: 8px; border: 1px solid var(--line-strong); border-radius: 6px; font: inherit; }
-.mention-date-editor p { margin: 0; color: var(--fg-3); font-size: 12px; }
+/* Date pickers (date mentions, review dates): the kit calendar inline, a typed time, a footer. */
+.mention-date-editor, .day-time-popover { display: block; padding: 0.75rem; width: min(18.5rem, calc(100vw - 24px)); }
+:is(.mention-date-editor, .day-time-popover) .field-help { margin: 0; }
+:is(.mention-date-editor, .day-time-popover) .picker-footer { margin-top: 0.75rem; padding-top: 0.75rem; }
+.mention-date-remove.admin-button-quiet { color: var(--a-red); }
+@media (hover: hover) and (pointer: fine) {
+  .mention-date-remove.admin-button-quiet:hover:not(:disabled) { color: var(--a-red); background: color-mix(in oklab, var(--a-red) 8%, transparent); }
+}
+/* Opened from a mention or a field: it grows out of its trigger, quick and short. */
+.menu-popup.day-time-popover[data-side] {
+  transform-origin: var(--transform-origin);
+  transition: opacity 150ms cubic-bezier(0.23, 1, 0.32, 1), transform 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.menu-popup.day-time-popover[data-side][data-open],
+.menu-popup.day-time-popover[data-side][data-closed] { animation: none; }
+.menu-popup.day-time-popover[data-side][data-starting-style],
+.menu-popup.day-time-popover[data-side][data-ending-style] { opacity: 0; transform: scale(0.97); }
+@media (prefers-reduced-motion: reduce) {
+  .menu-popup.day-time-popover[data-side][data-starting-style],
+  .menu-popup.day-time-popover[data-side][data-ending-style] { transform: none; }
+}
 .editor-parent-link, .admin-parent-label { font-size: 12px; color: var(--fg-3); }
 .editor-body [data-resize-container] { max-width: 100%; margin: 1.5rem 0; justify-content: center; }
 .editor-body [data-resize-wrapper] { max-width: 100%; }
@@ -1276,11 +1408,10 @@
   }
 }
 
-/* Inline controls share the editor's type and neutral surfaces. */
-.inline-logo-panel { width: min(320px, calc(100vw - 24px)); padding: 16px; }
-.inline-logo-panel label, .link-hover label { display: grid; gap: 6px; margin-block: 10px; font-size: 13px; }
-.inline-logo-panel input, .link-hover input { width: 100%; min-width: 0; padding: 8px; border: 1px solid var(--a-line); border-radius: 6px; background: var(--paper); color: var(--a-ink); font: inherit; }
-.inline-logo-panel p, .link-hover p { font-size: 12px; color: var(--a-ink-2); }
+/* Inline controls share the editor's type and neutral surfaces. "Logo and text" lives in admin-icons.css. */
+.link-hover label { display: grid; gap: 6px; margin-block: 10px; font-size: 13px; }
+.link-hover input { width: 100%; min-width: 0; padding: 8px; border: 1px solid var(--a-line); border-radius: 6px; background: var(--paper); color: var(--a-ink); font: inherit; }
+.link-hover p { font-size: 12px; color: var(--a-ink-2); }
 .inline-logo-trigger { display: inline-flex; align-items: baseline; gap: .25em; padding: 0; border: 0; background: none; color: inherit; font: inherit; line-height: inherit; cursor: pointer; border-radius: 3px; }
 .editor-body .inline-logo-trigger img { display: inline-block; width: 1em; height: 1em; object-fit: contain; margin: 0; align-self: center; border-radius: 2px; background: transparent; outline: 1px solid var(--img-outline); }
 .inline-logo-trigger:focus-visible { outline: 2px solid var(--a-blue); outline-offset: 3px; }
@@ -1371,21 +1502,36 @@ html:not(.has-smooth-cursor) .editor-body a[href], html:not(.has-smooth-cursor) 
   --session-shadow: 0 2px 8px rgb(0 0 0 / .08), 0 8px 28px rgb(0 0 0 / .08);
 }
 [data-theme="dark"] {
-  --session-shadow: 0 0 0 1px rgb(255 255 255 / 0.09), 0 2px 8px rgb(0 0 0 / 0.4), 0 8px 28px rgb(0 0 0 / 0.4);
+  --session-shadow: 0 0 0 1px rgb(255 255 255 / 0.12), 0 2px 8px rgb(0 0 0 / 0.4), 0 8px 28px rgb(0 0 0 / 0.4);
 }
 [data-theme="dark"] .menu-item[data-danger][data-highlighted] {
   background-color: rgb(242 113 107 / 0.12);
 }
-/* The block handles: a faint grey that still finds the dark page. */
+/* The block handles: quiet, but a control, so 3:1 on the page (3.9:1). */
 [data-theme="dark"] .block-button {
-  color: #5f5f5f;
+  color: var(--fg-4);
 }
 [data-theme="dark"] .editor-body [data-resize-handle] {
   border-color: var(--paper);
 }
+/* A selected block's ring is its only state cue: 4.7:1 on the page, where
+   the light theme's rgb(37 99 235 / 0.35) would be 1.4:1. */
 [data-theme="dark"] .ProseMirror-selectednode:not(img),
-[data-theme="dark"] .embed-node[data-selected] .embed-frame {
-  outline-color: rgb(106 161 245 / 0.5);
+[data-theme="dark"] .embed-node[data-selected] .embed-frame,
+[data-theme="dark"] .editor-body .ProseMirror-selectednoderange,
+[data-theme="dark"] .editor-code-tabs[data-selected],
+[data-theme="dark"] .editor-code-tabs-code:focus-visible,
+[data-theme="dark"] .editor-chart[data-selected],
+[data-theme="dark"] .editor-chart-grid input:focus-visible,
+[data-theme="dark"] .admin-body .editor-chart-grid input:focus-visible:not(.editor-field),
+[data-theme="dark"] .editor-poll[data-selected] .poll,
+[data-theme="dark"] .editor-banner[data-repositioning],
+[data-theme="dark"] .media-node[data-selected] figure {
+  outline-color: rgb(106 161 245 / 0.8);
+}
+[data-theme="dark"] .block-marquee {
+  border-color: var(--blue);
+  background: rgb(106 161 245 / 0.12);
 }
 [data-theme="dark"] .editor-body .ProseMirror-selectednoderange {
   background: rgb(106 161 245 / 0.14);

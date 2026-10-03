@@ -730,16 +730,20 @@
 /* ── Multi-select filter (multi-select.tsx) ─────────────────────────────── */
 
 .ki-ms {
+  /* One trigger at one height: the picks are summarised inside it, never
+     stacked beside it, and past the cap they truncate rather than grow. */
+  position: relative;
   display: inline-flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
   min-width: 0;
+  max-width: min(280px, 100%);
 }
 .ki-ms-trigger {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+  max-width: 100%;
   height: 30px;
   padding: 0 9px 0 10px;
   border: 0;
@@ -769,24 +773,86 @@
   outline-offset: 2px;
 }
 .ki-ms-trigger > svg:first-child {
+  flex: none;
   color: var(--muted-foreground);
 }
-.ki-ms-badge {
-  display: inline-grid;
-  place-items: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  font-size: 11px;
+/* Room at the end for the clear-all ×, which sits over the trigger. */
+.ki-ms[data-has-value] .ki-ms-trigger {
+  padding-inline-end: 32px;
+}
+/* The label, or the first picks and "+N". Positioned, so a piece leaving
+   (popLayout) is lifted out against this box while the rest slide over. */
+.ki-ms-summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+.ki-ms-text {
+  white-space: nowrap;
+}
+/* A pick: the tag's own tint (see the tint table), 5px in from the trigger's
+   edge, so its radius is the trigger's 8px less the inset. */
+.ki-ms-chip {
+  display: block;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 7.5rem;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ki-ms-more {
+  display: inline-flex;
+  flex: none;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
-  line-height: 1;
 }
 .ki-ms-caret {
+  flex: none;
   color: var(--muted-foreground);
   transition: rotate 0.16s var(--ease-out);
+}
+.ki-ms-reset {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-top: -11px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease-out), color 0.15s var(--ease-out);
+}
+/* A bigger target for a finger than the 22px it draws. */
+.ki-ms-reset::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .ki-ms-reset:hover {
+    background: rgb(var(--tint) / 0.07);
+    color: var(--foreground);
+  }
 }
 .ki-ms-trigger[data-popup-open] .ki-ms-caret {
   rotate: 180deg;
@@ -956,66 +1022,7 @@
     background: var(--nav-hover);
   }
 }
-.ki-ms-chips {
-  /* Positioned: a leaving chip is lifted out of the flow against this box. */
-  position: relative;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.ki-ms-chips:empty {
-  display: none;
-}
-/* Chips before the trigger: the trigger is pinned at the end and never moves,
-   the chips wrap onto new lines below its top edge instead of pushing it. */
-.ki-ms[data-chips-at="start"] {
-  flex-wrap: nowrap;
-  align-items: flex-start;
-  justify-content: flex-end;
-}
-.ki-ms[data-chips-at="start"] .ki-ms-chips {
-  flex: 0 1 auto;
-  min-width: 0;
-  justify-content: flex-end;
-  padding-block: 3px;
-}
-.ki-ms[data-chips-at="start"] .ki-ms-trigger {
-  flex: none;
-}
-.ki-ms-chip {
-  display: inline-flex;
-  align-items: center;
-  height: 24px;
-  padding-left: 8px;
-  border-radius: 6px;
-  background: var(--secondary);
-  color: var(--secondary-foreground);
-  font-size: 12.5px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-.ki-ms-chip-remove {
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  margin: 0 2px 0 1px;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: inherit;
-  opacity: 0.65;
-  cursor: pointer;
-  transition: background-color 0.15s var(--ease-out), opacity 0.15s var(--ease-out);
-}
-.ki-ms-chip-remove:hover {
-  background: rgb(var(--tint) / 0.05);
-  opacity: 1;
-}
-:where(.ki-ms-match-option, .ki-ms-clear, .ki-ms-chip-remove):focus-visible {
+:where(.ki-ms-match-option, .ki-ms-clear, .ki-ms-reset):focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 1px;
 }
@@ -1658,7 +1665,7 @@
  * value of their own.
  */
 [data-theme="dark"] .ki-popup {
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.09), 0 4px 12px -2px rgb(0 0 0 / 0.4), 0 16px 32px -12px rgb(0 0 0 / 0.55);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.12), 0 4px 12px -2px rgb(0 0 0 / 0.4), 0 16px 32px -12px rgb(0 0 0 / 0.55);
 }
 [data-theme="dark"] .ki-button[data-variant="outline"] {
   box-shadow: inset 0 0 0 1px var(--input), 0 1px 2px rgb(0 0 0 / 0.3);

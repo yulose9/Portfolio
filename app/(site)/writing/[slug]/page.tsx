@@ -6,6 +6,7 @@ import { coverImageStyle, coverStyle } from "../../../../cms/cover";
 import { fluentUrl } from "../../../../cms/emoji";
 import { tagSlug } from "../../../../cms/format";
 import { fontLinks, inlineFontLinks, fontVars } from "../../../../cms/fonts";
+import { showsSubtitle } from "../../../../cms/subtitle";
 import ArticleBody from "../../../components/writing/ArticleBody";
 import ArticleEnhance from "../../../components/writing/ArticleEnhance";
 import ArticleMenu from "../../../components/writing/ArticleMenu";
@@ -220,7 +221,7 @@ export default async function ArticlePage({ params }: Props) {
             <h1 data-cursor="text" className="article-title">
               <FluentText>{post.title}</FluentText>
             </h1>
-            {post.dek ? (
+            {post.dek && showsSubtitle(post.fonts) ? (
               <p data-cursor="text" className="article-dek">
                 <FluentText>{post.dek}</FluentText>
               </p>

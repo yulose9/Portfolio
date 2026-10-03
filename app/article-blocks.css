@@ -248,7 +248,17 @@
 /* Dark: the box takes a light hairline, and the tick turns page-coloured on
    the light ink fill. */
 [data-theme="dark"] .article-body input[type="checkbox"] {
-  border-color: rgb(255 255 255 / 0.22);
+  /* 4:1 against the page: the box's edge is the whole control. */
+  border-color: rgb(255 255 255 / 0.42);
+}
+@media (hover: hover) and (pointer: fine) {
+  [data-theme="dark"] .article-body input[type="checkbox"]:not(:disabled):not(:checked):hover {
+    border-color: var(--fg-2);
+  }
+}
+[data-theme="dark"] .article-body input[type="checkbox"]:focus-visible {
+  border-color: var(--fg);
+  box-shadow: 0 0 0 3px rgb(255 255 255 / 0.22);
 }
 [data-theme="dark"] .article-body input[type="checkbox"]:checked {
   border-color: var(--ink);
@@ -414,13 +424,8 @@
   --tweet-container-margin: 0;
   --tweet-font-family: inherit;
 }
-.article-body .embed-threads iframe {
-  width: min(100%, 540px);
-  height: 560px;
-  border: 0;
-  border-radius: 14px;
-  box-shadow: inset 0 0 0 1px var(--rule);
-  background: var(--paper-sunk);
+.article-body .embed-social {
+  justify-items: stretch;
 }
 .article-body .embed-source {
   margin-top: 0.5rem;
@@ -448,4 +453,173 @@
 .article-avatar-group {
   margin-right: 0.25rem;
   vertical-align: middle;
+}
+
+/*
+ * Threads and Facebook posts (SocialEmbed): the platform's iframe inside a
+ * card that reads as that platform. Unscoped, so the editor and the preview
+ * draw the same card. Card radius 16 = stage radius 8 + 8 of inset.
+ * Threads is monochrome, in the page's own ink. Facebook takes its blue for
+ * the logo and the link, and keeps its plugin on white: the plugin has no
+ * dark mode, so in dark the white post sits inset in a dark card.
+ */
+.social-embed {
+  --social-accent: var(--fg);
+  --social-link: var(--fg-2);
+  display: grid;
+  width: min(100%, 540px);
+  margin: 0 auto;
+  border-radius: 16px;
+  background: var(--paper-raised);
+  box-shadow: 0 0 0 1px var(--line-strong), 0 1px 2px rgb(0 0 0 / 0.04);
+  color: var(--fg);
+  font-size: 14px;
+  line-height: 1.4;
+  overflow: hidden;
+}
+.social-embed[data-platform="facebook"] {
+  --social-accent: #0866ff;
+  --social-link: #0866ff;
+  width: min(100%, 516px);
+}
+.social-embed[data-format="reel"] {
+  width: min(100%, 376px);
+}
+[data-theme="dark"] .social-embed {
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+[data-theme="dark"] .social-embed[data-platform="facebook"] {
+  /* #0866ff is 3.4:1 on the dark card; text takes Facebook's own dark-mode blue. */
+  --social-link: #5aa7ff;
+}
+.social-embed-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 14px;
+}
+.social-embed-logo {
+  flex: none;
+  color: var(--social-accent);
+}
+.social-embed-who {
+  display: grid;
+  min-width: 0;
+}
+.social-embed-who strong,
+.social-embed-who span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.social-embed-who strong {
+  font-weight: 600;
+}
+.social-embed-who span {
+  font-size: 13px;
+  color: var(--fg-3);
+}
+.social-embed-stage {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  min-height: 160px;
+  margin: 0 8px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--paper-sunk);
+}
+.social-embed[data-platform="facebook"] .social-embed-stage {
+  background: #ffffff;
+}
+.social-embed-stage iframe {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+.social-embed[data-status="ready"] .social-embed-stage iframe {
+  opacity: 1;
+}
+.social-embed-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  font-size: 13px;
+  color: var(--fg-3);
+}
+.social-embed[data-platform="facebook"] .social-embed-loading {
+  color: #65676b;
+}
+.social-embed-fallback {
+  display: grid;
+  gap: 8px;
+  margin: 0 8px;
+  padding: 14px 6px 4px;
+  border-top: 1px solid var(--line);
+}
+.social-embed-fallback p {
+  margin: 0;
+}
+.social-embed-text {
+  font-size: 15px;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.social-embed-note {
+  font-size: 13px;
+  color: var(--fg-3);
+}
+.social-embed-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 4px 6px 6px;
+}
+.social-embed-more,
+.social-embed-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition-property: background-color, color;
+  transition-duration: 150ms;
+}
+.social-embed-more {
+  margin-right: auto;
+  color: var(--fg-2);
+}
+.social-embed-link {
+  color: var(--social-link);
+}
+.social-embed-more:hover,
+.social-embed-link:hover {
+  background: var(--wash);
+}
+.social-embed-more:focus-visible,
+.social-embed-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .social-embed-stage iframe {
+    transition: none;
+  }
 }

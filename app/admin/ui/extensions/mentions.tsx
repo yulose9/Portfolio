@@ -33,10 +33,13 @@ import {
   pageMentionId,
   parseDateHref,
   parseDateQuery,
+  todayDate,
   validDate,
   validTime,
   type MentionDate,
 } from "../../../../cms/mentions";
+import { DayTimeFields, type DayPreset } from "../DayTimeFields";
+import { addDays } from "../clock";
 import DateMention from "../../../components/writing/DateMention";
 import { toast } from "../../../lib/toast";
 import { api, type PostSummary } from "../api";
@@ -51,16 +54,50 @@ function fromHref(href: string, label = "Page"): Attrs | null {
   const id = pageMentionId(href);
   return id ? { kind: "page", id, label: label.replace(/^@/, "") } : null;
 }
-function DateEditor({ node, updateAttributes }: NodeViewProps) {
+/** Date mentions are Manila wall time; the quick picks count from Manila's today. */
+const MENTION_ZONE_NOTE = "Manila time (UTC+8)";
+function mentionPresets(): DayPreset[] {
+  const today = todayDate();
+  return [
+    { label: "Today", date: today },
+    { label: "Tomorrow", date: addDays(today, 1) },
+    { label: "Next week", date: addDays(today, 7) },
+    { label: "Last Monday", date: parseDateQuery("last monday")!.date },
+  ];
+}
+const sameDate = (a: MentionDate, b: MentionDate) =>
+  a.date === b.date && a.time === b.time;
+const usableDate = (value: MentionDate) =>
+  validDate(value.date) && (!value.time || validTime(value.time));
+
+function DateEditor({ node, updateAttributes, deleteNode, editor }: NodeViewProps) {
   const value = {
     date: String(node.attrs.date),
     time: node.attrs.time as string | null,
   };
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<MentionDate>(value);
+  const popup = useRef<HTMLDivElement>(null);
   if (!validDate(value.date))
     return <NodeViewWrapper as="span">Invalid date</NodeViewWrapper>;
+  // Changes are a draft until Done, Enter or a click away; Escape drops them.
+  const apply = (next: MentionDate) => {
+    if (usableDate(next) && !sameDate(next, value)) updateAttributes(next);
+  };
+  const confirm = (next: MentionDate) => {
+    apply(next);
+    setOpen(false);
+  };
   return (
     <NodeViewWrapper as="span" contentEditable={false}>
-      <Popover.Root>
+      <Popover.Root
+        open={open}
+        onOpenChange={(next, details) => {
+          if (next) setDraft(value);
+          else if (details.reason !== "escape-key") apply(draft);
+          setOpen(next);
+        }}
+      >
         <Popover.Trigger
           className="mention-trigger"
           aria-label={`Edit date: ${fullMentionDate(value)}`}
@@ -70,36 +107,49 @@ function DateEditor({ node, updateAttributes }: NodeViewProps) {
         <Popover.Portal>
           <Popover.Positioner
             sideOffset={8}
+            align="start"
             collisionPadding={12}
             className="menu-positioner"
           >
-            <Popover.Popup className="menu-popup admin-popover mention-date-editor">
-              <Popover.Title>Edit date</Popover.Title>
-              <label>
-                Date
-                <input
-                  type="date"
-                  value={value.date}
-                  onChange={(e) => {
-                    if (validDate(e.target.value))
-                      updateAttributes({ date: e.target.value });
+            <Popover.Popup
+              ref={popup}
+              className="menu-popup admin-popover dtp-popover day-time-popover mention-date-editor"
+              // Straight onto the chosen day, so the arrow keys work at once.
+              initialFocus={() =>
+                popup.current?.querySelector<HTMLElement>(
+                  '.rdp-day_button[tabindex="0"]',
+                ) ?? true
+              }
+            >
+              <Popover.Title className="sr-only">Edit date</Popover.Title>
+              <DayTimeFields
+                value={draft}
+                onChange={setDraft}
+                onConfirm={confirm}
+                presets={mentionPresets()}
+                today={todayDate()}
+                zoneNote={MENTION_ZONE_NOTE}
+              />
+              <div className="picker-footer mention-date-footer">
+                <button
+                  type="button"
+                  className="admin-button admin-button-quiet mention-date-remove"
+                  onClick={() => {
+                    setOpen(false);
+                    deleteNode();
+                    editor.commands.focus();
                   }}
-                />
-              </label>
-              <label>
-                Time (optional)
-                <input
-                  type="time"
-                  step="60"
-                  value={value.time ?? ""}
-                  onChange={(e) => {
-                    if (!e.target.value || validTime(e.target.value))
-                      updateAttributes({ time: e.target.value || null });
-                  }}
-                />
-              </label>
-              <p>Manila · UTC+8</p>
-              <Popover.Close data-slot="popover-close" className="admin-button">Done</Popover.Close>
+                >
+                  Remove
+                </button>
+                <button
+                  type="button"
+                  className="admin-button admin-button-primary"
+                  onClick={() => confirm(draft)}
+                >
+                  Done
+                </button>
+              </div>
             </Popover.Popup>
           </Popover.Positioner>
         </Popover.Portal>
@@ -149,8 +199,14 @@ const MentionList = forwardRef<Handle, Props>(function MentionList(
   const keyboardSelection = useRef(false);
   const listId = useId();
   const [picking, setPicking] = useState(false);
-  const [pickedDate, setPickedDate] = useState(parseDateQuery("today")!.date);
-  const [pickedTime, setPickedTime] = useState("");
+  const [picked, setPicked] = useState<MentionDate>(() => ({
+    date: todayDate(),
+    time: null,
+  }));
+  const insertPicked = (value: MentionDate) => {
+    if (usableDate(value))
+      command({ kind: "date", label: "Date", value });
+  };
   const choose = (item: Item) => {
     if (item.kind === "pick") setPicking(true);
     else command(item);
@@ -214,7 +270,12 @@ const MentionList = forwardRef<Handle, Props>(function MentionList(
       <form
         data-lenis-prevent
         onKeyDown={(e) => {
-          if (e.key === "Escape") {
+          // An open time list takes Escape first, and closes only itself.
+          const target = e.target as HTMLElement;
+          if (
+            e.key === "Escape" &&
+            target.getAttribute("aria-expanded") !== "true"
+          ) {
             e.preventDefault();
             e.stopPropagation();
             setPicking(false);
@@ -222,36 +283,21 @@ const MentionList = forwardRef<Handle, Props>(function MentionList(
           }
         }}
         className="slash-menu mention-date-editor mention-picker"
+        aria-label="Choose date and time"
         onSubmit={(e) => {
           e.preventDefault();
-          if (validDate(pickedDate) && (!pickedTime || validTime(pickedTime)))
-            command({
-              kind: "date",
-              label: "Date",
-              value: { date: pickedDate, time: pickedTime || null },
-            });
+          insertPicked(picked);
         }}
       >
-        <p>Choose date and time</p>
-        <label>
-          Date
-          <input
-            autoFocus
-            type="date"
-            required
-            value={pickedDate}
-            onChange={(e) => setPickedDate(e.target.value)}
-          />
-        </label>
-        <label>
-          Time (optional)
-          <input
-            type="time"
-            value={pickedTime}
-            onChange={(e) => setPickedTime(e.target.value)}
-          />
-        </label>
-        <p>Manila · UTC+8</p>
+        <DayTimeFields
+          value={picked}
+          onChange={setPicked}
+          onConfirm={insertPicked}
+          presets={mentionPresets()}
+          today={todayDate()}
+          zoneNote={MENTION_ZONE_NOTE}
+          autoFocus
+        />
         <div className="picker-footer">
           <button
             type="button"

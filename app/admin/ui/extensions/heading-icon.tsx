@@ -7,11 +7,15 @@ import {
 } from "@tiptap/react";
 import { Popover } from "@base-ui/react/popover";
 import { useState } from "react";
-import { ImageSquare, UploadSimple, Trash, X } from "@phosphor-icons/react";
-import { uploadInlineLogo } from "../media";
-import { beginPendingWork } from "../session";
+import { ImageSquare, Trash, X } from "@phosphor-icons/react";
+import IconSources from "../IconSources";
 import { decodeLogoLabel, safeInlineUrl } from "../../../../cms/inline";
 
+/*
+ * A heading's icon: an emoji, an icon from the library, an uploaded image, or
+ * any symbol typed in. Picking from a tab applies it at once; a typed symbol
+ * applies with Enter or Done.
+ */
 export function HeadingIconPicker({
   value,
   onChange,
@@ -23,17 +27,18 @@ export function HeadingIconPicker({
 }) {
   const [draft, setDraft] = useState(value),
     [open, setOpen] = useState(false);
-  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const apply = (icon: string) => {
+    setOpen(false);
+    onChange(icon);
+  };
+  const image = Boolean(safeInlineUrl(value, true));
   return (
     <Popover.Root
       open={open}
       onOpenChange={(next) => {
         if (busy) return;
-        if (next) {
-          setDraft(value);
-          setError("");
-        }
+        if (next) setDraft(value);
         setOpen(next);
       }}
     >
@@ -70,62 +75,38 @@ export function HeadingIconPicker({
                 Beside the heading<small>Also shown in the outline</small>
               </p>
             </div>
-            <label className="picker-field">
-              Emoji or symbol
-              <input
-                value={safeInlineUrl(draft, true) ? "" : draft}
-                placeholder="Enter a symbol"
-                maxLength={16}
-                disabled={busy}
-                onChange={(e) => setDraft(e.target.value)}
-              />
-            </label>
-            <label className="heading-upload" aria-disabled={busy}>
-              <UploadSimple size={18} />
-              <span>
-                {busy ? "Uploading…" : "Upload image"}
-                <small>PNG, JPG, SVG and other supported images</small>
-              </span>
-              <input
-                className="sr-only"
-                aria-label="Upload heading icon"
-                type="file"
-                accept="image/*,.svg,.heic,.heif"
-                disabled={busy}
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  e.target.value = "";
-                  if (!file) return;
-                  const finish = beginPendingWork();
-                  setBusy(true);
-                  try {
-                    setDraft(await uploadInlineLogo(file));
-                    setError("");
-                  } catch (error) {
-                    setError(
-                      error instanceof Error ? error.message : "Upload failed",
-                    );
-                  } finally {
-                    finish();
-                    setBusy(false);
-                  }
-                }}
-              />
-            </label>
-            {error ? (
-              <p role="alert" className="field-error">
-                {error}
-              </p>
-            ) : null}
+            <IconSources
+              initial={image ? "custom" : "emoji"}
+              onEmoji={apply}
+              onImage={apply}
+              onBusy={setBusy}
+              uploadExtra={
+                <form
+                  className="heading-symbol"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (draft.trim()) apply(draft.trim());
+                  }}
+                >
+                  <label className="picker-field">
+                    Or type a symbol
+                    <input
+                      value={safeInlineUrl(draft, true) ? "" : draft}
+                      placeholder="§, ★, →"
+                      maxLength={16}
+                      disabled={busy}
+                      onChange={(e) => setDraft(e.target.value)}
+                    />
+                  </label>
+                </form>
+              }
+            />
             <div className="picker-footer">
               <button
                 type="button"
                 className="admin-button admin-button-quiet"
                 disabled={busy || !value}
-                onClick={() => {
-                  setOpen(false);
-                  onChange("");
-                }}
+                onClick={() => apply("")}
               >
                 <Trash size={14} />
                 Remove
@@ -134,10 +115,9 @@ export function HeadingIconPicker({
                 type="button"
                 className="admin-button admin-button-primary"
                 disabled={busy}
-                onClick={() => {
-                  setOpen(false);
-                  onChange(draft.trim());
-                }}
+                onClick={() =>
+                  draft.trim() && draft !== value ? apply(draft.trim()) : setOpen(false)
+                }
               >
                 Done
               </button>

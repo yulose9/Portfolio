@@ -20,7 +20,9 @@ import {
   ClockCounterClockwise,
   CopySimple,
   CursorText,
+  DotsThree,
   Eye,
+  EyeSlash,
   FloppyDisk,
   ImageSquare,
   LinkSimple,
@@ -31,6 +33,7 @@ import {
   PushPin,
   SelectionPlus,
   SlidersHorizontal,
+  Subtitles,
   Swap,
   TextAlignCenter,
   TextColumns,
@@ -62,7 +65,8 @@ import { Markdown } from "@tiptap/markdown";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { beginPendingWork, clearRecovery, keepRecovery, readRecovery, registerProtection, leavingForSignIn } from "./session";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { imageInfo } from "../../../cms/media";
 
 import { fontVars } from "../../../cms/fonts";
 import { draftToPost, readingMinutes, serializePost, slugify, type Cover } from "../../../cms/format";
@@ -71,9 +75,9 @@ import { useFinePointer } from "../../components/menu/useFinePointer";
 import { toast } from "../../lib/toast";
 import { trashToast } from "./trash-toast";
 import { altFromName, api, ApiError, type Draft } from "./api";
-import { exactTime, StatusDot, statusLabel } from "./bits";
+import { exactTime, StatusDot, statusLabel, statusShort } from "./bits";
 import { ImageBubble, TextBubble } from "./Bubble";
-import { BLOCKS, currentBlock, duplicateBlock, inserts, MARKS, moveBlock, selectBlock, selectionMarkdown, turnInto } from "./commands";
+import { BLOCKS, currentBlock, duplicateSelection, inserts, MARKS, moveBlock, selectBlock, selectionMarkdown, turnInto } from "./commands";
 import DateTimePicker from "./DateTimePicker";
 import { useCommands, type Command } from "./registry";
 import DetailsSheet from "./DetailsSheet";
@@ -86,13 +90,16 @@ import { Outline } from "./Outline";
 import { Embed } from "./extensions/EmbedView";
 import { MediaPlus as Media } from "./extensions/media-plus";
 import { CalloutIconPicker, CalloutWithPicker as Callout } from "./extensions/callout-view";
-import { CoverActions, EditorBanner } from "./CoverEditor";
+import { CoverActions, CoverPicker, EditorBanner } from "./CoverEditor";
+import MediaPicker, { type MediaPick } from "./MediaPicker";
 import { coverStyle, withCoverStyle } from "../../../cms/cover";
+import { showsSubtitle, withSubtitle } from "../../../cms/subtitle";
 import { CodeTabsBlock } from "./extensions/code-tabs";
 import { ChartBlock } from "./extensions/chart";
 import { PollBlock } from "./extensions/poll";
 import { CitationNode } from "./extensions/citation";
 import { TablePlus } from "./extensions/table-plus";
+import { selectedLine } from "./extensions/table-lines";
 import { TableCellColors, TableStyleMarkdown } from "./extensions/blocks-schema";
 import { kindOf, uploadAudio, uploadMedia, type Uploaded, ACCEPT } from "./media";
 import { cleanPastedHtml, htmlIsWrappedMarkdown, looksLikeMarkdown, proseToParagraphs } from "./paste";
@@ -102,6 +109,7 @@ import { AuthorsEditor, IconPicker, loadFont } from "./MetaEditors";
 import PublishDialog from "./PublishDialog";
 import RevisionsSheet from "./RevisionsSheet";
 import SaveState, { type SaveStatus } from "./SaveState";
+import { BarOverflowItems, readBarOverflow, type BarOverflow } from "./BarOverflow";
 import SmoothCaret from "./SmoothCaret";
 import DeployPill, { recallDeploy, rememberDeploy, type Deploy } from "./DeployPill";
 import PreviewSheet, { PageView } from "./PreviewSheet";
@@ -195,7 +203,7 @@ export default function EditorScreen({ id, onBack, onOpen, options }: { id: stri
  * width does, and once the fonts have loaded: measured against a fallback
  * font, a headline wraps differently and leaves a gap under itself.
  */
-function useAutosize(value: string) {
+function useAutosize(value: string, mounted = true) {
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -213,7 +221,7 @@ function useAutosize(value: string) {
       alive = false;
       observer.disconnect();
     };
-  }, [value]);
+  }, [value, mounted]);
   return ref;
 }
 
@@ -222,7 +230,9 @@ function useAutosize(value: string) {
 const BODY_PICK = "editor-body-pick";
 const EMOJI_EVENT = "admin:pick-emoji";
 const VOICE_EVENT = "admin:record-voice";
-const openBodyPicker = () => document.getElementById(BODY_PICK)?.click();
+const MEDIA_EVENT = "admin:pick-media";
+/** Opens the media picker at the caret (Gallery, Upload, Link). */
+const openBodyPicker = () => window.dispatchEvent(new Event(MEDIA_EVENT));
 const openEmojiPicker = () => window.dispatchEvent(new Event(EMOJI_EVENT));
 const openRecorder = () => window.dispatchEvent(new Event(VOICE_EVENT));
 const SLASH_ITEMS: SlashItem[] = slashItems(openBodyPicker, openEmojiPicker, openRecorder);
@@ -253,6 +263,13 @@ async function withProgress(label: string, run: (progress: (f: number, text: str
     reportUpload({ id, name: label, done: true });
     finish();
   }
+}
+
+/** Where something chosen in the media picker lands in the document. */
+function pickedNode(p: MediaPick) {
+  if (p.kind === "image") return { type: "image", attrs: { src: p.src, alt: p.alt ?? "", title: "" } };
+  if (p.kind === "video") return { type: "media", attrs: { kind: "video", src: p.src, poster: p.poster ?? null, loop: p.loop ?? false, caption: "" } };
+  return { type: "media", attrs: { kind: "audio", src: p.src, caption: "" } };
 }
 
 /** Where an upload lands in the document. */
@@ -397,7 +414,8 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
         codeBlock: false,
         heading: { levels: [2, 3, 4] },
         link: { openOnClick: false, autolink: true, defaultProtocol: "https" },
-        dropcursor: { color: "#2563eb", width: 2 },
+        // The theme blue: #2563eb is 3.4:1 on the dark page, var(--blue) 6.7:1.
+        dropcursor: { color: "var(--blue)", width: 3, class: "editor-dropcursor" },
       }),
       ResizableImage,
       // Tab indents code by two spaces; Shift+Tab takes them back (see tab-keys.ts).
@@ -479,17 +497,22 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
           },
           // Once: the block you're in. Twice: everything.
           "Mod-a": ({ editor: e }) => selectBlock(e),
+          // The block, or every selected block as a group. A table row or
+          // column picked by its handle is left to TablePlus's own ⌘D (and
+          // ⌘⇧↑↓): this keymap, added later, runs before the table's.
           "Mod-d": ({ editor: e }) => {
-            const b = currentBlock(e);
-            if (b) duplicateBlock(e, b.pos);
+            if (selectedLine(e.state)) return false;
+            duplicateSelection(e);
             return true;
           },
           "Mod-Shift-ArrowUp": ({ editor: e }) => {
+            if (selectedLine(e.state)) return false;
             const b = currentBlock(e);
             if (b) moveBlock(e, b.pos, -1);
             return true;
           },
           "Mod-Shift-ArrowDown": ({ editor: e }) => {
+            if (selectedLine(e.state)) return false;
             const b = currentBlock(e);
             if (b) moveBlock(e, b.pos, 1);
             return true;
@@ -635,6 +658,28 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
       window.removeEventListener(VOICE_EVENT, onVoice);
     };
   }, []);
+
+  // "Photo, video or audio" (slash menu, palette, phone bar) opens the media
+  // picker under the caret; what's chosen lands where the caret was.
+  const [bodyMedia, setBodyMedia] = useState<number | null>(null);
+  useEffect(() => {
+    const onMedia = () => {
+      if (editor && !editor.isDestroyed) setBodyMedia(editor.state.selection.to);
+    };
+    window.addEventListener(MEDIA_EVENT, onMedia);
+    return () => window.removeEventListener(MEDIA_EVENT, onMedia);
+  }, [editor]);
+  const caretAnchor = useMemo(() => {
+    if (!editor || bodyMedia === null) return undefined;
+    return {
+      getBoundingClientRect: () => {
+        const c = editor.view.coordsAtPos(Math.min(bodyMedia, editor.state.doc.content.size));
+        return new DOMRect(c.left, c.top, 0, c.bottom - c.top);
+      },
+    };
+  }, [editor, bodyMedia]);
+  // The full library, from a picker's "Browse all": the body's, or the cover's.
+  const libraryFor = useRef<"body" | "cover">("body");
 
   // The post's own typefaces, loaded into the admin as they're chosen.
   useEffect(() => {
@@ -804,7 +849,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
     palette:()=>window.dispatchEvent(new Event("admin:palette")),details:()=>setPanel(p=>p==="details"?null:"details"),
     preview:()=>setView(v=>v==="edit"?"page":"edit"),publish:()=>setPanel("publish"),
     bold:()=>{editor?.chain().focus().toggleBold().run();},italic:()=>{editor?.chain().focus().toggleItalic().run();},underline:()=>{editor?.chain().focus().toggleUnderline().run();},strike:()=>{editor?.chain().focus().toggleStrike().run();},code:()=>{editor?.chain().focus().toggleCode().run();},undo:()=>{editor?.commands.undo();},redo:()=>{editor?.commands.redo();},
-    /* The page title is the H1, so the body's headings are levels 2–4: "Heading 1" is the first of those. */heading1:()=>{editor?.chain().focus().toggleHeading({level:2}).run();},heading2:()=>{editor?.chain().focus().toggleHeading({level:3}).run();},heading3:()=>{editor?.chain().focus().toggleHeading({level:4}).run();},paragraph:()=>{editor?.chain().focus().setParagraph().run();},bullet:()=>{editor?.chain().focus().toggleBulletList().run();},ordered:()=>{editor?.chain().focus().toggleOrderedList().run();},duplicate:()=>{if(editor){const b=currentBlock(editor);if(b)duplicateBlock(editor,b.pos);}},moveUp:()=>{if(editor){const b=currentBlock(editor);if(b)moveBlock(editor,b.pos,-1);}},moveDown:()=>{if(editor){const b=currentBlock(editor);if(b)moveBlock(editor,b.pos,1);}},
+    /* The page title is the H1, so the body's headings are levels 2–4: "Heading 1" is the first of those. */heading1:()=>{editor?.chain().focus().toggleHeading({level:2}).run();},heading2:()=>{editor?.chain().focus().toggleHeading({level:3}).run();},heading3:()=>{editor?.chain().focus().toggleHeading({level:4}).run();},paragraph:()=>{editor?.chain().focus().setParagraph().run();},bullet:()=>{editor?.chain().focus().toggleBulletList().run();},ordered:()=>{editor?.chain().focus().toggleOrderedList().run();},duplicate:()=>{if(editor)duplicateSelection(editor);},moveUp:()=>{if(editor){const b=currentBlock(editor);if(b)moveBlock(editor,b.pos,-1);}},moveDown:()=>{if(editor){const b=currentBlock(editor);if(b)moveBlock(editor,b.pos,1);}},
   },()=>Boolean(editor?.isFocused));
 
   useEffect(() => {
@@ -833,13 +878,27 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
     setMeta((m) => ({ ...m, title, slug: !doc.liveSlug && !slugTouched ? slugify(title) : m.slug }));
 
   const titleRef = useAutosize(meta.title);
-  const dekRef = useAutosize(meta.dek);
+  const subtitleShown = showsSubtitle(meta.fonts);
+  const dekRef = useAutosize(meta.dek, subtitleShown);
+  /** Hiding keeps the text: it still serves as the meta description. */
+  const setSubtitle = (shown: boolean) => {
+    setMeta((m) => ({ ...m, fonts: withSubtitle(m.fonts, shown) }));
+    if (shown) requestAnimationFrame(() => dekRef.current?.focus());
+    else editor?.commands.focus("start");
+  };
 
   const setCover = async (file: File) => {
     const up = await withProgress("Adding cover", (p) => uploadMedia(file, p));
     if (up?.kind !== "image") return;
     // A new picture keeps the cover's style (classic or banner).
     setMeta((m) => ({ ...m, cover: withCoverStyle({ src: up.src, width: up.width, height: up.height, alt: m.cover?.alt || altFromName(file.name), caption: m.cover?.caption ?? "" }, coverStyle(m.cover)) }));
+  };
+  /** A cover from the picker: a new picture keeps the cover's style and alt text. */
+  const pickCover = (pick: MediaPick) =>
+    setMeta((m) => ({ ...m, cover: withCoverStyle({ src: pick.src, width: pick.width, height: pick.height, alt: m.cover?.alt || pick.alt || "", caption: m.cover?.caption ?? "" }, coverStyle(m.cover)) }));
+  const browseForCover = () => {
+    libraryFor.current = "cover";
+    setPanel("media");
   };
   const patchCover = (patch: Partial<Cover>) => setMeta((m) => (m.cover ? { ...m, cover: { ...m.cover, ...patch } } : m));
 
@@ -960,6 +1019,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
         run: () => setView((v) => (v === "edit" ? "page" : "edit")),
       },
       ...(Object.keys(MODE_TITLES) as (keyof Modes)[]).map((k) => ({ id: `mode:${k}`, group: "View" as const, ...MODE_TITLES[k], keywords: [...MODE_TITLES[k].keywords, "setting", "toggle"], checked: modes[k], run: () => toggleMode(k) })),
+      { id: "subtitle", group: "View", title: "Show subtitle", icon: <Subtitles {...CI} />, keywords: ["dek", "standfirst", "description", "hide", "toggle"], checked: subtitleShown, run: () => setSubtitle(!subtitleShown) },
     ];
     const edit: Command[] = [
       {id:"shortcut-settings",group:"Edit",title:"Keyboard shortcuts",icon:<SlidersHorizontal {...CI}/>,keywords:["keys","customize","bindings"],run:()=>{window.open("/admin/shortcuts","_blank","noopener");}},
@@ -1018,6 +1078,8 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
     return [...selection, ...post, ...viewCmds, ...edit, ...insert, ...turn];
   });
 
+  const barRef = useRef<HTMLElement>(null);
+  const [barOverflow, setBarOverflow] = useState<BarOverflow>({ details: false, extras: false });
   const minutes = readingMinutes(editor?.getText() ?? "");
   const live = doc.liveSlug !== null;
   const publishLabel = doc.status === "scheduled" ? "Scheduled" : live ? (doc.dirty ? "Publish changes" : "Published") : "Publish";
@@ -1039,54 +1101,74 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
       data-typewriter={modes.typewriter || undefined}
       data-view={view}
     >
-      <header className="editor-bar">
+      <header className="editor-bar" ref={barRef}>
         {/* One tip for the bar's icon buttons: it glides from one to the next (Kobra's navtip). */}
         <GlidingTooltip handle={barTips} side="bottom" />
-        <div className="editor-bar-side">
+        {/* The bar folds by its own width (container queries in admin.css), since
+            the workspace sidebar takes room the window size doesn't show. In
+            order: the status shortens, the save state keeps its glyph, the view
+            tabs keep their icons, the secondary buttons move into More. */}
+        <div className="editor-bar-side editor-bar-start">
           <button type="button" className="admin-icon-button" onClick={back} aria-label="All writing" title="All writing">
             <ArrowLeft size={16} weight="bold" />
           </button>
-          <span className="editor-status">
+          <span className="editor-status" title={statusLabel(doc)}>
             <StatusDot status={doc.status} dirty={doc.dirty} />
-            {statusLabel(doc)}
+            <span className="editor-status-full">{statusLabel(doc)}</span>
+            <span className="editor-status-short" aria-hidden="true">{statusShort(doc)}</span>
           </span>
           <SaveState status={save} at={savedAt} local={localState} />
           {doc.parentId ? <a className="editor-parent-link" href={`/admin?post=${doc.parentId}`} target="_blank" rel="noreferrer">Parent page ↗</a> : null}
           {deploy ? <DeployPill key={deploy.updatedAt} deploy={deploy} onDismiss={() => setDeploy(null)} /> : null}
         </div>
-        <div className="editor-bar-side">
+        <div className="editor-bar-side editor-bar-end">
           {/* Kobra's sliding tabs. Markdown is the source as it will be saved
               (PrimeUI's text editor keeps its Markdown a tab away too). */}
           <Tabs value={view} onValueChange={(v) => setView(v as View)} className="view-switch">
             <TabsList aria-label="View">
               <TabsTrigger value="edit" title={`Edit  ${keys(shortcutLabel("preview"))}`}>
                 <PencilSimple size={14} aria-hidden="true" />
-                <span className="admin-hide-sm">Edit</span>
+                <span className="view-switch-label">Edit</span>
               </TabsTrigger>
               <TabsTrigger value="page" title={`Read as the page  ${keys(shortcutLabel("preview"))}`}>
                 <BookOpenText size={14} aria-hidden="true" />
-                <span className="admin-hide-sm">Page</span>
+                <span className="view-switch-label">Page</span>
               </TabsTrigger>
               <TabsTrigger value="markdown" title="The Markdown this post saves as">
                 <MarkdownLogo size={14} aria-hidden="true" />
-                <span className="admin-hide-sm">Markdown</span>
+                <span className="view-switch-label">Markdown</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          <TooltipTrigger handle={barTips} payload={`Find  ${keys(shortcutLabel("find"))}`} render={<button type="button" className="admin-icon-button admin-hide-sm" aria-label="Find in this post" onClick={() => openFind.current()} />}>
-            <MagnifyingGlass size={16} weight="bold" />
-          </TooltipTrigger>
-          <Menu.Root>
-            <Menu.Trigger className="admin-icon-button" aria-label="View" title="View">
-              <Eye size={16} weight="bold" />
+          <div className="editor-bar-extra">
+            <TooltipTrigger handle={barTips} payload={`Find  ${keys(shortcutLabel("find"))}`} render={<button type="button" className="admin-icon-button" aria-label="Find in this post" onClick={() => openFind.current()} />}>
+              <MagnifyingGlass size={16} weight="bold" />
+            </TooltipTrigger>
+            <SoundToggle className="editor-bar-toggle size-8 rounded-full text-[color:var(--a-ink-2)]" />
+            <ThemeToggle className="editor-bar-toggle size-8 rounded-full text-[color:var(--a-ink-2)]" />
+            <TooltipTrigger handle={barTips} payload="Research and references" render={<button type="button" className="admin-icon-button" aria-label="Research and references" onClick={() => setPanel("research")} />}>
+              <BookOpenText size={16} />
+            </TooltipTrigger>
+            <TooltipTrigger handle={barTips} payload="History" render={<button type="button" className="admin-icon-button" aria-label="History" onClick={() => setPanel("revisions")} />}>
+              <ClockCounterClockwise size={16} weight="bold" />
+            </TooltipTrigger>
+          </div>
+          {/* View settings; also "More" once the bar has folded buttons into it. */}
+          <Menu.Root onOpenChange={(open) => { if (open) setBarOverflow(readBarOverflow(barRef.current)); }}>
+            <Menu.Trigger className="admin-icon-button editor-bar-more" title="View and more">
+              <Eye className="editor-bar-more-wide" size={16} weight="bold" aria-hidden="true" />
+              <DotsThree className="editor-bar-more-narrow" size={18} weight="bold" aria-hidden="true" />
+              <span className="editor-bar-more-wide sr-only">View</span>
+              <span className="editor-bar-more-narrow sr-only">More</span>
             </Menu.Trigger>
             <MenuSurface align="end">
-              <MItem className="admin-show-sm" icon={<MagnifyingGlass size={15} />} onSelect={() => openFind.current()}>
-                Find in this post
-              </MItem>
-              <MItem className="admin-show-sm" icon={<ClockCounterClockwise size={15} />} onSelect={() => setPanel("revisions")}>
-                History
-              </MItem>
+              <BarOverflowItems
+                overflow={barOverflow}
+                onDetails={() => setPanel("details")}
+                onFind={() => openFind.current()}
+                onResearch={() => setPanel("research")}
+                onHistory={() => setPanel("revisions")}
+              />
               <MLabel>View</MLabel>
               <MItem icon={<BookOpenText size={15} />} onSelect={() => setNavigatorOpen(true)}>Browse pages</MItem>
               <MItem onSelect={()=>setPanel("media")}>Media library</MItem>
@@ -1105,6 +1187,9 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
               <MItem icon={modes.spellcheck ? <Check size={15} weight="bold" /> : <span className="menu-check-space" />} onSelect={() => toggleMode("spellcheck")} closeOnClick={false}>
                 Spellcheck
               </MItem>
+              <MItem icon={subtitleShown ? <Check size={15} weight="bold" /> : <span className="menu-check-space" />} onSelect={() => setSubtitle(!subtitleShown)}>
+                Subtitle
+              </MItem>
               <MItem icon={<Eye size={15} />} onSelect={() => setPanel("preview")}>
                 Preview page and share cards
               </MItem>
@@ -1113,23 +1198,20 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
               </MItem>
             </MenuSurface>
           </Menu.Root>
-          <SoundToggle className="admin-hide-sm size-8 rounded-full text-[color:var(--a-ink-2)]" />
-          <ThemeToggle className="admin-hide-sm size-8 rounded-full text-[color:var(--a-ink-2)]" />
-          <TooltipTrigger handle={barTips} payload="Research and references" render={<button type="button" className="admin-icon-button" aria-label="Research and references" onClick={() => setPanel("research")} />}><BookOpenText size={16}/></TooltipTrigger>
-          <TooltipTrigger handle={barTips} payload="History" render={<button type="button" className="admin-icon-button admin-hide-sm" aria-label="History" onClick={() => setPanel("revisions")} />}>
-            <ClockCounterClockwise size={16} weight="bold" />
-          </TooltipTrigger>
-          <TooltipTrigger handle={barTips} payload={`Details  ${keys(shortcutLabel("details"))}`} render={<button type="button" className="admin-icon-button" aria-label="Details" onClick={() => setPanel("details")} />}>
+          <TooltipTrigger handle={barTips} payload={`Details  ${keys(shortcutLabel("details"))}`} render={<button type="button" className="admin-icon-button editor-bar-details" aria-label="Details" onClick={() => setPanel("details")} />}>
             <SlidersHorizontal size={16} weight="bold" />
           </TooltipTrigger>
           <button
             type="button"
-            className="admin-button admin-button-primary"
+            className="admin-button admin-button-primary editor-bar-publish"
             data-keycap
             onClick={() => setPanel("publish")}
             data-done={live && !doc.dirty ? "" : undefined}
+            data-short={publishLabel === "Publish changes" ? "" : undefined}
           >
-            {publishLabel}
+            {/* Narrow bars say "Publish"; the full label stays the button's name. */}
+            <span className="editor-bar-publish-full">{publishLabel}</span>
+            {publishLabel === "Publish changes" ? <span className="editor-bar-publish-short" aria-hidden="true">Publish</span> : null}
           </button>
         </div>
       </header>
@@ -1141,7 +1223,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
       {view === "markdown" ? <MarkdownView slug={meta.slug} source={serializePost(draftToPost({ ...doc, ...meta, body: editor?.getMarkdown() ?? doc.body }, doc.updatedAt))} /> : null}
 
       {meta.cover && coverStyle(meta.cover) === "banner" && view === "edit" ? (
-        <EditorBanner cover={meta.cover} onChange={(cover) => setMeta((m) => ({ ...m, cover }))} onPick={() => coverPick.current?.click()} />
+        <EditorBanner cover={meta.cover} onChange={(cover) => setMeta((m) => ({ ...m, cover }))} onPick={pickCover} onBrowseAll={browseForCover} />
       ) : null}
       <main hidden={view !== "edit"} className="page-shell editor-canvas article-shell w-full max-w-[672px]" data-cover={meta.cover && coverStyle(meta.cover) === "banner" ? "banner" : undefined} style={fontVars(meta.fonts) as React.CSSProperties}>
         <article className="article" inert={!recoveryReady||Boolean(recovery)}>
@@ -1149,8 +1231,19 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
             <div className="editor-page-tools" data-has-icon={meta.icon ? "" : undefined}>
               <IconPicker icon={meta.icon} onChange={(icon) => setMeta((m) => ({ ...m, icon }))} />
               {!meta.cover ? (
-                <button type="button" className="admin-chip page-icon-add" onClick={() => coverPick.current?.click()}>
-                  <ImageSquare size={14} aria-hidden="true" /> Add cover
+                <CoverPicker
+                  trigger={
+                    <button type="button" className="admin-chip page-icon-add">
+                      <ImageSquare size={14} aria-hidden="true" /> Add cover
+                    </button>
+                  }
+                  onPick={pickCover}
+                  onBrowseAll={browseForCover}
+                />
+              ) : null}
+              {!subtitleShown ? (
+                <button type="button" className="admin-chip page-icon-add" onClick={() => setSubtitle(true)}>
+                  <Subtitles size={14} aria-hidden="true" /> Add subtitle
                 </button>
               ) : null}
             </div>
@@ -1166,7 +1259,8 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
-                  dekRef.current?.focus();
+                  if (subtitleShown) dekRef.current?.focus();
+                  else editor?.commands.focus("start");
                 }
               }}
               placeholder="Title"
@@ -1175,21 +1269,28 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
               autoFocus={!initial.title}
             />
             <TagsInline tags={meta.tags} onChange={(tags) => setMeta((m) => ({ ...m, tags }))} />
-            <textarea
-              ref={dekRef}
-              className="article-dek editor-field"
-              value={meta.dek}
-              onChange={(e) => setMeta((m) => ({ ...m, dek: e.target.value.replace(/\n/g, " ") }))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  editor?.commands.focus("start");
-                }
-              }}
-              placeholder="A sentence or two that says why it’s worth reading"
-              rows={1}
-              aria-label="Standfirst"
-            />
+            {subtitleShown ? (
+              <div className="editor-dek">
+                <textarea
+                  ref={dekRef}
+                  className="article-dek editor-field"
+                  value={meta.dek}
+                  onChange={(e) => setMeta((m) => ({ ...m, dek: e.target.value.replace(/\n/g, " ") }))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      editor?.commands.focus("start");
+                    }
+                  }}
+                  placeholder="A sentence or two that says why it’s worth reading"
+                  rows={1}
+                  aria-label="Standfirst"
+                />
+                <button type="button" className="editor-dek-hide" aria-label="Hide subtitle" title="Hide subtitle" onClick={() => setSubtitle(false)}>
+                  <EyeSlash size={15} aria-hidden="true" />
+                </button>
+              </div>
+            ) : null}
             <AuthorsEditor authors={meta.authors} minutes={minutes} onChange={(authors) => setMeta((m) => ({ ...m, authors }))} />
           </header>
 
@@ -1197,7 +1298,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
             <figure className="article-cover editor-cover">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={meta.cover.src} alt={meta.cover.alt} width={meta.cover.width} height={meta.cover.height} />
-              <CoverActions cover={meta.cover} onChange={(cover) => setMeta((m) => ({ ...m, cover }))} onPick={() => coverPick.current?.click()} />
+              <CoverActions cover={meta.cover} onChange={(cover) => setMeta((m) => ({ ...m, cover }))} onPick={pickCover} onBrowseAll={browseForCover} />
               <input
                 className="editor-caption"
                 value={meta.cover.caption ?? ""}
@@ -1316,7 +1417,26 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
       <CalloutIconPicker />
       <MediaJobs documentId={initial.id} editor={editor} beforeSave={()=>flush()} enabled={recoveryReady&&!recovery}/>
       <ImportReview editor={editor}/>
-      <MediaLibrary open={panel==="media"} onClose={()=>setPanel(null)} onInsert={asset=>{
+      {editor ? (
+        <MediaPicker
+          accept="any"
+          title="Add a photo, video or audio"
+          open={bodyMedia !== null}
+          onOpenChange={(open) => { if (!open) setBodyMedia(null); }}
+          anchor={caretAnchor}
+          finalFocus={() => editor.view.dom}
+          onPick={(pick) => { if (bodyMedia !== null) editor.chain().focus().insertContentAt(Math.min(bodyMedia, editor.state.doc.content.size), pickedNode(pick)).run(); }}
+          onFiles={(files) => void insertImages.current(files, bodyMedia ?? undefined)}
+          onBrowseAll={() => { libraryFor.current = "body"; setPanel("media"); }}
+        />
+      ) : null}
+      <MediaLibrary open={panel==="media"} onClose={()=>{libraryFor.current="body";setPanel(null);}} onInsert={asset=>{
+        if(libraryFor.current==="cover"){
+          if(!asset.type.startsWith("image/"))return;
+          const size=imageInfo(asset.src);
+          pickCover({kind:"image",src:asset.src,width:size?.width,height:size?.height,alt:asset.alt??""});
+          libraryFor.current="body";setPanel(null);return;
+        }
         if(!editor)return;
         editor.chain().focus().insertContent(asset.type.startsWith("image/")?{type:"image",attrs:{src:asset.src,alt:asset.alt??""}}:{type:"media",attrs:{src:asset.src,kind:asset.type.startsWith("video/")?"video":"audio",caption:""}}).run();setPanel(null);
       }}/>

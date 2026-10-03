@@ -355,12 +355,31 @@
 .admin-row:active {
   scale: 0.99;
 }
-.admin-rows > li + li .admin-row {
-  box-shadow: 0 -1px 0 var(--a-line);
+/* The divider lives on the li, never on the rounded row: a shadow or border
+   on .admin-row follows its 12px radius and bends up at both ends, and the
+   press scale would shrink it too. A flat 1px box stays straight. */
+.admin-rows > li + li:not(.admin-row-skeleton)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  inset-inline: 0;
+  height: 1px;
+  background: var(--a-line);
+  pointer-events: none;
+  transition: opacity 150ms ease;
 }
-.admin-rows > li:hover + li .admin-row,
-.admin-rows > li + li:hover .admin-row {
-  box-shadow: none;
+/* Linear-style: the line steps aside for a filled row on either side. */
+.admin-rows > li[data-selected]::before,
+.admin-rows > li[data-selected] + li::before,
+.admin-rows > li:has(.admin-row:focus-visible)::before,
+.admin-rows > li:has(.admin-row:focus-visible) + li::before {
+  opacity: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .admin-rows > li:hover::before,
+  .admin-rows > li:hover + li::before {
+    opacity: 0;
+  }
 }
 .admin-row-main {
   grid-area: main;
@@ -484,6 +503,9 @@
   -webkit-backdrop-filter: saturate(1.6) blur(14px);
   box-shadow: 0 1px 0 var(--a-line);
   transition: opacity 150ms ease;
+  /* The bar folds by its own width: the workspace sidebar takes room the
+     window's width doesn't show. See "Editor bar: folding" below. */
+  container: editor-bar / inline-size;
 }
 .editor-bar-side {
   display: flex;
@@ -491,14 +513,44 @@
   gap: 0.5rem;
   min-width: 0;
 }
+/* The left side gives way (its status truncates); the right never shrinks,
+   so no button is squeezed into its neighbour and Publish is never cut. */
+.editor-bar-start {
+  flex: 1 1 auto;
+}
+.editor-bar-start > :not(.editor-status),
+.editor-bar-end > *,
+.editor-bar-extra > * {
+  flex-shrink: 0;
+}
+.editor-bar-end {
+  flex: none;
+  gap: 6px;
+}
+.editor-bar-extra {
+  display: contents;
+}
 .editor-status {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
+  min-width: 0;
   padding-left: 0.25rem;
   font-size: 13px;
   font-weight: 500;
   color: var(--a-ink-2);
+  white-space: nowrap;
+}
+.editor-status .admin-dot {
+  flex: none;
+}
+.editor-status-full,
+.editor-status-short {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.editor-bar-publish {
   white-space: nowrap;
 }
 
@@ -683,9 +735,6 @@
   .editor-foot-keys {
     display: none;
   }
-  .editor-status {
-    display: none;
-  }
   .editor-canvas {
     padding-top: 2.5rem;
   }
@@ -781,9 +830,110 @@
     rotate: 360deg;
   }
 }
-@media (max-width: 639px) {
+
+/* ── Editor bar: folding ─────────────────────────────────────────────────
+   Measured against the bar, not the window. Each step frees the room the
+   next width needs, in this order: the status shortens to a word, the save
+   state keeps only its glyph, the view tabs keep only their icons, the
+   secondary buttons fold into More, Publish loses "changes", the status
+   keeps only its dot, Details folds into More. Text that leaves the screen
+   stays for screen readers, and the full status and save state stay as
+   tooltips. */
+.editor-status-short,
+.save-label-sr,
+.editor-bar-more-narrow,
+.editor-bar-publish-short {
+  display: none;
+}
+.save-glyph-wrap {
+  display: inline-flex;
+}
+
+@container editor-bar (max-width: 1280px) {
+  .editor-status-full {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .editor-status-short {
+    display: inline;
+  }
+}
+@container editor-bar (max-width: 1100px) {
   .save-label {
     display: none;
+  }
+  .save-label-sr {
+    display: inline;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+@container editor-bar (max-width: 840px) {
+  .view-switch-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .editor-bar .view-switch .kit-tabs-trigger {
+    width: 30px;
+    padding: 0;
+  }
+  .editor-parent-link {
+    display: none;
+  }
+}
+@container editor-bar (max-width: 680px) {
+  .editor-bar-extra {
+    display: none;
+  }
+  .editor-bar-more-wide {
+    display: none;
+  }
+  .editor-bar-more-narrow {
+    display: inline;
+  }
+  svg.editor-bar-more-narrow {
+    display: block;
+  }
+}
+@container editor-bar (max-width: 520px) {
+  .editor-bar-publish[data-short] .editor-bar-publish-full {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .editor-bar-publish-short {
+    display: inline;
+  }
+}
+@container editor-bar (max-width: 460px) {
+  .editor-status-short {
+    display: none;
+  }
+  .editor-bar-start {
+    gap: 4px;
+  }
+}
+@container editor-bar (max-width: 380px) {
+  .editor-bar-details {
+    display: none;
+  }
+  .editor-bar-end {
+    gap: 4px;
   }
 }
 
@@ -1412,7 +1562,9 @@
   --a-on-red: #fff;
 }
 [data-theme="dark"] {
-  --a-placeholder: #6f6f6f;
+  /* 4.8:1 on the page, 3.5:1 on a filled field in a popover: past the 3:1
+     floor everywhere, still a clear step below --a-ink-3. */
+  --a-placeholder: #858583;
   --a-on-red: #191919;
 }
 /* The selected segment sits on a translucent track: a lighter step, not the page. */

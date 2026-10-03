@@ -157,6 +157,7 @@ export function useBulk({
           timeout: 6000,
           ...(action === "trash"
             ? {
+                data: { countdown: true },
                 actionProps: {
                   children: "Undo",
                   onClick: () => {

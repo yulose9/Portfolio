@@ -51,6 +51,11 @@
 .review-queue-schedule {
   flex-basis: 100%;
 }
+.review-queue-custom {
+  display: grid;
+  gap: 8px;
+  max-width: 18.5rem;
+}
 .review-queue-notice {
   font-size: 13px;
   color: var(--a-ink-2);

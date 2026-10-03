@@ -116,11 +116,14 @@
  *   --shadow-pop   the floating-layer shadow (menus, popovers, toasts)
  *   --img-outline  the 1px edge that keeps an image off the page
  *
- * Contrast (WCAG AA, 4.5:1 for text) in dark, on --paper / --paper-float:
- *   --fg #e9e9e7 14.5 / 12.6, --fg-2 #9b9b9b 6.3 / 5.5,
- *   --fg-3 #8f8f8f 5.4 / 4.7, --on-fg on --fg 14.5.
- * --fg-3 is a shade lighter than Notion's #7f7f7f, which falls to 4.4:1 on
- * the page and 3.8:1 on a menu.
+ * Contrast (WCAG) in dark, on --paper / --paper-float:
+ *   --fg #e9e9e7 14.5 / 12.6 (AAA), --fg-2 #adadab 7.8 / 6.8 (AAA on the
+ *   page), --fg-3 #9c9c9a 6.4 / 5.6 (4.7 on a hovered menu row),
+ *   --fg-4 #767674 3.9 / 3.4 (3:1 for edges, icons and disabled),
+ *   --on-fg on --fg 14.5. Every --tone-* text colour is 6.2:1 or more on
+ *   the page and 4.5:1 or more on its own --tone-*-bg.
+ * Surfaces step #191919 → #202020 → #252525, and since shadows barely read
+ * on a dark page, the floating layer also carries a 1px white edge at 0.12.
  */
 :root {
   --paper: #ffffff;
@@ -178,21 +181,23 @@
   --paper: #191919;
   --paper-raised: #202020;
   --paper-float: #252525;
-  --paper-sunk: #1e1e1e;
+  /* Quiet panels, table heads, striped rows. #1e1e1e was 1.04:1 on the page
+     and vanished; on a dark page a quiet panel has to lift, not sink. */
+  --paper-sunk: #222222;
   --fg: #e9e9e7;
-  --fg-2: #9b9b9b;
-  --fg-3: #8f8f8f;
-  --fg-4: #5c5c5c;
+  --fg-2: #adadab;
+  --fg-3: #9c9c9a;
+  --fg-4: #767674;
   --on-fg: #191919;
   --fg-hover: #ffffff;
-  --line: rgb(255 255 255 / 0.09);
-  --line-strong: rgb(255 255 255 / 0.14);
-  --wash: rgb(255 255 255 / 0.055);
-  --wash-2: rgb(255 255 255 / 0.1);
+  --line: rgb(255 255 255 / 0.1);
+  --line-strong: rgb(255 255 255 / 0.16);
+  --wash: rgb(255 255 255 / 0.07);
+  --wash-2: rgb(255 255 255 / 0.12);
   --tint: 255 255 255;
   --focus: #e9e9e7;
   --img-outline: oklch(1 0 0 / 0.1);
-  --shadow-pop: 0 0 0 1px rgb(255 255 255 / 0.09), 0 2px 4px -1px rgb(0 0 0 / 0.3),
+  --shadow-pop: 0 0 0 1px rgb(255 255 255 / 0.12), 0 2px 4px -1px rgb(0 0 0 / 0.3),
     0 12px 32px -8px rgb(0 0 0 / 0.55);
   --tooltip-bg: #3a3a3a;
   --tooltip-fg: #f2f2f0;
@@ -202,15 +207,17 @@
   --amber: #e0a14a;
   --blue: #6aa1f5;
 
-  --tone-gray: #9b9b9b;
-  --tone-brown: #ba856f;
-  --tone-orange: #c77d48;
-  --tone-yellow: #ca9849;
-  --tone-green: #529e72;
-  --tone-blue: #379ad3;
-  --tone-purple: #9d68d3;
-  --tone-pink: #d15796;
-  --tone-red: #df5452;
+  /* Notion's dark tones sit at 3.1–3.8:1 on their own backgrounds; these are
+     lifted until every one clears 4.5:1 there and 6:1 on the page. */
+  --tone-gray: #adadab;
+  --tone-brown: #c99a85;
+  --tone-orange: #eaa06b;
+  --tone-yellow: #d9ad5f;
+  --tone-green: #6cbb8c;
+  --tone-blue: #5eb0e0;
+  --tone-purple: #b98ae3;
+  --tone-pink: #e98bb8;
+  --tone-red: #f08a86;
   --tone-gray-bg: #2f2f2f;
   --tone-brown-bg: #4a3228;
   --tone-orange-bg: #5c3b23;
@@ -223,7 +230,7 @@
 
   /* The toggles in the footers. */
   --shell-fg-muted: #d4d4d2;
-  --shell-fg-faint: #9b9b9b;
+  --shell-fg-faint: #adadab;
 
   /* The hover slab, relit for a dark page: a faint white face, the lit lip
      dimmed, a dark far edge, and deeper shadows underneath. */
@@ -231,7 +238,7 @@
   --surface-bg: linear-gradient(180deg, #2a2a2a 0%, #232323 100%);
   --surface-ring:
     inset 0 1px 0 0 rgb(255 255 255 / 0.07),
-    inset 0 0 0 1px rgb(255 255 255 / 0.08),
+    inset 0 0 0 1px rgb(255 255 255 / 0.12),
     inset 0 -1.5px 0 0 rgb(0 0 0 / 0.3);
   --surface-lift: 0 1px 1px -0.5px rgb(0 0 0 / 0.3),
     0 2px 4px -1px rgb(0 0 0 / 0.3), 0 6px 12px -3px rgb(0 0 0 / 0.35),
@@ -930,7 +937,7 @@ html.is-grabbing:not(.has-smooth-cursor) * {
   border-radius: 50%;
   cursor: zoom-out;
   /* Same hairline as the preview frame, for one edge treatment on images. */
-  outline: 1px solid oklch(1 1 1 / 0.12);
+  outline: 1px solid oklch(1 0 0 / 0.12);
   outline-offset: -1px;
 }
 
@@ -2467,4 +2474,46 @@ main[tabindex="-1"]:focus {
 }
 :where([data-theme="dark"]) .border-zinc-100 {
   border-color: var(--line);
+}
+
+/*
+ * Text colour marks (cms/inline.ts TEXT_COLORS) are written inline as the
+ * light swatch, so a dark blue picked in the editor would sit at 2.3–2.7:1 on
+ * #191919. Each named swatch maps to its dark-page equivalent (7.4–9.3:1).
+ * !important because the mark's colour is an inline style.
+ */
+[data-theme="dark"] [data-text-color="#52525b"] { color: #adadab !important; }
+[data-theme="dark"] [data-text-color="#854d0e"] { color: #d6a874 !important; }
+[data-theme="dark"] [data-text-color="#b91c1c"] { color: #f28b86 !important; }
+[data-theme="dark"] [data-text-color="#9a3412"] { color: #f29c64 !important; }
+[data-theme="dark"] [data-text-color="#166534"] { color: #6fcf97 !important; }
+[data-theme="dark"] [data-text-color="#1d4ed8"] { color: #7fb0f7 !important; }
+[data-theme="dark"] [data-text-color="#7e22ce"] { color: #c49af0 !important; }
+/* A custom hex keeps its hue and chroma but is lifted to a readable
+   lightness. Browsers without typed attr() drop the declaration and keep the
+   colour as written. */
+[data-theme="dark"] [data-text-color^="#"]:not([data-text-color="#52525b"], [data-text-color="#854d0e"], [data-text-color="#b91c1c"], [data-text-color="#9a3412"], [data-text-color="#166534"], [data-text-color="#1d4ed8"], [data-text-color="#7e22ce"]) {
+  color: oklch(from attr(data-text-color type(<color>)) max(l, 0.76) c h) !important;
+}
+
+/*
+ * Tool logos drawn in black (GitHub, Copilot, the AWS wordmark) vanish on the
+ * dark slab. Inverting and turning the hue back round keeps AWS's orange.
+ */
+[data-theme="dark"] .tool-badge img:is([src$="/github.svg"], [src$="/github-copilot.svg"]) {
+  filter: invert(1);
+}
+[data-theme="dark"] .tool-badge img[src$="/aws.svg"] {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* The portrait's edge: dark hair against #191919 needs the white hairline. */
+[data-theme="dark"] .avatar-button img {
+  outline: 1px solid var(--img-outline);
+  outline-offset: -1px;
+}
+
+/* Other people's cursors: hsl(h 65% 45%) reads at 2–3:1 on the dark page. */
+[data-theme="dark"] .peer-cursor .cursor-shape {
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.5)) brightness(1.35);
 }

@@ -4,7 +4,7 @@ import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import { Tweet } from "react-tweet";
 
 import { isChartType, isNumeric } from "../../../cms/blocks";
-import { parseEmbed, threadsFrame, youtubeFrame, type Embed } from "../../../cms/embeds";
+import { parseEmbed, youtubeFrame, type Embed } from "../../../cms/embeds";
 import CodeBlock from "../code/CodeBlock";
 import CodeTabs from "../code/CodeTabs";
 import { AudioFigure } from "./AudioPlayer";
@@ -13,6 +13,7 @@ import ChoicePoll from "./ChoicePoll";
 import Citation from "./Citation";
 import DataTable, { type DataTableCell, type DataTableProps } from "./DataTable";
 import { MentionSpan } from "./DateMention";
+import SocialEmbed from "./SocialEmbed";
 import VideoPlayer from "./VideoPlayer";
 import { Glimpse, type GlimpseData } from "../kit/inputs/glimpse";
 
@@ -20,7 +21,8 @@ import { Glimpse, type GlimpseData } from "../kit/inputs/glimpse";
  * The body of an article, rendered at build time. The Markdown's hast tree
  * becomes React here, so an embed is a component rather than a string: a post
  * on X is fetched and drawn by react-tweet during the build (no X script ever
- * loads for readers), Threads and YouTube get lazy iframes. Images are marked
+ * loads for readers), Threads and Facebook get their own cards around their
+ * lazy iframes (SocialEmbed), YouTube a lazy player. Images are marked
  * for the zoom the page's enhancement island adds.
  */
 
@@ -52,13 +54,10 @@ function EmbedBlock(props: Record<string, unknown>) {
       </div>
     );
   }
-  if (embed.kind === "threads") {
+  if (embed.kind === "threads" || embed.kind === "facebook") {
     return (
-      <div className="embed embed-threads">
-        <iframe src={threadsFrame(embed)} title={`Threads post by @${embed.user}`} loading="lazy" scrolling="no" allowFullScreen />
-        <a className="embed-source" href={embed.url} target="_blank" rel="noreferrer">
-          View on Threads
-        </a>
+      <div className="embed embed-social">
+        <SocialEmbed embed={embed} />
       </div>
     );
   }

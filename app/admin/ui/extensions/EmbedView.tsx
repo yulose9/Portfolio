@@ -6,14 +6,36 @@ import { useEffect, useState } from "react";
 import { EmbeddedTweet, TweetSkeleton } from "react-tweet";
 import type { Tweet } from "react-tweet/api";
 
-import { parseEmbed, threadsFrame, youtubeFrame } from "../../../../cms/embeds";
+import { parseEmbed, youtubeFrame, type FacebookEmbed, type ThreadsEmbed } from "../../../../cms/embeds";
+import SocialEmbed, { type SocialMeta } from "../../../components/writing/SocialEmbed";
 import { EmbedBase } from "./blocks";
 
 /*
  * The embed, in the editor. A post on X is drawn by react-tweet's own card
  * from data the admin API fetches (the same card the site renders at build);
- * Threads and YouTube show their real players. An empty embed asks for a link.
+ * Threads and Facebook get the site's own cards around their real embeds,
+ * YouTube its real player. An empty embed asks for a link.
  */
+
+/** Threads and Facebook, with whatever author and text the admin API could find. */
+function SocialPreview({ embed }: { embed: ThreadsEmbed | FacebookEmbed }) {
+  const [meta, setMeta] = useState<SocialMeta | undefined>(undefined);
+  useEffect(() => {
+    // Facebook shares nothing without an app token; its card works from the link alone.
+    if (embed.kind !== "threads") return;
+    let live = true;
+    fetch(`/api/admin/embed?url=${encodeURIComponent(embed.url)}`)
+      .then(async (r) => {
+        const body = (await r.json().catch(() => ({}))) as { meta?: SocialMeta };
+        if (live && r.ok && body.meta) setMeta(body.meta);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [embed.kind, embed.url]);
+  return <SocialEmbed embed={embed} meta={meta} />;
+}
 
 type XCard = { author: string; handle: string; text: string; url: string };
 type XState = { tweet?: Tweet; card?: XCard; error?: string };
@@ -86,9 +108,9 @@ function View({ node, updateAttributes, deleteNode, selected }: ReactNodeViewPro
             <div className="embed embed-x">
               <XPreview url={embed.url} />
             </div>
-          ) : embed.kind === "threads" ? (
-            <div className="embed embed-threads">
-              <iframe src={threadsFrame(embed)} title={`Threads post by @${embed.user}`} loading="lazy" scrolling="no" />
+          ) : embed.kind === "threads" || embed.kind === "facebook" ? (
+            <div className="embed embed-social">
+              <SocialPreview embed={embed} />
             </div>
           ) : (
             <div className="embed embed-youtube">
@@ -111,7 +133,7 @@ function View({ node, updateAttributes, deleteNode, selected }: ReactNodeViewPro
           onSubmit={(e) => {
             e.preventDefault();
             if (!parseEmbed(draft)) {
-              setError("Paste a link to a post on X or Threads, or a YouTube video.");
+              setError("Paste a link to a post on X, Threads or Facebook, or a YouTube video.");
               return;
             }
             updateAttributes({ url: draft.trim() });
@@ -131,7 +153,7 @@ function View({ node, updateAttributes, deleteNode, selected }: ReactNodeViewPro
                 deleteNode();
               }
             }}
-            placeholder="Paste a link to a post on X or Threads, or a YouTube video"
+            placeholder="Paste a link to a post on X, Threads or Facebook, or a YouTube video"
             aria-label="Embed link"
           />
           <button type="submit" className="admin-button admin-button-primary">

@@ -3,11 +3,10 @@
 import { Info, Trash, Warning, WarningCircle } from "@phosphor-icons/react";
 import { Toast } from "@base-ui/react/toast";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
-import { useEffect, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, type CSSProperties, type ReactNode, type RefObject } from "react";
 
 import { playSound, type SoundName } from "./sound";
 
-import { buttonClassName } from "../kit/button";
 import { StatusBadge } from "../kit/spinner";
 import { isProgrammaticCopy, snippet, toast } from "../../lib/toast";
 
@@ -194,6 +193,8 @@ function ToastList({ viewport }: { viewport: RefObject<HTMLDivElement | null> })
       const type = isType(t.type) ? t.type : null;
       // One that won't leave on its own keeps its × in view.
       const sticky = t.timeout === 0;
+      // An action on a timer that asks for it (an Undo) shows the time it has left.
+      const countdown = Boolean(t.actionProps && t.timeout && (t.data as { countdown?: boolean } | undefined)?.countdown);
       const title: ReactNode = t.title ?? null;
       const description: ReactNode = t.description ?? null;
       const wording = `${typeof t.title === "string" ? t.title : ""}\u0000${typeof t.description === "string" ? t.description : ""}`;
@@ -207,6 +208,7 @@ function ToastList({ viewport }: { viewport: RefObject<HTMLDivElement | null> })
           data-glyph={type ? "" : undefined}
           data-sticky={sticky ? "" : undefined}
           data-trailing={t.actionProps || sticky ? "" : undefined}
+          data-action={t.actionProps ? "" : undefined}
           // Down, back the way it came, or off to either side.
           swipeDirection={["down", "left", "right"]}
         >
@@ -244,7 +246,25 @@ function ToastList({ viewport }: { viewport: RefObject<HTMLDivElement | null> })
               <Line key={wording} title={title} description={description} />
             </AnimatePresence>
 
-            <Toast.Action className={buttonClassName("secondary", "kt-toast-action")} data-variant="secondary" data-size="xs" />
+            {/* An inline text action: a faint fill, not a heavy block. With a
+                countdown, a ring beside the label runs out with the window. */}
+            <Toast.Action
+              className="kt-toast-action"
+              data-slot="toast-action"
+              render={
+                countdown
+                  ? (props) => (
+                      <button {...props} style={{ ...props.style, "--kt-timeout": `${t.timeout}ms` } as CSSProperties}>
+                        <svg key={t.timeout} className="kt-toast-ring" viewBox="0 0 14 14" aria-hidden="true">
+                          <circle cx="7" cy="7" r="5.25" pathLength={1} />
+                          <circle className="kt-toast-ring-run" cx="7" cy="7" r="5.25" pathLength={1} />
+                        </svg>
+                        {props.children}
+                      </button>
+                    )
+                  : undefined
+              }
+            />
             <Toast.Close className="kt-toast-close" aria-label="Dismiss" data-slot="toast-close">
               <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
                 <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -260,6 +280,17 @@ function ToastList({ viewport }: { viewport: RefObject<HTMLDivElement | null> })
 /** Mount once, in the root layout. */
 export function Toaster() {
   const viewport = useRef<HTMLDivElement>(null);
+  // Base UI pauses toast timers while the window is in the background; the
+  // countdown ring is CSS, so it is told the same through this attribute.
+  useEffect(() => {
+    const mark = () => viewport.current?.toggleAttribute("data-window-blurred", !document.hasFocus());
+    window.addEventListener("blur", mark);
+    window.addEventListener("focus", mark);
+    return () => {
+      window.removeEventListener("blur", mark);
+      window.removeEventListener("focus", mark);
+    };
+  }, []);
   return (
     <Toast.Provider toastManager={toast} timeout={3200} limit={3}>
       <KeyboardToasts />

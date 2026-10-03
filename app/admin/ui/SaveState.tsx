@@ -1,6 +1,7 @@
 "use client";
 
 import UpdatedAt from "../../components/UpdatedAt";
+import { updatedAtExact } from "../../lib/updated-at";
 
 export type SaveStatus = "saved" | "unsaved" | "saving" | "offline" | "error";
 
@@ -22,6 +23,10 @@ const LABEL: Record<SaveStatus, string> = {
 
 export default function SaveState({ status, at, local }: { status: SaveStatus; at: string | null; local?:import("./draft-journal").LocalState }) {
   const label = LABEL[status];
+  const localNote = local === "saved" ? " · Saved on this device" : local === "unavailable" ? " · Local recovery unavailable" : "";
+  // The whole state as plain text: the tooltip, and what a screen reader gets
+  // once a narrow bar folds the label down to the glyph.
+  const full = status === "saved" && at ? `Cloud saved, last updated ${updatedAtExact(at)}` : `${label}${localNote}`;
 
   return (
     <span className="save-state" data-status={status}>
@@ -31,15 +36,20 @@ export default function SaveState({ status, at, local }: { status: SaveStatus; a
       <span className="sr-only" role="status">
         {status === "error" ? "Couldn’t save" : status === "offline" ? "Offline. Retrying the save." : ""}
       </span>
-      <svg className="save-glyph" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-        <circle className="save-ring" cx="8" cy="8" r="5.5" pathLength="100" />
-        <circle className="save-dot" cx="8" cy="8" r="2.75" />
-        <path className="save-check" d="M5.4 8.2 L7.2 10 L10.8 6.2" pathLength="100" />
-        <path className="save-slash" d="M3.8 12.2 L12.2 3.8" pathLength="100" />
-      </svg>
-      <span key={label} className="save-label">
-        {status === "saved" && at ? <>Cloud saved <UpdatedAt at={at} /></> : <>{label}{local === "saved" ? " · Saved on this device" : local === "unavailable" ? " · Local recovery unavailable" : ""}</>}
+      {/* The glyph carries the full text as its tooltip: once the label folds
+          away it's all that's left to hover. */}
+      <span className="save-glyph-wrap" title={full}>
+        <svg className="save-glyph" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+          <circle className="save-ring" cx="8" cy="8" r="5.5" pathLength="100" />
+          <circle className="save-dot" cx="8" cy="8" r="2.75" />
+          <path className="save-check" d="M5.4 8.2 L7.2 10 L10.8 6.2" pathLength="100" />
+          <path className="save-slash" d="M3.8 12.2 L12.2 3.8" pathLength="100" />
+        </svg>
       </span>
+      <span key={label} className="save-label">
+        {status === "saved" && at ? <>Cloud saved <UpdatedAt at={at} /></> : <>{label}{localNote}</>}
+      </span>
+      <span className="save-label-sr">{full}</span>
     </span>
   );
 }

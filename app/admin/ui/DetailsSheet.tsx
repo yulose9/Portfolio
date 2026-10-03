@@ -12,6 +12,8 @@ import { FontsEditor, ShareImageField } from "./MetaEditors";
 import Sheet from "./Sheet";
 import AdminSelect from "./AdminSelect";
 import { Checkbox } from "../../components/kit/checkbox";
+import { DayTimeButton } from "./DayTimeFields";
+import { addDays } from "./clock";
 
 /*
  * Everything about a post that isn't its words: the URL, tags, the cover's
@@ -78,7 +80,7 @@ export default function DetailsSheet({
     <Sheet open={open} onClose={onClose} title="Details" description="URL, tags, fonts, cover and previews.">
       <section className="editorial-fields">
         <AdminSelect label="Editorial stage" value={meta.editorial?.stage??"drafting"} options={[{value:"idea",label:"Idea"},{value:"drafting",label:"Drafting"},{value:"review",label:"In review"},{value:"ready",label:"Ready"}]} onValueChange={stage=>onChange({editorial:{stage:stage as import("../../../cms/editorial").Editorial["stage"],reviewAt:meta.editorial?.reviewAt??null,timezone:"UTC"}})}/>
-        <label className="field"><span className="field-label">Review due (UTC)</span><input className="field-input" type="datetime-local" value={meta.editorial?.reviewAt?.slice(0,16)??""} onChange={e=>{const value=e.target.value;if(!value||Number.isFinite(Date.parse(value+"Z")))onChange({editorial:{stage:meta.editorial?.stage??"drafting",reviewAt:value?new Date(value+"Z").toISOString():null,timezone:"UTC"}});}}/></label>
+        <div className="field"><span className="field-label">Review due (UTC)</span><DayTimeButton label="Review due" value={meta.editorial?.reviewAt?{date:meta.editorial.reviewAt.slice(0,10),time:meta.editorial.reviewAt.slice(11,16)}:null} fallback={()=>({date:addDays(new Date().toISOString().slice(0,10),1),time:"09:00"})} today={new Date().toISOString().slice(0,10)} zoneNote="UTC" onChange={value=>onChange({editorial:{stage:meta.editorial?.stage??"drafting",reviewAt:value?new Date(`${value.date}T${value.time??"09:00"}:00Z`).toISOString():null,timezone:"UTC"}})}/></div>
         <p className="field-help">Private review date. Publication is scheduled separately.</p>
         {doc.publicationReceipt?<p className="field-help" title={doc.publicationReceipt.publishedAt}>Published source {doc.publicationReceipt.sourceUpdatedAt} · Git {doc.publicationReceipt.commit.slice(0,8)}</p>:null}
       </section>

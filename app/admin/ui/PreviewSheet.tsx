@@ -6,17 +6,19 @@ import type { Root } from "hast";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { parseEmbed, threadsFrame, youtubeFrame, type Embed } from "../../../cms/embeds";
+import { parseEmbed, youtubeFrame, type Embed } from "../../../cms/embeds";
 import { coverImageStyle, coverStyle } from "../../../cms/cover";
 import { fluentUrl } from "../../../cms/emoji";
 import { fontLinks, inlineFontLinks, fontVars } from "../../../cms/fonts";
 import { readingMinutes, tagSlug } from "../../../cms/format";
+import { showsSubtitle } from "../../../cms/subtitle";
 import { markdownToTree, outline, setWikiResolver } from "../../../cms/render";
 import { AudioFigure } from "../../components/writing/AudioPlayer";
 import AuthorCard from "../../components/writing/AuthorCard";
 import Byline from "../../components/writing/Byline";
 import FluentText from "../../components/writing/FluentText";
 import ShareRow from "../../components/writing/ShareRow";
+import SocialEmbed from "../../components/writing/SocialEmbed";
 import Tag from "../../components/writing/Tag";
 import Toc from "../../components/writing/Toc";
 import { api, type Draft } from "./api";
@@ -114,10 +116,10 @@ function EmbedPreview(props: Record<string, unknown>) {
         <iframe src={youtubeFrame(embed)} title="YouTube video" loading="lazy" referrerPolicy="strict-origin-when-cross-origin" />
       </div>
     );
-  if (embed.kind === "threads")
+  if (embed.kind === "threads" || embed.kind === "facebook")
     return (
-      <div className="embed embed-threads">
-        <iframe src={threadsFrame(embed)} title="Threads post" loading="lazy" scrolling="no" />
+      <div className="embed embed-social">
+        <SocialEmbed embed={embed} />
       </div>
     );
   return (
@@ -199,7 +201,7 @@ function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
             <h1 className="article-title">
               <FluentText>{meta.title || "Untitled"}</FluentText>
             </h1>
-            {meta.dek ? (
+            {meta.dek && showsSubtitle(meta.fonts) ? (
               <p className="article-dek">
                 <FluentText>{meta.dek}</FluentText>
               </p>

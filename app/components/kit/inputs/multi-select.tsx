@@ -6,12 +6,18 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useMemo, useRef, useState, type ReactNode } from "react";
 
 import { cn } from "../../../lib/cn";
+import { Tooltip } from "../tooltip";
 import { SlidingNumber } from "./counter";
 
 /*
- * A multi-select filter in the manner of Kobra's: a compact trigger with a
- * count, a popover with a search field and checkable options, and the picks
- * shown as small removable chips beside the trigger.
+ * A multi-select filter in the manner of Kobra's: a compact trigger, and a
+ * popover with a search field and checkable options.
+ *
+ * The trigger is one line at one height whatever is picked. Nothing picked,
+ * it reads as its label; then it shows the first one or two picks as small
+ * pills and "+N" for the rest, truncating rather than growing past its cap,
+ * with the whole list in a tooltip. Picks come off in the popover (uncheck),
+ * through its Clear, or all at once with the × at the trigger's end.
  *
  * Built on Base UI's Combobox in multiple mode with the input inside the
  * popup, so the trigger stays one button in a toolbar. Arrow keys move through
@@ -49,16 +55,10 @@ export type MultiSelectProps = {
   /** With `onMatchChange`, shows the Any / All toggle in the popover. */
   match?: MultiSelectMatch;
   onMatchChange?: (match: MultiSelectMatch) => void;
-  /** Extra props for an option's label and a chip, e.g. `data-tint`. */
+  /** Extra props for an option's label and a pill in the trigger, e.g. `data-tint`. */
   itemProps?: (value: string) => Record<string, string | undefined>;
-  /** Show the picks as removable chips beside the trigger. On by default. */
-  chips?: boolean;
-  /**
-   * Which side of the trigger the chips sit on. "start" suits a right-aligned
-   * toolbar: the trigger stays pinned at the end while chips grow away from it,
-   * and the popover lines up with the trigger's fixed right edge.
-   */
-  chipsAt?: "start" | "end";
+  /** How many picks the trigger names before "+N". */
+  maxShown?: number;
   disabled?: boolean;
   className?: string;
 };
@@ -78,8 +78,7 @@ export function MultiSelect({
   match,
   onMatchChange,
   itemProps,
-  chips = true,
-  chipsAt = "end",
+  maxShown = 2,
   disabled,
   className,
 }: MultiSelectProps) {
@@ -87,67 +86,48 @@ export function MultiSelect({
   const input = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
+  const [open, setOpen] = useState(false);
   const still = useReducedMotion();
 
   const byValue = useMemo(() => new Map(options.map((o) => [o.value, o])), [options]);
   const items = useMemo(() => options.map((o) => o.value), [options]);
   const nameOf = (v: string) => byValue.get(v)?.label ?? v;
 
-  const remove = (v: string) => {
-    const next = value.filter((x) => x !== v);
-    onValueChange(next);
-    setStatus(`${nameOf(v)} removed. ${next.length ? `${next.length} selected.` : "No filter."}`);
-    // The chip that held focus is gone: the trigger is the nearest stable place.
-    requestAnimationFrame(() => trigger.current?.focus());
+  const showMatch = Boolean(match && onMatchChange);
+  const shown = value.slice(0, maxShown);
+  const more = value.length - shown.length;
+  const names = value.map(nameOf).join(", ");
+  const summary = showMatch && value.length > 1 ? `${match === "all" ? "All of" : "Any of"}: ${names}` : names;
+
+  const clear = (refocus: boolean) => {
+    onValueChange([]);
+    setStatus("Filter cleared.");
+    // The × that held focus is gone: the trigger is the nearest stable place.
+    if (refocus) requestAnimationFrame(() => trigger.current?.focus());
   };
 
-  const showMatch = Boolean(match && onMatchChange);
-
-  const chipList = chips ? (
-    <ul className="ki-ms-chips" aria-label={`Selected ${label.toLowerCase()}`}>
-      <AnimatePresence initial={false} mode="popLayout">
-        {value.map((v) => (
-          <motion.li
-            key={v}
-            layout={still ? false : "position"}
-            initial={{ opacity: 0, scale: 0.9, filter: "blur(2px)" }}
-            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-            exit={{
-              opacity: 0,
-              scale: 0.95,
-              filter: "blur(2px)",
-              transition: still ? INSTANT : { duration: 0.15, ease: EASE_OUT },
-            }}
-            transition={still ? INSTANT : { duration: 0.2, ease: EASE_OUT, layout: SLIDE }}
-            className="ki-ms-chip"
-            data-slot="multi-select-value"
-            {...itemProps?.(v)}
-          >
-            <span>{nameOf(v)}</span>
-            <button
-              type="button"
-              data-slot="multi-select-remove"
-              className="ki-ms-chip-remove"
-              aria-label={`Remove ${nameOf(v)}`}
-              disabled={disabled}
-              onClick={() => remove(v)}
-            >
-              <X size={10} weight="bold" aria-hidden="true" />
-            </button>
-          </motion.li>
-        ))}
-      </AnimatePresence>
-    </ul>
-  ) : null;
+  // What appears and leaves inside the trigger: a short blur-scale, while the
+  // pieces that stay slide over on the spring.
+  const piece = {
+    layout: still ? false : ("position" as const),
+    initial: { opacity: 0, scale: 0.9, filter: "blur(2px)" },
+    animate: { opacity: 1, scale: 1, filter: "blur(0px)" },
+    exit: {
+      opacity: 0,
+      scale: 0.95,
+      filter: "blur(2px)",
+      transition: still ? INSTANT : { duration: 0.15, ease: EASE_OUT },
+    },
+    transition: still ? INSTANT : { duration: 0.2, ease: EASE_OUT, layout: SLIDE },
+  };
 
   return (
     <div
       className={cn("ki-ms", className)}
       data-slot="multi-select"
-      data-chips-at={chipsAt}
+      data-has-value={value.length ? "" : undefined}
       data-disabled={disabled || undefined}
     >
-      {chipsAt === "start" ? chipList : null}
       <Combobox.Root<string, true>
         multiple
         items={items}
@@ -166,45 +146,54 @@ export function MultiSelect({
           }
           setQuery(v);
         }}
-        onOpenChangeComplete={(open) => {
-          if (!open) setQuery("");
+        onOpenChange={setOpen}
+        onOpenChangeComplete={(isOpen) => {
+          if (!isOpen) setQuery("");
         }}
         disabled={disabled}
         autoHighlight
       >
-        <Combobox.Trigger
-          ref={trigger}
-          data-slot="multi-select-trigger"
-          className="ki-ms-trigger"
-          aria-label={value.length ? `${label}, ${value.length} selected` : label}
-        >
-          {icon}
-          <span>{label}</span>
-          <AnimatePresence initial={false}>
-            {value.length ? (
-              <motion.span
-                key="badge"
-                className="ki-ms-badge"
-                aria-hidden="true"
-                initial={{ opacity: 0, scale: 0.6, filter: "blur(2px)" }}
-                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                exit={{ opacity: 0, scale: 0.6, filter: "blur(2px)", transition: still ? INSTANT : { duration: 0.12, ease: EASE_OUT } }}
-                transition={still ? INSTANT : { duration: 0.2, ease: EASE_OUT }}
-              >
-                <SlidingNumber value={value.length} />
-              </motion.span>
-            ) : null}
-          </AnimatePresence>
-          <CaretDown className="ki-ms-caret" size={12} weight="bold" aria-hidden="true" />
-        </Combobox.Trigger>
+        {/* The full list, for when the trigger names only some of it or truncates. */}
+        <Tooltip content={summary} disabled={open || !value.length} delay={400}>
+          <Combobox.Trigger
+            ref={trigger}
+            data-slot="multi-select-trigger"
+            className="ki-ms-trigger"
+            aria-label={value.length ? `${label}: ${names}` : label}
+          >
+            {icon}
+            <span className="ki-ms-summary">
+              <AnimatePresence initial={false} mode="popLayout">
+                {value.length ? (
+                  shown.map((v) => (
+                    <motion.span
+                      key={v}
+                      {...piece}
+                      className="ki-ms-chip"
+                      data-slot="multi-select-value"
+                      {...itemProps?.(v)}
+                    >
+                      {nameOf(v)}
+                    </motion.span>
+                  ))
+                ) : (
+                  <motion.span key="__label" {...piece} className="ki-ms-text">
+                    {label}
+                  </motion.span>
+                )}
+                {more > 0 ? (
+                  <motion.span key="__more" {...piece} className="ki-ms-more" aria-hidden="true">
+                    +<SlidingNumber value={more} />
+                  </motion.span>
+                ) : null}
+              </AnimatePresence>
+            </span>
+            <CaretDown className="ki-ms-caret" size={12} weight="bold" aria-hidden="true" />
+          </Combobox.Trigger>
+        </Tooltip>
 
         <Combobox.Portal>
-          <Combobox.Positioner
-            anchor={trigger}
-            align={chipsAt === "start" ? "end" : "start"}
-            sideOffset={6}
-            className="ki-positioner"
-          >
+          <Combobox.Positioner anchor={trigger} align="end" sideOffset={6} className="ki-positioner">
             <Combobox.Popup className="ki-popup ki-ms-popup" aria-label={label} data-lenis-prevent>
               <div className="ki-ms-search">
                 <MagnifyingGlass size={14} aria-hidden="true" />
@@ -280,10 +269,7 @@ export function MultiSelect({
                   data-slot="multi-select-clear"
                   className="ki-ms-clear"
                   disabled={!value.length}
-                  onClick={() => {
-                    onValueChange([]);
-                    setStatus("Filter cleared.");
-                  }}
+                  onClick={() => clear(false)}
                 >
                   Clear
                 </button>
@@ -292,7 +278,28 @@ export function MultiSelect({
           </Combobox.Positioner>
         </Combobox.Portal>
       </Combobox.Root>
-      {chipsAt === "end" ? chipList : null}
+
+      {/* Clears every pick at once. A sibling of the trigger (a button can't
+          hold a button), laid over the end of it. */}
+      <AnimatePresence initial={false}>
+        {value.length ? (
+          <motion.button
+            key="reset"
+            type="button"
+            data-slot="multi-select-reset"
+            className="ki-ms-reset"
+            aria-label={`Clear ${label.toLowerCase()} filter`}
+            disabled={disabled}
+            onClick={() => clear(true)}
+            initial={{ opacity: 0, scale: 0.25, filter: "blur(4px)" }}
+            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+            exit={{ opacity: 0, scale: 0.25, filter: "blur(4px)" }}
+            transition={still ? INSTANT : SLIDE}
+          >
+            <X size={11} weight="bold" aria-hidden="true" />
+          </motion.button>
+        ) : null}
+      </AnimatePresence>
 
       <span className="sr-only" role="status" aria-live="polite">
         {status}

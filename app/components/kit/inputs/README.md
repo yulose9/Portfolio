@@ -104,10 +104,10 @@ The chip row stays on one line and scrolls sideways, because the drag library me
 
 ## `multi-select.tsx`: `MultiSelect`
 
-A filter in the manner of Kobra's multi-select, on Base UI's Combobox in multiple mode with the input inside the popup. A compact trigger shows the label and a count badge. The popover holds a search field, checkable options with an optional count, an optional Any / All match toggle and a Clear action. The picks show as removable chips after the trigger.
+A filter in the manner of Kobra's multi-select, on Base UI's Combobox in multiple mode with the input inside the popup. The trigger stays one line at one height (capped at 280px, truncating): the label when nothing is picked, then the first one or two picks as tinted pills and "+N" for the rest, with the full list in a tooltip and a × that clears them all. The popover holds a search field, checkable options with an optional count, an optional Any / All match toggle and a Clear action.
 
-- **Props:** `options` (`{ value, label?, count? }[]`), `value`, `onValueChange`, `label`, `icon`, `placeholder`, `emptyText`, `match` + `onMatchChange` (both needed for the toggle), `itemProps` (extra props for an option's label and a chip, e.g. `data-tint`), `chips` (default `true`), `disabled`.
-- **Slots:** `multi-select-trigger`, `multi-select-input`, `multi-select-option` (plays toggle on and off through `data-sound`), `multi-select-match`, `multi-select-clear`, `multi-select-value`, `multi-select-remove`.
+- **Props:** `options` (`{ value, label?, count? }[]`), `value`, `onValueChange`, `label`, `icon`, `placeholder`, `emptyText`, `match` + `onMatchChange` (both needed for the toggle), `itemProps` (extra props for an option's label and a pill in the trigger, e.g. `data-tint`), `maxShown` (picks named before "+N", default `2`), `disabled`.
+- **Slots:** `multi-select-trigger`, `multi-select-input`, `multi-select-option` (plays toggle on and off through `data-sound`), `multi-select-match`, `multi-select-clear`, `multi-select-value`, `multi-select-reset`.
 - **In use:** the tag filter in `admin/ui/PostList.tsx`, with `itemProps={(t) => ({ "data-tint": tagTint(t) })}`.
 
 ## `magnetic-dropzone.tsx`: `MagneticDropzone`

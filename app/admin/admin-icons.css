@@ -1,0 +1,377 @@
+/*
+ * The icon library (app/admin/ui/IconLibrary.tsx) and the shared
+ * Emoji / Icons / Custom source tabs (IconSources.tsx), used by callout
+ * icons, heading icons and "Logo and text". Neutral surfaces and the
+ * editor's tokens only, so both themes come out of the same rules.
+ */
+
+/* ── Library ─────────────────────────────────────────────────────────── */
+
+.icon-library {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  gap: 6px;
+  width: 100%;
+  height: 360px;
+  color: var(--a-ink);
+}
+.icon-library-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 132px);
+  gap: 6px;
+  padding: 2px 2px 0;
+}
+.icon-library-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 9px;
+  background: var(--a-fill-2);
+  color: var(--a-ink-3);
+}
+.icon-library-search:focus-within {
+  box-shadow: var(--a-field-focus);
+}
+.icon-library-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--a-ink);
+  font: inherit;
+  font-size: 14px;
+}
+.icon-library-set .admin-select-trigger {
+  width: 100%;
+  min-height: 32px;
+  padding: 4px 8px 4px 10px;
+  font-size: 12px;
+}
+.icon-library-set .admin-select-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon-library-filters {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.icon-chips {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 2px;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
+}
+.icon-chips::-webkit-scrollbar {
+  display: none;
+}
+.icon-chip {
+  flex-shrink: 0;
+  height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--a-line);
+  color: var(--a-ink-2);
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition-property: background-color, color, box-shadow, scale;
+  transition-duration: 120ms, 120ms, 120ms, var(--press);
+  transition-timing-function: ease, ease, ease, var(--ease);
+}
+.icon-chip[aria-checked="true"] {
+  background: var(--a-ink);
+  box-shadow: none;
+  color: var(--a-on-ink);
+}
+.icon-chip:active {
+  scale: 0.96;
+}
+.icon-chip:focus-visible,
+.icon-cell:focus-visible,
+.icon-tone:focus-visible,
+.icon-link:focus-visible {
+  outline: 2px solid var(--a-blue);
+  outline-offset: 1px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .icon-chip:not([aria-checked="true"]):hover {
+    background: var(--a-fill);
+    color: var(--a-ink);
+  }
+}
+
+.icon-library-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.icon-section + .icon-section {
+  margin-top: 4px;
+}
+.icon-section-title {
+  margin: 4px 4px 2px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--a-ink-3);
+}
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+}
+.icon-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition-property: background-color, scale, opacity;
+  transition-duration: 100ms, var(--press), 150ms;
+  transition-timing-function: ease, var(--ease), ease;
+}
+.icon-cell img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .icon-cell:hover {
+    background: var(--a-fill);
+  }
+}
+.icon-cell:active {
+  scale: 0.9;
+}
+.icon-cell:disabled {
+  opacity: 0.4;
+  cursor: wait;
+}
+.icon-cell[aria-busy="true"] {
+  background: var(--a-fill);
+  cursor: wait;
+}
+.icon-cell[aria-busy="true"] img {
+  opacity: 0.25;
+}
+.icon-cell-spinner {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+}
+.icon-empty {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin: 14px 6px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--a-ink-3);
+}
+.icon-empty[role="status"] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.icon-empty p {
+  margin: 0;
+}
+.icon-empty svg {
+  width: 14px;
+  height: 14px;
+}
+.icon-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--a-ink);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.icon-library-error {
+  margin: 0 4px;
+}
+
+.icon-library-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 30px;
+  padding: 6px 4px 0;
+  box-shadow: 0 -1px 0 var(--a-line);
+}
+.icon-library-credit {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--a-ink-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.icon-tones {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+}
+/* A 16px dot inside a 24px target. */
+.icon-tone {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--tone, var(--a-ink)) content-box;
+  cursor: pointer;
+  transition: scale var(--press) var(--ease);
+}
+.icon-tone:active {
+  scale: 0.9;
+}
+.icon-tone[aria-checked="true"] {
+  box-shadow: 0 0 0 1.5px var(--a-ink-3);
+}
+
+/* ── Source tabs (Emoji / Icons / Custom) ────────────────────────────── */
+
+.icon-sources {
+  display: grid;
+  gap: 10px;
+}
+.icon-sources .emoji-picker {
+  width: 100%;
+  height: 360px;
+}
+.icon-sources-custom {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+.icon-sources-drop.ki-dropzone {
+  min-height: 150px;
+  padding: 20px 16px;
+}
+.callout-icon-panel .icon-library {
+  height: 320px;
+}
+
+/* Panels that hold the library need the room for nine columns. */
+.heading-icon-panel,
+.inline-logo-panel {
+  width: min(372px, calc(100vw - 24px));
+  max-height: var(--available-height, calc(100dvh - 24px));
+  padding: 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.heading-icon-panel .picker-heading,
+.inline-logo-panel .picker-heading {
+  margin-bottom: 12px;
+}
+.heading-icon-panel .heading-icon-preview {
+  margin-bottom: 12px;
+}
+.heading-symbol .picker-field input {
+  width: 100%;
+}
+
+/* ── Logo and text ───────────────────────────────────────────────────── */
+
+.inline-logo-panel {
+  display: grid;
+  gap: 12px;
+}
+.inline-logo-panel .picker-heading {
+  margin-bottom: 0;
+}
+.inline-logo-panel .picker-field {
+  margin: 0;
+}
+.inline-logo-panel .picker-field input {
+  width: 100%;
+}
+.inline-logo-current {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.inline-logo-current p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  color: var(--a-ink);
+}
+.inline-logo-current small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--a-ink-3);
+}
+.inline-logo-swatch {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--a-fill);
+  color: var(--a-ink-3);
+}
+.inline-logo-swatch img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+.inline-logo-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+.inline-logo-panel .picker-footer {
+  margin-top: 0;
+}
+
+@media (max-width: 639px) {
+  .icon-library,
+  .icon-sources .emoji-picker {
+    height: min(420px, 55dvh);
+  }
+  .icon-cell {
+    height: 44px;
+  }
+  .icon-chip {
+    height: 32px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .icon-chip,
+  .icon-cell,
+  .icon-tone {
+    transition-property: background-color, color, opacity;
+  }
+}

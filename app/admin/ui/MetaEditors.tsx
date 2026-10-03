@@ -12,6 +12,7 @@ import Avatar, { AVATAR_STYLES, parseGenerated, randomAvatar } from "../../compo
 import { Avatars, joinNames, named } from "../../components/writing/Byline";
 import { toast } from "../../lib/toast";
 import { mediaName, newMediaId } from "../../../cms/media";
+import { fontsOrNull } from "../../../cms/subtitle";
 import { api, ApiError } from "./api";
 import { onRadioKeys } from "./bits";
 import { shareImage, squareImage } from "./media";
@@ -199,7 +200,7 @@ function FontSelect({ label, value, onChange }: { label: string; value: FontChoi
 export function FontsEditor({ fonts, onChange }: { fonts: Fonts | null; onChange: (f: Fonts | null) => void }) {
   const set = (patch: Fonts) => {
     const next = { ...(fonts ?? {}), ...patch };
-    onChange(next.heading || next.body || next.ligatures === false ? next : null);
+    onChange(fontsOrNull(next));
   };
   return (
     <>

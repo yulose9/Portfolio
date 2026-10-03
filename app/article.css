@@ -24,7 +24,8 @@
   --rule: var(--line);
 }
 [data-theme="dark"] .article-shell {
-  --ink-3: #888888;
+  /* Captions, markers, line numbers: 5.7:1 on the page, a step below --fg-3. */
+  --ink-3: #959593;
 }
 .article {
   color: var(--ink);
@@ -624,7 +625,8 @@
   color: var(--fg);
 }
 [data-theme="dark"] .article-body a {
-  text-decoration-color: rgb(255 255 255 / 0.28);
+  /* The underline is what marks a link in body text: 4.5:1, not 2.5:1. */
+  text-decoration-color: rgb(255 255 255 / 0.45);
 }
 @media (hover: hover) and (pointer: fine) {
   [data-theme="dark"] .article-body a:hover {
@@ -633,4 +635,16 @@
 }
 [data-theme="dark"] .article-body pre code span {
   color: var(--shiki-dark);
+}
+/* github-dark's comment grey (#6a737d) is 3.4:1 on the code panel; GitHub's
+   own dark default (#8b949e) is 5.3:1. */
+[data-theme="dark"] .article-body pre code span[style*="--shiki-dark:#6A737D" i] {
+  color: #8b949e;
+}
+/* The code panel and the frame around it step up to the raised surface, so
+   a block of code reads as a block instead of a 1.04:1 shade of the page. */
+[data-theme="dark"] .article-body pre,
+[data-theme="dark"] .article-body :is(.code-block, .code-tabs),
+[data-theme="dark"] :is(.code-block-header, .code-tabs-header) {
+  background: var(--paper-raised);
 }

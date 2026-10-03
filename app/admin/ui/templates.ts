@@ -56,7 +56,7 @@ export const TEMPLATES: Template[] = [
     title: "Link post",
     hint: "Share a post, video or page, with a take",
     emoji: "🔗",
-    init: { body: ["Paste a link to a post on X, Threads or a YouTube video on the next line.", "", "", "", "What you think of it, and who should read it."].join("\n") },
+    init: { body: ["Paste a link to a post on X, Threads or Facebook, or a YouTube video, on the next line.", "", "", "", "What you think of it, and who should read it."].join("\n") },
   },
   {
     id: "note",

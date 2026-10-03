@@ -1499,6 +1499,7 @@ th[aria-sort="descending"] .data-table-sort {
 [data-theme="dark"] .article-body :is(.table-wrap, .table-block, .data-table-frame)::after {
   background: linear-gradient(to left, rgb(0 0 0 / 0.35), rgb(0 0 0 / 0.1) 40%, transparent);
 }
+[data-theme="dark"] .article-body [data-table-style="minimal"] thead th,
 [data-theme="dark"] .article-body [data-table-style="minimal"] tr:first-child > th:not([scope="row"]) {
   border-bottom-color: var(--line-strong);
 }
@@ -1522,6 +1523,7 @@ th[aria-sort="descending"] .data-table-sort {
 
 /* Charts: a floating tooltip needs a deeper shadow on a dark page. */
 [data-theme="dark"] .chart-tooltip {
+  border-color: rgb(255 255 255 / 0.12);
   box-shadow: 0 4px 16px rgb(0 0 0 / 0.45);
 }
 
@@ -1534,7 +1536,7 @@ th[aria-sort="descending"] .data-table-sort {
   box-shadow: inset 0 0 0 1.5px var(--fg), 0 1px 2px rgb(0 0 0 / 0.3);
 }
 [data-theme="dark"] .poll-indicator {
-  box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.25);
+  box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.42);
 }
 [data-theme="dark"] .poll-choice[data-checked] .poll-indicator {
   box-shadow: inset 0 0 0 5.5px var(--fg);
@@ -1542,8 +1544,9 @@ th[aria-sort="descending"] .data-table-sort {
 [data-theme="dark"] .poll-track {
   background: rgb(255 255 255 / 0.08);
 }
+/* 3:1 against the empty track, so a result reads without its number. */
 [data-theme="dark"] .poll-fill {
-  background: #4a4a4a;
+  background: #7a7a78;
 }
 [data-theme="dark"] .poll-result[data-leading] .poll-fill {
   background: var(--fg);
@@ -1554,7 +1557,15 @@ th[aria-sort="descending"] .data-table-sort {
 
 /* Citations: the card's shadow, the muted site name, the landing wash. */
 [data-theme="dark"] .citation-card {
+  border-color: rgb(255 255 255 / 0.12);
   box-shadow: 0 8px 28px rgb(0 0 0 / 0.5);
+}
+[data-theme="dark"] .code-copy-button[data-copied] {
+  color: var(--green);
+}
+/* Focus and landing rings in the light blue that reads on the dark page. */
+[data-theme="dark"] .article-body .is-cite-target {
+  outline-color: var(--blue);
 }
 [data-theme="dark"] .citation-site {
   color: var(--fg-3);

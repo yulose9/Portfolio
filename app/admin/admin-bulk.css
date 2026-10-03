@@ -92,10 +92,6 @@
 }
 .admin-rows > li[data-selected] .admin-row {
   background: #f0f4ff;
-  box-shadow: none;
-}
-.admin-rows > li[data-selected] + li .admin-row {
-  box-shadow: none;
 }
 @media (hover: hover) and (pointer: fine) {
   .admin-rows > li[data-selected] .admin-row:hover {
@@ -437,6 +433,75 @@
   align-items: center;
   gap: 0.45rem;
   font-variant-numeric: tabular-nums;
+}
+.dtp-presets .admin-chip[aria-pressed="true"] {
+  background: var(--a-ink);
+  color: var(--a-on-ink);
+}
+
+/* Wall-clock day and time (DayTimeFields): a switch, then a typed time. */
+.day-time-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 32px;
+}
+.day-time-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 13px;
+  color: var(--a-ink-2);
+}
+.day-time .day-time-input.field-input {
+  width: 6.5rem;
+  min-height: 32px;
+  padding: 0 0.6rem;
+  border: 0;
+  background: var(--paper);
+  border-radius: 8px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.day-time-trigger.field-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--a-ink);
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.day-time-trigger svg {
+  flex: none;
+  color: var(--a-ink-3);
+}
+.day-time-trigger [data-empty] {
+  color: var(--a-ink-3);
+}
+.day-time-popup {
+  min-width: 7.5rem;
+}
+.day-time-popup .admin-select-option {
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 32px;
+  padding: 6px 10px;
+  font-variant-numeric: tabular-nums;
+}
+.day-time-empty {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--a-ink-3);
+}
+.day-time-empty:empty {
+  display: none;
+}
+@media (pointer: coarse) {
+  .day-time .day-time-input.field-input {
+    min-height: 44px;
+    font-size: 16px;
+  }
 }
 
 /* The editor's date over the title: text until you point at it. */
@@ -951,11 +1016,11 @@
 
 /* ── Dark theme ─────────────────────────────────────────────────────────── */
 [data-theme="dark"] .admin-rows > li[data-selected] .admin-row {
-  background: rgb(35 131 226 / 0.14);
+  background: rgb(35 131 226 / 0.2);
 }
 @media (hover: hover) and (pointer: fine) {
   [data-theme="dark"] .admin-rows > li[data-selected] .admin-row:hover {
-    background: rgb(35 131 226 / 0.2);
+    background: rgb(35 131 226 / 0.26);
   }
 }
 /* The bulk bar stays a dark pill, lifted off the dark page by a lighter
@@ -973,7 +1038,11 @@
   box-shadow: 0 0 0 1px rgb(255 255 255 / 0.06);
 }
 [data-theme="dark"] .palette-switch {
-  background: #4a4a4a;
+  /* 3:1 on the palette's float surface (was 1.7:1). */
+  background: #6e6e6c;
+}
+[data-theme="dark"] .search-scope {
+  border-bottom-color: var(--a-line);
 }
 [data-theme="dark"] .palette-switch::after {
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.5);

@@ -193,12 +193,16 @@ export const PollBase = Node.create({
     },
   },
   parseMarkdown: (token: MarkdownToken) => ({ type: "poll", attrs: { pollId: token.pollId, question: token.question, options: token.options } }),
-  renderMarkdown: (node: JSONContent) =>
-    pollMarkdown({
+  renderMarkdown: (node: JSONContent) => {
+    const filled = ((node.attrs?.options as string[]) ?? []).map(String).filter((o) => o.trim());
+    // Blank options are dropped, but never below the two a poll needs: a poll
+    // saved mid-edit with one blank option must still read back as a poll.
+    return pollMarkdown({
       id: String(node.attrs?.pollId ?? ""),
       question: String(node.attrs?.question ?? ""),
-      options: ((node.attrs?.options as string[]) ?? []).map(String).filter((o) => o.trim()),
-    }),
+      options: filled.length >= 2 ? filled : [...filled, "", ""].slice(0, 2),
+    });
+  },
 });
 
 /* ── Citation (inline) ───────────────────────────────────────────────── */

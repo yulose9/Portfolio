@@ -1,13 +1,35 @@
 "use client";
 
 import { ArrowsDownUp, ImageSquare, MagnifyingGlassMinus, MagnifyingGlassPlus, X } from "@phosphor-icons/react";
-import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useRef, useState, type KeyboardEvent, type PointerEvent, type ReactElement } from "react";
 
 import type { Cover } from "../../../cms/format";
 import {
   MAX_COVER_ZOOM, coverImageStyle, coverPosition, coverStyle, coverZoom, withCoverPosition, withCoverStyle, withCoverZoom, type CoverStyle,
 } from "../../../cms/cover";
 import { Slider } from "../../components/kit/slider";
+import MediaPicker, { COVER_SWATCHES, type MediaPick } from "./MediaPicker";
+
+/**
+ * The cover's picker (Gallery, Upload, Link), opened by `trigger`: "Change
+ * cover" on the cover, "Add cover" above the title. Remove only when there's
+ * a cover to remove.
+ */
+export function CoverPicker({
+  trigger,
+  onPick,
+  onRemove,
+  onBrowseAll,
+}: {
+  trigger: ReactElement;
+  onPick: (pick: MediaPick) => void;
+  onRemove?: () => void;
+  onBrowseAll?: () => void;
+}) {
+  return (
+    <MediaPicker accept="image" title="Cover image" trigger={trigger} swatches={COVER_SWATCHES} onPick={onPick} onRemove={onRemove} onBrowseAll={onBrowseAll} />
+  );
+}
 
 /*
  * The cover's hover tools, and the banner style's own view. Classic is the
@@ -25,20 +47,29 @@ export function CoverActions({
   cover,
   onChange,
   onPick,
+  onBrowseAll,
   onReposition,
 }: {
   cover: Cover;
   onChange: (cover: Cover | null) => void;
-  onPick: () => void;
+  onPick: (pick: MediaPick) => void;
+  onBrowseAll?: () => void;
   /** Only the banner crops its picture, so only it offers this. */
   onReposition?: () => void;
 }) {
   const style = coverStyle(cover);
   return (
     <div className="editor-cover-actions">
-      <button type="button" className="admin-chip" onClick={onPick}>
-        <ImageSquare size={13} aria-hidden="true" /> Change cover
-      </button>
+      <CoverPicker
+        trigger={
+          <button type="button" className="admin-chip">
+            <ImageSquare size={13} aria-hidden="true" /> Change cover
+          </button>
+        }
+        onPick={onPick}
+        onRemove={() => onChange(null)}
+        onBrowseAll={onBrowseAll}
+      />
       {onReposition ? (
         <button type="button" className="admin-chip" onClick={onReposition}>
           <ArrowsDownUp size={13} aria-hidden="true" /> Reposition and zoom
@@ -83,10 +114,12 @@ export function EditorBanner({
   cover,
   onChange,
   onPick,
+  onBrowseAll,
 }: {
   cover: Cover;
   onChange: (cover: Cover | null) => void;
-  onPick: () => void;
+  onPick: (pick: MediaPick) => void;
+  onBrowseAll?: () => void;
 }) {
   const [moving, setMoving] = useState<number | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -175,7 +208,7 @@ export function EditorBanner({
         </>
       ) : (
         <>
-          <CoverActions cover={cover} onChange={onChange} onPick={onPick} onReposition={() => {
+          <CoverActions cover={cover} onChange={onChange} onPick={onPick} onBrowseAll={onBrowseAll} onReposition={() => {
               setZoom(coverZoom(cover));
               setMoving(coverPosition(cover));
             }} />

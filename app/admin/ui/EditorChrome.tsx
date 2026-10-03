@@ -2,6 +2,7 @@
 import { ownInteraction } from "./editor-interactions";
 import ColorPicker from "./ColorPicker";
 import { setDragHandleLocked } from "./drag-handle-lock";
+import { useBlockDragGhost } from "./block-drag-ghost";
 
 import {
   ArrowDown,
@@ -57,6 +58,7 @@ import {
   currentBlock,
   deleteBlock,
   duplicateBlock,
+  duplicateSelection,
   inserts,
   MARKS,
   moveBlock,
@@ -250,12 +252,7 @@ export function EditorContextMenu({ editor, children, ...pick }: { editor: Edito
           </MItem>
         ) : null}
         <MSep />
-        <MItem icon={<CopySimple {...I} />} keys={keys(shortcutLabel("duplicate"))} onSelect={() => {
-          if (info.blocks) {
-            const { from, to } = editor.state.selection;
-            editor.chain().focus().insertContentAt(to, editor.state.doc.slice(from, to).content.toJSON()).run();
-          } else { const b = block(); if (b) duplicateBlock(editor, b.pos); }
-        }}>
+        <MItem icon={<CopySimple {...I} />} keys={keys(shortcutLabel("duplicate"))} onSelect={() => { duplicateSelection(editor); }}>
           {info.blocks ? "Duplicate selected blocks" : "Duplicate block"}
         </MItem>
         <MItem icon={<ArrowUp {...I} />} keys={keys(shortcutLabel("moveUp"))} onSelect={() => { const b = block(); if (b) moveBlock(editor, b.pos, -1); }}>
@@ -295,6 +292,7 @@ export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Edito
   const target = useRef<number | null>(null);
   const grip = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
+  useBlockDragGhost(editor);
   useEffect(() => {
     setDragHandleLocked(editor, open);
     const lease=open?ownInteraction(editor,()=>setOpen(false)):null;
@@ -379,12 +377,7 @@ export const BlockHandle = memo(function BlockHandle({ editor }: { editor: Edito
                   </MItem>
                 ))}
               </MSub>
-              <MItem icon={<CopySimple {...I} />} keys={keys(shortcutLabel("duplicate"))} onSelect={() => {
-                if (selectedCount > 1) {
-                  const { from, to } = editor.state.selection;
-                  editor.chain().focus().insertContentAt(to, editor.state.doc.slice(from, to).content.toJSON()).run();
-                } else { const p = at(); if (p !== null) duplicateBlock(editor, p); }
-              }}>
+              <MItem icon={<CopySimple {...I} />} keys={keys(shortcutLabel("duplicate"))} onSelect={() => { const p = at(); if (p !== null) duplicateBlock(editor, p); }}>
                 Duplicate
               </MItem>
               <MItem icon={<ArrowUp {...I} />} onSelect={() => { const p = at(); if (p !== null) moveBlock(editor, p, -1); }}>

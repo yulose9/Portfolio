@@ -5,6 +5,7 @@ import { ENHANCED_METADATA } from "../constants/seo";
 import DeferredAnalytics from "../providers/DeferredAnalytics";
 import { SoundEffects } from "../components/ui/sound";
 import { ThemeSync } from "../components/ui/theme";
+import { TitleTooltips } from "../components/ui/title-tooltips";
 import { THEME_PAPER, THEME_SCRIPT } from "../lib/theme";
 import LazyToaster from "../components/LazyToaster";
 import PeerCursors from "../components/PeerCursors";
@@ -77,6 +78,7 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeSync />
+        <TitleTooltips />
         <SoundEffects>
           <a href="#main" className="skip-link">
             Skip to content

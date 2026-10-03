@@ -38,6 +38,8 @@ export function trashToast({
     title: live ? "Unpublished and moved to Trash" : "Moved to Trash",
     description: many ? `${count} posts` : short(name ?? ""),
     timeout: UNDO_WINDOW,
+    // A ring beside Undo runs out with the window (components/ui/toast.tsx).
+    data: { countdown: true },
     actionProps: {
       children: "Undo",
       onClick: () => {

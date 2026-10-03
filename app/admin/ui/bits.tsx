@@ -13,6 +13,13 @@ export function statusLabel(p: { status: Draft["status"]; dirty: boolean; publis
   return "Draft";
 }
 
+/** The same state in a word, for a bar with no room; the full label goes in its tooltip. */
+export function statusShort(p: { status: Draft["status"]; dirty: boolean }): string {
+  if (p.status === "scheduled") return "Scheduled";
+  if (p.status === "published") return p.dirty ? "Edited" : "Published";
+  return "Draft";
+}
+
 /**
  * Page or listed-only. A switch, because it's a setting that holds, not an
  * action; the label under it says what readers will get either way.

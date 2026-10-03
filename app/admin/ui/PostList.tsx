@@ -540,7 +540,6 @@ export default function PostList({
         {tagOptions.length && filter !== "trash" ? (
           <MultiSelect
             className="writing-tag-filter"
-            chipsAt="start"
             label="Tags"
             icon={<TagIcon size={14} aria-hidden="true" />}
             placeholder="Search tags…"

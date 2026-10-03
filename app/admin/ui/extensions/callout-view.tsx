@@ -10,6 +10,7 @@ import { fluentUrl } from "../../../../cms/emoji";
 import { MagneticDropzone } from "../../../components/kit/inputs/magnetic-dropzone";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/kit/tabs";
 import { onRadioKeys } from "../bits";
+import IconLibrary from "../IconLibrary";
 import { uploadInlineLogo } from "../media";
 import { beginPendingWork } from "../session";
 import { Callout, CALLOUT_TYPES, calloutIcon, toneOf } from "./blocks";
@@ -19,8 +20,8 @@ import { EmojiPicker } from "./emoji";
  * The callout, in the editor: the same DOM as its renderHTML (so the page's
  * callout styles, drag handles and Markdown all see the same thing), with an
  * icon you can press. Pressing it (click, or Enter / Space when it has focus)
- * opens CalloutIconPicker: emoji, an uploaded or pasted image, no icon, and
- * the callout's colour. One picker serves every callout; the view asks for it
+ * opens CalloutIconPicker: emoji, the icon library, an uploaded or pasted
+ * image, no icon, and the callout's colour. One picker serves every callout; the view asks for it
  * with an event, the way the slash menu's emoji picker is opened.
  */
 
@@ -202,10 +203,14 @@ export function CalloutIconPicker() {
             <Tabs value={tab} onValueChange={(v) => setTab(String(v))} className="callout-icon-tabs">
               <TabsList aria-label="Icon source">
                 <TabsTrigger value="emoji">Emoji</TabsTrigger>
+                <TabsTrigger value="icons">Icons</TabsTrigger>
                 <TabsTrigger value="custom">Custom</TabsTrigger>
               </TabsList>
               <TabsContent value="emoji">
                 <EmojiPicker onPick={choose} />
+              </TabsContent>
+              <TabsContent value="icons">
+                <IconLibrary onPick={choose} onBusy={setBusy} />
               </TabsContent>
               <TabsContent value="custom" className="callout-icon-custom">
                 {shown.image ? (

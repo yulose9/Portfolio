@@ -1,4 +1,5 @@
 import { normalizeAuthors, type Cover, type Draft, type FontChoice, type Fonts } from "../../../../../cms/format";
+import { fontsOrNull, type PageFonts } from "../../../../../cms/subtitle";
 import { cleanEditorDocument } from "../../../../../cms/editor-document";
 import { cleanEditorial } from "../../../../../cms/editorial";
 import { HttpError, json, param, readJson, type AdminFunction } from "../../../../../cms/server/http";
@@ -103,8 +104,10 @@ function cleanFont(f: unknown): FontChoice | null {
 function cleanFonts(value: unknown): Fonts | null {
   if (!value || typeof value !== "object") return null;
   const v = value as Fonts;
-  const fonts = { heading: cleanFont(v.heading), body: cleanFont(v.body), ligatures:v.ligatures !== false };
-  return fonts.heading || fonts.body || !fonts.ligatures ? fonts : null;
+  const fonts: PageFonts = { heading: cleanFont(v.heading), body: cleanFont(v.body), ligatures:v.ligatures !== false };
+  // A hidden subtitle rides on fonts (cms/subtitle.ts); shown isn't stored.
+  if ((v as PageFonts).subtitle === false) fonts.subtitle = false;
+  return fontsOrNull(fonts);
 }
 
 /*

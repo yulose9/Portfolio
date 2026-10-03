@@ -23,7 +23,10 @@ import {
 } from "@phosphor-icons/react";
 import type { Editor } from "@tiptap/core";
 import { isNodeRangeSelection, NodeRangeSelection } from "@tiptap/extension-node-range";
-import { TextSelection } from "@tiptap/pm/state";
+import { Fragment, type Node as PMNode } from "@tiptap/pm/model";
+import { NodeSelection, Selection, TextSelection } from "@tiptap/pm/state";
+import { CellSelection } from "@tiptap/pm/tables";
+import { flashInserted } from "./extensions/interaction-highlight";
 
 /*
  * The editor's verbs, defined once. The slash menu, the right-click menu, the
@@ -205,8 +208,8 @@ export function inserts(pickImage: () => void, pickEmoji?: () => void, pickVoice
     {
       id: "embed",
       title: "Embed",
-      hint: "X, Threads or YouTube",
-      keywords: ["embed", "tweet", "twitter", "x", "threads", "youtube", "video"],
+      hint: "X, Threads, Facebook or YouTube",
+      keywords: ["embed", "tweet", "twitter", "x", "threads", "facebook", "fb", "reel", "youtube", "video"],
       icon: <XLogo {...I} />,
       run: (e) => e.chain().focus().setEmbed("").run(),
     },
@@ -234,15 +237,82 @@ export function currentBlock(editor: Editor) {
   return node ? { pos, node } : null;
 }
 
+/** The top-level blocks the selection touches, as one [from, to) range. */
+export function selectedBlocks(selection: Selection): { from: number; to: number } | null {
+  const { $from, $to } = selection;
+  const from = $from.depth === 0 ? $from.pos : $from.before(1);
+  const to = $to.depth === 0 ? $to.pos : $to.after(1);
+  return from < to ? { from, to } : null;
+}
+
+/** A deep copy with no block ids, so UniqueID gives every copy its own. */
+function withoutIds(node: PMNode): PMNode {
+  if (node.isText) return node;
+  const kids: PMNode[] = [];
+  node.forEach((kid) => kids.push(withoutIds(kid)));
+  const attrs = "blockId" in node.attrs ? { ...node.attrs, blockId: null } : node.attrs;
+  return node.type.create(attrs, Fragment.fromArray(kids), node.marks);
+}
+
+/** The selection, moved `by` into the copy: the same kind, the same offsets. */
+function shifted(selection: Selection, doc: PMNode, by: number): Selection {
+  if (isNodeRangeSelection(selection)) return NodeRangeSelection.create(doc, selection.anchor + by, selection.head + by, selection.depth);
+  if (selection instanceof CellSelection) return CellSelection.create(doc, selection.$anchorCell.pos + by, selection.$headCell.pos + by);
+  if (selection instanceof NodeSelection) return NodeSelection.create(doc, selection.from + by);
+  if (selection instanceof TextSelection) return TextSelection.create(doc, selection.anchor + by, selection.head + by);
+  return Selection.near(doc.resolve(selection.from + by));
+}
+
+/**
+ * Copies the top-level blocks in [from, to) to just after `to`, in order,
+ * as one undo step. A selection inside the range moves into the copy as the
+ * same kind of selection; any other lands at the copy's start. The copies
+ * get fresh block ids and a brief wash.
+ */
+function duplicateRange(editor: Editor, from: number, to: number) {
+  const { state, view } = editor;
+  const copies: PMNode[] = [];
+  state.doc.slice(from, to).content.forEach((node) => copies.push(withoutIds(node)));
+  if (!copies.length) return;
+  const tr = state.tr.insert(to, Fragment.fromArray(copies));
+  const { selection } = state;
+  const inside = selection.from >= from && selection.to <= to;
+  tr.setSelection(inside ? shifted(selection, tr.doc, to - from) : Selection.near(tr.doc.resolve(to)));
+  const ranges: { from: number; to: number }[] = [];
+  let at = to;
+  for (const copy of copies) {
+    ranges.push({ from: at, to: at + copy.nodeSize });
+    at += copy.nodeSize;
+  }
+  flashInserted(view, tr, ranges);
+  view.dispatch(tr.scrollIntoView());
+  editor.commands.focus();
+}
+
+/**
+ * ⌘D: the block the caret is in, or every top-level block the selection
+ * touches (a text range across blocks, a block picked by its handle, a
+ * marquee of blocks), copied as a group right after the last one.
+ */
+export function duplicateSelection(editor: Editor): boolean {
+  const range = selectedBlocks(editor.state.selection);
+  if (!range) return false;
+  duplicateRange(editor, range.from, range.to);
+  return true;
+}
+
+/** The block at `pos`, or the whole selection when `pos` is one of its blocks. */
 export function duplicateBlock(editor: Editor, pos: number) {
-  const selection = editor.state.selection;
-  if (isNodeRangeSelection(selection) && pos >= selection.from && pos < selection.to) {
-    editor.chain().focus().insertContentAt(selection.to, editor.state.doc.slice(selection.from, selection.to).content.toJSON()).run();
+  const range = selectedBlocks(editor.state.selection);
+  if (range && pos >= range.from && pos < range.to) {
+    duplicateRange(editor, range.from, range.to);
     return;
   }
-  const node = editor.state.doc.nodeAt(pos);
+  const $pos = editor.state.doc.resolve(pos);
+  const start = $pos.depth === 0 ? pos : $pos.before(1);
+  const node = editor.state.doc.nodeAt(start);
   if (!node) return;
-  editor.chain().focus().insertContentAt(pos + node.nodeSize, node.toJSON()).run();
+  duplicateRange(editor, start, start + node.nodeSize);
 }
 
 export function deleteBlock(editor: Editor, pos: number) {

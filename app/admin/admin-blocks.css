@@ -297,13 +297,62 @@
 .editor-poll-options .poll-choice:active {
   scale: none;
 }
-.editor-poll-options input {
+/*
+ * The reader's `.poll-choice input` hides its radio (absolute, transparent,
+ * pointer-events: none). Here the input is the option's text field, so undo
+ * all three, or the field can't be seen, clicked or typed in.
+ */
+.editor-poll-options .poll-choice input {
+  position: static;
+  opacity: 1;
+  pointer-events: auto;
   flex: 1;
   min-width: 0;
   height: 44px;
   border: 0;
   background: transparent;
+  color: inherit;
   font: inherit;
+}
+.editor-poll-handle {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 18px;
+  height: 28px;
+  margin-inline: -4px -6px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--a-ink-3);
+  cursor: grab;
+  touch-action: none;
+}
+.editor-poll-handle svg {
+  pointer-events: none;
+}
+.editor-poll-handle:active {
+  cursor: grabbing;
+}
+.editor-poll-handle:focus-visible {
+  outline: 2px solid var(--a-ink);
+  outline-offset: 1px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .editor-poll-handle:hover {
+    background: var(--a-fill);
+    color: var(--a-ink);
+  }
+}
+.editor-poll-option[data-dragging] {
+  opacity: 0.6;
+}
+.editor-poll-option[data-drop="before"] {
+  box-shadow: inset 0 2px 0 var(--a-blue);
+}
+.editor-poll-option[data-drop="after"] {
+  box-shadow: inset 0 -2px 0 var(--a-blue);
 }
 .editor-poll-options input:focus-visible {
   outline: none;
@@ -1363,7 +1412,8 @@ div.asset-preview-audio .article-audio {
    What the tokens above can't carry: greys with no token of the same light
    value, the frosted pills over covers, and deeper shadows. */
 [data-theme="dark"] .editor-code-gutter {
-  color: #6b6b6b;
+  /* Line numbers: 4.4:1 on the code panel (was 3.1:1). */
+  color: #858583;
 }
 [data-theme="dark"] .editor-code-gutter span[data-highlighted] {
   color: var(--blue);
@@ -1399,7 +1449,7 @@ div.asset-preview-audio .article-audio {
 }
 [data-theme="dark"] .table-handle {
   background: #3a3a3a;
-  color: #9b9b9b;
+  color: #b5b5b3;
 }
 [data-theme="dark"] .table-handle:hover {
   background: #4a4a4a;

@@ -1,8 +1,10 @@
 import { Extension } from "@tiptap/core";
-import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Plugin, PluginKey, type Transaction } from "@tiptap/pm/state";
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 import { mapInteractionRange } from "../interaction-range";
 type Range = { from: number; to: number } | null;
+/** A washed block; `className` picks the wash (the outline's, by default). */
+type FlashRange = { from: number; to: number; className?: string } | null;
 export const interactionHighlight = new PluginKey<Range>(
   "interactionHighlight",
 );
@@ -10,7 +12,7 @@ export const interactionHighlight = new PluginKey<Range>(
  * The outline's landing mark: whole blocks (a heading and its section's first
  * block) washed for a moment after a jump. Set with `flashBlocks`.
  */
-export const blockFlash = new PluginKey<Range[]>("blockFlash");
+export const blockFlash = new PluginKey<FlashRange[]>("blockFlash");
 /** Keep the target visible while a link form, rather than the editor, has focus. */
 export const InteractionHighlight = Extension.create({
   name: "interactionHighlight",
@@ -43,7 +45,7 @@ export const InteractionHighlight = Extension.create({
         },
       },
     }),
-    new Plugin<Range[]>({
+    new Plugin<FlashRange[]>({
       key: blockFlash,
       state: {
         init: () => [],
@@ -53,6 +55,7 @@ export const InteractionHighlight = Extension.create({
           if (!old.length || !tr.docChanged) return old;
           return old
             .map((r) => ({
+              ...r,
               from: tr.mapping.map(r!.from, 1),
               to: tr.mapping.map(r!.to, -1),
             }))
@@ -68,7 +71,9 @@ export const InteractionHighlight = Extension.create({
             const node = r && state.doc.nodeAt(r.from);
             if (node && r!.from + node.nodeSize === r!.to)
               marks.push(
-                Decoration.node(r!.from, r!.to, { class: "outline-flash" }),
+                Decoration.node(r!.from, r!.to, {
+                  class: r!.className ?? "outline-flash",
+                }),
               );
           }
           return DecorationSet.create(state.doc, marks);
@@ -97,4 +102,29 @@ export function flashBlocks(
       view.state.tr.setMeta(blockFlash, []).setMeta("addToHistory", false),
     );
   }, 1300);
+}
+
+/**
+ * Washes blocks that `tr` itself inserts (a duplicate, say). The mark rides
+ * in the same transaction, so there is no extra dispatch, and it is cleared
+ * after `ms`. Fresh nodes get fresh DOM, so the wash always plays from the
+ * start.
+ */
+export function flashInserted(
+  view: Pick<EditorView, "dispatch" | "state" | "isDestroyed">,
+  tr: Transaction,
+  ranges: { from: number; to: number }[],
+  ms = 600,
+) {
+  const run = ++flashRun;
+  tr.setMeta(
+    blockFlash,
+    ranges.map((r) => ({ ...r, className: "block-flash" })),
+  );
+  setTimeout(() => {
+    if (run !== flashRun || view.isDestroyed) return;
+    view.dispatch(
+      view.state.tr.setMeta(blockFlash, []).setMeta("addToHistory", false),
+    );
+  }, ms);
 }

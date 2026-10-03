@@ -9,6 +9,8 @@ import {
   reviewQueue,
 } from "../../../cms/review-queue";
 import type { Editorial } from "../../../cms/editorial";
+import { todayDate } from "../../../cms/mentions";
+import { DayTimeFields } from "./DayTimeFields";
 
 const format = (iso: string) =>
   new Intl.DateTimeFormat("en", {
@@ -19,6 +21,10 @@ const format = (iso: string) =>
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(iso));
+
+// Read only from event handlers; the React compiler can't see that through
+// the date picker's onConfirm, so the clock read lives out here.
+const currentTime = () => Date.now();
 
 export default function ReviewQueue({
   posts,
@@ -85,7 +91,7 @@ export default function ReviewQueue({
             : "Review date cleared. Editorial stage unchanged.",
       );
       setEditing(null);
-      setNow(Date.now());
+      setNow(currentTime());
       timing.current
         ?.querySelector<HTMLButtonElement>('[aria-pressed="true"]')
         ?.focus();
@@ -102,6 +108,15 @@ export default function ReviewQueue({
       lock.current = false;
       setBusy(false);
     }
+  };
+  // `value` is Manila wall time, "YYYY-MM-DDTHH:MM".
+  const schedule = (post: PostSummary, value: string) => {
+    const instant = reviewInstant(value);
+    if (!instant || Date.parse(instant) <= currentTime()) {
+      setError("Choose a future review date and time.");
+      return;
+    }
+    void save(post, { ...post.editorial!, reviewAt: instant });
   };
   return (
     <section
@@ -223,12 +238,7 @@ export default function ReviewQueue({
               className="review-queue-schedule research-form"
               onSubmit={(e) => {
                 e.preventDefault();
-                const instant = reviewInstant(date);
-                if (!instant || Date.parse(instant) <= Date.now()) {
-                  setError("Choose a future review date and time.");
-                  return;
-                }
-                void save(post, { ...post.editorial!, reviewAt: instant });
+                schedule(post, date);
               }}
             >
               <div className="research-actions">
@@ -252,15 +262,17 @@ export default function ReviewQueue({
                   </button>
                 ))}
               </div>
-              <label>
-                Custom date · Manila
-                <input
-                  type="datetime-local"
-                  required
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
+              <div className="review-queue-custom">
+                <span className="field-label">Custom date · Manila</span>
+                <DayTimeFields
+                  value={{ date: date.slice(0, 10), time: date.slice(11, 16) }}
+                  onChange={(value) => setDate(`${value.date}T${value.time ?? "09:00"}`)}
+                  onConfirm={(value) => schedule(post, `${value.date}T${value.time ?? "09:00"}`)}
+                  today={todayDate()}
+                  optionalTime={false}
+                  zoneNote="Manila time (UTC+8)"
                 />
-              </label>
+              </div>
               <div className="research-actions">
                 <button
                   className="admin-button admin-button-primary"

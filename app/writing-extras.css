@@ -492,11 +492,15 @@ button.tag:active {
 [data-theme="dark"] .article-audio {
   background: var(--paper-raised);
 }
+/* The unplayed waveform at 3:1 on the raised player, so its shape reads. */
 [data-theme="dark"] .voice-bar {
-  background: rgb(255 255 255 / 0.2);
+  background: rgb(255 255 255 / 0.36);
 }
 [data-theme="dark"] .voice-bars-hover .voice-bar {
-  background: rgb(255 255 255 / 0.42);
+  background: rgb(255 255 255 / 0.52);
+}
+[data-theme="dark"] :is(.voice-play, .voice-speed, .voice-wave):focus-visible {
+  outline-color: var(--blue);
 }
 [data-theme="dark"] .writing-button {
   color: #d4d4d2;
