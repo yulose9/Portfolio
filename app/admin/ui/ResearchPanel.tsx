@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import type { SelectionBookmark } from "@tiptap/pm/state";
-import { api, type Draft } from "./api";
+import { api, adminPageHref, type Draft } from "./api";
 import type { ResearchItem } from "../../../cms/research";
 import Sheet from "./Sheet";
 import { PageView } from "./PreviewSheet";
@@ -315,7 +315,7 @@ export default function ResearchPanel({
       const id = selection.current.blockId;
       if (!id) throw new Error("Place the cursor in a block first.");
       await navigator.clipboard.writeText(
-        `${location.origin}/admin?post=${doc.id}&block=${encodeURIComponent(id)}`,
+        `${location.origin}${adminPageHref(doc.id, { block: id })}`,
       );
       toast.add({ type: "success", title: "Private block link copied" });
     });
@@ -764,7 +764,7 @@ export default function ResearchPanel({
             <div className="research-actions">
               <a
                 className="admin-button"
-                href={`/admin?post=${preview.id}`}
+                href={adminPageHref(preview.id)}
                 target="_blank"
                 rel="noopener noreferrer"
               >

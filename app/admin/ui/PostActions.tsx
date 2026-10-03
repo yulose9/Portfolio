@@ -28,7 +28,7 @@ import { copy } from "../../components/menu/actions";
 import { useFinePointer } from "../../components/menu/useFinePointer";
 import { toast } from "../../lib/toast";
 import { trashToast } from "./trash-toast";
-import { api, ApiError, type PostSummary } from "./api";
+import { api, ApiError, adminPageHref, type PostSummary } from "./api";
 import type { Panel } from "./Editor";
 import { MenuSurface, MItem, MLabel, MSep } from "./menu";
 import type { Command } from "./registry";
@@ -49,7 +49,7 @@ export type RowActions = {
 };
 
 function rowCommands(p: PostSummary, actions: RowActions, askDelete: () => void, onSelect?: () => void) {
-  const liveUrl = p.liveSlug ? `${SITE}/writing/${p.liveSlug}` : null;
+  const liveUrl = p.liveSlug ? `${SITE}/${p.kind === "project" ? "projects" : "writing"}/${p.liveSlug}` : null;
   const busy = (label: string, run: () => Promise<unknown>) => async () => {
     try {
       await run();
@@ -110,7 +110,7 @@ function rowCommands(p: PostSummary, actions: RowActions, askDelete: () => void,
           Select
         </MItem>
       ) : null}
-      <MItem icon={<ArrowSquareOut {...I} />} onSelect={() => window.open(`/admin?post=${p.id}`, "_blank", "noopener")}>
+      <MItem icon={<ArrowSquareOut {...I} />} onSelect={() => window.open(adminPageHref(p.id), "_blank", "noopener")}>
         Open in new tab
       </MItem>
       {liveUrl ? (

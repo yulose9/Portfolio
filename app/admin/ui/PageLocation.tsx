@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import type { Editor } from "@tiptap/core";
 import { ancestors, canParent } from "../../../cms/page-tree";
-import { api, type PostSummary } from "./api";
+import { api, adminPageHref, type PostSummary } from "./api";
 import Sheet from "./Sheet";
 import Folders from "./Folders";
 import {
@@ -101,7 +101,7 @@ export default function PageLocation({
     };
   }, [editor, id]);
   const go = async (target: string) => {
-    if (await beforeSave()) window.location.assign(`/admin?post=${target}`);
+    if (await beforeSave()) window.location.assign(adminPageHref(target));
     else setError("Save or recover this page before navigating away.");
   };
   const move = async () => {

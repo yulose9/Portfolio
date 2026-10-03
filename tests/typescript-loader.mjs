@@ -13,6 +13,10 @@ export async function resolve(specifier, context, next) {
   }
 }
 export async function load(url, context, next) {
+  if (url.startsWith("file:") && url.endsWith(".json") && !url.includes("/node_modules/")) {
+    const value = JSON.parse(await readFile(new URL(url), "utf8"));
+    return { format: "module", shortCircuit: true, source: `export default ${JSON.stringify(value)};` };
+  }
   if (url.startsWith("file:") && /\.tsx?$/.test(url) && !url.includes("/node_modules/")) {
     const source = await readFile(new URL(url), "utf8");
     return { format: "module", shortCircuit: true, source: ts.transpileModule(source, {

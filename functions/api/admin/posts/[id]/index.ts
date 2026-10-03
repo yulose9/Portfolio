@@ -1,4 +1,5 @@
 import { normalizeAuthors, type Cover, type Draft, type FontChoice, type Fonts } from "../../../../../cms/format";
+import { cleanProject } from "../../../../../cms/projects";
 import { fontsOrNull, type PageFonts } from "../../../../../cms/subtitle";
 import { cleanEditorDocument } from "../../../../../cms/editor-document";
 import { cleanEditorial } from "../../../../../cms/editorial";
@@ -11,7 +12,7 @@ export const onRequestGet: AdminFunction<"id"> = async ({ env, params }) =>
   json({ post: await loadDraft(env, param(params.id)) });
 
 /** The fields the editor may change. Status and what's live belong to the server. */
-const EDITABLE = ["title", "slug", "dek", "icon", "authors", "fonts", "page", "ogImage", "pinned", "tags", "cover", "body", "publishedAt", "editorDocument", "editorial"] as const;
+const EDITABLE = ["title", "slug", "dek", "icon", "authors", "fonts", "page", "ogImage", "pinned", "tags", "cover", "body", "publishedAt", "editorDocument", "editorial", "project"] as const;
 type Edit = Partial<Pick<Draft, (typeof EDITABLE)[number]>> & {
   /** The updatedAt the editor last saw. A mismatch means another tab saved in between. */
   base?: string;
@@ -27,6 +28,7 @@ export const onRequestPut: AdminFunction<"id"> = async ({ env, params, request }
   }
 
   const next: Draft = { ...draft };
+  if (edit.project !== undefined && env.contentKind === "projects") { try { next.project = cleanProject(edit.project); } catch (e) { throw new HttpError((e as Error).message); } }
   if(edit.editorial!==undefined){try{next.editorial=cleanEditorial(edit.editorial);}catch(error){throw new HttpError(error instanceof Error?error.message:"Invalid editorial metadata.");}}
   if (edit.title !== undefined) next.title = String(edit.title).slice(0, 300);
   if (edit.slug !== undefined) next.slug = String(edit.slug).slice(0, 80);

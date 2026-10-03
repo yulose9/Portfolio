@@ -37,7 +37,7 @@ export class PublishError extends Error {
  * refreshes itself while open, and without this every refresh would cost a
  * GitHub call per post. Publishing clears it, so a publish shows at once.
  */
-const liveKey = (env: GitHubEnv) => new Request(`https://cms.internal/live/${env.GITHUB_REPO}/${env.GITHUB_BRANCH}`);
+const liveKey = (env: GitHubEnv) => new Request(`https://cms.internal/live/${env.GITHUB_REPO}/${env.GITHUB_BRANCH}${env.contentKind ? "/projects" : ""}`);
 const edgeCache = () => (typeof caches !== "undefined" ? (caches as unknown as { default: Cache }).default : null);
 
 export async function livePosts(env: GitHubEnv): Promise<Post[]> {
@@ -104,6 +104,18 @@ async function guardPublishedSource(env:CmsEnv,prepared:Prepared) {
 /** Everything a publish will do, without doing it: checks, the file, a rename. */
 function preparePublish(posts: Post[], draft: Draft, now: string, taken: Set<string>): Prepared {
   validate(draft);
+  if (draft.kind === "project") {
+    if (draft.page === false) throw new PublishError("Projects need a public page. Enable the page before publishing.");
+    let parent = draft.parentId;
+    const seen = new Set([draft.id]);
+    while (parent) {
+      if (seen.has(parent)) throw new PublishError("Project hierarchy contains a cycle.");
+      seen.add(parent);
+      const page = posts.find(p => p.id === parent);
+      if (!page || page.page === false) throw new PublishError("Publish the parent project and its ancestors first.");
+      parent = page.parentId;
+    }
+  }
   const unavailable=indexDocument(draft).references.find(r=>r.target!==draft.id&&!posts.some(p=>p.id===r.target&&p.page!==false));
   if(unavailable)throw new PublishError("This draft mentions an unpublished or unavailable page. Publish that page first or remove its mention before publishing this article.");
   const owner = slugOwner(posts, draft.slug, draft.id);
@@ -192,6 +204,7 @@ export async function publishMany(env: CmsEnv, drafts: Draft[]): Promise<{ done:
 
 /** Take several down in one commit; each becomes a draft again. */
 export async function unpublishMany(env: CmsEnv, drafts: Draft[]): Promise<Draft[]> {
+  for (const draft of drafts) await guardProjectChildren(env, draft.id);
   const live = drafts.filter((d) => d.liveSlug);
   if (live.length) {
     const existing = new Set((await livePosts(env)).map((p) => p.slug));
@@ -213,6 +226,7 @@ export async function unpublishMany(env: CmsEnv, drafts: Draft[]): Promise<Draft
 }
 
 export async function schedule(env: CmsEnv, draft: Draft, publishAt: string): Promise<Draft> {
+  if (env.contentKind === "projects") throw new PublishError("Publish project pages explicitly after reviewing them.");
   validate(draft);
   if (draft.liveSlug !== null) throw new PublishError("This post is already live, so it can’t be scheduled. Publish the changes now.");
   const at = Date.parse(publishAt);
@@ -231,6 +245,7 @@ export async function schedule(env: CmsEnv, draft: Draft, publishAt: string): Pr
 
 /** Back to a draft. The file leaves git; its old URLs stop resolving. */
 export async function unpublish(env: CmsEnv, draft: Draft): Promise<Draft> {
+  await guardProjectChildren(env, draft.id);
   if (draft.liveSlug) {
     await commit(env, `writing: unpublish “${draft.title.trim()}”`, [{ path: postPath(draft.liveSlug), delete: true }]);
     await forgetLive(env);
@@ -251,6 +266,7 @@ export async function unpublish(env: CmsEnv, draft: Draft): Promise<Draft> {
 
 /** Remove the live file if there is one; the caller deletes the R2 side. */
 export async function removeLive(env: GitHubEnv, draft: Draft | null, post: Post | null): Promise<void> {
+  await guardProjectChildren(env, draft?.id ?? post?.id ?? "");
   const slug = draft?.liveSlug ?? post?.slug ?? null;
   if (!slug) return;
   const title = draft?.title ?? post?.title ?? slug;
@@ -258,4 +274,8 @@ export async function removeLive(env: GitHubEnv, draft: Draft | null, post: Post
   if ((await readFile(env, postPath(slug))) === null) return;
   await commit(env, `writing: delete “${title.trim()}”`, [{ path: postPath(slug), delete: true }]);
   await forgetLive(env);
+}
+
+async function guardProjectChildren(env: GitHubEnv, id: string) {
+  if (env.contentKind === "projects" && (await livePosts(env)).some(post => post.parentId === id)) throw new PublishError("Unpublish the supporting pages before removing their parent project.", 409);
 }

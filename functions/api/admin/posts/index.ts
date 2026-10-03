@@ -36,6 +36,7 @@ export const onRequestPost: AdminFunction = async ({ env, request }) => {
   }
   const now = new Date().toISOString();
   const draft: Draft = {
+    ...(env.contentKind === "projects" ? { kind: "project" as const } : {}),
     id,
     creationRequestId:input.requestId,
     parentId: input.parentId ?? null,

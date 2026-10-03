@@ -6,6 +6,7 @@ import { SoundEffects } from "../components/ui/sound";
 import { ThemeSync } from "../components/ui/theme";
 import { TitleTooltips } from "../components/ui/title-tooltips";
 import { THEME_PAPER, THEME_SCRIPT } from "../lib/theme";
+import "./kumo.generated.css";
 import "../globals.css";
 import "../kit-inputs.css";
 import "../kit.css";
@@ -27,6 +28,8 @@ import "./admin-code.css";
 import "./admin-blocks.css";
 import "./admin-icons.css";
 import "./admin-workspace.css";
+import "./control-center.css";
+import "../projects.css";
 
 /*
  * The admin's own root layout, separate from the site's on purpose.
@@ -40,7 +43,7 @@ import "./admin-workspace.css";
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "Writing · Admin",
+  title: "Workspace · Admin",
   robots: { index: false, follow: false, nocache: true },
   referrer: "same-origin",
 };

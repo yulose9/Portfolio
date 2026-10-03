@@ -3,6 +3,7 @@ import { test, expect } from "@playwright/test";
 test("review queue reschedules, undoes and handles conflicts", async ({
   page,
 }, info) => {
+  await page.clock.setFixedTime(new Date("2026-10-04T00:00:00.000Z"));
   let draft = {
     id: "abcdefghijkl",
     title: "Review this draft",
@@ -59,7 +60,7 @@ test("review queue reschedules, undoes and handles conflicts", async ({
           : { items: [] };
     await route.fulfill({ json: body });
   });
-  await page.goto("/admin");
+  await page.goto("/admin?section=writing");
   await page.getByRole("button", { name: "Workspace", exact: true }).click();
   await page.getByRole("menuitem", { name: "Research", exact: true }).click();
   await page.getByRole("combobox", { name: "Workspace view" }).click();
@@ -92,13 +93,16 @@ test("review queue reschedules, undoes and handles conflicts", async ({
   expect(writes.length).toBe(4);
   await queue.getByRole("button", { name: "Undo", exact: true }).click();
   await queue.getByRole("button", { name: "Reschedule" }).click();
-  await queue.getByLabel("Custom date · Manila").fill("2099-01-01T09:30");
+  await queue.getByRole("button", { name: "Go to the Next Month" }).click();
+  await queue.getByRole("button", { name: "Sunday, November 1st, 2026", exact: true }).click();
+  await queue.getByRole("combobox", { name: "Time", exact: true }).click();
+  await page.getByRole("option", { name: "9:30 AM", exact: true }).click();
   await page.screenshot({
     path: info.outputPath("review-queue.png"),
     fullPage: true,
   });
   await queue.getByRole("button", { name: "Set review date" }).click();
   await expect(queue.getByRole("button", { name: "Later 1" })).toBeVisible();
-  expect(draft.editorial.reviewAt).toBe("2099-01-01T01:30:00.000Z");
+  expect(draft.editorial.reviewAt).toBe("2026-11-01T01:30:00.000Z");
   await expect(queue.getByRole("button", { name: "Due 0" })).toBeFocused();
 });

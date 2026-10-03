@@ -11,6 +11,8 @@ import { preparedMediaPart } from "./media-journal";
 export type { Draft };
 
 export type PostSummary = {
+  kind?: "project";
+  project?: import("../../../cms/projects").ProjectDetails;
   navigationOrder?: number;
   editorial?: Draft["editorial"];
   parentId?: string | null;
@@ -60,13 +62,24 @@ export class ApiError extends Error {
   }
 }
 
-async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
+let workspaceScope: "writing" | "projects" | undefined;
+export function setApiWorkspace(scope: "writing" | "projects") { workspaceScope = scope; }
+export function getApiWorkspace(): "writing" | "projects" {
+  return workspaceScope ?? (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("section") === "projects" ? "projects" : "writing");
+}
+export function adminPageHref(id: string, extra: Record<string, string> = {}) {
+  return `/admin?${new URLSearchParams({ ...extra, section: getApiWorkspace(), post: id })}`;
+}
+export async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const scope = getApiWorkspace();
+  const projectScope = scope === "projects" && /^\/(posts|bulk|search|research|connections|folders|page-order|pulse)(\/|\?|$)/.test(path);
+  const timeout = path.startsWith("/uploads") ? 120_000 : path.startsWith("/analytics") ? 110_000 : 45_000;
   let res: Response;
   try {
-    res = await fetch(`/api/admin${path}`, {
+    res = await fetch(`/api/admin${projectScope ? "/projects" : ""}${path}`, {
       credentials: "same-origin",
       ...init,
-      signal: init.signal ? AbortSignal.any([init.signal,AbortSignal.timeout(path.startsWith("/uploads") ? 120_000 : 15_000)]) : AbortSignal.timeout(path.startsWith("/uploads") ? 120_000 : 15_000),
+      signal: init.signal ? AbortSignal.any([init.signal,AbortSignal.timeout(timeout)]) : AbortSignal.timeout(timeout),
       headers: { "X-Admin-Request": "1", ...(init.body && typeof init.body === "string" ? { "Content-Type": "application/json" } : {}), ...init.headers },
     });
   } catch {
@@ -113,7 +126,7 @@ export const api = {
   get: (id: string) => call<{ post: Draft }>(`/posts/${id}`),
   save: (
     id: string,
-    edit: Partial<Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover" | "body" | "icon" | "authors" | "fonts" | "page" | "ogImage" | "pinned" | "publishedAt" | "editorDocument" | "editorial">> & { base?: string; snapshot?: boolean }
+    edit: Partial<Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover" | "body" | "icon" | "authors" | "fonts" | "page" | "ogImage" | "pinned" | "publishedAt" | "editorDocument" | "editorial" | "project">> & { base?: string; snapshot?: boolean }
   ) =>
     call<{ post: Draft; snapshotted: boolean }>(`/posts/${id}`, put(edit)),
   duplicate: (id: string) => call<{ post: Draft }>(`/posts/${id}/duplicate`, post()),

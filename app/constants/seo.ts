@@ -11,19 +11,18 @@
 import type { Metadata } from "next";
 
 import { PROFILE, TABS } from "../site-content";
+import { publishedWebsite } from "../../cms/website";
 
 export const SITE_INFO = {
-  name: "John Nazarene Dela Pisa",
+  name: PROFILE.name,
   // The browser tab, and the headline of link previews and search results.
-  title: "John Nazarene, AI Specialist",
-  description:
-    "AI Specialist and Computer Engineer in the Philippines, building products where AI meets infrastructure: agentic systems and the platforms they run on.",
+  title: publishedWebsite.seo.title,
+  description: publishedWebsite.seo.description,
   url: "https://nazarene.dev",
-  author: "John Nazarene Dela Pisa",
+  author: PROFILE.name,
   // The one-line identity used everywhere (schema, llms.txt, author box), so
   // engines see the same sentence wherever they meet it.
-  identity:
-    "John Nazarene Dela Pisa is an AI Specialist at FEAREX Technologies in Cavite, Philippines, building agentic systems and the infrastructure they run on. Before that he spent two years as a Solutions Architect across AWS and RHEL.",
+  identity: PROFILE.biography,
   keywords: [
     "John Nazarene Dela Pisa",
     "AI Specialist",
@@ -43,19 +42,23 @@ export const ID = {
   profile: `${SITE_INFO.url}/#profile`,
 };
 
+const profileLinks = publishedWebsite.tabs.flatMap(tab => tab.links ?? []);
+const socialUrl = (host: string) => profileLinks.find(link => {
+  try { return new URL(link.href).hostname.replace(/^www\./, "") === host; } catch { return false; }
+})?.href ?? "";
 export const SOCIAL_LINKS = {
-  linkedin: "https://www.linkedin.com/in/jannazarene",
-  github: "https://github.com/yulose9",
-  x: "https://x.com/xcszan",
-  email: "jannazarene09@gmail.com",
+  linkedin: socialUrl("linkedin.com"),
+  github: socialUrl("github.com"),
+  x: socialUrl("x.com"),
+  email: profileLinks.find(link => link.href.startsWith("mailto:"))?.href.slice(7) ?? "",
 };
 
 /** The default share image, for pages without their own. */
 export const OG_IMAGE = {
-  url: `${SITE_INFO.url}/images/other/heyyo.png`,
+  url: new URL(publishedWebsite.seo.image || "/images/other/heyyo.png", SITE_INFO.url).toString(),
   width: 1200,
   height: 630,
-  alt: `${SITE_INFO.name}, AI Specialist at ${PROFILE.employer}`,
+  alt: `${SITE_INFO.name}, ${PROFILE.rolePrefix} ${PROFILE.employer}`,
   type: "image/png",
 };
 
@@ -166,7 +169,7 @@ export const PERSON = {
     "Cloud architecture",
   ],
   hasCredential: credentials(),
-  sameAs: [SOCIAL_LINKS.linkedin, SOCIAL_LINKS.github, SOCIAL_LINKS.x],
+  sameAs: [SOCIAL_LINKS.linkedin, SOCIAL_LINKS.github, SOCIAL_LINKS.x].filter(Boolean),
 };
 
 export const WEBSITE = {

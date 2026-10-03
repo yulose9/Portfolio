@@ -3,6 +3,7 @@ import type { MetadataRoute } from "next";
 import { SITE_INFO } from "./constants/seo";
 import { buildTimeCommit } from "./last-commit";
 import { pagedPosts } from "./lib/writing";
+import { publishedProjects } from "./lib/projects";
 
 // `output: "export"` has no request-time rendering, so the route must declare
 // itself static or `next build` refuses to collect it.
@@ -18,6 +19,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteDate = commit ? new Date(commit.date) : undefined;
   const newest = posts[0] ? new Date(posts.reduce((a, p) => (p.updatedAt > a ? p.updatedAt : a), posts[0].updatedAt)) : siteDate;
   return [
+    { url: `${SITE_INFO.url}/projects`, changeFrequency: "monthly", priority: 0.8 },
+    ...publishedProjects().map(project => ({ url: `${SITE_INFO.url}/projects/${project.slug}`, lastModified: new Date(project.updatedAt), changeFrequency: "monthly" as const, priority: 0.7 })),
     { url: SITE_INFO.url, lastModified: siteDate, changeFrequency: "monthly", priority: 1 },
     { url: `${SITE_INFO.url}/writing`, lastModified: newest, changeFrequency: "weekly", priority: 0.8 },
     ...posts.map((post) => ({

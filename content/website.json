@@ -1,0 +1,195 @@
+{
+  "version": 1,
+  "revision": "initial",
+  "profile": {
+    "name": "John Nazarene Dela Pisa",
+    "rolePrefix": "AI Specialist at",
+    "employer": "FEAREX Technologies",
+    "employerUrl": "https://fearextechnologies.com",
+    "photo": "/avatar-1024.webp",
+    "location": "Cavite, Philippines",
+    "biography": "John Nazarene Dela Pisa is an AI Specialist at FEAREX Technologies in Cavite, Philippines, building agentic systems and the infrastructure they run on. Before that he spent two years as a Solutions Architect across AWS and RHEL."
+  },
+  "tools": [
+    {
+      "label": "Claude",
+      "src": "/tools/claude.svg"
+    },
+    {
+      "label": "Claude Code",
+      "src": "/tools/claude-code.svg"
+    },
+    {
+      "label": "Codex",
+      "src": "/tools/codex.svg"
+    },
+    {
+      "label": "Gemini",
+      "src": "/tools/gemini.svg"
+    },
+    {
+      "label": "Google Antigravity",
+      "src": "/tools/antigravity.png"
+    },
+    {
+      "label": "GitHub Copilot",
+      "src": "/tools/github-copilot.svg"
+    },
+    {
+      "label": "GitHub",
+      "src": "/tools/github.svg"
+    },
+    {
+      "label": "VS Code",
+      "src": "/tools/vscode.svg"
+    },
+    {
+      "label": "Figma",
+      "src": "/tools/figma.svg"
+    },
+    {
+      "label": "AWS",
+      "src": "/tools/aws.svg"
+    }
+  ],
+  "tabs": [
+    {
+      "id": "about",
+      "label": "About",
+      "body": [
+        "I am a Computer Engineer based in Cavite, Philippines, working as an AI Specialist at FEAREX Technologies.",
+        "Most of what I build sits where AI meets infrastructure — agentic systems, the platforms they run on, and the tooling that keeps them dependable once they are in production. I care about the unglamorous half: evaluation, orchestration, and the plumbing that decides whether any of it survives contact with real use.",
+        "Before this I spent two years as a Solutions Architect across AWS and RHEL, which is where the infrastructure instincts come from."
+      ],
+      "links": [
+        {
+          "label": "Email",
+          "href": "mailto:jannazarene09@gmail.com",
+          "icon": "email"
+        },
+        {
+          "label": "GitHub",
+          "href": "https://github.com/yulose9",
+          "icon": "github"
+        },
+        {
+          "label": "LinkedIn",
+          "href": "https://www.linkedin.com/in/jannazarene",
+          "icon": "linkedin"
+        },
+        {
+          "label": "X",
+          "href": "https://x.com/xcszan",
+          "icon": "x"
+        },
+        {
+          "label": "Resume",
+          "href": "https://johnnazarene-resume.s3.ap-southeast-1.amazonaws.com/John_Nazarene_Resume_Latest_Cert.pdf",
+          "display": "Download PDF",
+          "icon": "resume"
+        }
+      ]
+    },
+    {
+      "id": "work",
+      "label": "Work",
+      "items": [
+        {
+          "title": "AI Specialist",
+          "company": "FEAREX Technologies",
+          "year": "2026 — Present",
+          "icon": "robot",
+          "href": "https://fearextechnologies.com"
+        },
+        {
+          "title": "Solutions Architect (AWS & RHEL)",
+          "company": "Trends and Technologies",
+          "year": "2024 — 2026",
+          "icon": "hardhat",
+          "href": "https://www.trends.com.ph/",
+          "image": "/images/company-logos/trends-and-technologies.png",
+          "fit": "contain"
+        },
+        {
+          "title": "Design Intern (UI/UX)",
+          "company": "Archicoders",
+          "year": "2023 — 2024",
+          "icon": "palette",
+          "href": "https://archicoders.com/",
+          "image": "/images/company-logos/archicoders.jpg",
+          "fit": "contain"
+        }
+      ]
+    },
+    {
+      "id": "projects",
+      "label": "Projects",
+      "items": [
+        {
+          "title": "This portfolio, redesigned",
+          "year": "2026"
+        }
+      ]
+    },
+    {
+      "id": "certificates",
+      "label": "Certificates",
+      "items": [
+        {
+          "title": "AWS Certified Cloud Practitioner",
+          "company": "Amazon Web Services",
+          "year": "2026",
+          "href": "https://www.credly.com/badges/158758df-43b4-49ea-bd59-034f673aa62f/linked_in_profile",
+          "logo": "cloud"
+        },
+        {
+          "title": "GitHub Copilot",
+          "company": "Microsoft",
+          "year": "2025",
+          "href": "https://learn.microsoft.com/en-us/users/jrdelapisa/credentials/63eb1c0444a4c682",
+          "logo": "github",
+          "image": "/images/certifications/Github_Copilot_badge.png",
+          "fit": "contain"
+        },
+        {
+          "title": "Terraform Associate",
+          "company": "HashiCorp",
+          "year": "2025",
+          "logo": "hashicorp",
+          "href": "https://www.credly.com/badges/bebd520f-8e29-4ec4-9f11-22a35b047349/linked_in_profile",
+          "image": "/images/certifications/TerraformAssociate.png",
+          "fit": "contain"
+        },
+        {
+          "title": "Cloud Digital Leader",
+          "company": "Google",
+          "year": "2025",
+          "logo": "google",
+          "href": "https://www.credly.com/badges/95d75765-13fa-4c81-802c-834c0217da8a/linked_in_profile",
+          "image": "/images/certifications/googlecloudpractitioner.png",
+          "fit": "contain"
+        },
+        {
+          "title": "Azure Fundamentals",
+          "company": "Microsoft",
+          "year": "2024",
+          "logo": "cloud",
+          "href": "https://learn.microsoft.com/api/credentials/share/en-us/JohnNazareneDelaPisa-8958/D57215FE29EAA434",
+          "image": "/images/certifications/microsoft-certified-fundamentals-badge.svg",
+          "fit": "contain"
+        }
+      ]
+    },
+    {
+      "id": "writing",
+      "label": "Writing",
+      "posts": [],
+      "empty": "Nothing published yet."
+    }
+  ],
+  "seo": {
+    "title": "John Nazarene, AI Specialist",
+    "description": "AI Specialist and Computer Engineer in the Philippines, building products where AI meets infrastructure: agentic systems and the platforms they run on.",
+    "image": "/images/other/heyyo.png"
+  }
+}

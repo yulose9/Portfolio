@@ -15,10 +15,10 @@ export default function AuthorCard({ authors }: { authors: Author[] }) {
   return (
     <section className="author-card" aria-label={authors.length > 1 ? "About the authors" : "About the author"}>
       {authors.map((a, i) => {
-        const me = a.name === SITE_INFO.name;
+        const me = a.email?.toLowerCase() === "jannazarene09@gmail.com";
         return (
           <div key={`${a.name}-${i}`} className="author-card-row">
-            <Avatar author={me ? { ...a, avatar: "/avatar-144.webp" } : a} size={56} className="author-card-photo" />
+            <Avatar author={me ? { ...a, avatar: PROFILE.photo } : a} size={56} className="author-card-photo" />
             <div className="author-card-text">
               <p className="author-card-name">
                 {me ? (
@@ -31,7 +31,7 @@ export default function AuthorCard({ authors }: { authors: Author[] }) {
               </p>
               <p className="author-card-bio">
                 {me
-                  ? `${PROFILE.rolePrefix} ${PROFILE.employer}, building agentic systems and the infrastructure they run on.`
+                  ? PROFILE.biography
                   : a.email
                     ? <a href={`mailto:${a.email}`}>{a.email}</a>
                     : null}

@@ -42,7 +42,7 @@ import { DayTimeFields, type DayPreset } from "../DayTimeFields";
 import { addDays } from "../clock";
 import DateMention from "../../../components/writing/DateMention";
 import { toast } from "../../../lib/toast";
-import { api, type PostSummary } from "../api";
+import { api, adminPageHref, type PostSummary } from "../api";
 import { forgetLinkTargets } from "./links";
 
 type Attrs =
@@ -164,7 +164,7 @@ function MentionView(props: NodeViewProps) {
     <NodeViewWrapper as="span" contentEditable={false}>
       <a
         className="page-mention"
-        href={`/admin?post=${encodeURIComponent(props.node.attrs.id)}`}
+        href={adminPageHref(props.node.attrs.id)}
         onClick={(event) => {
           if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
             return;

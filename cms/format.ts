@@ -17,6 +17,8 @@
  * `1.10` → 1.1, a colon in a title).
  */
 
+import publishedIdentity from "../content/website.json";
+
 export type Cover = {
   src: string;
   alt: string;
@@ -38,9 +40,9 @@ export type Author = {
 
 /** Every post is mine unless I say otherwise. */
 export const DEFAULT_AUTHOR: Author = {
-  name: "John Nazarene Dela Pisa",
+  name: publishedIdentity.profile.name,
   email: "jannazarene09@gmail.com",
-  avatar: "/avatar-96.webp",
+  avatar: publishedIdentity.profile.photo,
 };
 
 /** A typeface from a free service: Google Fonts or Fontshare. */
@@ -49,6 +51,8 @@ export type Fonts = { heading?: FontChoice | null; body?: FontChoice | null; lig
 
 /** What a published file carries. */
 export type PostMeta = {
+  kind?: "project";
+  project?: import("./projects").ProjectDetails;
   /** Stable parent page ID; absent for top-level posts. */
   parentId?: string | null;
   /** Stable forever. Slugs can change; the id is how a post is recognised. */
@@ -94,6 +98,8 @@ export type DraftStatus = "draft" | "scheduled" | "published";
  * published snapshot of it.
  */
 export type Draft = {
+  kind?: "project";
+  project?: import("./projects").ProjectDetails;
   editorial?: import("./editorial").Editorial;
   publicationReceipt?: {commit:string;sourceUpdatedAt:string;fingerprint:string|null;publishedAt:string};
   /** Canonical editing tree, with its derived Markdown checkpoint. Private, never front matter. */
@@ -154,6 +160,7 @@ const KEY_ORDER: (keyof PostMeta)[] = [
 
 export function serializePost(post: Post): string {
   const lines = KEY_ORDER.map((key) => `${key}: ${JSON.stringify(post[key] ?? null)}`);
+  if (post.kind === "project") lines.push(`kind: "project"`, `project: ${JSON.stringify(post.project ?? null)}`);
   return `${FENCE}\n${lines.join("\n")}\n${FENCE}\n\n${post.body.trim()}\n`;
 }
 
@@ -172,6 +179,7 @@ export function parsePost(source: string): Post {
   }
 
   const post: Post = {
+    ...(meta.kind === "project" ? { kind: "project" as const, project: meta.project as import("./projects").ProjectDetails } : {}),
     parentId: typeof meta.parentId === "string" && /^[a-z0-9]{12}$/.test(meta.parentId) ? meta.parentId : null,
     id: String(meta.id ?? ""),
     title: String(meta.title ?? ""),
@@ -202,9 +210,9 @@ export function normalizeAuthors(value: unknown): Author[] {
           return Boolean(String(x.name ?? "").trim() || x.avatar || x.email);
         })
         .map((a) => ({
-          name: String(a.name ?? "").trim().slice(0, 120),
+          name: a.email?.toLowerCase() === DEFAULT_AUTHOR.email ? DEFAULT_AUTHOR.name : String(a.name ?? "").trim().slice(0, 120),
           ...(a.email ? { email: String(a.email).trim().slice(0, 200) } : {}),
-          ...(a.avatar ? { avatar: String(a.avatar).slice(0, 500) } : {}),
+          ...(a.email?.toLowerCase() === DEFAULT_AUTHOR.email ? { avatar: DEFAULT_AUTHOR.avatar } : a.avatar ? { avatar: String(a.avatar).slice(0, 500) } : {}),
         }))
         .slice(0, 6)
     : [];
@@ -272,6 +280,7 @@ export function newId(): string {
 
 export function draftToPost(draft: Draft, now: string): Post {
   return {
+    ...(draft.kind === "project" ? { kind: draft.kind, project: draft.project } : {}),
     parentId: draft.parentId ?? null,
     id: draft.id,
     title: draft.title.trim(),
@@ -293,6 +302,7 @@ export function draftToPost(draft: Draft, now: string): Post {
 
 export function postToDraft(post: Post): Draft {
   return {
+    ...(post.kind === "project" ? { kind: post.kind, project: post.project } : {}),
     parentId: post.parentId ?? null,
     id: post.id,
     title: post.title,

@@ -943,7 +943,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
     }
   };
 
-  const liveUrl = doc.liveSlug ? `${SITE}/writing/${doc.liveSlug}` : null;
+  const liveUrl = doc.liveSlug ? `${SITE}/${doc.kind === "project" ? "projects" : "writing"}/${doc.liveSlug}` : null;
   const toTrash = async () => {
     try {
       await flush();
@@ -997,7 +997,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
         run: () =>
           void flush()
             .then(() => api.duplicate(doc.id))
-            .then(({ post: p }) => toast.add({ type: "success", title: "Duplicated", actionProps: { children: "Open", onClick: () => window.open(`/admin?post=${p.id}`, "_self") } })),
+            .then(({ post: p }) => toast.add({ type: "success", title: "Duplicated", actionProps: { children: "Open", onClick: () => window.open(`/admin?section=${doc.kind === "project" ? "projects" : "writing"}&post=${p.id}`, "_self") } })),
       },
       {
         id: "copy-md",
@@ -1135,7 +1135,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
             <span className="editor-status-short" aria-hidden="true">{statusShort(doc)}</span>
           </span>
           <SaveState status={save} at={savedAt} local={localState} />
-          {doc.parentId ? <a className="editor-parent-link" href={`/admin?post=${doc.parentId}`} target="_blank" rel="noreferrer">Parent page ↗</a> : null}
+          {doc.parentId ? <a className="editor-parent-link" href={`/admin?section=${doc.kind === "project" ? "projects" : "writing"}&post=${doc.parentId}`} target="_blank" rel="noreferrer">Parent page ↗</a> : null}
           {deploy ? <DeployPill key={deploy.updatedAt} deploy={deploy} onDismiss={() => setDeploy(null)} /> : null}
         </div>
         <div className="editor-bar-side editor-bar-end">
@@ -1511,7 +1511,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
           if (post.status === "published" && post.liveSlug) {
             const d: Deploy = {
               id: post.id,
-              url: `/writing/${post.liveSlug}`,
+              url: `/${doc.kind === "project" ? "projects" : "writing"}/${post.liveSlug}`,
               updatedAt: post.updatedAt,
               startedAt: Date.now(),
               page: post.page !== false,

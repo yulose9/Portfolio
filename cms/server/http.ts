@@ -1,6 +1,10 @@
 import type { CmsEnv } from "./publish";
 
 export type AdminEnv = CmsEnv & {
+  POSTHOG_QUERY_KEY?: string;
+  POSTHOG_PROJECT_ID?: string;
+  POSTHOG_REGION?: "us" | "eu";
+  ANALYTICS_START_DATE?: string;
   /** https://<team>.cloudflareaccess.com */
   ACCESS_TEAM_DOMAIN?: string;
   /** The Access application's Audience (AUD) tag. */

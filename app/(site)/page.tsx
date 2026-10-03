@@ -1,17 +1,19 @@
-import AvatarZoom from "../components/AvatarZoom";
+import PortfolioContent from "../components/PortfolioContent";
+import { publishedWebsite } from "../../cms/website";
 import PageMenu from "../components/menu/PageMenu";
 import LastUpdated from "../components/LastUpdated";
 import LocalTime from "../components/LocalTime";
-import TabbedIndex from "../components/TabbedIndex";
+
 import { buildTimeCommit } from "../last-commit";
-import ToolRow from "../components/ToolRow";
+
 import { SoundToggle } from "../components/ui/sound";
 import { ThemeToggle } from "../components/ui/theme";
 import type { Metadata } from "next";
 
 import { FEED, homeGraph, jsonLd } from "../constants/seo";
 import { publishedPosts } from "../lib/writing";
-import { PROFILE, TABS, TOOLS, type Tab } from "../site-content";
+import { publishedProjects } from "../lib/projects";
+import { TABS, type Tab } from "../site-content";
 
 // The calendar day in Manila, which is the day the post says it went out.
 const manilaDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" });
@@ -33,7 +35,9 @@ function withWriting(tabs: Tab[]): Tab[] {
             href: p.page ? `/writing/${p.slug}` : undefined,
           })),
         }
-      : tab
+      : tab.id === "projects" && publishedProjects().some(p => !p.parentId)
+        ? { ...tab, items: publishedProjects().filter(p => !p.parentId && p.project?.featured).map(p => ({ title: p.title, year: p.project?.timeframe ?? "", href: `/projects/${p.slug}`, image: p.cover?.src })), links: [{ label: "All projects", href: "/projects" }] }
+        : tab
   );
 }
 
@@ -63,36 +67,7 @@ export default async function Page() {
         data-cursor-frame
         className="page-shell page-enter w-full max-w-[672px] py-16 sm:py-24"
       >
-        <div className="pb-8">
-          <AvatarZoom alt={PROFILE.name} />
-        </div>
-
-        <div className="flex flex-col items-start gap-12">
-          <header className="flex flex-col items-start gap-1">
-            {/* data-cursor="text": the I-beam over the name and role line. The
-                company link inside still gets the hand; links are checked first. */}
-            <h1
-              data-cursor="text"
-              className="m-0 text-balance text-base font-medium leading-6 text-black"
-            >
-              {PROFILE.name}
-            </h1>
-            <p data-cursor="text" className="m-0 text-base font-normal leading-6 text-black">
-              {PROFILE.rolePrefix}{" "}
-              <a
-                href={PROFILE.employerUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-black underline"
-              >
-                {PROFILE.employer}
-              </a>
-            </p>
-            <ToolRow tools={TOOLS} />
-          </header>
-
-          <TabbedIndex tabs={withWriting(TABS)} />
-        </div>
+        <PortfolioContent content={{ ...publishedWebsite, tabs: withWriting(TABS) }} />
 
         {/*
           Two facts, one line: when the site last changed, and what time it is

@@ -18,6 +18,7 @@ export default function ToolRow({ tools }: { tools: Tool[] }) {
     <ul className="tool-row" aria-label="Tools I work with">
       {tools.map((tool) => (
         <li key={tool.src} className="tool-badge" data-label={tool.label} data-keycap="">
+          <a href={tool.href || undefined} target={tool.href ? "_blank" : undefined} rel={tool.href ? "noreferrer" : undefined}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={tool.src}
@@ -30,6 +31,7 @@ export default function ToolRow({ tools }: { tools: Tool[] }) {
             decoding="async"
             draggable={false}
           />
+          </a>
         </li>
       ))}
     </ul>

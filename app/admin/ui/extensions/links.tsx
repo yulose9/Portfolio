@@ -6,7 +6,7 @@ import { ReactRenderer } from "@tiptap/react";
 import Suggestion, { type SuggestionKeyDownProps, type SuggestionProps } from "@tiptap/suggestion";
 import { forwardRef, useImperativeHandle, useState } from "react";
 
-import { api, type PostSummary } from "../api";
+import { api, getApiWorkspace, type PostSummary } from "../api";
 import { Fluent } from "./emoji";
 
 /*
@@ -17,7 +17,12 @@ import { Fluent } from "./emoji";
  */
 
 let posts: Promise<PostSummary[]> | null = null;
-const loadPosts = () => (posts ??= api.list().then((r) => r.posts).catch(() => ((posts = null), [])));
+let workspace = "";
+const loadPosts = () => {
+  const current = getApiWorkspace();
+  if (workspace !== current) { posts = null; workspace = current; }
+  return (posts ??= api.list().then((r) => r.posts).catch(() => ((posts = null), [])));
+};
 /** After a publish or rename the list is stale; the next [[ fetches it again. */
 export const forgetLinkTargets = () => {
   posts = null;
@@ -69,7 +74,7 @@ const LinkList = forwardRef<Handle, Props>(function LinkList({ items, command, q
             <span className="slash-icon">{p.icon ? <Fluent emoji={p.icon} size={16} /> : "↗"}</span>
             <span className="slash-title">{p.title.trim() || "Untitled"}</span>
             <span className="slash-hint">
-              /writing/{p.slug || "…"}
+              /{p.kind === "project" ? "projects" : "writing"}/{p.slug || "…"}
               {p.status === "published" ? "" : p.status === "scheduled" ? ", scheduled" : ", draft"}
             </span>
           </button>
@@ -113,7 +118,7 @@ export function PostLinks(currentId: () => string) {
               .focus()
               .deleteRange(range)
               .insertContent([
-                { type: "text", text: props.title.trim() || props.slug, marks: [{ type: "link", attrs: { href: `/writing/${props.slug}` } }] },
+                { type: "text", text: props.title.trim() || props.slug, marks: [{ type: "link", attrs: { href: `/${props.kind === "project" ? "projects" : "writing"}/${props.slug}` } }] },
                 { type: "text", text: " " },
               ])
               .run();

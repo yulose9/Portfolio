@@ -47,6 +47,8 @@ const GTAG = `
           `;
 
 export default function VendorScripts() {
+  // Explicit rollback switch only. The normal public site uses cookieless PostHog.
+  if (process.env.NEXT_PUBLIC_LEGACY_ANALYTICS !== "1") return null;
   return (
     <>
       {/* Microsoft Clarity — session replay and heatmaps */}

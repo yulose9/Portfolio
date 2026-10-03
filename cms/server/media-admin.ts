@@ -1,6 +1,9 @@
 import { listDrafts } from "./store";
 import { livePosts } from "./publish";
+import { projectEnvironment } from "./project-environment";
 import type { AdminEnv } from "./http";
+import { readFile } from "./github";
+import { publishedWebsite } from "../website";
 
 /*
  * Where media is used, and what belongs to one asset. Shared by the media
@@ -23,17 +26,20 @@ export type MediaSources = { kind: MediaUse["kind"]; pages: Source[] }[];
 
 /** Every page that can reference media: writing drafts and live posts, project drafts, and the website's content. */
 export async function mediaSources(env: AdminEnv): Promise<MediaSources> {
-  // Project drafts join this list once the projects workspace ships.
-  const [drafts, live, website] = await Promise.all([
+  const projectsEnv = projectEnvironment(env);
+  const [drafts, live, projects, publishedProjects, website, publishedSite] = await Promise.all([
     listDrafts(env),
     livePosts(env),
+    listDrafts(projectsEnv),
+    livePosts(projectsEnv),
     env.WRITING.get("website/draft.json")
-      .then((o) => (o ? o.text() : null))
-      .catch(() => null),
+      .then((o) => (o ? o.text() : null)),
+    readFile(env, "content/website.json"),
   ]);
   return [
     { kind: "writing", pages: [...drafts, ...live] },
-    { kind: "website", pages: website ? [{ id: "website", title: "Website", body: website }] : [] },
+    { kind: "project", pages: [...projects, ...publishedProjects] },
+    { kind: "website", pages: [{ id: "website", title: "Website", body: [website, publishedSite ?? JSON.stringify(publishedWebsite)].filter(Boolean).join("\n") }] },
   ];
 }
 

@@ -9,6 +9,7 @@
  */
 
 export type GitHubEnv = {
+  contentKind?: "projects";
   GITHUB_TOKEN: string;
   /** "owner/repo" */
   GITHUB_REPO: string;
@@ -24,6 +25,7 @@ async function gh<T>(env: GitHubEnv, path: string, init: RequestInit = {}): Prom
   const api = env.GITHUB_API ?? "https://api.github.com";
   const res = await fetch(`${api}/repos/${env.GITHUB_REPO}${path}`, {
     ...init,
+    signal: init.signal ? AbortSignal.any([init.signal, AbortSignal.timeout(30000)]) : AbortSignal.timeout(30000),
     headers: {
       Authorization: `Bearer ${env.GITHUB_TOKEN}`,
       Accept: "application/vnd.github+json",
@@ -58,6 +60,7 @@ function decodeBase64(b64: string): string {
 
 /** The file's text on the branch, or null if it isn't there. */
 export async function readFile(env: GitHubEnv, path: string): Promise<string | null> {
+  path = contentPath(env, path);
   try {
     const file = await gh<{ content: string }>(
       env,
@@ -72,6 +75,7 @@ export async function readFile(env: GitHubEnv, path: string): Promise<string | n
 
 /** File names in a folder; an absent folder is an empty one. */
 export async function listDir(env: GitHubEnv, path: string): Promise<{ name: string; path: string }[]> {
+  path = contentPath(env, path);
   try {
     const entries = await gh<{ name: string; path: string; type: string }[]>(
       env,
@@ -92,6 +96,7 @@ export async function listDir(env: GitHubEnv, path: string): Promise<{ name: str
  * on the new head, which is safe because each change names a whole file.
  */
 export async function commit(env: GitHubEnv, message: string, changes: Change[], expected?: {path:string;content:string|null}[]): Promise<string> {
+  changes = changes.map(change => ({ ...change, path: contentPath(env, change.path) }));
   for (let attempt = 0; ; attempt++) {
     const ref = await gh<{ object: { sha: string } }>(env, `/git/ref/heads/${env.GITHUB_BRANCH}`);
     const head = ref.object.sha;
@@ -129,4 +134,8 @@ export async function commit(env: GitHubEnv, message: string, changes: Change[],
       throw error;
     }
   }
+}
+
+function contentPath(env: GitHubEnv, path: string) {
+  return env.contentKind === "projects" ? path.replace(/^content\/writing(?=\/|$)/, "content/projects") : path;
 }

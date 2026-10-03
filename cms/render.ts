@@ -102,9 +102,9 @@ const CALLOUT_TONE: Record<string, string> = {
  * links to that post, matched by title or slug. A link to something not
  * (yet) published stays plain text, marked so it can be styled as pending.
  */
-let wikiTarget: (name: string) => { slug: string } | undefined = () => undefined;
+let wikiTarget: (name: string) => { slug: string; kind?: "project" } | undefined = () => undefined;
 /** Who a [[wikilink]] points to: the site uses published posts, the admin its post list. */
-export function setWikiResolver(fn: (name: string) => { slug: string } | undefined) {
+export function setWikiResolver(fn: (name: string) => { slug: string; kind?: "project" } | undefined) {
   wikiTarget = fn;
 }
 function resolveWiki(name: string) {
@@ -127,7 +127,7 @@ function decorateText(value: string): ElementContent[] {
       const label = (wiki[2] ?? wiki[1]).trim();
       out.push(
         target
-          ? el("a", { href: `/writing/${target.slug}`, className: ["wikilink"] }, [{ type: "text", value: label }])
+          ? el("a", { href: `/${target.kind === "project" ? "projects" : "writing"}/${target.slug}`, className: ["wikilink"] }, [{ type: "text", value: label }])
           : el("span", { className: ["wikilink", "wikilink-missing"], title: "Not published yet" }, [{ type: "text", value: label }])
       );
       continue;
@@ -149,7 +149,7 @@ function decorateText(value: string): ElementContent[] {
  * The editorial pass: figures, callouts, embeds, emoji, highlights, tables,
  * links. One walk, top-down.
  */
-type PageResolver = (id: string) => { slug: string; title: string } | undefined;
+type PageResolver = (id: string) => { slug: string; title: string; kind?: "project" } | undefined;
 function rehypeEditorial(options: { resolvePage?: PageResolver } = {}) {
   return (tree: Root) => {
     const citations: Source[] = [];
@@ -414,7 +414,7 @@ function rehypeEditorial(options: { resolvePage?: PageResolver } = {}) {
           }
           if (pageId) {
             const page = options.resolvePage?.(pageId);
-            kids[i] = page ? el("a", {href:`/writing/${page.slug}`,className:["page-mention"]}, [{type:"text",value:`↗ ${page.title}`}])
+            kids[i] = page ? el("a", {href:`/${page.kind === "project" ? "projects" : "writing"}/${page.slug}`,className:["page-mention"]}, [{type:"text",value:`↗ ${page.title}`}])
               : el("span", {className:["page-mention","page-mention-unpublished"]}, node.children);
             continue;
           }

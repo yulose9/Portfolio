@@ -20,19 +20,35 @@ const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
 const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || '/ingest'
 
 if (key && typeof window !== 'undefined' && !posthog.__loaded) {
+  let optedOut = false;
+  try { optedOut = localStorage.getItem('portfolio:analytics-opt-out') === '1'; } catch { /* privacy storage unavailable */ }
   posthog.init(key, {
     api_host: host,
     ui_host: 'https://us.posthog.com', // Required when using a reverse proxy
-    person_profiles: 'identified_only', // or 'always' to create profiles for anonymous users as well
+    person_profiles: 'never',
+    cookieless_mode: 'always',
+    disable_session_recording: true,
+    respect_dnt: true,
+    opt_out_capturing_by_default: process.env.NODE_ENV !== 'production' || optedOut,
     // Matches the snippet PostHog's project settings currently generate. This
     // also sets capture_pageview to 'history_change': the first view and any
     // client-side navigation are captured by the SDK itself, which is why
     // there is no longer a hand-written pageview component.
     defaults: '2026-05-30',
-    capture_exceptions: true,
+    capture_exceptions: false,
     debug: process.env.NODE_ENV === 'development',
-    autocapture: {
-      dom_event_allowlist: ['click', 'change', 'submit'], // Track clicks, input changes, and form submissions
+    autocapture: false,
+    before_send: event => {
+      if (!event || window.location.pathname.startsWith('/admin') || (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true) return null;
+      if (event.properties) {
+        const pathname = typeof event.properties.$pathname === 'string' ? event.properties.$pathname.split('?')[0].split('#')[0] : window.location.pathname;
+        event.properties.$current_url = window.location.origin + pathname;
+        event.properties.$pathname = pathname;
+        delete event.properties.$initial_current_url;
+        delete event.properties.$referrer;
+        for (const key of Object.keys(event.properties)) if (/utm_|gclid|fbclid/i.test(key)) delete event.properties[key];
+      }
+      return event;
     },
   })
 }

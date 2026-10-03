@@ -6,6 +6,8 @@
     "moduleResolution": "bundler",
     "types": ["@cloudflare/workers-types"],
     "strict": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
     "noEmit": true,
     "skipLibCheck": true,
     "isolatedModules": true

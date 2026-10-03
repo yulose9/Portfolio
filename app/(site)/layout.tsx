@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import VendorScripts from "../analytics/VendorScripts";
+import AnalyticsPrivacy from "../components/AnalyticsPrivacy";
 import { ENHANCED_METADATA } from "../constants/seo";
 import DeferredAnalytics from "../providers/DeferredAnalytics";
 import { SoundEffects } from "../components/ui/sound";
@@ -21,6 +22,7 @@ import "../article-blocks.css";
 import "../article-extras.css";
 import "../article-blocks-2.css";
 import "../writing-extras.css";
+import "../projects.css";
 
 /*
  * Inter, self-hosted by next/font at build time — no runtime request to
@@ -102,6 +104,7 @@ export default function RootLayout({
 
         <VendorScripts />
         <DeferredAnalytics />
+        <AnalyticsPrivacy />
       </body>
     </html>
   );

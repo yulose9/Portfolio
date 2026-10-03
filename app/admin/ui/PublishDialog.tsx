@@ -145,8 +145,8 @@ export default function PublishDialog({
           aria-label="URL slug"
           spellCheck={false}
         />
-        <span className="publish-url-full">nazarene.dev/writing/{meta.slug || "…"}</span>
-        {moved ? <p className="field-help" data-tone="warn">/writing/{doc.liveSlug} will redirect here.</p> : null}
+        <span className="publish-url-full">nazarene.dev/{doc.kind === "project" ? "projects" : "writing"}/{meta.slug || "…"}</span>
+        {moved ? <p className="field-help" data-tone="warn">/{doc.kind === "project" ? "projects" : "writing"}/{doc.liveSlug} will redirect here.</p> : null}
       </div>
 
       <button type="button" className="preview-cta" onClick={onPreview}>

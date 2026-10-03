@@ -643,7 +643,7 @@ test("slash previews follow keyboard choices and restore editor accessibility", 
 test("writing dashboard groups workspace tools and keeps filtering accessible", async ({
   page,
 }, info) => {
-  await page.goto("/admin");
+  await page.goto("/admin?section=writing");
   await expect(
     page.getByRole("heading", { name: "Writing", exact: true }),
   ).toBeVisible();
@@ -1214,7 +1214,7 @@ test("connections workspace distinguishes isolated pages and unavailable links",
     { id: "123456789abc", title: "Broken reference essay", icon: null, incoming: 0, outgoing: 1, missing: 1 },
     { id: "cccccccccccc", title: "Connected essay", icon: null, incoming: 1, outgoing: 0, missing: 0 },
   ] } }));
-  await page.goto("/admin");
+  await page.goto("/admin?section=writing");
   await page.getByRole("button", { name: "Workspace", exact: true }).click();
   await page.getByRole("menuitem", { name: "Research", exact: true }).click();
   await page.getByRole("combobox", { name: "Workspace view" }).click();

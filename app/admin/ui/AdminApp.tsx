@@ -1,11 +1,11 @@
 "use client";
 
 import { ArrowSquareOut, House, NotePencil, SignOut, SpeakerHigh, SpeakerLow, SpeakerNone } from "@phosphor-icons/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { toast } from "../../lib/toast";
 import { setSoundMuted, setSoundVolume, useSoundMuted, useSoundVolume } from "../../components/ui/sound";
-import { api, ApiError } from "./api";
+import { api, ApiError, setApiWorkspace } from "./api";
 import Editor, { type OpenOptions, type Panel } from "./Editor";
 import { Fluent } from "./extensions/emoji";
 import TagPages from "./TagPages";
@@ -14,6 +14,11 @@ import { useCommands } from "./registry";
 import SearchPalette from "./SearchPalette";
 import { TEMPLATES } from "./templates";
 import SessionGuard from "./SessionGuard";
+import ControlShell, { destinationFromUrl, type Destination } from "./ControlShell";
+import AnalyticsDashboard from "./AnalyticsDashboard";
+import WebsiteEditor from "./WebsiteEditor";
+import ProjectsWorkspace from "./ProjectsWorkspace";
+import { protectWork } from "./session";
 
 const CI = { size: 16, "aria-hidden": true } as const;
 
@@ -42,6 +47,10 @@ function currentOptions(): OpenOptions {
 }
 
 export default function AdminApp() {
+  const [section, setSection] = useState<Destination>(destinationFromUrl);
+  const currentRoute = useRef(window.location.href);
+  const navigating = useRef(false);
+  setApiWorkspace(section === "projects" ? "projects" : "writing");
   const [tagsOpen,setTagsOpen]=useState(false);
   const [gate, setGate] = useState<Gate>({ state: "checking" });
   const [postId, setPostId] = useState<string | null>(() => currentPost());
@@ -78,7 +87,20 @@ export default function AdminApp() {
   }, []);
 
   useEffect(() => {
-    const onPop = () => {
+    const onPop = async () => {
+      const target = window.location.href;
+      window.history.replaceState(null, "", currentRoute.current);
+      if (navigating.current) return;
+      navigating.current = true;
+      const protection = await protectWork();
+      navigating.current = false;
+      if (protection.pending || (!protection.saved && !protection.recoverable)) {
+        toast.add({ type: "error", title: "Keep this page open", description: "Save your changes or finish pending uploads before leaving." });
+        return;
+      }
+      window.history.replaceState(null, "", target);
+      currentRoute.current = target;
+      setSection(destinationFromUrl());
       setPostId(currentPost());
       setOptions(currentOptions());
     };
@@ -88,6 +110,9 @@ export default function AdminApp() {
 
   const open = useCallback((id: string | null, opts: OpenOptions = {}) => {
     const params = new URLSearchParams();
+    const destination = destinationFromUrl() === "projects" ? "projects" : "writing";
+    params.set("section", destination);
+    setSection(destination);
     if (id) params.set("post", id);
     if (opts.q) params.set("q", opts.q);
     if (opts.n) params.set("n", String(opts.n));
@@ -95,10 +120,26 @@ export default function AdminApp() {
     if (opts.block) params.set("block",opts.block);
     const qs = params.toString();
     window.history.pushState(null, "", qs ? `/admin?${qs}` : "/admin");
+    currentRoute.current = window.location.href;
     setPostId(id);
     setOptions(opts);
     window.scrollTo({ top: 0 });
   }, []);
+
+  const navigate = async (destination: Destination) => {
+    if (navigating.current) return;
+    navigating.current = true;
+    const protection = await protectWork();
+    navigating.current = false;
+    if (protection.pending || (!protection.saved && !protection.recoverable)) {
+      toast.add({ type: "error", title: "Keep this page open", description: "Finish pending uploads or save your changes before switching sections." });
+      return;
+    }
+    window.history.pushState(null, "", `/admin?section=${destination}`);
+    currentRoute.current = window.location.href;
+    setSection(destination); setPostId(null); setOptions({});
+    window.scrollTo({ top: 0 });
+  };
 
   const create = (init: Parameters<typeof api.create>[0] = {}) =>
     void api
@@ -152,10 +193,10 @@ export default function AdminApp() {
   }
 
   return (
-    <>
+    <ControlShell section={section} onNavigate={destination => void navigate(destination)} email={gate.email}>
       <SessionGuard />
       <TagPages open={tagsOpen} onClose={()=>setTagsOpen(false)}/>
-      {postId ? (
+      {section === "overview" || section === "analytics" ? <AnalyticsDashboard overview={section === "overview"} onWrite={() => void navigate("writing")} onNavigate={destination => void navigate(destination)} /> : section === "website" ? <WebsiteEditor /> : section === "projects" && !postId ? <ProjectsWorkspace onOpen={id => open(id)} /> : postId ? (
         <Editor key={`${postId}:${options.q ?? ""}:${options.n ?? 0}:${options.panel ?? ""}`} id={postId} options={options} onBack={() => open(null)} onOpen={id => open(id)} />
       ) : (
         <PostList onTags={()=>setTagsOpen(true)} email={gate.email} onOpen={(id, panel?: Panel) => open(id, { panel })} onSearch={() => setSearching(true)} />
@@ -166,6 +207,6 @@ export default function AdminApp() {
         onClose={() => {setSearching(false);setSearchQuery("");}}
         onJump={(j) => open(j.id, { q: j.q, n: j.n,block:j.block })}
       />
-    </>
+    </ControlShell>
   );
 }

@@ -94,7 +94,7 @@ const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, 
  *  - A second click during the trip home reversed it back out again. A phase
  *    ref now makes every interruption do the one sensible thing.
  */
-export default function AvatarZoom({ alt }: { alt: string }) {
+export default function AvatarZoom({ alt, src = LARGE_SRC }: { alt: string; src?: string }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const figureRef = useRef<HTMLImageElement>(null);
   const thumbRef = useRef<HTMLButtonElement>(null);
@@ -110,13 +110,13 @@ export default function AvatarZoom({ alt }: { alt: string }) {
       // Set imperatively: React never renders a src for this <img>, so it
       // never resets it. decode() resolves once the pixels are ready to paint,
       // and works while the dialog is still display: none.
-      figure.src = LARGE_SRC;
+      figure.src = src;
       ready.current = figure.decode().catch(() => {
         /* a failed decode still lets the zoom run; the box has its size */
       });
     }
     return ready.current;
-  }, []);
+  }, [src]);
 
   // Prefetch after the page has settled, so a first click is already smooth.
   // 86 kB, after everything that matters for first paint.
@@ -266,10 +266,10 @@ export default function AvatarZoom({ alt }: { alt: string }) {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/avatar-288.webp"
+            src={src === LARGE_SRC ? "/avatar-288.webp" : src}
           // 1x-3x of both rendered sizes (96px desktop, 144px phone). 432 is the
           // 3x phone file; the 1024 original stays reserved for the zoom.
-          srcSet="/avatar-96.webp 96w, /avatar-144.webp 144w, /avatar-216.webp 216w, /avatar-288.webp 288w, /avatar-432.webp 432w"
+          srcSet={src === LARGE_SRC ? "/avatar-96.webp 96w, /avatar-144.webp 144w, /avatar-216.webp 216w, /avatar-288.webp 288w, /avatar-432.webp 432w" : undefined}
           // The rendered size at each breakpoint, so the browser picks the file
           // it actually needs rather than the largest one offered.
           sizes="(max-width: 639px) 144px, 96px"
@@ -277,7 +277,7 @@ export default function AvatarZoom({ alt }: { alt: string }) {
           width={144}
           height={144}
           decoding="async"
-          style={{ backgroundImage: `url(${LQIP})` }}
+          style={src === LARGE_SRC ? { backgroundImage: `url(${LQIP})` } : undefined}
           className="h-[144px] w-[144px] rounded-full bg-cover object-cover sm:h-24 sm:w-24"
         />
       </button>
