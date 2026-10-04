@@ -20,11 +20,20 @@ const REPO = "https://github.com/yulose9/Portfolio";
  * @param title the toast's headline, e.g. "Link copied"; the description
  *   previews what actually went to the clipboard.
  */
-export async function copy(text: string, title = "Copied to clipboard"): Promise<boolean> {
+export async function copy(
+  text: string,
+  title = "Copied to clipboard",
+  options?: { description?: string; image?: string }
+): Promise<boolean> {
   const ok = await writeClipboard(text);
   toast.add(
     ok
-      ? { type: "success", title, description: snippet(text) }
+      ? {
+          type: "success",
+          title,
+          description: options?.description ?? snippet(text),
+          data: options?.image ? { image: options.image } : undefined,
+        }
       : {
           type: "error",
           title: "Couldn’t copy",

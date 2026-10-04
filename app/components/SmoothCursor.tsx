@@ -94,6 +94,7 @@ export default function SmoothCursor() {
         pointer.seen = true;
         x.value = gx.value = pointer.x;
         y.value = gy.value = pointer.y;
+        x.velocity = y.velocity = gx.velocity = gy.velocity = 0;
       }
 
       // Set on every move, not just the first. Gating this behind `seen` meant
@@ -126,15 +127,20 @@ export default function SmoothCursor() {
 
     const tick = (now: number) => {
       // Clamped so a backgrounded tab does not resume with a huge dt and
-      // launch the spring across the screen.
-      const dt = Math.min((now - last) / 1000, 1 / 30);
+      // launch the spring across the screen. Skip if clock jittered or zero.
+      const rawDt = (now - last) / 1000;
+      if (rawDt <= 0) {
+        frame = requestAnimationFrame(tick);
+        return;
+      }
+      const dt = Math.min(rawDt, 1 / 30);
       last = now;
 
       // Sub-stepped: at this stiffness a single per-frame step diverges.
       advanceStable(x, pointer.x, dt, POINTER_SPRING.stiffness, POINTER_SPRING.damping);
       advanceStable(y, pointer.y, dt, POINTER_SPRING.stiffness, POINTER_SPRING.damping);
-      advance(gx, pointer.x, dt, HEADING_SPRING.stiffness, HEADING_SPRING.damping);
-      advance(gy, pointer.y, dt, HEADING_SPRING.stiffness, HEADING_SPRING.damping);
+      advanceStable(gx, pointer.x, dt, HEADING_SPRING.stiffness, HEADING_SPRING.damping);
+      advanceStable(gy, pointer.y, dt, HEADING_SPRING.stiffness, HEADING_SPRING.damping);
       steer(heading, gx.velocity, gy.velocity, dt);
 
       const node = nodeRef.current;
@@ -150,7 +156,9 @@ export default function SmoothCursor() {
           }
         }
         node.style.transform = cursorTransform(x.value, y.value);
-        spin ??= node.querySelector<HTMLElement>(".cursor-spin");
+        if (!spin || !spin.isConnected) {
+          spin = node.querySelector<HTMLElement>(".cursor-spin");
+        }
         if (spin) spin.style.transform = `rotate(${heading.spring.value}deg)`;
       }
 
@@ -185,6 +193,7 @@ export default function SmoothCursor() {
       setPressed(false);
       cancelAnimationFrame(frame);
       pointer.seen = false;
+      spin = null;
       nodeRef.current?.style.setProperty("opacity", "0");
     };
 

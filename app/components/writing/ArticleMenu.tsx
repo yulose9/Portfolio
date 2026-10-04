@@ -27,7 +27,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import { createPortal } from "react-dom";
 
 import { copy, openUrl, searchWeb } from "../menu/actions";
-import { toast } from "../../lib/toast";
+import { snippet, toast } from "../../lib/toast";
 
 /*
  * Right-click anywhere in an article and the menu fits what's under the
@@ -97,8 +97,9 @@ function tableMarkdown(table: HTMLTableElement): string {
 }
 
 async function copyImage(img: HTMLImageElement) {
+  const src = img.currentSrc || img.src;
   try {
-    const res = await fetch(img.currentSrc || img.src);
+    const res = await fetch(src);
     const blob = await res.blob();
     // Clipboards take PNG everywhere; convert anything else through a canvas.
     let png = blob;
@@ -111,7 +112,12 @@ async function copyImage(img: HTMLImageElement) {
       png = await new Promise<Blob>((r, j) => canvas.toBlob((b) => (b ? r(b) : j(new Error("encode"))), "image/png"));
     }
     await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
-    toast.add({ type: "success", title: "Image copied" });
+    toast.add({
+      type: "success",
+      title: "Image copied",
+      description: img.alt ? snippet(img.alt, 42) : "Copied as PNG to clipboard.",
+      data: { image: src },
+    });
   } catch {
     toast.add({ type: "error", title: "Couldn’t copy the image", description: "Try “Copy image address” instead." });
   }
@@ -302,10 +308,27 @@ export default function ArticleMenu({ children, title, url, markdownUrl }: { chi
                 <MenuItem icon={<Copy size={I} />} onClick={() => void copyImage(t.img)}>
                   Copy image
                 </MenuItem>
-                <MenuItem icon={<LinkSimple size={I} />} onClick={() => void copy(new URL(t.img.src, location.href).toString(), "Image address copied")}>
+                <MenuItem
+                  icon={<LinkSimple size={I} />}
+                  onClick={() => {
+                    const src = new URL(t.img.src, location.href).toString();
+                    void copy(src, "Image address copied", { image: src, description: src.split("/").pop() });
+                  }}
+                >
                   Copy image address
                 </MenuItem>
-                <MenuItem icon={<DownloadSimple size={I} />} onClick={() => download(t.img.src)}>
+                <MenuItem
+                  icon={<DownloadSimple size={I} />}
+                  onClick={() => {
+                    download(t.img.src);
+                    toast.add({
+                      type: "info",
+                      title: "Downloading image",
+                      description: t.img.src.split("/").pop(),
+                      data: { image: t.img.currentSrc || t.img.src },
+                    });
+                  }}
+                >
                   Download image
                 </MenuItem>
                 {t.img.alt ? (

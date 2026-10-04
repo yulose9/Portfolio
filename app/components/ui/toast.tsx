@@ -241,6 +241,25 @@ function ToastList({ viewport }: { viewport: RefObject<HTMLDivElement | null> })
               ) : null}
             </AnimatePresence>
 
+            {/* Image thumbnail preview when an image was copied, viewed, or downloaded */}
+            {Boolean((t.data as { image?: string } | undefined)?.image) ? (
+              <motion.div
+                key="image-preview"
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: "auto", opacity: 1 }}
+                exit={{ width: 0, opacity: 0, transition: EXIT }}
+                transition={MORPH}
+                className="mr-2 flex shrink-0 items-center overflow-hidden"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={(t.data as { image: string }).image}
+                  alt=""
+                  className="h-5 w-5 rounded object-cover shadow-sm ring-1 ring-black/10 dark:ring-white/20"
+                />
+              </motion.div>
+            ) : null}
+
             {/* Old and new words share the line for a moment: one folds away as the other opens. */}
             <AnimatePresence initial={false}>
               <Line key={wording} title={title} description={description} />

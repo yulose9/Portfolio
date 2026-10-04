@@ -488,6 +488,20 @@ html.is-grabbing:not(.has-smooth-cursor) * {
   cursor: grabbing !important;
 }
 
+/* Fallback pointer affordances when custom cursor is disabled or reduced motion is active */
+[data-cursor="text"],
+.article-body,
+.article-header {
+  cursor: text;
+}
+[data-cursor="text"] a,
+.article-body a,
+[data-cursor="text"] button,
+.article-body button,
+[data-clickable] {
+  cursor: pointer;
+}
+
 /*
  * Other people's cursors.
  *

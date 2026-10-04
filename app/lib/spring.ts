@@ -76,7 +76,7 @@ export const POINTER_SPRING = { stiffness: 5000, damping: 141 } as const;
  * the arrow's turn exactly as smooth as it was while the position tracks
  * tightly.
  */
-export const HEADING_SPRING = { stiffness: 400, damping: 45 } as const;
+export const HEADING_SPRING = { stiffness: 1000, damping: 60 } as const;
 
 /**
  * Remote cursors, deliberately softer. Their input is already a quantised
@@ -85,12 +85,12 @@ export const HEADING_SPRING = { stiffness: 400, damping: 45 } as const;
  */
 export const PEER_SPRING = { stiffness: 220, damping: 34 } as const;
 
-export const ROTATION_SPRING = { stiffness: 300, damping: 60 } as const;
+export const ROTATION_SPRING = { stiffness: 360, damping: 36 } as const;
 
 /* ------------------------------------------------------------ heading -- */
 
 /** Below this speed (px/ms) the direction of travel is noise; hold the angle. */
-const MIN_HEADING_SPEED = 0.08;
+const MIN_HEADING_SPEED = 0.02;
 
 /**
  * Which way an arrow cursor points: the direction of travel, sprung, so a turn
@@ -107,13 +107,26 @@ export function makeHeading(): Heading {
 
 /** @param vx, vy the position springs' velocities, in px/s. */
 export function steer(heading: Heading, vx: number, vy: number, dt: number): void {
-  if (Math.hypot(vx, vy) / 1000 > MIN_HEADING_SPEED) {
+  // If target or value became non-finite, defensively recover.
+  if (
+    !Number.isFinite(heading.target) ||
+    !Number.isFinite(heading.spring.value) ||
+    !Number.isFinite(heading.spring.velocity)
+  ) {
+    heading.target = 0;
+    heading.turns = 0;
+    heading.spring.value = 0;
+    heading.spring.velocity = 0;
+  }
+
+  const speed = Math.hypot(vx, vy) / 1000;
+  if (speed > MIN_HEADING_SPEED) {
     const angle = Math.atan2(vy, vx) * (180 / Math.PI) + 90;
     const delta = ((angle - (heading.target - heading.turns * 360) + 540) % 360) - 180;
     heading.target += delta;
     heading.turns = Math.round((heading.target - angle) / 360);
   }
-  advance(
+  advanceStable(
     heading.spring,
     heading.target,
     dt,

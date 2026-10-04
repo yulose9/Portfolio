@@ -36,10 +36,11 @@ const INTERACTIVE = [
 
 /**
  * Where the I-beam is allowed. Opt-in rather than every <p>: the I-beam says
- * "this is reading material", which is true of the About prose and not of a
- * one-line label that happens to be text.
+ * "this is reading material", which is true of the About prose, articles,
+ * and policy documents, and not of a one-line label that happens to be text.
  */
-const TEXT_REGION = "[data-cursor='text'], time, .article-eyebrow, .updated-at";
+const TEXT_REGION =
+  "[data-cursor='text'], .article-body, .article-header, .article-dek, .article-title, .table-scroll, table, time, .article-eyebrow, .updated-at, .document-reading";
 
 /** Fields always get the I-beam, wherever they are. */
 const FIELD = "input:not([type='checkbox']):not([type='radio']), textarea, [contenteditable]";

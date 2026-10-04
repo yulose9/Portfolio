@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
+import { toast } from "../lib/toast";
+import { haptic } from "../lib/haptics";
 
 const preferenceEvent = "portfolio:analytics-preference";
 let memoryPreference: boolean | undefined;
@@ -62,6 +64,7 @@ export default function AnalyticsPrivacy() {
         type="button"
         className="cursor-pointer transition-colors hover:text-[color:var(--fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--focus)] rounded px-1 py-0.5"
         onClick={async () => {
+          haptic();
           const next = !disabled;
           memoryPreference = next;
           try {
@@ -70,6 +73,14 @@ export default function AnalyticsPrivacy() {
             /* SDK may retain preference in memory */
           }
           window.dispatchEvent(new Event(preferenceEvent));
+          toast.add({
+            type: "info",
+            title: next ? "Analytics disabled" : "Analytics enabled",
+            description: next
+              ? "Cookieless telemetry halted for this browser."
+              : "Privacy-preserving telemetry resumed.",
+            timeout: 3200,
+          });
           const { default: posthog } = await import("posthog-js");
           if (next) posthog.opt_out_capturing();
           else posthog.opt_in_capturing();
