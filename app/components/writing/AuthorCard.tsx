@@ -47,7 +47,12 @@ export default function AuthorCard({ authors }: { authors: Author[] }) {
                   <a href={SOCIAL_LINKS.x} rel="me noreferrer" target="_blank">
                     X
                   </a>
-                  <a href={`mailto:${SOCIAL_LINKS.email}`}>Email</a>
+                  <a
+                    href={`mailto:${SOCIAL_LINKS.email}`}
+                    title="Opens your email client. Emails received are used solely to reply to your inquiry."
+                  >
+                    Email
+                  </a>
                 </p>
               ) : null}
             </div>

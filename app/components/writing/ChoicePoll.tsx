@@ -187,7 +187,11 @@ export default function ChoicePoll({ id, question, options }: { id: string; ques
       <footer className="poll-footer">
         {showResults ? (
           <>
-            <p className="poll-note" role="status">
+            <p
+              className="poll-note"
+              role="status"
+              title="Anonymous vote: no personal details or IP addresses are recorded."
+            >
               {mode === "live"
                 ? `${total.toLocaleString("en-US")} ${total === 1 ? "vote" : "votes"}`
                 : "Saved on this device. Live results aren’t available right now."}
@@ -206,7 +210,7 @@ export default function ChoicePoll({ id, question, options }: { id: string; ques
         ) : (
           <>
             <p className="poll-note" role={error ? "alert" : undefined} data-error={error ? "" : undefined}>
-              {error || (mode === "loading" ? "Loading…" : changing ? "Pick another, or take your vote back." : choice === null ? "Pick one to vote." : "You can change it later.")}
+              {error || (mode === "loading" ? "Loading…" : changing ? "Pick another, or take your vote back." : choice === null ? "Pick one to vote (anonymous)." : "Recorded anonymously. You can change or retract it later.")}
             </p>
             <span className="poll-actions">
               {changing ? (

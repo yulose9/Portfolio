@@ -998,6 +998,7 @@ function LinkList({
               href={link.href}
               target={link.href.startsWith("http") ? "_blank" : undefined}
               rel={link.href.startsWith("http") ? "noreferrer" : undefined}
+              title={link.icon === "email" ? "Opens your email client. Emails received are used solely to reply to your inquiry." : undefined}
               onClick={haptic}
               className="row-pad inline-flex w-fit items-center gap-2.5 rounded-[14px] px-10 py-4 no-underline"
             >

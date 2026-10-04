@@ -54,5 +54,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
     { url: `${SITE_INFO.url}/projects`, lastModified: newest(projects.map((p) => p.updatedAt)) ?? siteDate, changeFrequency: "monthly", priority: 0.8 },
     ...projects.map(project => ({ url: `${SITE_INFO.url}/projects/${project.slug}`, lastModified: new Date(project.updatedAt), changeFrequency: "monthly" as const, priority: 0.7 })),
+    { url: `${SITE_INFO.url}/privacy`, lastModified: siteDate, changeFrequency: "yearly" as const, priority: 0.3 },
+    { url: `${SITE_INFO.url}/terms`, lastModified: siteDate, changeFrequency: "yearly" as const, priority: 0.3 },
+    { url: `${SITE_INFO.url}/cookies`, lastModified: siteDate, changeFrequency: "yearly" as const, priority: 0.3 },
   ];
 }
