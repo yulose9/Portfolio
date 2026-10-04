@@ -482,6 +482,11 @@
   --social-link: #0866ff;
   width: min(100%, 516px);
 }
+.social-embed[data-platform="instagram"] {
+  --social-accent: #e1306c;
+  --social-link: #e1306c;
+  width: min(100%, 540px);
+}
 .social-embed[data-format="reel"] {
   width: min(100%, 376px);
 }
@@ -491,6 +496,9 @@
 [data-theme="dark"] .social-embed[data-platform="facebook"] {
   /* #0866ff is 3.4:1 on the dark card; text takes Facebook's own dark-mode blue. */
   --social-link: #5aa7ff;
+}
+[data-theme="dark"] .social-embed[data-platform="instagram"] {
+  --social-link: #f77737;
 }
 .social-embed-head {
   display: flex;

@@ -2,10 +2,10 @@
 
 import { Popover } from "@base-ui/react/popover";
 import { Tabs } from "@base-ui/react/tabs";
-import { UploadSimple } from "@phosphor-icons/react";
 import { useEffect, useId, useRef, useState, type ComponentProps, type DragEvent, type KeyboardEvent, type ReactElement } from "react";
 
 import { imageInfo, videoInfo, type MediaKind } from "../../../cms/media";
+import { MagneticDropzone } from "../../components/kit/inputs/magnetic-dropzone";
 import { altFromName, api, ApiError } from "./api";
 import type { Asset } from "./MediaLibrary";
 import { kindOf, uploadMedia } from "./media";
@@ -175,7 +175,6 @@ export default function MediaPicker({
   const [dragging, setDragging] = useState(false);
   const [link, setLink] = useState("");
   const [checking, setChecking] = useState(false);
-  const fileInput = useRef<HTMLInputElement>(null);
   const linkId = useId();
 
   // Each opening starts clean, on its first tab.
@@ -333,22 +332,6 @@ export default function MediaPicker({
                 ) : null}
 
                 <Tabs.Panel value="upload" className="media-picker-panel media-picker-upload">
-                  <button type="button" className="media-picker-upload-button" disabled={Boolean(progress)} onClick={() => fileInput.current?.click()}>
-                    <UploadSimple size={15} aria-hidden="true" />
-                    {onFiles ? "Upload files" : "Upload file"}
-                  </button>
-                  <input
-                    ref={fileInput}
-                    type="file"
-                    hidden
-                    accept={ACCEPT_ATTR[accept]}
-                    multiple={Boolean(onFiles)}
-                    onChange={(e) => {
-                      const files = [...(e.target.files ?? [])];
-                      e.target.value = "";
-                      void takeFiles(files);
-                    }}
-                  />
                   {progress ? (
                     <div className="media-picker-progress" role="status">
                       <span className="media-picker-meter" aria-hidden="true">
@@ -358,7 +341,15 @@ export default function MediaPicker({
                     </div>
                   ) : (
                     <>
-                      <p className="media-picker-note">or {pasteKey} to paste {accept === "audio" ? "a file" : "an image"}, or drop {onFiles ? "files" : "a file"} here</p>
+                      <MagneticDropzone
+                        onFiles={(files) => void takeFiles(files)}
+                        accept={ACCEPT_ATTR[accept]}
+                        multiple={Boolean(onFiles)}
+                        disabled={Boolean(progress)}
+                        title={onFiles ? "Drop files to upload" : "Drop a file to upload"}
+                        hint={<>or click to choose · {pasteKey} to paste</>}
+                        className="media-picker-magnetic-dropzone"
+                      />
                       {imageHint ? <p className="media-picker-hint">Images wider than 1500 pixels work best.</p> : null}
                     </>
                   )}

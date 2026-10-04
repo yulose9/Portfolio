@@ -6,6 +6,7 @@
  */
 
 export type FacebookFormat = "post" | "video" | "reel";
+export type InstagramFormat = "reel" | "post";
 
 export type Embed =
   | { kind: "x"; id: string; url: string }
@@ -13,10 +14,14 @@ export type Embed =
   | { kind: "threads"; user?: string; code: string; url: string }
   /** `page` is the page or profile name when the link carries one. */
   | { kind: "facebook"; format: FacebookFormat; page?: string; url: string }
+  | { kind: "instagram"; format: InstagramFormat; id: string; url: string }
   | { kind: "youtube"; id: string; url: string };
 
 export type ThreadsEmbed = Extract<Embed, { kind: "threads" }>;
 export type FacebookEmbed = Extract<Embed, { kind: "facebook" }>;
+export type InstagramEmbed = Extract<Embed, { kind: "instagram" }>;
+export type XEmbed = Extract<Embed, { kind: "x" }>;
+export type YoutubeEmbed = Extract<Embed, { kind: "youtube" }>;
 
 const THREADS_USER = /^[\w.]{1,40}$/;
 const THREADS_CODE = /^[\w-]{5,40}$/;
@@ -113,6 +118,21 @@ export function parseEmbed(raw: string): Embed | null {
       return { kind: "threads", user, code, url: `https://www.threads.com/@${user}/post/${code}` };
     }
   }
+  if (host === "instagram.com" || host === "instagr.am") {
+    const [first, second] = parts;
+    if (first === "reel" || first === "reels" || first === "tv") {
+      const id = second?.replace(/\/$/, "");
+      if (id && /^[\w-]{5,50}$/.test(id)) {
+        return { kind: "instagram", format: "reel", id, url: `https://www.instagram.com/reel/${id}/` };
+      }
+    }
+    if (first === "p") {
+      const id = second?.replace(/\/$/, "");
+      if (id && /^[\w-]{5,50}$/.test(id)) {
+        return { kind: "instagram", format: "post", id, url: `https://www.instagram.com/p/${id}/` };
+      }
+    }
+  }
   const facebook = parseFacebook(host, url, parts);
   if (facebook) return facebook;
   if (host === "youtube.com" || host === "youtu.be" || host === "youtube-nocookie.com") {
@@ -128,6 +148,12 @@ export function parseEmbed(raw: string): Embed | null {
   }
   return null;
 }
+
+/**
+ * Instagram's official embed frame for reels and posts.
+ */
+export const instagramFrame = (e: InstagramEmbed): string =>
+  `https://www.instagram.com/${e.format === "reel" ? "reel" : "p"}/${e.id}/embed/`;
 
 /**
  * Threads' own embed page. `theme` "dark" or "auto" gives it a transparent
@@ -154,8 +180,10 @@ export function facebookFrame(e: FacebookEmbed, width: number): string {
 }
 
 /** Who posted it, as far as the link alone says. */
-export function embedAuthor(e: ThreadsEmbed | FacebookEmbed): string | undefined {
-  return e.kind === "threads" ? e.user : e.page;
+export function embedAuthor(e: ThreadsEmbed | FacebookEmbed | InstagramEmbed): string | undefined {
+  if (e.kind === "threads") return e.user;
+  if (e.kind === "facebook") return e.page;
+  return undefined;
 }
 
 const unescapeHtml = (s: string) =>

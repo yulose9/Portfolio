@@ -2,24 +2,17 @@
 
 import SiFacebook from "@icons-pack/react-simple-icons/icons/SiFacebook";
 import SiThreads from "@icons-pack/react-simple-icons/icons/SiThreads";
+import SiInstagram from "@icons-pack/react-simple-icons/icons/SiInstagram";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { embedAuthor, facebookFrame, threadsFrame, type FacebookEmbed, type ThreadsEmbed } from "../../../cms/embeds";
+import { embedAuthor, facebookFrame, instagramFrame, threadsFrame, type FacebookEmbed, type InstagramEmbed, type ThreadsEmbed } from "../../../cms/embeds";
 
 /*
- * A post on Threads or Facebook, in a card that looks like it came from there.
+ * A post on Threads, Instagram or Facebook, in a card that looks like it came from there.
  * The platform's own embed iframe sits inside; the card around it carries the
  * logo, the author and a link out, so the post still reads as that platform's
  * while the frame loads, and if it never does (a private post, a blocked
  * frame, no network) the card is the fallback.
- *
- * Threads posts its height to the parent as a bare number, the way its
- * embed.js listens for it, so the frame fits its post. Facebook's plugin only
- * reports a height through its SDK, so the frame takes sensible defaults: a
- * post starts at 600px with a "Show more" to open it up, a video is 16:9 and a
- * reel 9:16. Neither iframe is rendered on the server: the theme and the width
- * it needs are only known in the browser, and a page without script still gets
- * the card and its link.
  */
 
 export type SocialMeta = { author?: string; handle?: string; text?: string };
@@ -32,8 +25,14 @@ const THREADS_ORIGINS = new Set(["https://www.threads.com", "https://www.threads
 const FACEBOOK_POST_HEIGHT = 600;
 const FACEBOOK_POST_OPEN = 1200;
 
-const label = (e: ThreadsEmbed | FacebookEmbed) =>
-  e.kind === "threads" ? "Threads" : e.format === "post" ? "Facebook" : `Facebook ${e.format}`;
+const label = (e: ThreadsEmbed | FacebookEmbed | InstagramEmbed) =>
+  e.kind === "threads"
+    ? "Threads"
+    : e.kind === "instagram"
+      ? (e.format === "reel" ? "Instagram Reel" : "Instagram Post")
+      : e.format === "post"
+        ? "Facebook"
+        : `Facebook ${e.format}`;
 
 /** The site's theme, as the pre-paint script set it; "auto" follows the system. */
 function useDocumentTheme(): "light" | "dark" | "auto" | null {
@@ -87,16 +86,18 @@ function useLoad(src: string | null) {
   return [status, setStatus] as const;
 }
 
-function Logo({ embed, size }: { embed: ThreadsEmbed | FacebookEmbed; size: number }) {
-  return embed.kind === "threads" ? (
-    <SiThreads className="social-embed-logo" size={size} title="" aria-hidden="true" />
-  ) : (
-    <SiFacebook className="social-embed-logo" size={size} color="default" title="" aria-hidden="true" />
-  );
+function Logo({ embed, size }: { embed: ThreadsEmbed | FacebookEmbed | InstagramEmbed; size: number }) {
+  if (embed.kind === "threads") {
+    return <SiThreads className="social-embed-logo" size={size} title="" aria-hidden="true" />;
+  }
+  if (embed.kind === "instagram") {
+    return <SiInstagram className="social-embed-logo" size={size} color="default" title="" aria-hidden="true" />;
+  }
+  return <SiFacebook className="social-embed-logo" size={size} color="default" title="" aria-hidden="true" />;
 }
 
-function Fallback({ embed, meta }: { embed: ThreadsEmbed | FacebookEmbed; meta?: SocialMeta }) {
-  const where = embed.kind === "threads" ? "Threads" : "Facebook";
+function Fallback({ embed, meta }: { embed: ThreadsEmbed | FacebookEmbed | InstagramEmbed; meta?: SocialMeta }) {
+  const where = embed.kind === "threads" ? "Threads" : embed.kind === "instagram" ? "Instagram" : "Facebook";
   return (
     <div className="social-embed-fallback">
       {meta?.text ? <p className="social-embed-text">{meta.text}</p> : null}
@@ -109,7 +110,7 @@ function Fallback({ embed, meta }: { embed: ThreadsEmbed | FacebookEmbed; meta?:
   );
 }
 
-export default function SocialEmbed({ embed, meta }: { embed: ThreadsEmbed | FacebookEmbed; meta?: SocialMeta }) {
+export default function SocialEmbed({ embed, meta }: { embed: ThreadsEmbed | FacebookEmbed | InstagramEmbed; meta?: SocialMeta }) {
   const stage = useRef<HTMLDivElement>(null);
   const frame = useRef<HTMLIFrameElement>(null);
   const theme = useDocumentTheme();
@@ -118,14 +119,18 @@ export default function SocialEmbed({ embed, meta }: { embed: ThreadsEmbed | Fac
   const [height, setHeight] = useState<number | null>(null);
 
   const facebookWidth = embed.kind === "facebook" && width ? Math.min(width, embed.format === "reel" ? 360 : 500) : null;
+  const instagramWidth = embed.kind === "instagram" && width ? Math.min(width, embed.format === "reel" ? 380 : 540) : null;
+  const frameWidth = embed.kind === "instagram" ? instagramWidth : facebookWidth;
   const src =
     embed.kind === "threads"
       ? theme
         ? threadsFrame(embed, theme)
         : null
-      : facebookWidth
-        ? facebookFrame(embed, facebookWidth)
-        : null;
+      : embed.kind === "instagram"
+        ? instagramFrame(embed)
+        : facebookWidth
+          ? facebookFrame(embed, facebookWidth)
+          : null;
   const [status, setStatus] = useLoad(src);
 
   // Threads tells the parent its height, as a number, once the post has laid out.
@@ -149,28 +154,36 @@ export default function SocialEmbed({ embed, meta }: { embed: ThreadsEmbed | Fac
       ? handle
         ? `@${handle}`
         : "Threads post"
-      : meta?.author ?? embed.page ?? "Facebook";
+      : embed.kind === "instagram"
+        ? embed.format === "reel"
+          ? "Instagram Reel"
+          : "Instagram Post"
+        : meta?.author ?? embed.page ?? "Facebook";
   const sub =
     embed.kind === "threads"
       ? meta?.author && meta.author !== handle
         ? meta.author
         : "Threads"
-      : embed.format === "post"
-        ? "Post on Facebook"
-        : embed.format === "video"
-          ? "Video on Facebook"
-          : "Reel on Facebook";
+      : embed.kind === "instagram"
+        ? "Instagram"
+        : embed.format === "post"
+          ? "Post on Facebook"
+          : embed.format === "video"
+            ? "Video on Facebook"
+            : "Reel on Facebook";
 
   const stageHeight =
     embed.kind === "threads"
       ? (height ?? 500)
-      : embed.format === "post"
-        ? open
-          ? FACEBOOK_POST_OPEN
-          : FACEBOOK_POST_HEIGHT
-        : facebookWidth
-          ? Math.round(embed.format === "reel" ? (facebookWidth * 16) / 9 : (facebookWidth * 9) / 16)
-          : undefined;
+      : embed.kind === "instagram"
+        ? (embed.format === "reel" ? 640 : 560)
+        : embed.format === "post"
+          ? open
+            ? FACEBOOK_POST_OPEN
+            : FACEBOOK_POST_HEIGHT
+          : facebookWidth
+            ? Math.round(embed.format === "reel" ? (facebookWidth * 16) / 9 : (facebookWidth * 9) / 16)
+            : undefined;
 
   const failed = status === "failed";
   const title = `${label(embed)} post${handle ? ` by ${embed.kind === "threads" ? "@" : ""}${handle}` : ""}`;
@@ -179,7 +192,7 @@ export default function SocialEmbed({ embed, meta }: { embed: ThreadsEmbed | Fac
     <figure
       className="social-embed"
       data-platform={embed.kind}
-      data-format={embed.kind === "facebook" ? embed.format : undefined}
+      data-format={embed.kind === "facebook" ? embed.format : embed.kind === "instagram" ? embed.format : undefined}
       data-status={status}
     >
       <header className="social-embed-head">
@@ -199,7 +212,11 @@ export default function SocialEmbed({ embed, meta }: { embed: ThreadsEmbed | Fac
         >
           {status === "loading" ? (
             <p className="social-embed-loading">
-              {embed.kind === "threads" ? "Loading the post from Threads" : "Loading the post from Facebook"}
+              {embed.kind === "threads"
+                ? "Loading the post from Threads"
+                : embed.kind === "instagram"
+                  ? "Loading the reel from Instagram"
+                  : "Loading the post from Facebook"}
             </p>
           ) : null}
           {src ? (
@@ -213,7 +230,7 @@ export default function SocialEmbed({ embed, meta }: { embed: ThreadsEmbed | Fac
               // The admin sends no referrer; Meta's plugins expect the page's origin.
               referrerPolicy="strict-origin-when-cross-origin"
               allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-              style={facebookWidth ? { width: facebookWidth } : undefined}
+              style={frameWidth ? { width: frameWidth } : undefined}
               // A cross-origin frame can't say whether its post rendered, only that it loaded;
               // a frame that never loads (blocked, offline) falls back after the timeout.
               onLoad={() => setStatus((s) => (s === "loading" ? "ready" : s))}
@@ -228,7 +245,7 @@ export default function SocialEmbed({ embed, meta }: { embed: ThreadsEmbed | Fac
           </button>
         ) : null}
         <a className="social-embed-link" href={embed.url} target="_blank" rel="noreferrer">
-          View on {embed.kind === "threads" ? "Threads" : "Facebook"}
+          View on {embed.kind === "threads" ? "Threads" : embed.kind === "instagram" ? "Instagram" : "Facebook"}
         </a>
       </footer>
     </figure>

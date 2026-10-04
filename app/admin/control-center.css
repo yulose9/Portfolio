@@ -21,7 +21,11 @@ html[data-theme="dark"] .admin-body {
   isolation: isolate;
   background: var(--control-canvas);
   color: var(--control-ink);
-  font-size: 14px;
+  font-family: var(--font-sans), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11", "calt";
+  font-size: 13.5px;
+  line-height: 1.5;
+  letter-spacing: -0.006em;
 }
 .control-content {
   min-width: 0;
@@ -119,23 +123,28 @@ html[data-theme="dark"] .admin-body {
   border: 0;
 }
 .control-metrics h2 {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   color: var(--control-muted);
-  margin: 0 0 12px;
+  margin: 0 0 10px;
 }
 .control-metrics strong {
   display: block;
-  font-size: 31px;
-  letter-spacing: -1px;
-  font-weight: 550;
+  font-size: 32px;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .control-metrics span {
   display: block;
-  font-size: 11px;
+  font-size: 11.5px;
+  line-height: 1.4;
   color: var(--control-muted);
   margin-top: 10px;
+  letter-spacing: 0;
 }
 .control-panel {
   background: var(--control-surface);
@@ -146,13 +155,16 @@ html[data-theme="dark"] .admin-body {
   min-width: 0;
 }
 .control-panel h2 {
-  font-size: 14px;
-  font-weight: 550;
-  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  margin: 0 0 8px;
 }
 .control-panel p {
-  font-size: 12px;
-  line-height: 1.7;
+  font-size: 13px;
+  line-height: 1.6;
+  letter-spacing: -0.005em;
   color: var(--control-muted);
 }
 .control-panel-heading {
@@ -240,8 +252,10 @@ html[data-theme="dark"] .admin-body {
 }
 .overview-card h3 {
   margin: 0;
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.012em;
   color: var(--control-ink);
 }
 .overview-pill {

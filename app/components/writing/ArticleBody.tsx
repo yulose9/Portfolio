@@ -54,7 +54,7 @@ function EmbedBlock(props: Record<string, unknown>) {
       </div>
     );
   }
-  if (embed.kind === "threads" || embed.kind === "facebook") {
+  if (embed.kind === "threads" || embed.kind === "facebook" || embed.kind === "instagram") {
     return (
       <div className="embed embed-social">
         <SocialEmbed embed={embed} />

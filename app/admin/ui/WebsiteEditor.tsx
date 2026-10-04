@@ -21,6 +21,7 @@ import MediaLibrary from "./MediaLibrary";
 import PageHeader, { PageChip } from "./PageHeader";
 import { playSound } from "../../components/ui/sound";
 import { cn } from "../../lib/cn";
+import { MagneticDropzone } from "../../components/kit/inputs/magnetic-dropzone";
 
 const recoveryKey = "admin:website-recovery";
 export default function WebsiteEditor() {
@@ -914,13 +915,10 @@ function ProfileImageManager({
 }: {
   photo: string;
   name: string;
-  onUpload: (file: File) => void;
+  onUpload: (f: File) => void;
   onBrowse: () => void;
   onChangeUrl: (url: string) => void;
 }) {
-  const [dragging, setDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   return (
     <div className="website-photo-manager">
       <div className="website-photo-header">
@@ -928,26 +926,7 @@ function ProfileImageManager({
         <span className="website-photo-hint">Avatar on your homepage, header & metadata</span>
       </div>
 
-      <div
-        className={cn(
-          "website-photo-box",
-          dragging && "website-photo-box-drag"
-        )}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragging(false);
-          const f = e.dataTransfer.files?.[0];
-          if (f && f.type.startsWith("image/")) {
-            onUpload(f);
-            playSound("tap");
-          }
-        }}
-      >
+      <div className="website-photo-box">
         <div className="website-photo-avatar-wrap">
           {photo ? (
             /* eslint-disable-next-line @next/next/no-img-element */
@@ -964,9 +943,20 @@ function ProfileImageManager({
         </div>
 
         <div className="website-photo-content">
-          <p className="website-photo-lead">
-            <strong>Drop a new photo here</strong>, or pick from your workspace
-          </p>
+          <MagneticDropzone
+            onFiles={(files) => {
+              const f = files[0];
+              if (f) {
+                onUpload(f);
+                playSound("tap");
+              }
+            }}
+            accept="image/*"
+            multiple={false}
+            title="Drop a new photo here"
+            hint="or click to browse from your device"
+            className="website-photo-magnetic-zone"
+          />
 
           <div className="website-photo-actions">
             <Button
@@ -981,30 +971,6 @@ function ProfileImageManager({
               <FolderOpen size={14} aria-hidden="true" />
               Browse media library
             </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <UploadSimple size={14} aria-hidden="true" />
-              Upload photo
-            </Button>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) {
-                  onUpload(f);
-                  playSound("tap");
-                }
-              }}
-            />
           </div>
 
           <div className="website-photo-url-wrap">

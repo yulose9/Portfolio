@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { facebookFrame, parseEmbed, parseThreadsEmbedPage, threadsFrame } from "../cms/embeds.ts";
+import { facebookFrame, instagramFrame, parseEmbed, parseThreadsEmbedPage, threadsFrame } from "../cms/embeds.ts";
 import { markdownToTree } from "../cms/render.ts";
 import SocialEmbed from "../app/components/writing/SocialEmbed.tsx";
 
@@ -59,6 +59,24 @@ test("Facebook posts, videos, reels and photos", () => {
 test("X and YouTube still parse", () => {
   assert.equal(parseEmbed("https://twitter.com/jack/status/20").kind, "x");
   assert.equal(parseEmbed("https://youtu.be/dQw4w9WgXcQ").kind, "youtube");
+});
+
+test("Instagram reels and posts parse and generate embed frames", () => {
+  const reel = parseEmbed("https://www.instagram.com/reel/C8FZ4rrSsxc/");
+  assert.deepEqual(reel, {
+    kind: "instagram", format: "reel", id: "C8FZ4rrSsxc", url: "https://www.instagram.com/reel/C8FZ4rrSsxc/",
+  });
+  assert.equal(instagramFrame(reel), "https://www.instagram.com/reel/C8FZ4rrSsxc/embed/");
+
+  const post = parseEmbed("https://instagram.com/p/DV_pLGWAugC");
+  assert.deepEqual(post, {
+    kind: "instagram", format: "post", id: "DV_pLGWAugC", url: "https://www.instagram.com/p/DV_pLGWAugC/",
+  });
+  assert.equal(instagramFrame(post), "https://www.instagram.com/p/DV_pLGWAugC/embed/");
+
+  const rendered = renderToStaticMarkup(createElement(SocialEmbed, { embed: reel }));
+  assert.match(rendered, /data-platform="instagram" data-format="reel"/);
+  assert.match(rendered, />View on Instagram<\/a>/);
 });
 
 test("frames: Threads follows the theme, Facebook picks its plugin and size", () => {

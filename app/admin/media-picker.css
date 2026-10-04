@@ -282,6 +282,23 @@
 .media-picker-upload-button:active:not(:disabled) {
   transform: scale(0.96);
 }
+.media-picker-magnetic-dropzone.ki-dropzone {
+  min-height: 120px;
+  background: var(--wash);
+  margin-top: 0.25rem;
+}
+.media-picker-magnetic-dropzone .ki-dropzone-button {
+  padding: 18px 12px;
+}
+.media-picker-magnetic-dropzone .ki-dropzone-title {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--fg);
+}
+.media-picker-magnetic-dropzone .ki-dropzone-hint {
+  font-size: 12px;
+  color: var(--fg-3);
+}
 .media-picker-upload-button:disabled {
   cursor: default;
   opacity: 0.6;

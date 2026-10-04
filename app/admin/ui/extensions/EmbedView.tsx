@@ -3,25 +3,23 @@
 import { ArrowSquareOut, LinkSimple, Trash } from "@phosphor-icons/react";
 import { NodeViewWrapper, ReactNodeViewRenderer, type ReactNodeViewProps } from "@tiptap/react";
 import { useEffect, useState } from "react";
-import { EmbeddedTweet, TweetSkeleton } from "react-tweet";
-import type { Tweet } from "react-tweet/api";
+import { Tweet, TweetSkeleton } from "react-tweet";
 
-import { parseEmbed, youtubeFrame, type FacebookEmbed, type ThreadsEmbed } from "../../../../cms/embeds";
+import { parseEmbed, youtubeFrame, type FacebookEmbed, type InstagramEmbed, type ThreadsEmbed, type XEmbed } from "../../../../cms/embeds";
 import SocialEmbed, { type SocialMeta } from "../../../components/writing/SocialEmbed";
 import { EmbedBase } from "./blocks";
 
 /*
- * The embed, in the editor. A post on X is drawn by react-tweet's own card
- * from data the admin API fetches (the same card the site renders at build);
- * Threads and Facebook get the site's own cards around their real embeds,
- * YouTube its real player. An empty embed asks for a link.
+ * The embed, in the editor. A post on X is drawn by react-tweet's client component
+ * directly, with a fallback link card on error or not found; Threads, Instagram, and
+ * Facebook get the site's own responsive embed cards, and YouTube its player.
  */
 
-/** Threads and Facebook, with whatever author and text the admin API could find. */
-function SocialPreview({ embed }: { embed: ThreadsEmbed | FacebookEmbed }) {
+/** Threads, Instagram, and Facebook preview card. */
+function SocialPreview({ embed }: { embed: ThreadsEmbed | FacebookEmbed | InstagramEmbed }) {
   const [meta, setMeta] = useState<SocialMeta | undefined>(undefined);
   useEffect(() => {
-    // Facebook shares nothing without an app token; its card works from the link alone.
+    // Only Threads has an oEmbed text scraper on the admin API; others work from iframe/link directly.
     if (embed.kind !== "threads") return;
     let live = true;
     fetch(`/api/admin/embed?url=${encodeURIComponent(embed.url)}`)
@@ -38,32 +36,40 @@ function SocialPreview({ embed }: { embed: ThreadsEmbed | FacebookEmbed }) {
 }
 
 type XCard = { author: string; handle: string; text: string; url: string };
-type XState = { tweet?: Tweet; card?: XCard; error?: string };
 
-function XPreview({ url }: { url: string }) {
-  const [state, setState] = useState<XState | null>(null);
-  useEffect(() => {
-    let live = true;
-    fetch(`/api/admin/embed?url=${encodeURIComponent(url)}`)
-      .then(async (r) => {
-        // Anything but JSON (a proxy page, a dev server without the API) is a miss, not a crash.
-        const body = (await r.json().catch(() => ({}))) as XState;
-        if (!live) return;
-        if (r.ok && (body.tweet || body.card)) setState({ tweet: body.tweet, card: body.card });
-        else setState({ error: body.error ?? "The preview isn’t available here." });
-      })
-      .catch(() => live && setState({ error: "The preview isn’t available here." }));
-    return () => {
-      live = false;
-    };
-  }, [url]);
+function XPreview({ embed }: { embed: XEmbed }) {
+  const [error, setError] = useState<string | null>(null);
+  const handle = embed.url.split("/")[3] ?? "";
 
-  if (!state) return <TweetSkeleton />;
-  if (state.tweet) return <EmbeddedTweet tweet={state.tweet} />;
-  if (state.card) return <XCardView card={state.card} />;
-  // No data: still show what was embedded, as a link, rather than "not found".
-  const handle = url.split("/")[3] ?? "";
-  return <XCardView card={{ author: handle ? `@${handle}` : "Post on X", handle, text: "", url }} note={state.error} />;
+  if (error) {
+    return (
+      <XCardView
+        card={{ author: handle ? `@${handle}` : "Post on X", handle, text: "", url: embed.url }}
+        note="Open post on X"
+      />
+    );
+  }
+
+  return (
+    <div className="react-tweet-theme" style={{ width: "100%", maxWidth: 550, margin: "0 auto" }}>
+      <Tweet
+        id={embed.id}
+        fallback={<TweetSkeleton />}
+        onError={() => {
+          setError("The post could not be loaded directly.");
+          return undefined;
+        }}
+        components={{
+          TweetNotFound: () => (
+            <XCardView
+              card={{ author: handle ? `@${handle}` : "Post on X", handle, text: "", url: embed.url }}
+              note="Open post on X"
+            />
+          ),
+        }}
+      />
+    </div>
+  );
 }
 
 /** A plain post card, for when X only shares the author and text (or nothing). */
@@ -106,9 +112,9 @@ function View({ node, updateAttributes, deleteNode, selected }: ReactNodeViewPro
           </div>
           {embed.kind === "x" ? (
             <div className="embed embed-x">
-              <XPreview url={embed.url} />
+              <XPreview embed={embed} />
             </div>
-          ) : embed.kind === "threads" || embed.kind === "facebook" ? (
+          ) : embed.kind === "threads" || embed.kind === "facebook" || embed.kind === "instagram" ? (
             <div className="embed embed-social">
               <SocialPreview embed={embed} />
             </div>
@@ -133,7 +139,7 @@ function View({ node, updateAttributes, deleteNode, selected }: ReactNodeViewPro
           onSubmit={(e) => {
             e.preventDefault();
             if (!parseEmbed(draft)) {
-              setError("Paste a link to a post on X, Threads or Facebook, or a YouTube video.");
+              setError("Paste a link to a post on X, Threads, Instagram, or Facebook, or a YouTube video.");
               return;
             }
             updateAttributes({ url: draft.trim() });
@@ -153,7 +159,7 @@ function View({ node, updateAttributes, deleteNode, selected }: ReactNodeViewPro
                 deleteNode();
               }
             }}
-            placeholder="Paste a link to a post on X, Threads or Facebook, or a YouTube video"
+            placeholder="Paste a link to a post on X, Threads, Instagram, or Facebook, or a YouTube video"
             aria-label="Embed link"
           />
           <button type="submit" className="admin-button admin-button-primary">

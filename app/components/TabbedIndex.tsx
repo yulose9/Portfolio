@@ -308,15 +308,20 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
             <Link href="/writing" className="writing-button">View writing</Link>
           </div>
         ) : null}
-        {active.links?.length ? (
+        {active.id === "projects" ? (
+          <div className="panel-chunk">
+            <Link href="/projects" className="writing-button">All projects</Link>
+          </div>
+        ) : null}
+        {active.links?.filter((l) => active.id !== "projects" || l.href !== "/projects").length ? (
           <LinkList
-            links={active.links}
+            links={active.links.filter((l) => active.id !== "projects" || l.href !== "/projects")}
             start={
               (active.body?.length ?? 0) +
               (active.posts?.length ?? 0)
             }
           />
-          ) : null}
+        ) : null}
         </div>
       </div>
 
