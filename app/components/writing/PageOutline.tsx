@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -11,21 +12,21 @@ import {
 import { createPortal } from "react-dom";
 import { safeInlineUrl } from "../../../cms/inline";
 import { playSound } from "../ui/sound";
+import { haptic } from "../../lib/haptics";
 
 /*
- * Notion's page outline, shared by the editor and the published article.
+ * Notion's page outline, elevated with Nick Arce's architecture and ReactBits
+ * magnetic cursor attraction.
  *
- * Collapsed, it is a column of short lines on the right edge of the page, one
- * per heading, shorter the deeper the heading; the section you are in has the
- * darker, longer line. Point at it or tab into it and it opens into a small
- * card listing the headings with their icons. The current one carries
- * Kobra's dot and highlight box, which glide to the next item as the section
- * changes, whether you scrolled there or clicked.
+ * Collapsed on desktop, it is a vertical rail of horizontal lines on the right
+ * edge of the viewport. As the cursor nears the lines, they magnetically expand
+ * and shift toward the pointer. On hover or focus, the card opens smoothly to
+ * the left of the rail, keeping the rail lines visible and allowing wide,
+ * legible heading text without truncation.
  *
- * The parent owns the headings and which one is active (the editor reads the
- * Tiptap document, the site reads the rendered article) and does the jump
- * itself; this component only draws, opens, closes, and keeps the dot honest
- * while a jump's smooth scroll passes over other sections.
+ * On mobile and narrow screens, a floating pill at the bottom center shows
+ * circular scroll progress with an SVG ring, opening into a smooth bottom sheet
+ * with staggered row animations and haptic feedback.
  */
 
 export type OutlineHeading = {
@@ -145,6 +146,10 @@ export function PageOutline({
   const [marker, setMarker] = useState<{ y: number; h: number } | null>(null);
   const [host, setHost] = useState<HTMLElement | null>(null);
 
+  // Mobile Floating Pill & Sheet state
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
+
   const anchor = useRef<HTMLSpanElement>(null);
   const nav = useRef<HTMLElement>(null);
   const list = useRef<HTMLDivElement>(null);
@@ -155,6 +160,12 @@ export function PageOutline({
   const ticked = useRef<string | null>(null);
   const opened = useRef(false);
 
+  // Magnetic rail lines
+  const stripRef = useRef<HTMLDivElement>(null);
+  const lineRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const activeLineRef = useRef<HTMLSpanElement>(null);
+  const rafId = useRef(0);
+
   // While a jump's smooth scroll passes over other sections, the dot holds
   // on the target instead of stepping through each of them.
   const current = pinned ?? activeId;
@@ -162,6 +173,7 @@ export function PageOutline({
   const top = headings.length ? Math.min(...headings.map((h) => h.level)) : 1;
   const pitch = pitchFor(headings.length);
   const rove = focusIndex >= 0 ? focusIndex : Math.max(activeIndex, 0);
+  const activeDepth = activeIndex >= 0 ? headings[activeIndex].level - top : 0;
 
   // Fixed to the viewport, so it lives at the end of the body (or of the
   // dialog it was opened in), clear of any transformed ancestor.
@@ -171,6 +183,108 @@ export function PageOutline({
     setHost(
       from.closest<HTMLElement>('[role="dialog"]') ?? from.ownerDocument.body,
     );
+  }, []);
+
+  // Track scroll progress for the mobile progress ring
+  useEffect(() => {
+    if (variant === "editor") return;
+    const updateProgress = () => {
+      const doc = document.documentElement;
+      const total = doc.scrollHeight - window.innerHeight;
+      const currentPos = window.scrollY;
+      const p = total > 0 ? Math.min(1, Math.max(0, currentPos / total)) : 0;
+      setScrollProgress(p);
+    };
+    window.addEventListener("scroll", updateProgress, { passive: true });
+    updateProgress();
+    return () => window.removeEventListener("scroll", updateProgress);
+  }, [variant]);
+
+  // Close mobile sheet on Escape key
+  useEffect(() => {
+    if (!mobileSheetOpen) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMobileSheetOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileSheetOpen]);
+
+  // Magnetic cursor attraction physics (ReactBits Magnet)
+  const resetMagnet = useCallback(() => {
+    for (let i = 0; i < lineRefs.current.length; i++) {
+      const el = lineRefs.current[i];
+      if (el) {
+        el.style.width = "";
+        el.style.transform = "";
+        el.style.opacity = "";
+      }
+    }
+    if (activeLineRef.current) {
+      activeLineRef.current.style.width = "";
+      activeLineRef.current.style.transform = `translateY(${activeIndex * pitch}px)`;
+    }
+  }, [activeIndex, pitch]);
+
+  const applyMagnet = useCallback(
+    (clientX: number, clientY: number) => {
+      const strip = stripRef.current;
+      if (!strip) return;
+      const win = strip.ownerDocument.defaultView;
+      if (prefersReducedMotion(win)) return;
+
+      const stripRect = strip.getBoundingClientRect();
+      const rightEdge = stripRect.right - 18;
+      const dx = Math.max(0, rightEdge - clientX);
+      const radiusY = 75;
+      const radiusX = 110;
+
+      if (dx > radiusX) {
+        resetMagnet();
+        return;
+      }
+
+      const ratioX = Math.cos((dx / radiusX) * (Math.PI / 2));
+
+      for (let i = 0; i < headings.length; i++) {
+        const el = lineRefs.current[i];
+        if (!el) continue;
+        const lineCenterY = stripRect.top + 14 + i * pitch + 1;
+        const dy = Math.abs(clientY - lineCenterY);
+        const baseW = lineWidth(headings[i].level - top);
+
+        if (dy < radiusY) {
+          const ratioY = Math.cos((dy / radiusY) * (Math.PI / 2));
+          const proximity = ratioY * ratioY * ratioX;
+          const bonus = Math.round(20 * proximity);
+          const pull = Math.round(4 * proximity);
+          const opacity = (0.45 + 0.5 * proximity).toFixed(2);
+
+          el.style.width = `${baseW + bonus}px`;
+          el.style.transform = `translateX(-${pull}px)`;
+          el.style.opacity = opacity;
+
+          if (i === activeIndex && activeLineRef.current) {
+            const activeBaseW = lineWidth(activeDepth) + 8;
+            activeLineRef.current.style.width = `${activeBaseW + Math.round(24 * proximity)}px`;
+            activeLineRef.current.style.transform = `translateY(${activeIndex * pitch}px) translateX(-${pull}px)`;
+          }
+        } else {
+          el.style.width = `${baseW}px`;
+          el.style.transform = "";
+          el.style.opacity = "";
+        }
+      }
+    },
+    [headings, pitch, top, activeIndex, activeDepth, resetMagnet],
+  );
+
+  useEffect(() => {
+    return () => {
+      cancelAnimationFrame(rafId.current);
+    };
   }, []);
 
   // The dot and highlight box follow the active row.
@@ -296,126 +410,288 @@ export function PageOutline({
 
   // While the card is closed the marker jumps, so it is already in place when the card opens.
   const markerInstant = !open;
-  const activeDepth = activeIndex >= 0 ? headings[activeIndex].level - top : 0;
 
   const outline = (
-    <nav
-      ref={nav}
-      className="page-outline"
-      aria-label={label}
-      data-variant={variant}
-      data-open={open || undefined}
-      data-dismissed={dismissed || undefined}
-      onPointerEnter={(event) => {
-        if (event.pointerType === "touch") return;
-        hovered.current = true;
-        window.clearTimeout(timer.current);
-        // A short intent delay, so passing the pointer by doesn't flash it.
-        timer.current = window.setTimeout(() => {
-          setOpen(true);
+    <>
+      <nav
+        ref={nav}
+        className="page-outline"
+        aria-label={label}
+        data-variant={variant}
+        data-open={open || undefined}
+        data-dismissed={dismissed || undefined}
+        onPointerEnter={(event) => {
+          if (event.pointerType === "touch") return;
+          hovered.current = true;
+          window.clearTimeout(timer.current);
+          // A short intent delay, so passing the pointer by doesn't flash it.
+          timer.current = window.setTimeout(() => {
+            setOpen(true);
+            setDismissed(false);
+          }, 70);
+        }}
+        onPointerLeave={(event) => {
+          if (event.pointerType === "touch") return;
+          hovered.current = false;
+          scheduleClose();
+        }}
+        onFocus={(event) => {
+          if (!nav.current?.contains(event.target as Node)) return;
+          window.clearTimeout(timer.current);
+          if (!dismissed) setOpen(true);
+        }}
+        onBlur={(event) => {
+          const next = event.relatedTarget as Node | null;
+          if (next && nav.current?.contains(next)) return;
           setDismissed(false);
-        }, 70);
-      }}
-      onPointerLeave={(event) => {
-        if (event.pointerType === "touch") return;
-        hovered.current = false;
-        scheduleClose();
-      }}
-      onFocus={(event) => {
-        if (!nav.current?.contains(event.target as Node)) return;
-        window.clearTimeout(timer.current);
-        if (!dismissed) setOpen(true);
-      }}
-      onBlur={(event) => {
-        const next = event.relatedTarget as Node | null;
-        if (next && nav.current?.contains(next)) return;
-        setDismissed(false);
-        scheduleClose();
-      }}
-      onKeyDown={onKeyDown}
-    >
-      <div
-        className="page-outline-strip"
-        aria-hidden="true"
-        style={{ height: headings.length * pitch }}
+          scheduleClose();
+        }}
+        onKeyDown={onKeyDown}
       >
-        {headings.map((h, i) => (
-          <span
-            key={h.id}
-            className="page-outline-line"
-            style={{ top: i * pitch, width: lineWidth(h.level - top) }}
-          />
-        ))}
-        {activeIndex >= 0 ? (
-          <span
-            className="page-outline-line page-outline-line-active"
-            style={{ transform: `translateY(${activeIndex * pitch}px)`, width: lineWidth(activeDepth) + 6 }}
-          />
-        ) : null}
-      </div>
-
-      <div className="page-outline-card">
-        <div ref={list} className="page-outline-scroll" data-lenis-prevent>
-          {marker ? (
+        <div
+          ref={stripRef}
+          className="page-outline-strip"
+          aria-hidden="true"
+          style={{ height: headings.length * pitch }}
+          onPointerMove={(e) => {
+            if (e.pointerType === "touch") return;
+            cancelAnimationFrame(rafId.current);
+            rafId.current = requestAnimationFrame(() => {
+              applyMagnet(e.clientX, e.clientY);
+            });
+          }}
+          onPointerLeave={(e) => {
+            if (e.pointerType === "touch") return;
+            cancelAnimationFrame(rafId.current);
+            resetMagnet();
+          }}
+        >
+          {headings.map((h, i) => (
             <span
-              className="page-outline-marker"
-              aria-hidden="true"
-              style={{ transform: `translateY(${marker.y}px)`, height: marker.h, transition: markerInstant ? "none" : undefined }}
-            >
-              <span className="page-outline-dot" />
-            </span>
+              key={h.id}
+              ref={(el) => {
+                lineRefs.current[i] = el;
+              }}
+              className="page-outline-line"
+              style={{ top: i * pitch, width: lineWidth(h.level - top) }}
+            />
+          ))}
+          {activeIndex >= 0 ? (
+            <span
+              ref={activeLineRef}
+              className="page-outline-line page-outline-line-active"
+              style={{
+                transform: `translateY(${activeIndex * pitch}px)`,
+                width: lineWidth(activeDepth) + 8,
+              }}
+            />
           ) : null}
-          <ol>
-          {headings.map((h, i) => {
-            const active = i === activeIndex;
-            const body = (
-              <>
-                {h.icon ? <Icon value={h.icon} /> : null}
-                <span className="page-outline-text">{h.text}</span>
-              </>
-            );
-            const shared = {
-              ref: (el: HTMLElement | null) => {
-                items.current[i] = el;
-              },
-              className: "page-outline-link",
-              "data-active": active || undefined,
-              "aria-current": active ? ("location" as const) : undefined,
-              "data-sound": "select",
-              tabIndex: i === rove ? 0 : -1,
-              title: h.text,
-              onFocus: () => setFocusIndex(i),
-            };
-            return (
-              <li
-                key={h.id}
-                className="page-outline-item"
-                data-depth={Math.min(h.level - top, 3)}
-              >
-                {asLinks ? (
-                  <a
-                    {...shared}
-                    href={`#${h.id}`}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      jump(h.id);
-                    }}
-                  >
-                    {body}
-                  </a>
-                ) : (
-                  <button {...shared} type="button" onClick={() => jump(h.id)}>
-                    {body}
-                  </button>
-                )}
-                {renderAction ? renderAction(h, i === rove ? 0 : -1) : null}
-              </li>
-            );
-          })}
-          </ol>
         </div>
-      </div>
-    </nav>
+
+        <div
+          className="page-outline-card"
+          onPointerEnter={() => {
+            cancelAnimationFrame(rafId.current);
+            resetMagnet();
+          }}
+        >
+          <div className="page-outline-header">
+            <span className="page-outline-title">{label}</span>
+            <span className="page-outline-count">{headings.length} sections</span>
+          </div>
+          <div ref={list} className="page-outline-scroll" data-lenis-prevent>
+            {marker ? (
+              <span
+                className="page-outline-marker"
+                aria-hidden="true"
+                style={{
+                  transform: `translateY(${marker.y}px)`,
+                  height: marker.h,
+                  transition: markerInstant ? "none" : undefined,
+                }}
+              >
+                <span className="page-outline-dot" />
+              </span>
+            ) : null}
+            <ol>
+              {headings.map((h, i) => {
+                const active = i === activeIndex;
+                const body = (
+                  <>
+                    {h.icon ? <Icon value={h.icon} /> : null}
+                    <span className="page-outline-text">{h.text}</span>
+                  </>
+                );
+                const shared = {
+                  ref: (el: HTMLElement | null) => {
+                    items.current[i] = el;
+                  },
+                  className: "page-outline-link",
+                  "data-active": active || undefined,
+                  "aria-current": active ? ("location" as const) : undefined,
+                  "data-sound": "select",
+                  tabIndex: i === rove ? 0 : -1,
+                  title: h.text,
+                  onFocus: () => setFocusIndex(i),
+                };
+                return (
+                  <li
+                    key={h.id}
+                    className="page-outline-item"
+                    data-depth={Math.min(h.level - top, 3)}
+                  >
+                    {asLinks ? (
+                      <a
+                        {...shared}
+                        href={`#${h.id}`}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          haptic();
+                          jump(h.id);
+                        }}
+                      >
+                        {body}
+                      </a>
+                    ) : (
+                      <button
+                        {...shared}
+                        type="button"
+                        onClick={() => {
+                          haptic();
+                          jump(h.id);
+                        }}
+                      >
+                        {body}
+                      </button>
+                    )}
+                    {renderAction ? renderAction(h, i === rove ? 0 : -1) : null}
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        </div>
+      </nav>
+
+      {variant !== "editor" && headings.length >= 2 ? (
+        <>
+          <button
+            type="button"
+            className="toc-mobile-pill"
+            aria-expanded={mobileSheetOpen}
+            aria-controls="toc-mobile-sheet"
+            aria-label="Table of contents"
+            onClick={() => {
+              haptic();
+              setMobileSheetOpen((prev) => {
+                if (!prev) playSound("open", { velocity: 0.45 });
+                return !prev;
+              });
+            }}
+          >
+            <svg className="toc-ring" viewBox="0 0 20 20" aria-hidden="true">
+              <circle className="toc-ring-track" cx="10" cy="10" r="8" />
+              <circle
+                className="toc-ring-fill"
+                cx="10"
+                cy="10"
+                r="8"
+                pathLength="1"
+                style={{ strokeDashoffset: Math.max(0, 1 - scrollProgress) }}
+              />
+            </svg>
+            <span className="toc-pill-label">Contents</span>
+            <span className="toc-pill-count">{headings.length}</span>
+            <svg
+              className={`toc-pill-chevron ${mobileSheetOpen ? "is-open" : ""}`}
+              viewBox="0 0 16 16"
+              aria-hidden="true"
+            >
+              <path
+                d="M4 10l4-4 4 4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+
+          <div
+            className={`toc-sheet-scrim ${mobileSheetOpen ? "is-open" : ""}`}
+            onClick={() => setMobileSheetOpen(false)}
+            aria-hidden="true"
+          />
+
+          <div
+            id="toc-mobile-sheet"
+            className={`toc-sheet-dialog ${mobileSheetOpen ? "is-open" : ""}`}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Table of contents"
+          >
+            <div className="toc-sheet-handle" aria-hidden="true" />
+            <div className="toc-sheet-header">
+              <div className="toc-sheet-title-wrap">
+                <h2 className="toc-sheet-title">{label || "Contents"}</h2>
+                <span className="toc-sheet-count">{headings.length} sections</span>
+              </div>
+              <button
+                type="button"
+                className="toc-sheet-close"
+                aria-label="Close contents"
+                onClick={() => setMobileSheetOpen(false)}
+              >
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path
+                    d="M4 4l8 8M12 4l-8 8"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="toc-sheet-scroll" data-lenis-prevent>
+              <ol className="toc-sheet-list">
+                {headings.map((h, i) => {
+                  const active = h.id === current;
+                  return (
+                    <li
+                      key={h.id}
+                      className="toc-sheet-item"
+                      data-depth={Math.min(h.level - top, 3)}
+                      style={{ "--stagger-i": i } as React.CSSProperties}
+                    >
+                      <button
+                        type="button"
+                        className={`toc-sheet-link ${active ? "is-active" : ""}`}
+                        aria-current={active ? "location" : undefined}
+                        onClick={() => {
+                          haptic();
+                          playSound("select", { velocity: 0.5 });
+                          jump(h.id);
+                          setMobileSheetOpen(false);
+                        }}
+                      >
+                        {active ? (
+                          <span className="toc-sheet-dot" aria-hidden="true" />
+                        ) : null}
+                        {h.icon ? <Icon value={h.icon} /> : null}
+                        <span className="toc-sheet-text">{h.text}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          </div>
+        </>
+      ) : null}
+    </>
   );
 
   return (
