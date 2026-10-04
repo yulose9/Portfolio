@@ -53,13 +53,15 @@ export default function ShortcutPage() {
   const filteredShortcuts = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return SHORTCUTS;
-    return SHORTCUTS.filter(
-      (s) =>
+    return SHORTCUTS.filter((s) => {
+      const customKey = bindings[s.id];
+      return (
         s.label.toLowerCase().includes(q) ||
         s.group.toLowerCase().includes(q) ||
         prettyKeys(s.keys).toLowerCase().includes(q) ||
-        (bindings[s.id] && prettyKeys(bindings[s.id]).toLowerCase().includes(q))
-    );
+        Boolean(customKey && prettyKeys(customKey).toLowerCase().includes(q))
+      );
+    });
   }, [query, bindings]);
 
   const customCount = useMemo(() => {
