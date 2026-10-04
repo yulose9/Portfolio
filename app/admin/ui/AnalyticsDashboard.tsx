@@ -10,6 +10,7 @@ import {
 } from "../../../cms/analytics";
 import { call } from "./api";
 import OverviewPublishing from "./OverviewPublishing";
+import PageHeader, { EmptyState } from "./PageHeader";
 import type { Destination } from "./ControlShell";
 
 const number = (value: number) =>
@@ -69,24 +70,20 @@ export default function AnalyticsDashboard({
     )
     .join(" ");
   return (
-    <div className="control-page">
-      <header className="control-heading">
-        <div>
-          <p className="control-eyebrow">
-            nazarene.dev /{" "}
-            {overview ? "Your workspace" : "Audience & engagement"}
-          </p>
-          <h1>{overview ? "Overview" : "Analytics"}</h1>
-          <p>
-            {overview
-              ? "A clear view of your site, and what to do next."
-              : "Understand what brings people here and what holds their attention."}
-          </p>
-        </div>
-        <Button variant="primary" onClick={onWrite}>
-          Open writing <ArrowUpRight size={16} />
-        </Button>
-      </header>
+    <div className="control-page cc-page">
+      <PageHeader
+        title={overview ? "Overview" : "Analytics"}
+        subtitle={
+          overview
+            ? "A clear view of your site, and what to do next."
+            : "Understand what brings people here and what holds their attention."
+        }
+        actions={
+          <Button variant="primary" onClick={onWrite}>
+            Open writing <ArrowUpRight size={16} />
+          </Button>
+        }
+      />
       {overview && <OverviewPublishing onNavigate={onNavigate} />}
       <div className="control-toolbar">
         <div className="control-segments" aria-label="Date presets">
@@ -159,9 +156,10 @@ export default function AnalyticsDashboard({
           <span />
         </div>
       ) : error && !report ? null : !report?.configured ? (
-        <section className="control-empty">
-          <ChartLine size={32} />
-          <h2>Your analytics, in one place.</h2>
+        <EmptyState
+          icon={<ChartLine size={32} aria-hidden="true" />}
+          title="Your analytics, in one place."
+        >
           <p>
             Connect your existing PostHog project to see traffic and engagement
             here. Nothing is being estimated from sample data.
@@ -174,7 +172,7 @@ export default function AnalyticsDashboard({
               and ANALYTICS_START_DATE when the new events go live.
             </p>
           </details>
-        </section>
+        </EmptyState>
       ) : (
         <>
           <div className="control-metrics">

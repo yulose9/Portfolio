@@ -39,7 +39,8 @@ yarn-error.log*
 !.env.example
 !.env.*.example
 .dev.vars.*
-.claude/settings.local.json
+.claude/
+/Luxury Black Centurion Card Render.png
 .env.development.local
 .env.test.local
 .env.production.local

@@ -303,7 +303,11 @@ let active: Player | null = null;
 /** Plays a cue from code (a toast, a finished save). Silent when muted. */
 export function playSound(sound: SoundName, opts: { detune?: number; velocity?: number } = {}) {
   if (!active?.ready) return;
-  play(active, { sound, ...opts });
+  try {
+    play(active, { sound, ...opts });
+  } catch {
+    // AudioContext blocked before gesture or unsupported
+  }
 }
 
 const TOGGLE_SLOTS = new Set([

@@ -15,6 +15,7 @@ import { call, api, prepareImage } from "./api";
 import { registerProtection, beginPendingWork } from "./session";
 import PortfolioContent from "../../components/PortfolioContent";
 import MediaLibrary from "./MediaLibrary";
+import PageHeader, { PageChip } from "./PageHeader";
 
 const recoveryKey = "admin:website-recovery";
 export default function WebsiteEditor() {
@@ -182,14 +183,20 @@ export default function WebsiteEditor() {
   }
   const content = record?.content;
   return (
-    <div className="control-page website-page">
-      <header className="control-heading">
-        <div>
-          <p className="control-eyebrow">nazarene.dev / Content</p>
-          <h1>Website</h1>
-          <p role="status">{status}</p>
-        </div>
-        <div className="website-actions">
+    <div className="control-page cc-page website-page">
+      <PageHeader
+        title="Website"
+        chip={<PageChip href="/">View on site</PageChip>}
+        subtitle={
+          <>
+            Profile, sections and links on your homepage.{" "}
+            <span role="status" className="cc-page-status">
+              {status}
+            </span>
+          </>
+        }
+        actions={
+        <>
           <Button
             disabled={!content}
             onClick={async () => {
@@ -214,8 +221,9 @@ export default function WebsiteEditor() {
           >
             Review changes
           </Button>
-        </div>
-      </header>
+        </>
+        }
+      />
       {error && (
         <div className="control-notice" role="alert">
           {error}

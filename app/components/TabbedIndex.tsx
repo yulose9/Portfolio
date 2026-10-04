@@ -16,6 +16,7 @@ import { haptic } from "../lib/haptics";
 import { responsiveImage } from "../lib/images";
 import AboutMenu from "./menu/AboutMenu";
 import RowMenu from "./menu/RowMenu";
+import { playSound } from "./ui/sound";
 import type { Entry, Post, Tab } from "../site-content";
 
 /**
@@ -60,11 +61,21 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
   const [hoveredTab, setHoveredTab] = useState<number | null>(null);
   const hoverRailRef = useRef<HTMLSpanElement>(null);
   const hoverIdle = useRef(true);
+  const lastSoundedTab = useRef<number | null>(null);
 
   const enterTab = useCallback((index: number) => {
     const label = tabRefs.current[index];
     const rail = hoverRailRef.current;
     if (!label || !rail) return;
+
+    if (
+      lastSoundedTab.current !== index &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(hover: hover) and (pointer: fine)").matches
+    ) {
+      lastSoundedTab.current = index;
+      playSound("select", { detune: Math.min(index, 7) * 55, velocity: 0.6 });
+    }
 
     // Arriving from idle it should appear under the cursor, not slide in from
     // wherever it was last left. Suppress, set, flush a reflow, restore.
@@ -85,6 +96,7 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
 
   const leaveTabs = useCallback(() => {
     hoverIdle.current = true;
+    lastSoundedTab.current = null;
     setHoveredTab(null);
   }, []);
 
@@ -384,11 +396,21 @@ function useTravellingHighlight() {
   const rowRefs = useRef<Array<HTMLLIElement | null>>([]);
   const highlightRef = useRef<HTMLDivElement>(null);
   const idle = useRef(true);
+  const lastSoundedRow = useRef<number | null>(null);
 
   const enter = useCallback((index: number) => {
     const row = rowRefs.current[index];
     const highlight = highlightRef.current;
     if (!row || !highlight) return;
+
+    if (
+      lastSoundedRow.current !== index &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(hover: hover) and (pointer: fine)").matches
+    ) {
+      lastSoundedRow.current = index;
+      playSound("select", { detune: Math.min(index, 7) * 55, velocity: 0.35 });
+    }
 
     // Arriving from idle it should fade in under the cursor rather than slide
     // across from whichever row the pointer left last. Suppress the
@@ -410,6 +432,7 @@ function useTravellingHighlight() {
 
   const leave = useCallback(() => {
     idle.current = true;
+    lastSoundedRow.current = null;
     setHovered(null);
   }, []);
 

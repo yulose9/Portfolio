@@ -30,6 +30,7 @@ import "./admin-icons.css";
 import "./admin-workspace.css";
 import "./admin-alt.css";
 import "./control-center.css";
+import "./control-pages.css";
 import "../projects.css";
 
 /*

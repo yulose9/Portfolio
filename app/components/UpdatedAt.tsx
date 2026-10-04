@@ -17,8 +17,12 @@ const subscribe = (listener: () => void) => {
 const snapshot = () => Math.floor(Date.now() / 1000) * 1000;
 const serverSnapshot = () => null;
 
-/** Persisted content time; never the page load or an unsaved keystroke. */
-export default function UpdatedAt({ at, nested = false }: { at: string; nested?: boolean }) {
+/**
+ * Persisted content time; never the page load or an unsaved keystroke.
+ * `compact`: a table column already says "Updated", so the words are for
+ * screen readers only.
+ */
+export default function UpdatedAt({ at, nested = false, compact = false }: { at: string; nested?: boolean; compact?: boolean }) {
   const now = useSyncExternalStore(subscribe, snapshot, serverSnapshot);
   const label = updatedAtLabel(at, now);
   if (label === null) return null;
@@ -30,7 +34,8 @@ export default function UpdatedAt({ at, nested = false }: { at: string; nested?:
           render={<span tabIndex={nested ? undefined : 0} />}
           className="updated-at"
         >
-          Last updated <time dateTime={at}>{label}</time>
+          {compact ? <span className="sr-only">Last updated </span> : "Last updated "}
+          <time dateTime={at}>{label}</time>
           <span className="sr-only"> ({exact})</span>
         </Tooltip.Trigger>
         <Tooltip.Portal>

@@ -1,10 +1,12 @@
 "use client";
 
-import { ArrowSquareOut, House, NotePencil, SignOut, SpeakerHigh, SpeakerLow, SpeakerNone } from "@phosphor-icons/react";
+import { ArrowSquareOut, Briefcase, House, Moon, NotePencil, SidebarSimple, SignOut, SpeakerHigh, SpeakerLow, SpeakerNone, Sun } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { toast } from "../../lib/toast";
+import { getThemeSetting, nextSetting, setThemeSetting } from "../../lib/theme";
 import { setSoundMuted, setSoundVolume, useSoundMuted, useSoundVolume } from "../../components/ui/sound";
+import { recordRecent, type RecentItem } from "./shell-nav";
 import { api, ApiError, setApiWorkspace } from "./api";
 import Editor, { type OpenOptions, type Panel } from "./Editor";
 import { Fluent } from "./extensions/emoji";
@@ -141,6 +143,46 @@ export default function AdminApp() {
     window.scrollTo({ top: 0 });
   };
 
+  // A recent from the sidebar or ⌘K: a page, or a post or project in its own section.
+  const openRecent = async (item: RecentItem) => {
+    if (item.kind === "page") return void navigate(item.id as Destination);
+    if (navigating.current) return;
+    navigating.current = true;
+    const protection = await protectWork();
+    navigating.current = false;
+    if (protection.pending || (!protection.saved && !protection.recoverable)) {
+      toast.add({ type: "error", title: "Keep this page open", description: "Finish pending uploads or save your changes before switching pages." });
+      return;
+    }
+    const destination = item.kind === "project" ? "projects" : "writing";
+    window.history.pushState(null, "", `/admin?section=${destination}&post=${encodeURIComponent(item.id)}`);
+    currentRoute.current = window.location.href;
+    setSection(destination); setPostId(item.id); setOptions({});
+    window.scrollTo({ top: 0 });
+  };
+
+  // Recents: Analytics and Website when visited; a post or project once the
+  // editor has named it (its document title is "<icon> <title> · Writing admin").
+  useEffect(() => {
+    if (postId || (section !== "analytics" && section !== "website")) return;
+    recordRecent({ kind: "page", id: section, title: section === "website" ? "Website settings" : "Analytics" });
+  }, [section, postId]);
+  useEffect(() => {
+    if (!postId) return;
+    const kind = section === "projects" ? "project" : "post";
+    const read = () => {
+      const match = /^(.*) · Writing admin$/.exec(document.title);
+      if (!match) return;
+      const [first, ...rest] = match[1].split(" ");
+      const icon = rest.length && !/[\p{L}\p{N}]/u.test(first) ? first : null;
+      recordRecent({ kind, id: postId, title: icon ? rest.join(" ") : match[1], icon });
+    };
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(document.head, { subtree: true, childList: true, characterData: true });
+    return () => observer.disconnect();
+  }, [postId, section]);
+
   const create = (init: Parameters<typeof api.create>[0] = {}) =>
     void api
       .create(init)
@@ -160,6 +202,9 @@ export default function AdminApp() {
     ...(postId ? [{ id: "home", group: "Go to" as const, title: "All writing", icon: <House {...CI} />, keywords: ["home", "list", "back", "dashboard"], run: () => open(null) }] : []),
     {id:"tags",group:"Go to",title:"Edit tag pages",keywords:["tags","topics","description"],icon:<NotePencil {...CI}/>,run:()=>setTagsOpen(true)},
     { id: "site", group: "Go to", title: "View on site", icon: <ArrowSquareOut {...CI} />, keywords: ["live", "nazarene.dev", "writing"], run: () => window.open("/writing", "_blank", "noopener") },
+    { id: "new-project", group: "Go to", title: "New project", icon: <Briefcase {...CI} />, keywords: ["create", "project", "case study", "work"], run: () => createProject() },
+    { id: "theme", group: "View", title: "Switch theme", icon: getThemeSetting() === "dark" ? <Moon {...CI} /> : <Sun {...CI} />, keywords: ["theme", "dark", "light", "system", "appearance", "mode"], run: () => setThemeSetting(nextSetting(getThemeSetting())) },
+    { id: "sidebar", group: "View", title: "Collapse or expand the sidebar", keys: "⌘B", icon: <SidebarSimple {...CI} />, keywords: ["sidebar", "navigation", "compact", "panel"], run: () => window.dispatchEvent(new Event("admin:sidebar-toggle")) },
     { id: "signout", group: "Go to", title: "Sign out", icon: <SignOut {...CI} />, keywords: ["logout", "access"], run: () => window.open("/cdn-cgi/access/logout", "_self") },
     // The keyboard path to the speaker in the top bar, and the only place the volume lives.
     { id: "sound", group: "View", title: "Interface sounds", checked: !soundMuted, icon: soundMuted ? <SpeakerNone {...CI} /> : <SpeakerHigh {...CI} />, keywords: ["sound", "audio", "mute", "unmute", "clicks"], run: () => setSoundMuted(!soundMuted) },

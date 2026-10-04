@@ -1,0 +1,482 @@
+/* ── Control-center pages ─────────────────────────────────────────────────
+   One frame for Overview, Analytics, Writing, Projects and Website, after
+   Cloudflare's dashboard pages: title (+ outline chip), subtitle, actions on
+   the right, a full-width rule, then the toolbar, then the content in a
+   bordered card, then "Showing N …" under it. The shell (sidebar, top bar,
+   breadcrumbs) is control-center.css.
+
+   Spacing scale: 4 / 8 / 12 / 16 / 24 / 32 / 48, and nothing else.
+     page padding     32 x 32, 48 at the bottom; 24 under 1100px; 16 sides under 900px
+     header           24 under it to the rule, 24 after the rule
+     toolbar          8 between controls, 16 under it
+     status filters   12 between the tabs and the tag filter, 16 under them
+     content          sections 24 apart (control-panel, report grids)
+     footer           12 above "Showing N …"
+   Colours are the --control-* tokens, so light and dark come for free. */
+
+.cc-page {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 32px 32px 48px;
+}
+@media (max-width: 1100px) {
+  .cc-page {
+    padding: 24px 24px 48px;
+  }
+}
+@media (max-width: 899px) {
+  .cc-page {
+    padding: 24px max(16px, env(safe-area-inset-right)) 48px max(16px, env(safe-area-inset-left));
+  }
+}
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+
+.cc-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--control-line);
+}
+.cc-page-heading {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.cc-page-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.cc-page-title-row h1 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--control-ink);
+  text-wrap: balance;
+}
+.cc-page-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--control-tint);
+  color: var(--control-muted);
+}
+/* Kumo's outline LinkButton at size sm, as a chip: the icon trails the label. */
+.cc-page-chip {
+  gap: 4px;
+  color: var(--control-muted);
+}
+.cc-page-subtitle {
+  max-width: 640px;
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--control-muted);
+  text-wrap: pretty;
+}
+.cc-page-status {
+  white-space: nowrap;
+}
+.cc-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 639px) {
+  .cc-page-title-row h1 {
+    font-size: 24px;
+    line-height: 32px;
+  }
+  .cc-page-actions {
+    width: 100%;
+  }
+}
+
+/* The page's one primary action, split into "New post" and a template menu. */
+.cc-split {
+  display: inline-flex;
+}
+.cc-split > button:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.cc-split > button:last-child {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.cc-split .admin-kbd {
+  margin-left: 4px;
+  color: rgb(255 255 255 / 0.75);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.3);
+}
+
+/* ── Toolbar: filter field first, then secondary actions ─────────────── */
+
+.cc-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.cc-page .cc-search {
+  flex: 1 1 240px;
+  max-width: 420px;
+  height: 36px;
+  gap: 8px;
+  padding: 0 8px 0 12px;
+  border-radius: 8px;
+  background: var(--control-surface);
+  box-shadow: inset 0 0 0 1px var(--control-line);
+  color: var(--control-muted);
+}
+.cc-page .cc-search:focus-within {
+  box-shadow: inset 0 0 0 1px var(--a-field-edge), var(--a-field-halo);
+}
+.cc-page .cc-search input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--control-ink);
+}
+.admin-body .cc-search input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.cc-toolbar .admin-kbd {
+  margin-left: 4px;
+}
+@media (max-width: 639px) {
+  .cc-page .cc-search {
+    flex-basis: 100%;
+    max-width: none;
+    height: 44px;
+  }
+}
+
+/* Status tabs, and the tag filter on its own row under them, flush left. */
+.cc-page .cc-filters {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+}
+.cc-filters > * {
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Analytics' range controls match the 36px Kumo buttons beside them. */
+.control-toolbar select,
+.control-date input {
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 8px;
+  color: var(--control-ink);
+}
+
+/* ── Card, table and list ────────────────────────────────────────────── */
+
+.cc-card {
+  border: 1px solid var(--control-line);
+  border-radius: 12px;
+  background: var(--control-surface);
+  overflow: hidden;
+  container-type: inline-size;
+}
+
+/* Projects: a Kumo Table inside the card. */
+.cc-table {
+  overflow-x: auto;
+}
+.cc-page .cc-table table {
+  margin: 0;
+  font-size: 14px;
+}
+.cc-page .cc-table th {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--control-line);
+  background: var(--control-tint);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--control-muted);
+}
+.cc-page .cc-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--control-line);
+  vertical-align: middle;
+}
+.cc-page .cc-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.cc-page .cc-table td:last-child,
+.cc-page .cc-table th:last-child {
+  text-align: right;
+}
+.cc-page .cc-table .project-title {
+  color: var(--control-ink);
+  font-weight: 500;
+  text-underline-offset: 3px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .cc-page .cc-table .project-title:hover {
+    text-decoration: underline;
+  }
+}
+.cc-page .cc-table .project-parent {
+  margin-top: 4px;
+  color: var(--control-muted);
+}
+.cc-row-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@container (max-width: 600px) {
+  .cc-table .cc-col-updated {
+    display: none;
+  }
+}
+
+/* Writing: the existing rows, framed as a table with a header row. */
+.cc-list {
+  --cc-cols: minmax(0, 1fr) 136px 176px 136px;
+}
+.cc-page .cc-list .admin-rows {
+  margin: 0;
+}
+.cc-list .rows-head {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--cc-cols);
+  grid-template-areas: "title status tags updated";
+  column-gap: 16px;
+  align-items: center;
+  height: auto;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 48px;
+  border-bottom: 1px solid var(--control-line);
+  background: var(--control-tint);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--control-muted);
+}
+.cc-list .rows-head .check,
+.cc-page .cc-list .admin-rows > li > .check {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  translate: 0 -50%;
+}
+/* A table header keeps its select-all box in view. */
+.cc-list .rows-head .check {
+  opacity: 1;
+}
+.cc-col-title {
+  grid-area: title;
+}
+.cc-col-status {
+  grid-area: status;
+}
+.cc-col-tags {
+  grid-area: tags;
+}
+.cc-col-updated {
+  grid-area: updated;
+}
+
+/* Rows are flat and full-bleed inside the card; 48px each side for the
+   checkbox and the row menu, so the columns line up with the header. */
+.cc-page .cc-list .admin-row {
+  grid-template-columns: var(--cc-cols);
+  grid-template-areas: "title status tags updated";
+  column-gap: 16px;
+  row-gap: 4px;
+  min-height: 56px;
+  padding: 12px 48px;
+  border-radius: 0;
+}
+.cc-page .cc-list .admin-row:active {
+  scale: 1;
+}
+.cc-page .cc-list .admin-row:focus-visible {
+  outline-offset: -2px;
+}
+.cc-page .cc-list .admin-row-skeleton {
+  height: 56px;
+  margin: 0;
+  border-radius: 0;
+}
+.cc-page .cc-list .admin-row-skeleton + .admin-row-skeleton {
+  border-top: 1px solid var(--control-line);
+}
+.cc-cell-title {
+  grid-area: title;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.cc-list .admin-row-main {
+  grid-area: auto;
+  flex: 1;
+  gap: 0;
+}
+.cc-list .admin-row-title {
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: -0.006em;
+}
+.cc-list .admin-row-dek {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--control-muted);
+}
+.cc-list .admin-parent-label {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--control-muted);
+}
+.cc-page .cc-list .admin-row-thumb {
+  grid-area: auto;
+  flex: none;
+  width: 48px;
+  height: 32px;
+  border-radius: 6px;
+}
+.cc-cell-status {
+  grid-area: status;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.cc-cell-tags {
+  grid-area: tags;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.cc-cell-tags .tag-sm {
+  margin: 0;
+}
+.cc-cell-updated {
+  grid-area: updated;
+  min-width: 0;
+}
+.cc-cell-updated .updated-at {
+  color: var(--control-muted);
+}
+.cc-cell-note {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--control-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.status-badge .admin-dot {
+  width: 6px;
+  height: 6px;
+}
+
+/* Narrower card: tags tuck under the title. */
+@container (max-width: 760px) {
+  .cc-list .rows-head {
+    grid-template-columns: minmax(0, 1fr) 128px 120px;
+    grid-template-areas: "title status updated";
+  }
+  .cc-list .rows-head .cc-col-tags {
+    display: none;
+  }
+  .cc-page .cc-list .admin-row {
+    grid-template-columns: minmax(0, 1fr) 128px 120px;
+    grid-template-areas: "title status updated" "tags status updated";
+  }
+  .cc-cell-tags:empty {
+    display: none;
+  }
+}
+/* Phone: one column; the facts wrap on a line under the title. */
+@container (max-width: 520px) {
+  .cc-list .rows-head {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "title";
+  }
+  .cc-list .rows-head :is(.cc-col-status, .cc-col-updated) {
+    display: none;
+  }
+  .cc-page .cc-list .admin-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+  }
+  .cc-cell-title {
+    flex: 1 1 100%;
+  }
+  .cc-cell-status {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+/* ── Footer, empty states, notices ───────────────────────────────────── */
+
+.cc-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--control-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.control-empty > svg {
+  color: var(--control-muted);
+}
+.control-empty h2 {
+  margin: 16px 0 8px;
+}
+.control-empty p {
+  margin: 0;
+}
+.control-empty[data-compact] {
+  min-height: 0;
+  padding: 48px 24px;
+}
+
+.control-notice {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  margin: 0 0 24px;
+}
+.control-notice p {
+  margin: 0;
+}
+html[data-theme="dark"] .control-notice {
+  border-color: #5c4a22;
+  background: #2a2417;
+}

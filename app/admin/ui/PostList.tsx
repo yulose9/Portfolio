@@ -1,7 +1,5 @@
 "use client";
 
-import { SoundToggle } from "../../components/ui/sound";
-import { ThemeToggle } from "../../components/ui/theme";
 import { Tabs, TabsList, TabsTrigger } from "../../components/kit/tabs";
 import { SlidingNumber } from "../../components/kit/inputs/counter";
 import { MultiSelect, type MultiSelectMatch } from "../../components/kit/inputs/multi-select";
@@ -15,6 +13,7 @@ import {
   Checks,
   FileText,
   MagnifyingGlass,
+  NotePencil,
   PaperPlaneTilt,
   PushPin,
   Tag as TagIcon,
@@ -25,6 +24,7 @@ import {
   SidebarSimple,
 } from "@phosphor-icons/react";
 import { Menu } from "@base-ui/react/menu";
+import { Button } from "@cloudflare/kumo/components/button";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -32,7 +32,8 @@ import UpdatedAt from "../../components/UpdatedAt";
 import { tagTint } from "../../components/writing/Tag";
 import { toast } from "../../lib/toast";
 import { api, ApiError, type PostSummary } from "./api";
-import { relative, StatusDot, statusLabel } from "./bits";
+import { relative, StatusBadge } from "./bits";
+import PageHeader, { EmptyState, PageChip } from "./PageHeader";
 import type { Panel } from "./Editor";
 import { Fluent } from "./extensions/emoji";
 import { usePulse } from "./live";
@@ -383,7 +384,7 @@ export default function PostList({
   ]);
 
   return (
-    <main className="admin-shell" data-selecting={selecting || undefined}>
+    <div className="cc-page admin-shell" data-selecting={selecting || undefined}>
       <ResearchWorkspace
         open={workspace}
         onClose={() => {
@@ -410,99 +411,87 @@ export default function PostList({
           onRefresh={() => setVersion((v) => v + 1)}
         />
       </Sheet>
-      <header className="admin-list-header">
-        <div>
-          <p className="admin-eyebrow" title={email}>
-            nazarene.dev
-          </p>
-          <h1 className="admin-list-title">Writing</h1>
-        </div>
-        <div className="admin-list-actions">
-          <SoundToggle className="size-8 rounded-full text-[color:var(--a-ink-2)]" />
-          <ThemeToggle className="size-8 rounded-full text-[color:var(--a-ink-2)]" />
-          <Menu.Root modal={false}>
-            <Menu.Trigger className="admin-button admin-button-quiet">
-              Workspace
-              <CaretDown size={12} />
-            </Menu.Trigger>
-            <MenuSurface align="end">
-              <MItem
-                icon={<Books size={16} />}
-                onSelect={() => setWorkspace(true)}
-              >
-                Research
-              </MItem>
-              <MItem
-                icon={<ImageSquare size={16} />}
-                onSelect={() => setMediaOpen(true)}
-              >
-                Media library
-              </MItem>
-              <MItem icon={<TagIcon size={16} />} onSelect={onTags}>
-                Tag pages
-              </MItem>
-              <Menu.Item className="menu-item" render={<a href="/admin/shortcuts" target="_blank" rel="noopener"/>}><span className="menu-item-text">Keyboard shortcuts</span></Menu.Item>
-              <Menu.Item
-                className="menu-item"
-                render={<a href="/writing" target="_blank" rel="noopener" />}
-              >
-                <span className="menu-item-icon">
-                  <ArrowSquareOut size={16} />
-                </span>
-                <span className="menu-item-text">View on site</span>
-              </Menu.Item>
-            </MenuSurface>
-          </Menu.Root>
-          <div className="split-button">
-            <button
-              type="button"
-              className="admin-button admin-button-primary split-main"
-              data-keycap
-              onClick={() => void create()}
-              disabled={creating}
-            >
-              New post
-              <kbd className="admin-kbd">N</kbd>
-            </button>
+      <PageHeader
+        title="Writing"
+        chip={<PageChip href="/writing">View on site</PageChip>}
+        subtitle={<span title={email}>Posts, drafts and scheduled pieces</span>}
+        actions={
+          <>
             <Menu.Root modal={false}>
-              <Menu.Trigger
-                className="admin-button admin-button-primary split-more"
-                aria-label="New from a template"
-                disabled={creating}
-              >
-                <CaretDown size={12} weight="bold" />
+              <Menu.Trigger render={<Button variant="secondary" />}>
+                Workspace
+                <CaretDown size={12} aria-hidden="true" />
               </Menu.Trigger>
               <MenuSurface align="end">
-                <MLabel>Start from</MLabel>
-                {TEMPLATES.map((t) => (
-                  <MItem
-                    key={t.id}
-                    icon={<Fluent emoji={t.emoji} size={16} />}
-                    onSelect={() => void create(t)}
-                  >
-                    <span className="template-item">
-                      <span>{t.title}</span>
-                      <span className="template-hint">{t.hint}</span>
-                    </span>
-                  </MItem>
-                ))}
+                <MItem
+                  icon={<Books size={16} />}
+                  onSelect={() => setWorkspace(true)}
+                >
+                  Research
+                </MItem>
+                <MItem
+                  icon={<ImageSquare size={16} />}
+                  onSelect={() => setMediaOpen(true)}
+                >
+                  Media library
+                </MItem>
+                <MItem icon={<TagIcon size={16} />} onSelect={onTags}>
+                  Tag pages
+                </MItem>
+                <Menu.Item className="menu-item" render={<a href="/admin/shortcuts" target="_blank" rel="noopener"/>}><span className="menu-item-text">Keyboard shortcuts</span></Menu.Item>
+                <Menu.Item
+                  className="menu-item"
+                  render={<a href="/writing" target="_blank" rel="noopener" />}
+                >
+                  <span className="menu-item-icon">
+                    <ArrowSquareOut size={16} />
+                  </span>
+                  <span className="menu-item-text">View on site</span>
+                </Menu.Item>
               </MenuSurface>
             </Menu.Root>
-          </div>
-        </div>
-      </header>
+            {/* The page's one primary action, split: a blank post, or a template. */}
+            <div className="cc-split">
+              <Button
+                variant="primary"
+                data-keycap
+                onClick={() => void create()}
+                disabled={creating}
+              >
+                New post
+                <kbd className="admin-kbd">N</kbd>
+              </Button>
+              <Menu.Root modal={false}>
+                <Menu.Trigger
+                  render={<Button variant="primary" shape="square" aria-label="New from a template" />}
+                  disabled={creating}
+                >
+                  <CaretDown size={12} weight="bold" aria-hidden="true" />
+                </Menu.Trigger>
+                <MenuSurface align="end">
+                  <MLabel>Start from</MLabel>
+                  {TEMPLATES.map((t) => (
+                    <MItem
+                      key={t.id}
+                      icon={<Fluent emoji={t.emoji} size={16} />}
+                      onSelect={() => void create(t)}
+                    >
+                      <span className="template-item">
+                        <span>{t.title}</span>
+                        <span className="template-hint">{t.hint}</span>
+                      </span>
+                    </MItem>
+                  ))}
+                </MenuSurface>
+              </Menu.Root>
+            </div>
+          </>
+        }
+      />
 
-      <div className="writing-list-tools">
-        <button
-          type="button"
-          className="admin-button admin-button-quiet"
-          onClick={() => setPagesOpen(true)}
-        >
-          <SidebarSimple size={16} />
-          Pages
-        </button>
-        <label className="admin-search">
-          <MagnifyingGlass size={15} aria-hidden />
+      <div className="cc-toolbar">
+        <label className="admin-search cc-search">
+          <MagnifyingGlass size={16} aria-hidden="true" />
           <input
             ref={search}
             type="search"
@@ -513,18 +502,24 @@ export default function PostList({
           />
           <kbd className="admin-kbd">/</kbd>
         </label>
-        <button
-          type="button"
-          className="admin-button admin-button-quiet writing-search-all"
-          onClick={onSearch}
-          title="Search all writing and actions"
+        <Button
+          variant="secondary"
+          icon={<SidebarSimple size={16} aria-hidden="true" />}
+          onClick={() => setPagesOpen(true)}
         >
-          <MagnifyingGlass size={15} />
-          <span>Search all</span>
+          Pages
+        </Button>
+        <Button
+          variant="secondary"
+          className="writing-search-all"
+          icon={<MagnifyingGlass size={16} aria-hidden="true" />}
+          onClick={onSearch}
+        >
+          Search all
           <kbd className="admin-kbd">{keys("⌘K")}</kbd>
-        </button>
+        </Button>
       </div>
-      <div className="admin-toolbar writing-status-toolbar">
+      <div className="admin-toolbar writing-status-toolbar cc-filters">
         {/* Kobra's sliding tabs: the pill glides to the chosen filter. */}
         <Tabs value={filter} onValueChange={(next) => setFilter(next as Filter)}>
           <TabsList aria-label="Filter posts">
@@ -558,41 +553,36 @@ export default function PostList({
       </div>
 
       {loadError && !posts?.length ? (
-        <div className="admin-empty" role="alert">
-          <p className="admin-empty-title">Couldn’t load your posts</p>
-          <p className="admin-empty-text">{loadError}</p>
-          <button type="button" className="admin-button" onClick={() => setVersion((v) => v + 1)}>
-            Try again
-          </button>
+        <div className="control-notice" role="alert">
+          <strong>Couldn’t load your posts</strong>
+          <p>{loadError}</p>
+          <Button onClick={() => setVersion((v) => v + 1)}>Try again</Button>
         </div>
       ) : posts === null ? (
-        <ul className="admin-rows" aria-busy="true">
-          {[0, 1, 2].map((i) => (
-            <li key={i} className="admin-row admin-row-skeleton kit-skeleton skeleton-shimmer" />
-          ))}
-        </ul>
-      ) : shown.length === 0 ? (
-        <div className="admin-empty">
-          {filter === "trash" ? (
-            <p className="admin-empty-text">
-              Trash is empty. Posts you move to Trash stay here until you delete
-              them permanently.
-            </p>
-          ) : live.length === 0 ? (
-            <>
-              <p className="admin-empty-title">Nothing written yet</p>
-              <p className="admin-empty-text">
-                Drafts stay private until you publish them. Press N to start
-                one.
-              </p>
-            </>
-          ) : (
-            <p className="admin-empty-text">No posts match.</p>
-          )}
+        <div className="cc-card cc-list">
+          <ul className="admin-rows" aria-busy="true">
+            {[0, 1, 2].map((i) => (
+              <li key={i} className="admin-row admin-row-skeleton kit-skeleton skeleton-shimmer" />
+            ))}
+          </ul>
         </div>
+      ) : shown.length === 0 ? (
+        filter === "trash" ? (
+          <EmptyState compact icon={<Trash size={28} aria-hidden="true" />} title="Trash is empty">
+            <p>Posts you move to Trash stay here until you delete them permanently.</p>
+          </EmptyState>
+        ) : live.length === 0 ? (
+          <EmptyState icon={<NotePencil size={32} aria-hidden="true" />} title="Nothing written yet">
+            <p>Drafts stay private until you publish them. Choose New post, or press N, to start one.</p>
+          </EmptyState>
+        ) : (
+          <EmptyState compact icon={<MagnifyingGlass size={28} aria-hidden="true" />} title="No posts match">
+            <p>Try another status, fewer tags or a different title.</p>
+          </EmptyState>
+        )
       ) : (
-        <>
-          <div className="rows-head">
+        <div className="cc-card cc-list">
+          <div className="rows-head cc-list-head">
             <Checkbox
               checked={allChecked}
               mixed={selecting && !allChecked}
@@ -603,11 +593,12 @@ export default function PostList({
                 )
               }
             />
-            <span className="rows-head-label">
-              {selecting
-                ? `${picked.length} of ${shown.length}`
-                : <><SlidingNumber value={shown.length} /> {shown.length === 1 ? "post" : "posts"}</>}
+            <span className="cc-col-title">
+              {selecting ? `${picked.length} of ${shown.length} selected` : "Title"}
             </span>
+            <span className="cc-col-status">Status</span>
+            <span className="cc-col-tags">Tags</span>
+            <span className="cc-col-updated">Updated</span>
           </div>
           {/* Positioned: a leaving row is lifted out of the flow against it. */}
           <ul className="admin-rows" data-intro={intro || undefined} style={{ position: "relative" }}>
@@ -654,45 +645,52 @@ export default function PostList({
                     }}
                     data-trashed={p.trashedAt ? "" : undefined}
                   >
-                    <span className="admin-row-main">
-                      <span className="admin-row-title">
-                        {p.pinned ? (
-                          <PushPin
-                            size={14}
-                            weight="fill"
-                            className="row-pin"
-                            aria-label="Pinned"
-                          />
+                    <span className="cc-cell-title">
+                      {p.cover ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          className="admin-row-thumb"
+                          src={p.cover}
+                          alt=""
+                          loading="lazy"
+                        />
+                      ) : null}
+                      <span className="admin-row-main">
+                        <span className="admin-row-title">
+                          {p.pinned ? (
+                            <PushPin
+                              size={14}
+                              weight="fill"
+                              className="row-pin"
+                              aria-label="Pinned"
+                            />
+                          ) : null}
+                          {p.icon ? <Fluent emoji={p.icon} size={18} /> : null}
+                          {p.title.trim() || <em>Untitled</em>}
+                        </span>
+                        {p.dek ? (
+                          <span className="admin-row-dek">{p.dek}</span>
                         ) : null}
-                        {p.icon ? <Fluent emoji={p.icon} size={18} /> : null}
-                        {p.title.trim() || <em>Untitled</em>}
+                        {p.parentId ? (
+                          <span className="admin-parent-label">
+                            In{" "}
+                            {posts?.find((parent) => parent.id === p.parentId)
+                              ?.title || "parent page"}
+                          </span>
+                        ) : null}
                       </span>
-                      {p.dek ? (
-                        <span className="admin-row-dek">{p.dek}</span>
+                    </span>
+                    <span className="cc-cell-status">
+                      {p.trashedAt ? (
+                        <span className="cc-cell-note">Trashed {relative(p.trashedAt)}</span>
+                      ) : (
+                        <StatusBadge post={p} />
+                      )}
+                      {!p.trashedAt && p.status === "scheduled" && p.publishAt ? (
+                        <span className="cc-cell-note">{relative(p.publishAt)}</span>
                       ) : null}
                     </span>
-                    <span className="admin-row-meta">
-                      <StatusDot status={p.status} dirty={p.dirty} />
-                      <span>
-                        {p.trashedAt
-                          ? `Trashed ${relative(p.trashedAt)}`
-                          : statusLabel(p)}
-                      </span>
-                      <span aria-hidden="true">·</span>
-                      {p.status === "scheduled" && p.publishAt ? (
-                        <>
-                          <span>{relative(p.publishAt)}</span>
-                          <span aria-hidden="true">·</span>
-                        </>
-                      ) : null}
-                      <UpdatedAt at={p.updatedAt} nested />
-                      {p.parentId ? (
-                        <span className="admin-parent-label">
-                          In{" "}
-                          {posts?.find((parent) => parent.id === p.parentId)
-                            ?.title || "parent page"}
-                        </span>
-                      ) : null}
+                    <span className="cc-cell-tags">
                       {p.tags.slice(0, 3).map((t) => (
                         <span
                           key={t}
@@ -702,24 +700,30 @@ export default function PostList({
                           {t}
                         </span>
                       ))}
+                      {p.tags.length > 3 ? (
+                        <span className="cc-cell-note">+{p.tags.length - 3}</span>
+                      ) : null}
                     </span>
-                    {p.cover ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        className="admin-row-thumb"
-                        src={p.cover}
-                        alt=""
-                        loading="lazy"
-                      />
-                    ) : null}
+                    <span className="cc-cell-updated">
+                      <UpdatedAt at={p.updatedAt} nested compact />
+                    </span>
                   </button>
                 </PostRow>
               </motion.li>
             ))}
             </AnimatePresence>
           </ul>
-        </>
+        </div>
       )}
+
+      {posts && shown.length ? (
+        <div className="cc-footer">
+          <span className="cc-footer-count">
+            Showing <SlidingNumber value={shown.length} />{" "}
+            {shown.length === 1 ? "post" : "posts"}
+          </span>
+        </div>
+      ) : null}
 
       <BulkBar
         bulk={bulk}
@@ -727,6 +731,6 @@ export default function PostList({
         onSelectAll={() => setSelected(new Set(shown.map((p) => p.id)))}
         onClear={() => setSelected(new Set())}
       />
-    </main>
+    </div>
   );
 }

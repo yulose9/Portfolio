@@ -2,6 +2,7 @@
 
 import type { Draft } from "./api";
 import { Switch } from "../../components/kit/switch";
+import { Badge } from "@cloudflare/kumo/components/badge";
 
 /** Small shared pieces: status wording, the status dot, relative times. */
 
@@ -42,6 +43,19 @@ export function PageSwitch({ page, slug, onChange }: { page: boolean; slug: stri
 
 export function StatusDot({ status, dirty }: { status: Draft["status"]; dirty: boolean }) {
   return <span className="admin-dot" data-status={status} data-dirty={status === "published" && dirty ? "" : undefined} aria-hidden="true" />;
+}
+
+/**
+ * The status column in the Writing and Projects tables: a Kumo outline badge
+ * with the status dot. One word shows; screen readers get the full label.
+ */
+export function StatusBadge({ post }: { post: { status: Draft["status"]; dirty: boolean; publishAt: string | null; page?: boolean } }) {
+  return (
+    <Badge variant="outline" className="status-badge" icon={<StatusDot status={post.status} dirty={post.dirty} />}>
+      <span aria-hidden="true">{statusShort(post)}</span>
+      <span className="sr-only">{statusLabel(post)}</span>
+    </Badge>
+  );
 }
 
 const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });

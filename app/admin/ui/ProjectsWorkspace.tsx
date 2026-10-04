@@ -2,10 +2,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Input } from "@cloudflare/kumo/components/input";
 import { Button } from "@cloudflare/kumo/components/button";
-import { Plus, ArrowUpRight, Briefcase } from "@phosphor-icons/react";
+import { Table } from "@cloudflare/kumo/components/table";
+import { Plus, Briefcase, MagnifyingGlass, Trash } from "@phosphor-icons/react";
 import { api, type Draft, type PostSummary } from "./api";
 import { cleanProject } from "../../../cms/projects";
 import { registerProtection } from "./session";
+import { StatusBadge } from "./bits";
+import PageHeader, { EmptyState, PageChip } from "./PageHeader";
+import UpdatedAt from "../../components/UpdatedAt";
+import { Tabs, TabsList, TabsTrigger } from "../../components/kit/tabs";
+import { SlidingNumber } from "../../components/kit/inputs/counter";
+
+const FILTERS = [
+  ["all", "All"],
+  ["draft", "Drafts"],
+  ["published", "Published"],
+  ["trash", "Trash"],
+] as const;
 export default function ProjectsWorkspace({
   onOpen,
 }: {
@@ -15,7 +28,7 @@ export default function ProjectsWorkspace({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState<(typeof FILTERS)[number][0]>("all");
   const [details, updateDetails] = useState<Draft | null>(null);
   const baseline = useRef("");
   const latestDetails = useRef(details);
@@ -126,6 +139,14 @@ export default function ProjectsWorkspace({
       setError((e as Error).message);
     }
   }
+  const counts = { all: 0, draft: 0, published: 0, trash: 0 };
+  for (const p of pages) {
+    if (p.trashedAt) counts.trash++;
+    else {
+      counts.all++;
+      if (p.status === "draft" || p.status === "published") counts[p.status]++;
+    }
+  }
   const filtered = pages
     .filter(
       (p) =>
@@ -138,79 +159,101 @@ export default function ProjectsWorkspace({
         (a.project?.order ?? 0) - (b.project?.order ?? 0) ||
         a.title.localeCompare(b.title),
     );
+  const live = pages.some((p) => !p.trashedAt);
   return (
-    <div className="control-page">
-      <header className="control-heading">
-        <div>
-          <p className="control-eyebrow">nazarene.dev / Selected work</p>
-          <h1>Projects</h1>
-          <p>
-            Tell the story behind your work. Publish supporting pages when
-            they’re ready.
-          </p>
-        </div>
-        <Button variant="primary" disabled={busy} onClick={() => void create()}>
-          <Plus size={16} /> New project
-        </Button>
-      </header>
+    <div className="control-page cc-page">
+      <PageHeader
+        title="Projects"
+        chip={<PageChip href="/projects">View on site</PageChip>}
+        subtitle="Case studies and their supporting pages. Publish each one when it’s ready."
+        actions={
+          <Button
+            variant="primary"
+            icon={<Plus size={16} aria-hidden="true" />}
+            disabled={busy}
+            onClick={() => void create()}
+          >
+            New project
+          </Button>
+        }
+      />
       {error && (
         <div className="control-notice" role="alert">
-          {error}
+          <p>{error}</p>
           <Button onClick={reload}>Reload</Button>
         </div>
       )}
-      <div className="control-toolbar">
-        <label className="website-field" style={{ margin: 0 }}>
+      <div className="cc-toolbar">
+        <label className="admin-search cc-search">
+          <MagnifyingGlass size={16} aria-hidden="true" />
           <input
             type="search"
-            placeholder="Find a project or page…"
+            placeholder="Filter projects…"
             aria-label="Find projects"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </label>
-        <select
-          aria-label="Publication status"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        >
-          <option value="all">All statuses</option>
-          <option value="draft">Drafts</option>
-          <option value="published">Published</option>
-          <option value="trash">Trash</option>
-        </select>
-        <a href="/projects" target="_blank" rel="noreferrer">
-          View on site <ArrowUpRight size={14} />
-        </a>
+      </div>
+      <div className="admin-toolbar writing-status-toolbar cc-filters">
+        <Tabs value={filter} onValueChange={(next) => setFilter(next as typeof filter)}>
+          <TabsList aria-label="Publication status">
+            {FILTERS.map(([id, label]) => (
+              <TabsTrigger key={id} value={id} data-trash={id === "trash" || undefined}>
+                {id === "trash" ? <Trash size={13} aria-hidden="true" /> : null}
+                {label}
+                <span className="admin-segment-count">
+                  <SlidingNumber value={counts[id]} />
+                </span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
       </div>
       {loading ? (
-        <p role="status">Loading projects…</p>
+        <div className="cc-card cc-list" role="status" aria-label="Loading projects">
+          <ul className="admin-rows" aria-busy="true">
+            {[0, 1, 2].map((i) => (
+              <li key={i} className="admin-row admin-row-skeleton kit-skeleton skeleton-shimmer" />
+            ))}
+          </ul>
+        </div>
       ) : !filtered.length ? (
-        <section className="control-empty">
-          <Briefcase size={30} />
-          <h2>
-            {query ? "No matching projects" : "Make room for your best work."}
-          </h2>
-          <p>
-            Create a case study, add your role and outcomes, and build
-            supporting pages around it.
-          </p>
-        </section>
+        filter === "trash" ? (
+          <EmptyState compact icon={<Trash size={28} aria-hidden="true" />} title="Trash is empty">
+            <p>Projects you move to Trash stay here until you delete them permanently.</p>
+          </EmptyState>
+        ) : query || live ? (
+          <EmptyState compact icon={<MagnifyingGlass size={28} aria-hidden="true" />} title="No matching projects">
+            <p>Try another status or a different title.</p>
+          </EmptyState>
+        ) : (
+          <EmptyState icon={<Briefcase size={32} aria-hidden="true" />} title="Make room for your best work.">
+            <p>
+              Create a case study, add your role and outcomes, and build
+              supporting pages around it.
+            </p>
+          </EmptyState>
+        )
       ) : (
-        <section className="control-panel">
-          <table>
-            <thead>
-              <tr>
-                <th>Project / page</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="cc-card cc-table">
+          <Table>
+            <Table.Header>
+              <Table.Row>
+                <Table.Head>Project or page</Table.Head>
+                <Table.Head>Status</Table.Head>
+                <Table.Head className="cc-col-updated">Updated</Table.Head>
+                <Table.Head>
+                  <span className="sr-only">Actions</span>
+                </Table.Head>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
               {filtered.map((page) => (
-                <tr key={page.id}>
-                  <td>
+                <Table.Row key={page.id}>
+                  <Table.Cell>
                     <button
+                      type="button"
                       className="project-title"
                       onClick={async () => {
                         if (await saveDetails()) onOpen(page.id);
@@ -228,13 +271,19 @@ export default function ProjectsWorkspace({
                     {page.project?.featured && (
                       <small className="project-parent">Featured</small>
                     )}
-                  </td>
-                  <td>
-                    {page.status}
-                    {page.dirty && page.liveSlug ? " · unpublished edits" : ""}
-                  </td>
-                  <td>
-                    <div className="website-actions">
+                  </Table.Cell>
+                  <Table.Cell>
+                    {page.trashedAt ? (
+                      <span className="cc-cell-note">In Trash</span>
+                    ) : (
+                      <StatusBadge post={page} />
+                    )}
+                  </Table.Cell>
+                  <Table.Cell className="cc-col-updated">
+                    <UpdatedAt at={page.updatedAt} nested compact />
+                  </Table.Cell>
+                  <Table.Cell>
+                    <div className="cc-row-actions">
                       {page.trashedAt ? (
                         <Button
                           size="sm"
@@ -268,13 +317,21 @@ export default function ProjectsWorkspace({
                         </>
                       )}
                     </div>
-                  </td>
-                </tr>
+                  </Table.Cell>
+                </Table.Row>
               ))}
-            </tbody>
-          </table>
-        </section>
+            </Table.Body>
+          </Table>
+        </div>
       )}
+      {!loading && filtered.length ? (
+        <div className="cc-footer">
+          <span className="cc-footer-count">
+            Showing {filtered.length} of {filter === "trash" ? counts.trash : counts.all}{" "}
+            {filter === "trash" ? "in Trash" : counts.all === 1 ? "page" : "pages"}
+          </span>
+        </div>
+      ) : null}
       {details && (
         <section className="control-panel" aria-label="Project details">
           <h2>{details.title} · Project details</h2>
