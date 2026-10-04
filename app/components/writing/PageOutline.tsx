@@ -56,7 +56,11 @@ type Props = {
 
 /** Vertical pitch of the collapsed lines; long outlines squeeze together. */
 function pitchFor(count: number) {
-  return count > 30 ? Math.max(4, Math.floor(360 / count)) : 12;
+  if (count <= 6) return 22;
+  if (count <= 10) return 18;
+  if (count <= 18) return 15;
+  if (count <= 30) return 13;
+  return Math.max(8, Math.floor(360 / count));
 }
 /** Line length by depth, as Notion draws them. */
 function lineWidth(depth: number) {
@@ -149,6 +153,7 @@ export function PageOutline({
   // Mobile Floating Pill & Sheet state
   const [scrollProgress, setScrollProgress] = useState(0);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
+  const [hoveredLineIndex, setHoveredLineIndex] = useState<number | null>(null);
 
   const anchor = useRef<HTMLSpanElement>(null);
   const nav = useRef<HTMLElement>(null);
@@ -224,7 +229,7 @@ export function PageOutline({
     }
     if (activeLineRef.current) {
       activeLineRef.current.style.width = "";
-      activeLineRef.current.style.transform = `translateY(${activeIndex * pitch}px)`;
+      activeLineRef.current.style.transform = `translateY(${activeIndex * pitch + Math.max(pitch, 18) / 2 - 1}px)`;
     }
   }, [activeIndex, pitch]);
 
@@ -248,19 +253,20 @@ export function PageOutline({
 
       const ratioX = Math.cos((dx / radiusX) * (Math.PI / 2));
 
+      const rowH = Math.max(pitch, 18);
       for (let i = 0; i < headings.length; i++) {
         const el = lineRefs.current[i];
         if (!el) continue;
-        const lineCenterY = stripRect.top + 14 + i * pitch + 1;
+        const lineCenterY = stripRect.top + 14 + i * pitch + rowH / 2;
         const dy = Math.abs(clientY - lineCenterY);
         const baseW = lineWidth(headings[i].level - top);
 
         if (dy < radiusY) {
           const ratioY = Math.cos((dy / radiusY) * (Math.PI / 2));
           const proximity = ratioY * ratioY * ratioX;
-          const bonus = Math.round(20 * proximity);
+          const bonus = Math.round(22 * proximity);
           const pull = Math.round(4 * proximity);
-          const opacity = (0.45 + 0.5 * proximity).toFixed(2);
+          const opacity = (0.45 + 0.55 * proximity).toFixed(2);
 
           el.style.width = `${baseW + bonus}px`;
           el.style.transform = `translateX(-${pull}px)`;
@@ -269,7 +275,7 @@ export function PageOutline({
           if (i === activeIndex && activeLineRef.current) {
             const activeBaseW = lineWidth(activeDepth) + 8;
             activeLineRef.current.style.width = `${activeBaseW + Math.round(24 * proximity)}px`;
-            activeLineRef.current.style.transform = `translateY(${activeIndex * pitch}px) translateX(-${pull}px)`;
+            activeLineRef.current.style.transform = `translateY(${activeIndex * pitch + rowH / 2 - 1}px) translateX(-${pull}px)`;
           }
         } else {
           el.style.width = `${baseW}px`;
@@ -451,8 +457,11 @@ export function PageOutline({
         <div
           ref={stripRef}
           className="page-outline-strip"
-          aria-hidden="true"
-          style={{ height: headings.length * pitch }}
+          role="toolbar"
+          aria-label="Article outline"
+          data-cursor="pointer"
+          data-clickable
+          style={{ height: headings.length * pitch + Math.max(pitch, 18) }}
           onPointerMove={(e) => {
             if (e.pointerType === "touch") return;
             cancelAnimationFrame(rafId.current);
@@ -464,24 +473,68 @@ export function PageOutline({
             if (e.pointerType === "touch") return;
             cancelAnimationFrame(rafId.current);
             resetMagnet();
+            setHoveredLineIndex(null);
           }}
         >
-          {headings.map((h, i) => (
-            <span
-              key={h.id}
-              ref={(el) => {
-                lineRefs.current[i] = el;
-              }}
-              className="page-outline-line"
-              style={{ top: i * pitch, width: lineWidth(h.level - top) }}
-            />
-          ))}
+          {headings.map((h, i) => {
+            const active = i === activeIndex;
+            const isHovered = hoveredLineIndex === i;
+            return (
+              <button
+                key={h.id}
+                type="button"
+                role="button"
+                className={`page-outline-line-btn ${active ? "is-active" : ""} ${isHovered ? "is-hovered" : ""}`}
+                data-cursor="pointer"
+                data-clickable
+                aria-label={`Jump to ${h.text}`}
+                title={h.text}
+                tabIndex={0}
+                style={{
+                  top: i * pitch,
+                  height: Math.max(pitch, 18),
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  haptic();
+                  playSound("select", { velocity: 0.5 });
+                  jump(h.id);
+                }}
+                onPointerEnter={() => {
+                  setHoveredLineIndex(i);
+                }}
+                onPointerLeave={() => {
+                  setHoveredLineIndex((prev) => (prev === i ? null : prev));
+                }}
+                onFocus={() => {
+                  setHoveredLineIndex(i);
+                }}
+                onBlur={() => {
+                  setHoveredLineIndex((prev) => (prev === i ? null : prev));
+                }}
+              >
+                {isHovered && !open ? (
+                  <span className="page-outline-micro-pill" aria-hidden="true">
+                    {h.icon ? <Icon value={h.icon} /> : null}
+                    <span className="page-outline-micro-text">{h.text}</span>
+                  </span>
+                ) : null}
+                <span
+                  ref={(el) => {
+                    lineRefs.current[i] = el;
+                  }}
+                  className="page-outline-line-stroke"
+                  style={{ width: lineWidth(h.level - top) }}
+                />
+              </button>
+            );
+          })}
           {activeIndex >= 0 ? (
             <span
               ref={activeLineRef}
               className="page-outline-line page-outline-line-active"
               style={{
-                transform: `translateY(${activeIndex * pitch}px)`,
+                transform: `translateY(${activeIndex * pitch + Math.max(pitch, 18) / 2 - 1}px)`,
                 width: lineWidth(activeDepth) + 8,
               }}
             />
