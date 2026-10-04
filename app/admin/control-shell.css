@@ -1,0 +1,691 @@
+/*
+ * The admin shell: Kumo's Sidebar (ControlShell.tsx), styled here.
+ *
+ * Kumo's components are written in Tailwind 4 utilities, and its prebuilt
+ * stylesheet (kumo.generated.css) predates the Sidebar, so none of the
+ * Sidebar's own layout ships with it. These rules give it that layout,
+ * keyed on the data attributes Kumo renders (data-sidebar, data-state,
+ * data-mobile), in the admin's tokens so it follows light and dark.
+ *
+ * Widths come from Kumo itself: it sets the rail's and the panel's width
+ * inline (expanded, compact, or peeking), so only the transition is ours.
+ */
+
+.control-shell {
+  --shell-ease: var(--sidebar-easing, cubic-bezier(0.23, 1, 0.32, 1));
+  --shell-dur: var(--sidebar-animation-duration, 220ms);
+  --sidebar-bg: var(--control-canvas, var(--paper));
+  --sidebar-active-bg: var(--a-fill, var(--wash));
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  width: 100%;
+  min-height: 100svh;
+}
+
+/* ── The rail and its panel ─────────────────────────────────────────── */
+
+.control-shell [data-sidebar="sidebar"]:not([data-mobile]) {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  flex: none;
+  height: 100svh;
+  overflow: visible;
+  transition: width var(--shell-dur) var(--shell-ease);
+}
+.control-shell [data-sidebar="content-container"] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  background: var(--sidebar-bg);
+  color: var(--a-ink);
+  border-right: 1px solid var(--a-line);
+  transition: width var(--shell-dur) var(--shell-ease), box-shadow var(--shell-dur) var(--shell-ease);
+}
+/* Compact: the panel floats over the page, so peeking never moves it. */
+.control-shell [data-sidebar="sidebar"][data-state="collapsed"] [data-sidebar="content-container"] {
+  position: fixed;
+  inset-block: 0;
+  left: 0;
+  z-index: 40;
+}
+.control-shell [data-sidebar="sidebar"][data-state="collapsed"] [data-sidebar="content-container"]:has([data-sidebar="peek-zone"]:hover),
+.control-shell[data-peeking] [data-sidebar="content-container"] {
+  box-shadow: 0 0 0 1px var(--a-line), 0 18px 48px -12px rgb(0 0 0 / 0.28);
+}
+.control-shell [data-sidebar="peek-zone"] {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
+/* Header: the brand, and the phone drawer's close button. */
+.control-shell [data-sidebar="header"] {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  height: 58px;
+  padding: 0 12px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--a-line);
+}
+.control-brand {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+.control-brand:hover {
+  background: var(--sidebar-active-bg);
+}
+.control-brand:focus-visible {
+  outline: 2px solid var(--focus, var(--a-ink));
+  outline-offset: -2px;
+}
+.control-brand-mark {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  outline: 1px solid rgb(0 0 0 / 0.1);
+  outline-offset: -1px;
+}
+[data-theme="dark"] .control-brand-mark {
+  outline-color: rgb(255 255 255 / 0.12);
+}
+.control-brand-text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.2;
+}
+.control-brand-name {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+.control-brand-sub {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--a-ink-3);
+  text-overflow: ellipsis;
+}
+.control-sidebar-close {
+  display: none;
+}
+.control-shell [data-mobile] .control-sidebar-close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--a-ink-2);
+  cursor: pointer;
+}
+
+/* Content: scrolls; the quick search sits at the top. */
+.control-shell [data-sidebar="content"] {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.control-shell [data-sidebar="viewport"] {
+  height: 100%;
+  padding: 12px 11px;
+  overflow-x: hidden !important;
+  overflow-y: auto;
+  scrollbar-width: none;
+  transition: padding var(--shell-dur) var(--shell-ease);
+}
+.control-shell [data-sidebar="viewport"]::-webkit-scrollbar {
+  display: none;
+}
+.control-shell [data-sidebar="sidebar"][data-state="expanded"] [data-sidebar="viewport"],
+.control-shell [data-mobile] [data-sidebar="viewport"] {
+  padding-inline: 14px;
+}
+.control-shell [data-sidebar="viewport"] > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0 !important;
+}
+
+.control-quick-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 36px;
+  margin-bottom: 10px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--paper-raised, var(--paper));
+  box-shadow: inset 0 0 0 1px var(--a-line);
+  color: var(--a-ink-3);
+  font: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: box-shadow 150ms ease, color 150ms ease;
+}
+.control-quick-search:hover {
+  color: var(--a-ink-2);
+  box-shadow: inset 0 0 0 1px var(--line-strong, var(--a-line));
+}
+.control-quick-search:focus-visible {
+  outline: 2px solid var(--focus, var(--a-ink));
+  outline-offset: 1px;
+}
+.control-quick-search svg {
+  flex: none;
+}
+.control-quick-search-label {
+  flex: 1;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+}
+.control-quick-search .admin-kbd {
+  flex: none;
+}
+
+/* Groups and their labels; compact turns a label into a hairline. */
+.control-shell [data-sidebar="group"] {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+.control-shell [data-sidebar="group-label"] {
+  display: grid;
+  grid-template-rows: 1fr;
+  overflow: hidden;
+  border-bottom: 1px solid transparent;
+  transition: grid-template-rows var(--shell-dur) var(--shell-ease), margin var(--shell-dur) var(--shell-ease), border-color var(--shell-dur) var(--shell-ease);
+}
+.control-shell [data-sidebar="group-label"] > div {
+  min-width: 0;
+  min-height: 0;
+}
+.control-shell [data-sidebar="group-label"] > div > div {
+  margin: 16px 0 6px;
+  padding: 0 12px;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--a-ink-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.control-shell [data-sidebar="sidebar"][data-state="collapsed"]:not(:has([data-sidebar="peek-zone"]:hover)) [data-sidebar="group-label"] {
+  grid-template-rows: 0fr;
+  margin: 10px 4px;
+  border-bottom-color: var(--a-line);
+}
+
+/* Menus and buttons. */
+.control-shell [data-sidebar="menu"],
+.control-shell [data-sidebar="menu-sub"] {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.control-shell [data-sidebar="menu-item"] {
+  position: relative;
+}
+.control-shell [data-sidebar="menu-button"],
+.control-shell [data-sidebar="menu-sub-button"] {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--a-ink);
+  font: inherit;
+  text-align: left;
+  text-decoration: none !important;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.control-shell [data-sidebar="menu-button"] {
+  min-height: 36px;
+  padding: 0 11px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.control-shell [data-sidebar="menu-sub-button"] {
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 13.5px;
+  color: var(--a-ink-2);
+}
+.control-shell [data-sidebar="menu-button"]:hover,
+.control-shell [data-sidebar="menu-sub-button"]:hover,
+.control-shell [data-sidebar="menu-button"]:focus-visible,
+.control-shell [data-sidebar="menu-sub-button"]:focus-visible,
+.control-shell [data-sidebar="menu-button"][data-active],
+.control-shell [data-sidebar="menu-sub-button"][data-active] {
+  background: var(--sidebar-active-bg);
+  color: var(--a-ink);
+}
+.control-shell [data-sidebar="menu-button"]:focus-visible,
+.control-shell [data-sidebar="menu-sub-button"]:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--focus, var(--a-ink));
+}
+.control-shell [data-sidebar="menu-button"] > div {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+}
+.control-shell [data-sidebar="menu-button"] > div > span {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+}
+.control-shell [data-sidebar="menu-button"] .truncate,
+.control-shell [data-sidebar="menu-sub-button"] .truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.control-nav-icon {
+  flex: none;
+  color: var(--a-ink-2);
+}
+.control-shell [data-sidebar="menu-button"][data-active] .control-nav-icon,
+.control-shell [data-sidebar="menu-button"]:hover .control-nav-icon {
+  color: var(--a-ink);
+}
+/* The chevron of a group: rotates when open, hidden when compact. */
+.control-shell [data-sidebar="menu-button"] > div > span > svg:last-child:not(.control-nav-icon),
+.control-shell [data-sidebar="menu-button"] > svg:last-child {
+  flex: none;
+  margin-left: auto;
+  opacity: 0.45;
+  transition: rotate 200ms ease, opacity 150ms ease;
+}
+.control-shell [data-sidebar="menu-button"][aria-expanded="true"] svg:last-child:not(.control-nav-icon) {
+  rotate: 90deg;
+}
+.control-shell [data-sidebar="menu-button"]:hover svg:last-child {
+  opacity: 0.9;
+}
+
+/* Collapsible bodies: grid rows animate from 0 to the content's height. */
+.control-shell [data-sidebar="menu-item"] [role="region"] {
+  display: grid;
+  transition: grid-template-rows var(--shell-dur) var(--shell-ease);
+}
+.control-shell [data-sidebar="menu-item"] [role="region"][aria-hidden="true"] {
+  grid-template-rows: 0fr;
+}
+.control-shell [data-sidebar="menu-item"] [role="region"][aria-hidden="false"] {
+  grid-template-rows: 1fr;
+}
+.control-shell [data-sidebar="menu-item"] [role="region"] > div {
+  overflow: hidden;
+}
+
+/* Sub-menus: indented under a guide line. */
+.control-shell [data-sidebar="menu-sub"] {
+  position: relative;
+  padding: 2px 0 4px 28px;
+  overflow: hidden;
+}
+.control-shell [data-sidebar="menu-sub"] > div:first-child {
+  position: absolute;
+  inset-block: 2px;
+  left: 19px;
+  width: 1px;
+  background: var(--a-line);
+}
+.control-shell [data-sidebar="menu-sub-item"] {
+  position: relative;
+}
+.control-recent-text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+.control-recent-title {
+  overflow: hidden;
+  font-weight: 500;
+  color: var(--a-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.control-recent-context {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--a-ink-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.control-recent-empty {
+  padding: 6px 10px;
+  font-size: 12.5px;
+  color: var(--a-ink-3);
+  white-space: normal;
+}
+
+/* Compact (not peeking): icons only, centred; labels clip away. */
+.control-shell [data-sidebar="sidebar"][data-state="collapsed"]:not(:has([data-sidebar="peek-zone"]:hover)) :is(.control-quick-search-label, .control-quick-search .admin-kbd, .control-brand-text) {
+  opacity: 0;
+}
+.control-shell [data-sidebar="sidebar"][data-state="collapsed"] .control-quick-search {
+  justify-content: flex-start;
+}
+.control-shell [data-sidebar="sidebar"][data-state="collapsed"]:not(:has([data-sidebar="peek-zone"]:hover)) [data-sidebar="menu-sub"] {
+  display: none;
+}
+.control-quick-search-label,
+.control-quick-search .admin-kbd,
+.control-brand-text {
+  transition: opacity 160ms ease;
+}
+
+/* Footer: the collapse toggle, and the site link. */
+.control-shell [data-sidebar="footer"] {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 14px 0 13px;
+  overflow: hidden;
+  white-space: nowrap;
+  border-top: 1px solid var(--a-line);
+  background: var(--sidebar-bg);
+}
+.control-sidebar-toggle {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--a-ink-2);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.control-sidebar-toggle:hover {
+  background: var(--sidebar-active-bg);
+  color: var(--a-ink);
+}
+.control-sidebar-toggle:focus-visible {
+  outline: 2px solid var(--focus, var(--a-ink));
+  outline-offset: -2px;
+}
+.control-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--a-ink-2);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.control-footer-link:hover {
+  color: var(--a-ink);
+}
+.control-shell [data-sidebar="sidebar"][data-state="collapsed"]:not(:has([data-sidebar="peek-zone"]:hover)) .control-footer-link {
+  display: none;
+}
+
+.control-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Phone: an off-canvas drawer ─────────────────────────────────────── */
+
+.control-shell [data-sidebar-backdrop] {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(0 0 0 / 0.4);
+  transition: opacity var(--shell-dur) var(--shell-ease);
+}
+.control-shell [data-sidebar="sidebar"][data-mobile] {
+  position: fixed;
+  inset-block: 0;
+  left: 0;
+  z-index: 50;
+  display: flex;
+  width: min(var(--sidebar-width, 260px), 86vw);
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--sidebar-bg);
+  color: var(--a-ink);
+  border-right: 1px solid var(--a-line);
+  transition: transform var(--shell-dur) var(--shell-ease);
+}
+.control-shell [data-sidebar="sidebar"][data-mobile][data-state="collapsed"] {
+  transform: translateX(-100%);
+}
+.control-shell [data-sidebar="sidebar"][data-mobile][data-state="collapsed"] ~ *,
+.control-shell [data-sidebar-backdrop]:has(+ [data-state="collapsed"]) {
+  pointer-events: none;
+}
+.control-shell [data-sidebar-backdrop]:has(+ [data-sidebar="sidebar"][data-state="collapsed"]) {
+  opacity: 0;
+}
+
+/* ── Content and the top bar ─────────────────────────────────────────── */
+
+.control-content {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+.control-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 20px 0 24px;
+  border-bottom: 1px solid var(--a-line);
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  -webkit-backdrop-filter: saturate(160%) blur(10px);
+  backdrop-filter: saturate(160%) blur(10px);
+}
+.control-topbar-menu {
+  display: none !important;
+}
+@media (max-width: 767px) {
+  .control-topbar {
+    padding: 0 12px;
+  }
+  .control-topbar-menu {
+    display: grid !important;
+  }
+}
+.control-crumbs {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+.control-crumbs ol {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.control-crumbs a {
+  color: var(--a-ink-3);
+  text-decoration: none;
+}
+.control-crumbs a:hover {
+  color: var(--a-ink);
+}
+.control-crumbs [aria-current="page"],
+.control-crumb-current {
+  font-weight: 600;
+  color: var(--a-ink);
+}
+.control-crumb-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--a-ink);
+  font: inherit;
+  cursor: pointer;
+}
+.control-crumb-switch:hover,
+.control-crumb-switch[data-popup-open] {
+  background: var(--a-fill);
+}
+.control-crumb-switch svg {
+  color: var(--a-ink-3);
+}
+.control-topbar-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.control-topbar-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--a-ink-2);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.control-topbar-icon:hover {
+  background: var(--a-fill);
+  color: var(--a-ink);
+}
+.control-topbar-icon:focus-visible,
+.control-account:focus-visible {
+  outline: 2px solid var(--focus, var(--a-ink));
+  outline-offset: 1px;
+}
+.control-topbar-site {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+@media (max-width: 639px) {
+  .control-topbar-site {
+    display: none !important;
+  }
+}
+.control-account {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-left: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+}
+.control-avatar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--a-ink);
+  color: var(--a-on-ink, #fff);
+  font-size: 12px;
+  font-weight: 600;
+}
+.control-account-label {
+  display: grid;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--a-ink-3);
+}
+.control-account-label span {
+  max-width: 220px;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--a-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .control-shell [data-sidebar="sidebar"],
+  .control-shell [data-sidebar="content-container"],
+  .control-shell [data-sidebar="viewport"],
+  .control-shell [data-sidebar="group-label"],
+  .control-shell [data-sidebar="menu-item"] [role="region"],
+  .control-shell [data-sidebar-backdrop],
+  .control-quick-search-label,
+  .control-brand-text {
+    transition: none !important;
+  }
+}
