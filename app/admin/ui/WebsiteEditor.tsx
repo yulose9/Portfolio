@@ -9,6 +9,9 @@ import {
   Trash,
   Desktop,
   DeviceMobile,
+  UploadSimple,
+  FolderOpen,
+  Image as ImageIcon,
 } from "@phosphor-icons/react";
 import { type WebsiteContent, type WebsiteDraft } from "../../../cms/website";
 import { call, api, prepareImage } from "./api";
@@ -16,6 +19,8 @@ import { registerProtection, beginPendingWork } from "./session";
 import PortfolioContent from "../../components/PortfolioContent";
 import MediaLibrary from "./MediaLibrary";
 import PageHeader, { PageChip } from "./PageHeader";
+import { playSound } from "../../components/ui/sound";
+import { cn } from "../../lib/cn";
 
 const recoveryKey = "admin:website-recovery";
 export default function WebsiteEditor() {
@@ -430,15 +435,35 @@ export default function WebsiteEditor() {
                 <button
                   key={id}
                   aria-pressed={tab === id}
-                  onClick={() => setTab(id)}
+                  onClick={() => {
+                    setTab(id);
+                    playSound("select");
+                  }}
                 >
                   {label}
                 </button>
               ))}
             </div>
-            <div className="control-panel">
+            <div key={tab} className="control-panel website-tab-panel">
               {tab === "profile" && (
                 <>
+                  <ProfileImageManager
+                    photo={content.profile.photo}
+                    name={content.profile.name}
+                    onUpload={(file) =>
+                      void upload(file, (src) =>
+                        edit((c) => {
+                          c.profile.photo = src;
+                        })
+                      )
+                    }
+                    onBrowse={() => setMediaTarget("profile")}
+                    onChangeUrl={(url) =>
+                      edit((c) => {
+                        c.profile.photo = url;
+                      })
+                    }
+                  />
                   {(
                     [
                       ["name", "Name"],
@@ -447,7 +472,6 @@ export default function WebsiteEditor() {
                       ["employerUrl", "Company website"],
                       ["location", "Location"],
                       ["biography", "Biography"],
-                      ["photo", "Profile image URL"],
                     ] as const
                   ).map(([key, label]) => (
                     <WebsiteField
@@ -462,23 +486,6 @@ export default function WebsiteEditor() {
                       multiline={key === "biography"}
                     />
                   ))}
-                  <label className="website-field">
-                    <span>Upload profile photo</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) =>
-                        void upload(e.target.files?.[0], (src) =>
-                          edit((c) => {
-                            c.profile.photo = src;
-                          }),
-                        )
-                      }
-                    />
-                  </label>
-                  <Button onClick={() => setMediaTarget("profile")}>
-                    Choose from media library
-                  </Button>
                 </>
               )}
               {tab === "sections" &&
@@ -895,5 +902,126 @@ function WebsiteField({
         />
       )}
     </label>
+  );
+}
+
+function ProfileImageManager({
+  photo,
+  name,
+  onUpload,
+  onBrowse,
+  onChangeUrl,
+}: {
+  photo: string;
+  name: string;
+  onUpload: (file: File) => void;
+  onBrowse: () => void;
+  onChangeUrl: (url: string) => void;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="website-photo-manager">
+      <div className="website-photo-header">
+        <label htmlFor="profile-photo-url-input">Profile photo</label>
+        <span className="website-photo-hint">Avatar on your homepage, header & metadata</span>
+      </div>
+
+      <div
+        className={cn(
+          "website-photo-box",
+          dragging && "website-photo-box-drag"
+        )}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          const f = e.dataTransfer.files?.[0];
+          if (f && f.type.startsWith("image/")) {
+            onUpload(f);
+            playSound("tap");
+          }
+        }}
+      >
+        <div className="website-photo-avatar-wrap">
+          {photo ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={photo}
+              alt={name || "Profile avatar"}
+              className="website-photo-avatar-img"
+            />
+          ) : (
+            <div className="website-photo-avatar-empty">
+              <ImageIcon size={32} aria-hidden="true" />
+            </div>
+          )}
+        </div>
+
+        <div className="website-photo-content">
+          <p className="website-photo-lead">
+            <strong>Drop a new photo here</strong>, or pick from your workspace
+          </p>
+
+          <div className="website-photo-actions">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                onBrowse();
+                playSound("select");
+              }}
+            >
+              <FolderOpen size={14} aria-hidden="true" />
+              Browse media library
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <UploadSimple size={14} aria-hidden="true" />
+              Upload photo
+            </Button>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) {
+                  onUpload(f);
+                  playSound("tap");
+                }
+              }}
+            />
+          </div>
+
+          <div className="website-photo-url-wrap">
+            <label htmlFor="profile-photo-url-input" className="website-photo-url-label">
+              URL:
+            </label>
+            <input
+              id="profile-photo-url-input"
+              aria-label="Profile image URL"
+              className="website-photo-url-field"
+              value={photo}
+              placeholder="e.g. /avatar-1024.webp or https://…"
+              onChange={(e) => onChangeUrl(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

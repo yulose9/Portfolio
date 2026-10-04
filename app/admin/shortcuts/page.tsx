@@ -2,7 +2,17 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowCounterClockwise, MagnifyingGlass, Keyboard, Check } from "@phosphor-icons/react";
+import {
+  ArrowLeft,
+  ArrowCounterClockwise,
+  MagnifyingGlass,
+  Keyboard,
+  Check,
+  Browsers,
+  TextAa,
+  PencilSimpleLine,
+  SlidersHorizontal,
+} from "@phosphor-icons/react";
 import {
   SHORTCUTS,
   prettyKeys,
@@ -16,9 +26,18 @@ import { keys } from "../ui/menu";
 import { Kbd, KbdGroup, Shortcut } from "../../components/kit/kbd";
 import { playSound } from "../../components/ui/sound";
 
+const CATEGORIES = [
+  { id: "all", label: "All shortcuts" },
+  { id: "Workspace", label: "Workspace & Navigation", icon: Browsers },
+  { id: "Formatting", label: "Formatting & Style", icon: TextAa },
+  { id: "Editing", label: "Editing & Blocks", icon: PencilSimpleLine },
+  { id: "Search", label: "Search & Palette", icon: MagnifyingGlass },
+] as const;
+
 export default function ShortcutPage() {
   const bindings = useBindings();
   const [query, setQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string>("all");
   const [recordingId, setRecordingId] = useState<ShortcutId | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -52,8 +71,11 @@ export default function ShortcutPage() {
 
   const filteredShortcuts = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return SHORTCUTS;
     return SHORTCUTS.filter((s) => {
+      if (activeCategory !== "all" && s.group !== activeCategory) {
+        return false;
+      }
+      if (!q) return true;
       const customKey = bindings[s.id];
       return (
         s.label.toLowerCase().includes(q) ||
@@ -62,13 +84,26 @@ export default function ShortcutPage() {
         Boolean(customKey && prettyKeys(customKey).toLowerCase().includes(q))
       );
     });
-  }, [query, bindings]);
+  }, [query, bindings, activeCategory]);
 
   const customCount = useMemo(() => {
     return Object.keys(bindings).filter(
       (id) => bindings[id as ShortcutId] && bindings[id as ShortcutId] !== SHORTCUTS.find((s) => s.id === id)?.keys
     ).length;
   }, [bindings]);
+
+  // Group shortcuts by category for structured presentation
+  const groupedShortcuts = useMemo(() => {
+    const groups: { name: string; items: typeof SHORTCUTS[number][] }[] = [];
+    const order = ["Workspace", "Formatting", "Editing", "Search"];
+    for (const cat of order) {
+      const items = filteredShortcuts.filter((s) => s.group === cat);
+      if (items.length > 0) {
+        groups.push({ name: cat, items });
+      }
+    }
+    return groups;
+  }, [filteredShortcuts]);
 
   return (
     <main className="shortcuts-page">
@@ -103,7 +138,7 @@ export default function ShortcutPage() {
         ) : null}
       </header>
 
-      <div className="shortcuts-search-wrap">
+      <div className="shortcuts-controls-bar">
         <label className="admin-search shortcut-search">
           <MagnifyingGlass size={16} aria-hidden="true" />
           <input
@@ -114,6 +149,28 @@ export default function ShortcutPage() {
             onChange={(e) => setQuery(e.target.value)}
           />
         </label>
+
+        <div className="shortcuts-filter-pills" role="tablist" aria-label="Filter by category">
+          {CATEGORIES.map((cat) => {
+            const isSelected = activeCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                role="tab"
+                aria-selected={isSelected}
+                className="shortcuts-pill"
+                data-active={isSelected || undefined}
+                onClick={() => {
+                  setActiveCategory(cat.id);
+                  playSound("select");
+                }}
+              >
+                {cat.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {error ? (
@@ -129,68 +186,111 @@ export default function ShortcutPage() {
         </div>
       ) : null}
 
-      <div className="shortcut-list">
-        {filteredShortcuts.map((s) => {
-          const currentKeys = bindings[s.id] ?? s.keys;
-          const isCustom = bindings[s.id] && bindings[s.id] !== s.keys;
-          const isRecording = recordingId === s.id;
-
-          return (
-            <div key={s.id} className="shortcut-row" data-custom={isCustom || undefined}>
-              <div className="shortcut-meta">
-                <span className="shortcut-label">{s.label}</span>
-                <span className="shortcut-group-badge">{s.group}</span>
+      {groupedShortcuts.length === 0 ? (
+        <div className="shortcuts-empty-state">
+          <p>No shortcuts match “{query}”.</p>
+          <button
+            type="button"
+            className="admin-button admin-button-quiet"
+            onClick={() => {
+              setQuery("");
+              setActiveCategory("all");
+            }}
+          >
+            Clear filters
+          </button>
+        </div>
+      ) : (
+        <div className="shortcuts-groups-stack">
+          {groupedShortcuts.map((group) => (
+            <section key={group.name} className="shortcuts-group-card">
+              <div className="shortcuts-group-header">
+                <span className="shortcuts-group-title">
+                  {group.name === "Workspace"
+                    ? "Workspace & Navigation"
+                    : group.name === "Formatting"
+                    ? "Text & Formatting"
+                    : group.name === "Editing"
+                    ? "Editing & Structure"
+                    : "Search & Palette"}
+                </span>
+                <span className="shortcuts-group-count">{group.items.length}</span>
               </div>
 
-              <div className="shortcut-action">
-                <div
-                  className="shortcut-key-trigger"
-                  data-recording={isRecording || undefined}
-                  onClick={() => setRecordingId(s.id)}
-                >
-                  <input
-                    aria-label={`${s.label} shortcut`}
-                    readOnly
-                    value={keys(prettyKeys(currentKeys))}
-                    onFocus={() => {
-                      setRecordingId(s.id);
-                      playSound("select");
-                    }}
-                    onBlur={() => setRecordingId(null)}
-                    onKeyDown={(e) => edit(s.id, e)}
-                    className="shortcut-hidden-input"
-                  />
-                  {isRecording ? (
-                    <span className="shortcut-recording-hint">
-                      <span className="shortcut-rec-dot" />
-                      Press keys…
-                    </span>
-                  ) : (
-                    <Shortcut keys={keys(prettyKeys(currentKeys))} size="md" />
-                  )}
-                </div>
+              <div className="shortcuts-group-rows">
+                {group.items.map((s) => {
+                  const currentKeys = bindings[s.id] ?? s.keys;
+                  const isCustom = bindings[s.id] && bindings[s.id] !== s.keys;
+                  const isRecording = recordingId === s.id;
 
-                {isCustom ? (
-                  <button
-                    type="button"
-                    className="admin-button admin-button-quiet shortcut-reset-btn"
-                    title={`Reset to default: ${keys(prettyKeys(s.keys))}`}
-                    onClick={() => {
-                      const next = { ...bindings };
-                      delete next[s.id];
-                      save(next);
-                      playSound("toggleOff");
-                    }}
-                  >
-                    <ArrowCounterClockwise size={13} aria-hidden="true" />
-                    <span className="shortcut-reset-text">Reset</span>
-                  </button>
-                ) : null}
+                  return (
+                    <div
+                      key={s.id}
+                      className="shortcut-row"
+                      data-custom={isCustom || undefined}
+                      data-recording={isRecording || undefined}
+                    >
+                      <div className="shortcut-meta">
+                        <span className="shortcut-label">{s.label}</span>
+                        {isCustom ? (
+                          <span className="shortcut-custom-tag">Customized</span>
+                        ) : null}
+                      </div>
+
+                      <div className="shortcut-action">
+                        <div
+                          className="shortcut-key-trigger"
+                          data-recording={isRecording || undefined}
+                          onClick={() => setRecordingId(s.id)}
+                          tabIndex={-1}
+                        >
+                          <input
+                            aria-label={`${s.label} shortcut`}
+                            readOnly
+                            value={keys(prettyKeys(currentKeys))}
+                            onFocus={() => {
+                              setRecordingId(s.id);
+                              playSound("select");
+                            }}
+                            onBlur={() => setRecordingId(null)}
+                            onKeyDown={(e) => edit(s.id, e)}
+                            className="shortcut-hidden-input"
+                          />
+                          {isRecording ? (
+                            <span className="shortcut-recording-hint">
+                              <span className="shortcut-rec-dot" />
+                              Press keys… <span className="shortcut-rec-sub">(Esc to cancel)</span>
+                            </span>
+                          ) : (
+                            <Shortcut keys={keys(prettyKeys(currentKeys))} size="md" />
+                          )}
+                        </div>
+
+                        {isCustom ? (
+                          <button
+                            type="button"
+                            className="admin-button admin-button-quiet shortcut-reset-btn"
+                            title={`Reset to default: ${keys(prettyKeys(s.keys))}`}
+                            onClick={() => {
+                              const next = { ...bindings };
+                              delete next[s.id];
+                              save(next);
+                              playSound("toggleOff");
+                            }}
+                          >
+                            <ArrowCounterClockwise size={13} aria-hidden="true" />
+                            <span className="shortcut-reset-text">Reset</span>
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
-          );
-        })}
-      </div>
+            </section>
+          ))}
+        </div>
+      )}
 
       <section className="shortcuts-reference-grid">
         <div className="shortcuts-ref-card">

@@ -554,19 +554,23 @@ export default function SearchPalette({
             {choices.length && searching && results === null ? <p className="palette-searching">Searching {workspace === "projects" ? "projects" : "posts"}…</p> : null}
           </div>
           <div className="palette-footer" aria-hidden="true">
-            <span>
+            <div className="palette-footer-item">
               <KbdGroup gap="tight">
                 <Kbd size="sm">↑</Kbd>
                 <Kbd size="sm">↓</Kbd>
-              </KbdGroup>{" "}
-              to navigate
-            </span>
-            <span>
-              <Kbd size="sm">↵</Kbd> to select
-            </span>
-            <span>
-              <Kbd size="sm">Esc</Kbd> to close
-            </span>
+              </KbdGroup>
+              <span>navigate</span>
+            </div>
+            <span className="palette-footer-sep" />
+            <div className="palette-footer-item">
+              <Kbd size="sm">↵</Kbd>
+              <span>select</span>
+            </div>
+            <span className="palette-footer-sep" />
+            <div className="palette-footer-item">
+              <Kbd size="sm">Esc</Kbd>
+              <span>close</span>
+            </div>
           </div>
         </Dialog.Popup>
       </Dialog.Portal>

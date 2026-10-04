@@ -43,6 +43,7 @@ import { publishedWebsite } from "../../../cms/website";
 import { SoundToggle } from "../../components/ui/sound";
 import { ThemeToggle } from "../../components/ui/theme";
 import { keys } from "./menu";
+import { cn } from "../../lib/cn";
 import {
   DESTINATION_LABEL,
   DESTINATIONS,
@@ -433,9 +434,17 @@ function ShellSidebar() {
             <SidebarSimple size={18} aria-hidden="true" />
           </Sidebar.Trigger>
         </Tooltip>
-        <a className="control-footer-link" href="/" target="_blank" rel="noreferrer">
-          View website <ArrowUpRight size={14} aria-hidden="true" />
-        </a>
+        <Tooltip content="View live website" side="right" sideOffset={10}>
+          <a
+            className="control-footer-link control-footer-icon-link"
+            href="/"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="View live website"
+          >
+            <ArrowUpRight size={16} aria-hidden="true" />
+          </a>
+        </Tooltip>
       </Sidebar.Footer>
       {open && !isMobile ? (
         <Tooltip content="Drag to resize · Click to collapse" side="right" sideOffset={8} delay={120}>
@@ -502,12 +511,19 @@ const icon = (Glyph: Icon) => <Glyph size={18} className="control-nav-icon" aria
 function QuickSearch() {
   const { onSearch } = useNav();
   const { state } = useSidebar();
+  const isCollapsed = state === "collapsed";
   return (
-    <Tooltip content="Quick search" side="right" sideOffset={10} disabled={state !== "collapsed"}>
-      <button type="button" className="control-quick-search" aria-label="Quick search" aria-keyshortcuts="Control+K Meta+K" onClick={onSearch}>
+    <Tooltip content={`Quick search (${keys("⌘K")})`} side="right" sideOffset={10} disabled={!isCollapsed}>
+      <button
+        type="button"
+        className="control-quick-search"
+        aria-label="Quick search"
+        aria-keyshortcuts="Control+K Meta+K"
+        onClick={onSearch}
+      >
         <MagnifyingGlass size={16} weight="bold" aria-hidden="true" />
         <span className="control-quick-search-label">Quick search…</span>
-        <Kbd size="sm" aria-hidden="true">
+        <Kbd size="sm" aria-hidden="true" className="control-quick-search-kbd">
           {keys("⌘K")}
         </Kbd>
       </button>
@@ -560,6 +576,19 @@ function Recents() {
   const { isMobile, setOpenMobile } = useSidebar();
   const recents = useRecents();
   const [open, setOpen] = useState(() => readFlag(RECENTS_OPEN_KEY, true));
+  const prevCount = useRef(recents.length);
+  const [newlyAddedId, setNewlyAddedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (recents.length > prevCount.current && recents[0]) {
+      const id = `${recents[0].kind}:${recents[0].id}`;
+      setNewlyAddedId(id);
+      const timer = setTimeout(() => setNewlyAddedId(null), 1200);
+      return () => clearTimeout(timer);
+    }
+    prevCount.current = recents.length;
+  }, [recents]);
+
   return (
     <Sidebar.MenuItem>
       <Sidebar.Collapsible
@@ -580,21 +609,25 @@ function Recents() {
         <Sidebar.CollapsibleContent>
           <Sidebar.MenuSub className="control-sub">
             {recents.length ? (
-              recents.map((item) => (
-                <Sidebar.MenuSubButton
-                  key={`${item.kind}:${item.id}`}
-                  className="control-recent"
-                  onClick={() => {
-                    onOpenRecent(item);
-                    if (isMobile) setOpenMobile(false);
-                  }}
-                >
-                  <span className="control-recent-text">
-                    <span className="control-recent-title">{item.title}</span>
-                    <span className="control-recent-context">{recentContext(item)}</span>
-                  </span>
-                </Sidebar.MenuSubButton>
-              ))
+              recents.map((item) => {
+                const itemKey = `${item.kind}:${item.id}`;
+                const isEntering = newlyAddedId === itemKey;
+                return (
+                  <Sidebar.MenuSubButton
+                    key={itemKey}
+                    className={cn("control-recent", isEntering && "control-recent-entering")}
+                    onClick={() => {
+                      onOpenRecent(item);
+                      if (isMobile) setOpenMobile(false);
+                    }}
+                  >
+                    <span className="control-recent-text">
+                      <span className="control-recent-title">{item.title}</span>
+                      <span className="control-recent-context">{recentContext(item)}</span>
+                    </span>
+                  </Sidebar.MenuSubButton>
+                );
+              })
             ) : (
               <li className="control-recent-empty">Posts and pages you open appear here.</li>
             )}
@@ -691,10 +724,17 @@ function TopBar({ email }: { email: string }) {
         </button>
         <ThemeToggle className="control-topbar-icon" />
         <SoundToggle className="control-topbar-icon" />
-        <Button variant="ghost" size="sm" nativeButton={false} render={<a href="/" target="_blank" rel="noreferrer" />} className="control-topbar-site">
-          View website
-          <ArrowUpRight size={14} aria-hidden="true" data-icon="inline-end" />
-        </Button>
+        <Tooltip content="View live website" side="bottom" sideOffset={6}>
+          <a
+            href="/"
+            target="_blank"
+            rel="noreferrer"
+            className="control-topbar-icon"
+            aria-label="View live website"
+          >
+            <ArrowUpRight size={17} aria-hidden="true" />
+          </a>
+        </Tooltip>
         <Account email={email} />
       </div>
     </header>

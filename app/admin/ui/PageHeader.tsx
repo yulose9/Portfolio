@@ -2,6 +2,7 @@
 import { type ReactNode } from "react";
 import { LinkButton } from "@cloudflare/kumo/components/button";
 import { ArrowUpRight } from "@phosphor-icons/react";
+import { Tooltip } from "../../components/kit/tooltip";
 
 /*
  * One header for every control-center page (Overview, Analytics, Writing,
@@ -47,19 +48,22 @@ export default function PageHeader({
 }
 
 /** The outline chip beside a page title: where this content lives on the site. */
-export function PageChip({ href, children }: { href: string; children: ReactNode }) {
+export function PageChip({ href, children, title }: { href: string; children?: ReactNode; title?: string }) {
+  const label = typeof children === "string" ? children : (title || "View on site");
   return (
-    <LinkButton
-      className="cc-page-chip"
-      href={href}
-      external
-      size="sm"
-      variant="outline"
-    >
-      {children}
-      <ArrowUpRight size={12} aria-hidden="true" />
-      <span className="sr-only"> (opens in a new tab)</span>
-    </LinkButton>
+    <Tooltip content={label} side="bottom" sideOffset={4}>
+      <LinkButton
+        className="cc-page-chip cc-page-chip-icon"
+        href={href}
+        external
+        size="sm"
+        variant="outline"
+        aria-label={label}
+      >
+        <ArrowUpRight size={13} aria-hidden="true" />
+        <span className="sr-only"> (opens in a new tab)</span>
+      </LinkButton>
+    </Tooltip>
   );
 }
 

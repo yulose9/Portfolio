@@ -101,6 +101,7 @@ export function normalizeKey(key: string): string {
       return "⇧";
     case "alt":
     case "option":
+    case "opt":
       return "⌥";
     case "ctrl":
     case "control":
@@ -110,6 +111,7 @@ export function normalizeKey(key: string): string {
       return "↵";
     case "backspace":
     case "delete":
+    case "del":
       return "⌫";
     case "escape":
     case "esc":
@@ -117,12 +119,16 @@ export function normalizeKey(key: string): string {
     case "space":
       return "Space";
     case "up":
+    case "arrowup":
       return "↑";
     case "down":
+    case "arrowdown":
       return "↓";
     case "left":
+    case "arrowleft":
       return "←";
     case "right":
+    case "arrowright":
       return "→";
     case "tab":
       return "⇥";
@@ -139,6 +145,25 @@ export interface ShortcutProps extends Omit<KbdProps, "children"> {
   keys: string | string[];
 }
 
+export function parseShortcut(input: string): string[] {
+  const str = input.trim();
+  if (!str) return [];
+  // If it contains plus signs or spaces, split by those first
+  if (str.includes("+") || str.includes(" ")) {
+    return str.split(/[\s+]+/).filter(Boolean).map(normalizeKey);
+  }
+  // Known multi-character keys
+  if (/^(ctrl|shift|alt|opt|option|cmd|command|meta|esc|escape|enter|return|space|backspace|delete|del|tab|home|end|pageup|pagedown|arrowup|arrowdown|arrowleft|arrowright)$/i.test(str)) {
+    return [normalizeKey(str)];
+  }
+  // Sequence of glyphs (e.g. ⌘K, ⌥⌘F, ⌘⇧E)
+  const matches = str.match(/([⌘⌥⇧⌃]|↵|⎋|⌫|⇥|[A-Za-z0-9]|arrow[a-z]+)/gi);
+  if (matches && matches.join("") === str) {
+    return matches.map(normalizeKey);
+  }
+  return [normalizeKey(str)];
+}
+
 /**
  * Helper component that parses shortcut expressions and renders them as
  * individual Kobra Kbd keycaps inside a KbdGroup.
@@ -146,17 +171,9 @@ export interface ShortcutProps extends Omit<KbdProps, "children"> {
 export function Shortcut({ keys, size = "sm", variant = "default", className, ...props }: ShortcutProps) {
   let keyList: string[] = [];
   if (Array.isArray(keys)) {
-    keyList = keys.map(normalizeKey);
+    keyList = keys.flatMap(parseShortcut);
   } else if (typeof keys === "string") {
-    // If it contains plus signs (e.g. "Ctrl+Shift+P" or "Mod+K")
-    if (keys.includes("+")) {
-      keyList = keys.split("+").map(normalizeKey);
-    } else if (keys.length > 1 && !["esc", "tab", "enter", "space", "del"].includes(keys.toLowerCase())) {
-      // Split glyphs if it's like "⌘K" or "⌥⇧B"
-      keyList = Array.from(keys).map(normalizeKey);
-    } else {
-      keyList = [normalizeKey(keys)];
-    }
+    keyList = parseShortcut(keys);
   }
 
   if (keyList.length === 1) {
@@ -168,7 +185,7 @@ export function Shortcut({ keys, size = "sm", variant = "default", className, ..
   }
 
   return (
-    <KbdGroup className={className}>
+    <KbdGroup gap="tight" className={className}>
       {keyList.map((k, index) => (
         <Kbd key={index} size={size} variant={variant} {...props}>
           {k}

@@ -2,7 +2,12 @@
 import { useEffect, useState } from "react";
 import { Table } from "@cloudflare/kumo/components/table";
 import { Button } from "@cloudflare/kumo/components/button";
-import { ArrowClockwise, ArrowUpRight, ChartLine } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowUpRight, ChartLine, CalendarBlank } from "@phosphor-icons/react";
+import { Popover } from "@base-ui/react/popover";
+import { Calendar } from "../../components/kit/inputs/calendar";
+import AdminSelect from "./AdminSelect";
+import { playSound } from "../../components/ui/sound";
+import { cn } from "../../lib/cn";
 import {
   initialAnalyticsRange,
   type AnalyticsReport,
@@ -22,6 +27,65 @@ function comparison(now: number, previous: number) {
   const percent = Math.round(((now - previous) / previous) * 100);
   return `${percent > 0 ? "+" : ""}${percent}% vs previous period`;
 }
+function DatePickerPopover({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selectedDate = value ? new Date(value + "T00:00:00") : undefined;
+
+  const handleSelect = (date: Date | undefined) => {
+    if (date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      onChange(`${year}-${month}-${day}`);
+      setOpen(false);
+      playSound("select");
+    }
+  };
+
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger
+        className="control-date-btn admin-button admin-button-quiet"
+        aria-label={`${label} date`}
+      >
+        <CalendarBlank size={14} aria-hidden="true" />
+        <span className="control-date-label">{label}:</span>
+        <span className="control-date-val">{value}</span>
+      </Popover.Trigger>
+      <input
+        type="date"
+        aria-label={`${label} date`}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="sr-only"
+        tabIndex={-1}
+      />
+      <Popover.Portal>
+        <Popover.Positioner sideOffset={6} align="start" className="menu-positioner">
+          <Popover.Popup className="menu-popup admin-popover dtp-popover p-2">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={handleSelect}
+              defaultMonth={selectedDate}
+              showOutsideDays
+              className="analytics-calendar"
+            />
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
 export default function AnalyticsDashboard({
   overview = false,
   onWrite,
@@ -36,6 +100,8 @@ export default function AnalyticsDashboard({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [refresh, updateRefresh] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+
   function setRange(value: ReturnType<typeof initialAnalyticsRange>) {
     setLoading(true);
     setError("");
@@ -46,6 +112,12 @@ export default function AnalyticsDashboard({
     setError("");
     updateRefresh(update);
   }
+  const handleRefresh = () => {
+    setRefreshing(true);
+    playSound("chirp");
+    setRefresh((v) => v + 1);
+    setTimeout(() => setRefreshing(false), 700);
+  };
   const [metric, setMetric] = useState<"views" | "visitors">("views");
   useEffect(() => {
     const controller = new AbortController();
@@ -90,51 +162,54 @@ export default function AnalyticsDashboard({
           {[7, 30, 90].map((days) => (
             <button
               key={days}
-              onClick={() =>
-                setRange({ ...initialAnalyticsRange(days), scope: range.scope })
-              }
+              onClick={() => {
+                setRange({ ...initialAnalyticsRange(days), scope: range.scope });
+                playSound("tap");
+              }}
             >
               {days} days
             </button>
           ))}
         </div>
-        <label className="control-date">
-          From
-          <input
-            aria-label="From date"
-            type="date"
-            value={range.from}
-            onChange={(e) => setRange({ ...range, from: e.target.value })}
-          />
-        </label>
-        <label className="control-date">
-          To
-          <input
-            aria-label="To date"
-            type="date"
-            value={range.to}
-            onChange={(e) => setRange({ ...range, to: e.target.value })}
-          />
-        </label>
-        <select
-          aria-label="Content type"
+        <DatePickerPopover
+          label="From"
+          value={range.from}
+          onChange={(from) => setRange({ ...range, from })}
+        />
+        <DatePickerPopover
+          label="To"
+          value={range.to}
+          onChange={(to) => setRange({ ...range, to })}
+        />
+        <AdminSelect
+          label="Content scope"
+          hideLabel
           value={range.scope}
-          onChange={(e) =>
-            setRange({ ...range, scope: e.target.value as AnalyticsScope })
-          }
-        >
-          <option value="all">All content</option>
-          <option value="writing">Writing</option>
-          <option value="projects">Projects</option>
-        </select>
+          onValueChange={(scope) => {
+            setRange({ ...range, scope: scope as AnalyticsScope });
+            playSound("select");
+          }}
+          options={[
+            { value: "all", label: "All content" },
+            { value: "writing", label: "Writing" },
+            { value: "projects", label: "Projects" },
+          ]}
+        />
         <Button
           variant="ghost"
           shape="square"
           aria-label="Refresh analytics"
           disabled={loading}
-          onClick={() => setRefresh((v) => v + 1)}
+          onClick={handleRefresh}
+          className="analytics-refresh-button"
         >
-          <ArrowClockwise size={18} />
+          <ArrowClockwise
+            size={18}
+            className={cn(
+              "transition-transform duration-500",
+              (loading || refreshing) && "animate-spin"
+            )}
+          />
         </Button>
       </div>
       {error ? (
