@@ -44,6 +44,7 @@ import { PostRow } from "./PostActions";
 import { TEMPLATES, type Template } from "./templates";
 import ResearchWorkspace from "./ResearchWorkspace";
 import Sheet from "./Sheet";
+import { useShellView } from "./shell-nav";
 
 const CI = { size: 16, "aria-hidden": true } as const;
 
@@ -97,6 +98,8 @@ export default function PostList({
   // A failed load is not an empty list: it gets its own state and a retry.
   const [loadError, setLoadError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
+  // The sidebar's Writing sub-items pick the view, and see which one shows.
+  useShellView("writing", filter, (view) => setFilter(view as Filter));
   // Tags to filter by, and whether a post needs any of them or all of them.
   const [tagFilter, setTagFilter] = useState<string[]>([]);
   const [tagMatch, setTagMatch] = useState<MultiSelectMatch>("any");

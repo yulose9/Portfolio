@@ -189,14 +189,16 @@ export default function AdminApp() {
       .then(({ post }) => open(post.id))
       .catch((error: unknown) => toast.add({ type: "error", title: "Couldn’t create a post", description: error instanceof ApiError ? error.message : undefined }));
 
-  const createProject = () =>
-    void api
-      .create({ title: "Untitled project" })
-      .then(({ post }) => {
-        setSection("projects");
-        open(post.id);
-      })
+  // From any section: the request goes to the projects namespace, and the
+  // new project opens in its own section.
+  const createProject = () => {
+    setApiWorkspace("projects");
+    const request = api.create({ title: "Untitled project" });
+    setApiWorkspace(section === "projects" ? "projects" : "writing");
+    void request
+      .then(({ post }) => openRecent({ kind: "project", id: post.id, title: post.title }))
       .catch((error: unknown) => toast.add({ type: "error", title: "Couldn’t create a project", description: error instanceof ApiError ? error.message : undefined }));
+  };
 
   useCommands(() => [
     { id: "new", group: "Go to", title: "New post", keys: "N", icon: <NotePencil {...CI} />, keywords: ["create", "write", "draft", "blank"], run: () => create() },

@@ -12,6 +12,7 @@ import PageHeader, { EmptyState, PageChip } from "./PageHeader";
 import UpdatedAt from "../../components/UpdatedAt";
 import { Tabs, TabsList, TabsTrigger } from "../../components/kit/tabs";
 import { SlidingNumber } from "../../components/kit/inputs/counter";
+import { useShellView } from "./shell-nav";
 
 const FILTERS = [
   ["all", "All"],
@@ -29,6 +30,8 @@ export default function ProjectsWorkspace({
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<(typeof FILTERS)[number][0]>("all");
+  // The sidebar's Projects sub-items pick the view, and see which one shows.
+  useShellView("projects", filter, (view) => setFilter(view as typeof filter));
   const [details, updateDetails] = useState<Draft | null>(null);
   const baseline = useRef("");
   const latestDetails = useRef(details);
