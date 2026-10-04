@@ -3,7 +3,6 @@ import Link from "next/link";
 import { OG_METADATA, SITE_INFO, TWITTER_METADATA } from "../../constants/seo";
 import DocumentMenu from "../../components/menu/DocumentMenu";
 import BrowserGuide from "../../components/compliance/BrowserGuide";
-import CookieTable from "../../components/compliance/CookieTable";
 import Callout from "../../components/writing/Callout";
 import Toc from "../../components/writing/Toc";
 import AuthorCard from "../../components/writing/AuthorCard";
@@ -123,11 +122,80 @@ export default function CookiePolicy() {
                 <h2 id="complete-inventory">2. Complete Inventory of Cookies and Storage</h2>
                 <p>
                   The table below lists every cookie and local storage key that may be read or written by
-                  this Website. You can click on any row to copy the key identifier, or right-click to copy
-                  full row specifications or export the table:
+                  this Website:
                 </p>
 
-                <CookieTable />
+                <div className="table-wrap my-6">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Key / Cookie Name</th>
+                        <th>Type</th>
+                        <th>Lifespan</th>
+                        <th>Purpose &amp; Necessity</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr data-cookie-key="poll_<id>">
+                        <td className="font-mono text-xs text-[color:var(--fg)]">
+                          poll_&lt;id&gt;
+                        </td>
+                        <td>HTTP Cookie (HttpOnly, Secure, SameSite=Lax)</td>
+                        <td>1 year</td>
+                        <td>
+                          <strong>Strictly Necessary.</strong> Set only when you choose to cast a ballot
+                          in an article choice poll. Prevents duplicate votes and verifies your vote hash
+                          at the edge.
+                        </td>
+                      </tr>
+                      <tr data-cookie-key="poll-voter">
+                        <td className="font-mono text-xs text-[color:var(--fg)]">
+                          poll-voter
+                        </td>
+                        <td>Local Storage</td>
+                        <td>Persistent</td>
+                        <td>
+                          <strong>Functional.</strong> Stores a random 20-character pseudonym generated on
+                          your client device, enabling you to inspect or retract your vote later.
+                        </td>
+                      </tr>
+                      <tr data-cookie-key="portfolio:analytics-opt-out">
+                        <td className="font-mono text-xs text-[color:var(--fg)]">
+                          portfolio:analytics-opt-out
+                        </td>
+                        <td>Local Storage</td>
+                        <td>Persistent</td>
+                        <td>
+                          <strong>Functional Preference.</strong> Remembers whether you clicked the
+                          &ldquo;Opt out of analytics&rdquo; button, preventing any future metric
+                          dispatch.
+                        </td>
+                      </tr>
+                      <tr data-cookie-key="data-theme">
+                        <td className="font-mono text-xs text-[color:var(--fg)]">
+                          data-theme
+                        </td>
+                        <td>Local Storage</td>
+                        <td>Persistent</td>
+                        <td>
+                          <strong>Functional Preference.</strong> Saves your chosen interface theme
+                          (light or dark) to eliminate screen flash on subsequent visits.
+                        </td>
+                      </tr>
+                      <tr data-cookie-key="portfolio:sound">
+                        <td className="font-mono text-xs text-[color:var(--fg)]">
+                          portfolio:sound
+                        </td>
+                        <td>Local Storage</td>
+                        <td>Persistent</td>
+                        <td>
+                          <strong>Functional Preference.</strong> Remembers whether you toggled the sound
+                          effects audio toggle on or off.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
 
                 <h2 id="third-party-analytics">3. Third-Party Analytics Architecture</h2>
                 <p>
