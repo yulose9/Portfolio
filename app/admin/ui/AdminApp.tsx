@@ -189,6 +189,15 @@ export default function AdminApp() {
       .then(({ post }) => open(post.id))
       .catch((error: unknown) => toast.add({ type: "error", title: "Couldn’t create a post", description: error instanceof ApiError ? error.message : undefined }));
 
+  const createProject = () =>
+    void api
+      .create({ title: "Untitled project" })
+      .then(({ post }) => {
+        setSection("projects");
+        open(post.id);
+      })
+      .catch((error: unknown) => toast.add({ type: "error", title: "Couldn’t create a project", description: error instanceof ApiError ? error.message : undefined }));
+
   useCommands(() => [
     { id: "new", group: "Go to", title: "New post", keys: "N", icon: <NotePencil {...CI} />, keywords: ["create", "write", "draft", "blank"], run: () => create() },
     ...TEMPLATES.filter((t) => t.id !== "blank").map((t) => ({
@@ -238,7 +247,14 @@ export default function AdminApp() {
   }
 
   return (
-    <ControlShell section={section} onNavigate={destination => void navigate(destination)} email={gate.email}>
+    <ControlShell
+      section={section}
+      onNavigate={(destination) => void navigate(destination)}
+      onOpenRecent={(item) => void openRecent(item)}
+      onSearch={() => setSearching(true)}
+      email={gate.email}
+      editing={Boolean(postId)}
+    >
       <SessionGuard />
       <TagPages open={tagsOpen} onClose={()=>setTagsOpen(false)}/>
       {section === "overview" || section === "analytics" ? <AnalyticsDashboard overview={section === "overview"} onWrite={() => void navigate("writing")} onNavigate={destination => void navigate(destination)} /> : section === "website" ? <WebsiteEditor /> : section === "projects" && !postId ? <ProjectsWorkspace onOpen={id => open(id)} /> : postId ? (
@@ -251,6 +267,8 @@ export default function AdminApp() {
         initialQuery={searchQuery}
         onClose={() => {setSearching(false);setSearchQuery("");}}
         onJump={(j) => open(j.id, { q: j.q, n: j.n,block:j.block })}
+        onNavigate={(destination) => void navigate(destination)}
+        onOpenRecent={(item) => void openRecent(item)}
       />
     </ControlShell>
   );
