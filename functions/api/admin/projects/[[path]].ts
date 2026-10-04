@@ -51,17 +51,7 @@ export const onRequest: AdminFunction<"path"> = async ctx => {
     const params: Record<string, string> = {};
     expected.forEach((part, i) => { if (part.startsWith(":")) params[part.slice(1)] = parts[i]; });
     const env = projectEnvironment(ctx.env);
-    const mutation = !["GET", "HEAD"].includes(ctx.request.method);
-    const lockKey = "meta/publication-lock";
-    let lock: R2Object | null = null;
-    if (mutation) {
-      const old = await env.WRITING.get(lockKey);
-      if (old && Date.now() - Number(await old.text()) < 300000) throw new HttpError("Another project change is being saved. Try again shortly.", 409);
-      lock = await env.WRITING.put(lockKey, String(Date.now()), { onlyIf: new Headers(old ? { "If-Match": old.etag } : { "If-None-Match": "*" }) });
-      if (!lock) throw new HttpError("Another project change is in progress.", 409);
-    }
-    try { return await handler({ ...ctx, env, params } as Parameters<AdminFunction<string>>[0]); }
-    finally { if (lock) await env.WRITING.put(lockKey, "0", { onlyIf: new Headers({ "If-Match": lock.etag }) }); }
+    return await handler({ ...ctx, env, params } as Parameters<AdminFunction<string>>[0]);
   }
   return new Response(null, { status: 404 });
 };

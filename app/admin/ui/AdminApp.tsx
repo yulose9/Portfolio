@@ -173,9 +173,13 @@ export default function AdminApp() {
     const read = () => {
       const match = /^(.*) · Writing admin$/.exec(document.title);
       if (!match) return;
-      const [first, ...rest] = match[1].split(" ");
-      const icon = rest.length && !/[\p{L}\p{N}]/u.test(first) ? first : null;
-      recordRecent({ kind, id: postId, title: icon ? rest.join(" ") : match[1], icon });
+      const raw = match[1].trim();
+      const [first, ...rest] = raw.split(" ");
+      const isIconToken = (t: string) =>
+        /^[a-z0-9_-]+:[a-z0-9_-]+$/i.test(t) || !/[\p{L}\p{N}]/u.test(t);
+      const icon = rest.length && isIconToken(first) ? first : null;
+      const title = icon ? rest.join(" ").trim() : raw;
+      recordRecent({ kind, id: postId, title, icon });
     };
     read();
     const observer = new MutationObserver(read);

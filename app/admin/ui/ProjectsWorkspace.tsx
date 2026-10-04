@@ -363,6 +363,7 @@ export default function ProjectsWorkspace({
             <label className="website-field" key={key}>
               {label}
               <Input
+                aria-label={label}
                 value={details.project![key]}
                 onChange={(e) =>
                   setDetails({
@@ -376,6 +377,7 @@ export default function ProjectsWorkspace({
           <label className="website-field">
             Tools (comma separated)
             <Input
+              aria-label="Tools (comma separated)"
               value={details.project!.tools.join(", ")}
               onChange={(e) =>
                 setDetails({
@@ -438,6 +440,7 @@ export default function ProjectsWorkspace({
               <label className="website-field">
                 Link label
                 <Input
+                  aria-label={`Link ${index + 1} label`}
                   value={link.label}
                   onChange={(e) =>
                     setDetails({
@@ -455,6 +458,7 @@ export default function ProjectsWorkspace({
               <label className="website-field">
                 Destination
                 <Input
+                  aria-label={`Link ${index + 1} destination`}
                   value={link.href}
                   onChange={(e) =>
                     setDetails({

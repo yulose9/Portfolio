@@ -898,6 +898,7 @@ function WebsiteField({
         />
       ) : (
         <Input
+          aria-label={label}
           value={value}
           onChange={(event) => onChange(event.target.value)}
         />

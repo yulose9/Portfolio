@@ -41,9 +41,43 @@
   --pop-shadow: var(--shadow-pop);
 }
 
-.admin-body {
-  font-family: var(--font-sans), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+.admin-body,
+.admin-body input,
+.admin-body textarea,
+.admin-body select,
+.admin-body button,
+.admin-body [data-sidebar],
+.admin-body [data-slot],
+.admin-body [class*="kumo-"],
+.admin-body [class*="admin-"],
+.admin-body [class*="control-"] {
+  font-family: var(--font-sans), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11", "calt";
+}
+
+.admin-body input::placeholder,
+.admin-body textarea::placeholder,
+.admin-body [data-placeholder]::before,
+.admin-body .kumo-input-placeholder::placeholder,
+.admin-body .placeholder,
+.admin-body [class*="-placeholder"] {
+  font-family: var(--font-sans), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11", "calt";
+}
+
+.admin-body code,
+.admin-body pre,
+.admin-body kbd,
+.admin-body .font-mono,
+.admin-body .editor-code-pro,
+.admin-body .editor-code-pro pre,
+.admin-body .editor-code-pro code,
+.admin-body [data-font="mono"] {
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace !important;
+  font-feature-settings: normal;
+}
+
+.admin-body {
   background: var(--paper);
   color: var(--a-ink);
   line-height: 1.5;

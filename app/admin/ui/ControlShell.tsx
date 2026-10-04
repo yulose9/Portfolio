@@ -21,8 +21,11 @@ import {
   CaretUpDown,
   ChartLine,
   ClockCounterClockwise,
+  FileText,
+  FolderSimple,
   Globe,
   Keyboard,
+  Laptop,
   List,
   MagnifyingGlass,
   NotePencil,
@@ -31,6 +34,7 @@ import {
   SquaresFour,
   type Icon,
 } from "@phosphor-icons/react";
+import { Fluent } from "./extensions/emoji";
 import { Sidebar, useSidebar } from "@cloudflare/kumo/components/sidebar";
 import { Breadcrumbs } from "@cloudflare/kumo/components/breadcrumbs";
 import { DropdownMenu } from "@cloudflare/kumo/components/dropdown";
@@ -571,6 +575,42 @@ function Navigation() {
   );
 }
 
+function RecentGlyph({ item }: { item: RecentItem }) {
+  const iconVal = item.icon?.trim();
+  if (iconVal) {
+    if (iconVal === "ph:laptop" || iconVal === "laptop") {
+      return <Laptop size={14} className="control-recent-icon" aria-hidden="true" />;
+    }
+    if (iconVal === "ph:folder" || iconVal.startsWith("ph:folder")) {
+      return <FolderSimple size={14} className="control-recent-icon" aria-hidden="true" />;
+    }
+    if (iconVal === "ph:file" || iconVal.startsWith("ph:file")) {
+      return <FileText size={14} className="control-recent-icon" aria-hidden="true" />;
+    }
+    if (iconVal === "ph:briefcase" || iconVal.startsWith("ph:briefcase")) {
+      return <Briefcase size={14} className="control-recent-icon" aria-hidden="true" />;
+    }
+    if (iconVal === "ph:globe" || iconVal.startsWith("ph:globe")) {
+      return <Globe size={14} className="control-recent-icon" aria-hidden="true" />;
+    }
+    if (!iconVal.includes(":") && !/^[a-z0-9_-]+$/i.test(iconVal)) {
+      return (
+        <span className="control-recent-emoji" aria-hidden="true">
+          <Fluent emoji={iconVal} size={15} />
+        </span>
+      );
+    }
+  }
+
+  if (item.kind === "project") {
+    return <Laptop size={14} className="control-recent-icon" aria-hidden="true" />;
+  }
+  if (item.kind === "page") {
+    return <Globe size={14} className="control-recent-icon" aria-hidden="true" />;
+  }
+  return <FileText size={14} className="control-recent-icon" aria-hidden="true" />;
+}
+
 function Recents() {
   const { onOpenRecent } = useNav();
   const { isMobile, setOpenMobile } = useSidebar();
@@ -621,6 +661,9 @@ function Recents() {
                       if (isMobile) setOpenMobile(false);
                     }}
                   >
+                    <span className="control-recent-badge">
+                      <RecentGlyph item={item} />
+                    </span>
                     <span className="control-recent-text">
                       <span className="control-recent-title">{item.title}</span>
                       <span className="control-recent-context">{recentContext(item)}</span>

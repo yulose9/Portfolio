@@ -111,6 +111,21 @@ function readRaw() {
     return "[]";
   }
 }
+function cleanRecent(item: RecentItem): RecentItem {
+  let title = (item.title || "").trim();
+  let icon = item.icon ?? null;
+  const prefixMatch = /^(?:([a-z0-9_-]+:[a-z0-9_-]+)|([^\p{L}\p{N}\s]{1,4}))\s+(.+)$/u.exec(title);
+  if (prefixMatch) {
+    if (!icon) icon = prefixMatch[1] || prefixMatch[2];
+    title = prefixMatch[3].trim();
+  }
+  return {
+    ...item,
+    title: title || "Untitled",
+    icon,
+  };
+}
+
 let cacheRaw = "";
 let cacheList: RecentItem[] = [];
 function parseRecents(raw: string): RecentItem[] {
@@ -129,6 +144,7 @@ function parseRecents(raw: string): RecentItem[] {
             typeof (r as RecentItem).title === "string" &&
             ((r as RecentItem).kind !== "page" || DESTINATIONS.includes((r as RecentItem).id as Destination)),
         )
+        .map(cleanRecent)
         .slice(0, RECENTS_MAX);
   } catch {
     list = [];
@@ -139,11 +155,12 @@ function parseRecents(raw: string): RecentItem[] {
 }
 
 export function recordRecent(item: RecentItem) {
-  const title = item.title.trim() || "Untitled";
+  const cleaned = cleanRecent(item);
+  const title = cleaned.title;
   const list = parseRecents(readRaw());
   const first = list[0];
-  if (first && first.kind === item.kind && first.id === item.id && first.title === title && (first.icon ?? null) === (item.icon ?? null)) return;
-  const next = [{ ...item, title }, ...list.filter((r) => !(r.kind === item.kind && r.id === item.id))].slice(0, RECENTS_MAX);
+  if (first && first.kind === cleaned.kind && first.id === cleaned.id && first.title === title && (first.icon ?? null) === (cleaned.icon ?? null)) return;
+  const next = [{ ...cleaned, title }, ...list.filter((r) => !(r.kind === cleaned.kind && r.id === cleaned.id))].slice(0, RECENTS_MAX);
   try {
     localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
   } catch {

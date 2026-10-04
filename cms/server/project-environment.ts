@@ -7,31 +7,36 @@ export function projectEnvironment(env: AdminEnv): AdminEnv {
     get(target, property) {
       if (property === "get" || property === "head")
         return (key: string, options?: unknown) =>
-          (target[property] as Function).call(target, prefix + key, options);
+          (target[property] as Function).call(target, key.startsWith(prefix) ? key : prefix + key, options);
       if (property === "put")
         return (key: string, value: unknown, options?: unknown) =>
-          target.put(prefix + key, value as string, options as R2PutOptions);
+          target.put(key.startsWith(prefix) ? key : prefix + key, value as string, options as R2PutOptions);
       if (property === "delete")
         return (keys: string | string[]) =>
           target.delete(
             Array.isArray(keys)
-              ? keys.map((key) => prefix + key)
-              : prefix + keys,
+              ? keys.map((key) => (key.startsWith(prefix) ? key : prefix + key))
+              : (keys.startsWith(prefix) ? keys : prefix + keys),
           );
       if (property === "list")
         return async (options: R2ListOptions = {}) => {
+          const rawPrefix = options.prefix ?? "";
+          const resolvedPrefix = rawPrefix.startsWith(prefix) ? rawPrefix : prefix + rawPrefix;
           const result = await target.list({
             ...options,
-            prefix: prefix + (options.prefix ?? ""),
+            prefix: resolvedPrefix,
+            startAfter: options.startAfter
+              ? (options.startAfter.startsWith(prefix) ? options.startAfter : prefix + options.startAfter)
+              : undefined,
           });
           return {
             ...result,
-            objects: result.objects.map((object) => ({
+            objects: (result.objects ?? []).map((object) => ({
               ...object,
-              key: object.key.slice(prefix.length),
+              key: object.key.startsWith(prefix) ? object.key.slice(prefix.length) : object.key,
             })),
-            delimitedPrefixes: result.delimitedPrefixes.map((key) =>
-              key.slice(prefix.length),
+            delimitedPrefixes: (result.delimitedPrefixes ?? []).map((key) =>
+              key.startsWith(prefix) ? key.slice(prefix.length) : key,
             ),
           };
         };
@@ -41,3 +46,4 @@ export function projectEnvironment(env: AdminEnv): AdminEnv {
   });
   return { ...env, WRITING: writing, contentKind: "projects" };
 }
+
