@@ -1148,8 +1148,48 @@ html.is-block-dragging .editor-body .ProseMirror-selectednode {
 }
 .palette-post-title {
   grid-area: title;
-  font-size: 15px;
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14.5px;
   font-weight: 500;
+}
+.palette-post-title .palette-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.palette-breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--a-ink-3);
+  flex-shrink: 0;
+}
+.palette-breadcrumb-root {
+  letter-spacing: 0.01em;
+}
+.palette-breadcrumb-sep {
+  opacity: 0.45;
+  font-size: 10px;
+}
+.palette-hit-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.palette-hit-breadcrumb {
+  font-size: 11px;
+  color: var(--a-ink-3);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 2px;
 }
 .palette-post-meta {
   grid-area: meta;

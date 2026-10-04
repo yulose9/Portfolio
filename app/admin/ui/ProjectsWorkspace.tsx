@@ -13,6 +13,7 @@ import UpdatedAt from "../../components/UpdatedAt";
 import { Tabs, TabsList, TabsTrigger } from "../../components/kit/tabs";
 import { SlidingNumber } from "../../components/kit/inputs/counter";
 import { useShellView } from "./shell-nav";
+import { playSound } from "../../components/ui/sound";
 
 const FILTERS = [
   ["all", "All"],
@@ -174,6 +175,7 @@ export default function ProjectsWorkspace({
             variant="primary"
             icon={<Plus size={16} aria-hidden="true" />}
             disabled={busy}
+            data-sound="open"
             onClick={() => void create()}
           >
             New project
@@ -199,10 +201,21 @@ export default function ProjectsWorkspace({
         </label>
       </div>
       <div className="admin-toolbar writing-status-toolbar cc-filters">
-        <Tabs value={filter} onValueChange={(next) => setFilter(next as typeof filter)}>
+        <Tabs
+          value={filter}
+          onValueChange={(next) => {
+            setFilter(next as typeof filter);
+            playSound("select");
+          }}
+        >
           <TabsList aria-label="Publication status">
             {FILTERS.map(([id, label]) => (
-              <TabsTrigger key={id} value={id} data-trash={id === "trash" || undefined}>
+              <TabsTrigger
+                key={id}
+                value={id}
+                data-trash={id === "trash" || undefined}
+                data-sound="select"
+              >
                 {id === "trash" ? <Trash size={13} aria-hidden="true" /> : null}
                 {label}
                 <span className="admin-segment-count">
@@ -290,6 +303,7 @@ export default function ProjectsWorkspace({
                       {page.trashedAt ? (
                         <Button
                           size="sm"
+                          data-sound="success"
                           onClick={async () => {
                             try {
                               await api.untrash(page.id);
@@ -305,6 +319,7 @@ export default function ProjectsWorkspace({
                         <>
                           <Button
                             size="sm"
+                            data-sound="open"
                             onClick={() => void metadata(page.id)}
                           >
                             Details
@@ -313,6 +328,7 @@ export default function ProjectsWorkspace({
                             size="sm"
                             variant="ghost"
                             disabled={busy}
+                            data-sound="open"
                             onClick={() => void create(page.id)}
                           >
                             Add page

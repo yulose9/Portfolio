@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Briefcase, FileText, MagnifyingGlass, TextAa, Terminal } from "@phosphor-icons/react";
+import { ArrowRight, Briefcase, CaretDown, FileText, MagnifyingGlass, SlidersHorizontal, TextAa, Terminal } from "@phosphor-icons/react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Fragment, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 
@@ -12,6 +12,9 @@ import { keys } from "./menu";
 import { allCommands, matches, type Command } from "./registry";
 import { DESTINATION_LABEL, DESTINATIONS, recentContext, requestView, useRecents, VIEWS, type Destination, type RecentItem } from "./shell-nav";
 import AdminSelect from "./AdminSelect";
+import { playSound } from "../../components/ui/sound";
+import { cn } from "../../lib/cn";
+import { Kbd, KbdGroup, Shortcut } from "../../components/kit/kbd";
 
 /*
  * ⌘K: search every post, drafts and live, by title, standfirst and full text.
@@ -89,6 +92,15 @@ export default function SearchPalette({
   const [status,setStatus]=useState("");
   const [tag,setTag]=useState("");
   const [scope,setScope]=useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const activeFiltersCount = (mode !== "phrase" ? 1 : 0) + (status ? 1 : 0) + (scope ? 1 : 0) + (tag.trim() ? 1 : 0);
+  const resetFilters = () => {
+    setMode("phrase");
+    setStatus("");
+    setScope("");
+    setTag("");
+    playSound("chirp");
+  };
   const [query, setQuery] = useState("");
   const [wasOpen, setWasOpen] = useState(false);
   if (open !== wasOpen) {
@@ -290,18 +302,122 @@ export default function SearchPalette({
                 }
               }}
             />
-            <kbd className="admin-kbd">Esc</kbd>
+            <Kbd size="sm">Esc</Kbd>
           </div>
           {searching ? (
-            <>
-              <p className="search-scope">{workspace === "projects" ? "All projects" : "All writing"} · Titles, descriptions and article text <span>Type &gt; for actions</span></p>
-              <div className="writing-search-filters">
-                <AdminSelect label="Match" value={mode} onValueChange={setMode} options={[{value:"phrase",label:"Exact phrase"},{value:"words",label:"All words"}]}/>
-                <AdminSelect label="Status" value={status} onValueChange={setStatus} options={[{value:"",label:"Any status"},...['draft','scheduled','published'].map(value=>({value,label:value}))]}/>
-                <AdminSelect label="Scope" value={scope} onValueChange={setScope} options={[{value:"",label:"All pages"},{value:"page",label:"Current page and children",disabled:typeof window==="undefined" || !new URLSearchParams(window.location.search).get("post")}]}/>
-                <label className="field">Tag<input aria-label="Search tag" value={tag} onChange={e=>setTag(e.target.value)} placeholder="Any tag" maxLength={80}/></label>
+            <div className="search-filter-section">
+              <div className="search-scope-bar">
+                <p className="search-scope">
+                  <strong>{workspace === "projects" ? "Projects" : "Writing"}</strong>
+                  <span className="search-scope-sub"> · Titles, standfirsts & article text</span>
+                </p>
+                <div className="search-filter-actions">
+                  {activeFiltersCount > 0 ? (
+                    <button
+                      type="button"
+                      className="search-filter-reset"
+                      onClick={resetFilters}
+                      title="Reset all filters"
+                      data-sound="chirp"
+                    >
+                      Reset
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="search-filter-toggle"
+                    aria-expanded={filtersOpen}
+                    onClick={() => {
+                      setFiltersOpen((prev) => {
+                        const next = !prev;
+                        playSound(next ? "toggleOn" : "toggleOff");
+                        return next;
+                      });
+                    }}
+                    data-sound="toggleOn"
+                  >
+                    <SlidersHorizontal size={13} aria-hidden="true" />
+                    <span>Filters</span>
+                    {activeFiltersCount > 0 ? (
+                      <span className="search-filter-count">{activeFiltersCount}</span>
+                    ) : null}
+                    <CaretDown
+                      size={11}
+                      className={cn("search-filter-chevron", filtersOpen && "search-filter-chevron-open")}
+                      aria-hidden="true"
+                    />
+                  </button>
+                </div>
               </div>
-            </>
+              <div
+                className={cn(
+                  "writing-search-filters-collapsible",
+                  filtersOpen ? "filters-expanded" : "filters-collapsed"
+                )}
+                aria-hidden={!filtersOpen}
+              >
+                <div className="writing-search-filters">
+                  <AdminSelect
+                    label="Match"
+                    value={mode}
+                    onValueChange={(val) => {
+                      setMode(val);
+                      playSound("select");
+                    }}
+                    options={[
+                      { value: "phrase", label: "Exact phrase" },
+                      { value: "words", label: "All words" },
+                    ]}
+                  />
+                  <AdminSelect
+                    label="Status"
+                    value={status}
+                    onValueChange={(val) => {
+                      setStatus(val);
+                      playSound("select");
+                    }}
+                    options={[
+                      { value: "", label: "Any status" },
+                      ...["draft", "scheduled", "published"].map((value) => ({ value, label: value })),
+                    ]}
+                  />
+                  <AdminSelect
+                    label="Scope"
+                    value={scope}
+                    onValueChange={(val) => {
+                      setScope(val);
+                      playSound("select");
+                    }}
+                    options={[
+                      { value: "", label: "All pages" },
+                      {
+                        value: "page",
+                        label: "Current page and children",
+                        disabled: typeof window === "undefined" || !new URLSearchParams(window.location.search).get("post"),
+                      },
+                    ]}
+                  />
+                  <label className="field">
+                    Tag
+                    <input
+                      aria-label="Search tag"
+                      value={tag}
+                      onChange={(e) => setTag(e.target.value)}
+                      placeholder="Any tag"
+                      maxLength={80}
+                    />
+                  </label>
+                </div>
+              </div>
+              {!filtersOpen && activeFiltersCount > 0 ? (
+                <div className="search-active-pills">
+                  {mode !== "phrase" ? <span className="search-pill">Match: words</span> : null}
+                  {status ? <span className="search-pill">Status: {status}</span> : null}
+                  {scope ? <span className="search-pill">Scope: current page</span> : null}
+                  {tag.trim() ? <span className="search-pill">Tag: #{tag}</span> : null}
+                </div>
+              ) : null}
+            </div>
           ) : null}
           {error ? <p className="palette-empty" role="alert">{error}</p> : null}
           <div ref={list} id={listId} className="palette-results" role="listbox" aria-label="Results">
@@ -330,7 +446,7 @@ export default function SearchPalette({
                             {commandQuery && sectionOf(c.command) !== c.command.group ? <span className="palette-context">{c.command.group}</span> : null}
                           </span>
                           {c.command.disabled ? <span className="palette-command-why">{c.command.disabled}</span> : null}
-                          {c.command.keys ? <kbd className="admin-kbd">{keys(c.command.keys)}</kbd> : null}
+                          {c.command.keys ? <Shortcut keys={keys(c.command.keys)} size="sm" /> : null}
                           {c.command.checked !== undefined ? (
                             // Kobra's switch, drawn: the row itself is the control.
                             <span className="kit-switch t-toggle" data-on={c.command.checked ? "true" : "false"} data-checked={c.command.checked || undefined} aria-hidden="true">
@@ -349,8 +465,16 @@ export default function SearchPalette({
                               {recentIcon(c.item)}
                             </span>
                             <span className="palette-command-title">
+                              <span className="palette-breadcrumb">
+                                <span className="palette-breadcrumb-root">
+                                  {c.item.kind === "project" ? "Projects" : c.item.kind === "post" ? "Writing" : "Admin"}
+                                </span>
+                                <span className="palette-breadcrumb-sep" aria-hidden="true">›</span>
+                              </span>
                               <span className="palette-title-text">{c.item.title}</span>
-                              <span className="palette-context">{recentContext(c.item)}</span>
+                              {recentContext(c.item) && recentContext(c.item) !== c.item.title ? (
+                                <span className="palette-context">{recentContext(c.item)}</span>
+                              ) : null}
                             </span>
                             <ArrowRight className="palette-arrow" size={14} aria-hidden="true" />
                           </>,
@@ -367,8 +491,13 @@ export default function SearchPalette({
                                 })()}
                               </span>
                               <span className="palette-command-title">
-                                {c.page.title}
-                                <span className="palette-context">{c.page.context}</span>
+                                <span className="palette-breadcrumb">
+                                  <span className="palette-breadcrumb-root">
+                                    {c.page.context || (c.page.id === "writing" ? "Writing" : c.page.id === "projects" ? "Projects" : "Admin")}
+                                  </span>
+                                  <span className="palette-breadcrumb-sep" aria-hidden="true">›</span>
+                                </span>
+                                <span className="palette-title-text">{c.page.title}</span>
                               </span>
                             </>,
                           )
@@ -387,18 +516,37 @@ export default function SearchPalette({
                               </>,
                             )
                           : c.kind === "hit"
-                            ? option(i, "palette-hit", <Snippet text={c.hit.snippet} start={c.hit.start} length={c.hit.length} />)
+                            ? option(
+                                i,
+                                "palette-hit",
+                                <div className="palette-hit-item">
+                                  <span className="palette-hit-breadcrumb">
+                                    <span className="palette-breadcrumb-root">{workspace === "projects" ? "Projects" : "Writing"}</span>
+                                    <span className="palette-breadcrumb-sep" aria-hidden="true">›</span>
+                                    <span className="truncate max-w-[200px]">{c.result.title.trim() || "Untitled"}</span>
+                                    <span className="palette-breadcrumb-sep" aria-hidden="true">›</span>
+                                    <span className="capitalize opacity-80">{c.hit.field}</span>
+                                  </span>
+                                  <Snippet text={c.hit.snippet} start={c.hit.start} length={c.hit.length} />
+                                </div>
+                              )
                             : option(
                                 i,
                                 "palette-post",
                                 <>
                                   <span className="palette-post-icon">{c.result.icon ? <Fluent emoji={c.result.icon} size={18} /> : null}</span>
-                                  <span className="palette-post-title">{c.result.title.trim() || "Untitled"}</span>
+                                  <span className="palette-post-title">
+                                    <span className="palette-breadcrumb">
+                                      <span className="palette-breadcrumb-root">{workspace === "projects" ? "Projects" : "Writing"}</span>
+                                      <span className="palette-breadcrumb-sep" aria-hidden="true">›</span>
+                                    </span>
+                                    <span className="palette-title-text">{c.result.title.trim() || "Untitled"}</span>
+                                  </span>
                                   <span className="palette-post-meta">
                                     <StatusDot status={c.result.status} dirty={c.result.dirty} />
                                     {statusLabel({ ...c.result, publishAt: null })} · {c.result.total} {c.result.total === 1 ? "match" : "matches"} · {relative(c.result.updatedAt)}
                                   </span>
-                                </>,
+                                </>
                               )}
                 </Fragment>
               ))
@@ -407,14 +555,17 @@ export default function SearchPalette({
           </div>
           <div className="palette-footer" aria-hidden="true">
             <span>
-              <kbd className="admin-kbd">↑</kbd>
-              <kbd className="admin-kbd">↓</kbd> to navigate
+              <KbdGroup gap="tight">
+                <Kbd size="sm">↑</Kbd>
+                <Kbd size="sm">↓</Kbd>
+              </KbdGroup>{" "}
+              to navigate
             </span>
             <span>
-              <kbd className="admin-kbd">↵</kbd> to select
+              <Kbd size="sm">↵</Kbd> to select
             </span>
             <span>
-              <kbd className="admin-kbd">Esc</kbd> to close
+              <Kbd size="sm">Esc</Kbd> to close
             </span>
           </div>
         </Dialog.Popup>

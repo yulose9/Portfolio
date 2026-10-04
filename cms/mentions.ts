@@ -20,9 +20,15 @@ export const fullMentionDate = ({date, time}: MentionDate) => `${fullFormat.form
 export function mentionDateLabel(value: MentionDate, now: number | null): string {
   if (now === null) return fullMentionDate(value);
   const delta = Math.round((Date.parse(`${value.date}T00:00:00Z`) - Date.parse(`${todayDate(now)}T00:00:00Z`)) / DAY);
-  const relative = delta === 0 ? "Today" : delta === -1 ? "Yesterday" : delta === 1 ? "Tomorrow"
-    : delta < -1 && delta > -7 ? `Last ${weekFormat.format(new Date(`${value.date}T00:00:00Z`))}`
-    : delta > 1 && delta < 7 ? weekFormat.format(new Date(`${value.date}T00:00:00Z`)) : null;
+  let relative: string | null = null;
+  if (delta === 0) relative = "Today";
+  else if (delta === -1) relative = "Yesterday";
+  else if (delta === 1) relative = "Tomorrow";
+  else if (delta < -1 && delta > -7) relative = `${Math.abs(delta)} days ago`;
+  else if (delta === -7) relative = "1 week ago";
+  else if (delta > 1 && delta < 7) relative = `in ${delta} days`;
+  else if (delta === 7) relative = "in 1 week";
+  else relative = null;
   return relative ? `${relative}${value.time ? ` at ${value.time}` : ""}` : fullMentionDate(value);
 }
 export function parseDateQuery(query: string, now = Date.now()): MentionDate | null {

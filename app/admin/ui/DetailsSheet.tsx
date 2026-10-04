@@ -13,6 +13,7 @@ import type { Meta } from "./Editor";
 import { FontsEditor, ShareImageField } from "./MetaEditors";
 import Sheet from "./Sheet";
 import AdminSelect from "./AdminSelect";
+import { Button } from "../../components/kit/button";
 import { Checkbox } from "../../components/kit/checkbox";
 import { Switch } from "../../components/kit/switch";
 import { showsSubtitle } from "../../../cms/subtitle";
@@ -180,9 +181,9 @@ export default function DetailsSheet({
               context={() => ({ title: meta.title, caption: meta.cover?.caption })} />
           </>
         ) : (
-          <button type="button" className="admin-button" onClick={onPickCover}>
+          <Button type="button" variant="secondary" size="sm" onClick={onPickCover}>
             Add a cover image
-          </button>
+          </Button>
         )}
       </section>
 
@@ -231,9 +232,17 @@ export default function DetailsSheet({
       </section>
 
       <section className="field field-danger">
-        <button type="button" className="admin-button admin-button-danger" data-confirming={confirming || undefined} onClick={remove} disabled={deleting}>
+        <Button
+          type="button"
+          variant="destructive"
+          size="sm"
+          data-confirming={confirming || undefined}
+          onClick={remove}
+          loading={deleting}
+          disabled={deleting}
+        >
           {deleting ? "Moving to Trash…" : confirming ? (live ? "Click again to unpublish and move to Trash" : "Click again to move to Trash") : "Move to Trash"}
-        </button>
+        </Button>
         <span className="sr-only" role="status">
           {confirming ? "Press again to confirm. The button resets after a few seconds." : ""}
         </span>

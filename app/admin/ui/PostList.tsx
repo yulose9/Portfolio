@@ -3,6 +3,7 @@
 import { Tabs, TabsList, TabsTrigger } from "../../components/kit/tabs";
 import { SlidingNumber } from "../../components/kit/inputs/counter";
 import { MultiSelect, type MultiSelectMatch } from "../../components/kit/inputs/multi-select";
+import { Kbd } from "../../components/kit/kbd";
 import PageTree from "./PageTree";
 import MediaLibrary from "./MediaLibrary";
 
@@ -462,7 +463,7 @@ export default function PostList({
                 disabled={creating}
               >
                 New post
-                <kbd className="admin-kbd">N</kbd>
+                <Kbd size="sm">N</Kbd>
               </Button>
               <Menu.Root modal={false}>
                 <Menu.Trigger
@@ -503,7 +504,7 @@ export default function PostList({
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Filter posts by title"
           />
-          <kbd className="admin-kbd">/</kbd>
+          <Kbd size="sm">/</Kbd>
         </label>
         <Button
           variant="secondary"
@@ -519,7 +520,7 @@ export default function PostList({
           onClick={onSearch}
         >
           Search all
-          <kbd className="admin-kbd">{keys("⌘K")}</kbd>
+          <Kbd size="sm">{keys("⌘K")}</Kbd>
         </Button>
       </div>
       <div className="admin-toolbar writing-status-toolbar cc-filters">

@@ -15,8 +15,9 @@ test("date mentions anchor once and roll over at midnight in Manila", () => {
   assert.equal(mentionDateLabel(date, now),"Today");
   assert.equal(mentionDateLabel(date, Date.parse("2026-09-27T15:59:59Z")),"Today");
   assert.equal(mentionDateLabel(date, Date.parse("2026-09-27T16:00:00Z")),"Yesterday");
-  assert.equal(mentionDateLabel(date, Date.parse("2026-09-30T04:00:00Z")),"Last Sunday");
-  assert.equal(mentionDateLabel(date, Date.parse("2026-10-04T04:00:00Z")),"September 27, 2026");
+  assert.equal(mentionDateLabel(date, Date.parse("2026-09-30T04:00:00Z")),"3 days ago");
+  assert.equal(mentionDateLabel(date, Date.parse("2026-10-04T04:00:00Z")),"1 week ago");
+  assert.equal(mentionDateLabel(date, Date.parse("2026-10-05T04:00:00Z")),"September 27, 2026");
 });
 test("weekday queries and optional 24-hour times are validated", () => {
   assert.deepEqual(parseDateQuery("last Monday 9:30",now),{date:"2026-09-21",time:"09:30"});

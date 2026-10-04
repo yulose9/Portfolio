@@ -57,6 +57,7 @@ import { TextColor } from "./extensions/text-color";
 import LinkHover from "./LinkHover";
 import BlockMarquee from "./BlockMarquee";
 import { HeadingIcon } from "./extensions/heading-icon";
+import { Kbd } from "../../components/kit/kbd";
 import UpdatedAt from "../../components/UpdatedAt";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { TableKit } from "@tiptap/extension-table";
@@ -1403,7 +1404,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
           <SlidingNumber value={words} group /> {words === 1 ? "word" : "words"} · <SlidingNumber value={minutes} /> min read
         </span>
         <span className="editor-foot-keys">
-          <kbd className="admin-kbd">/</kbd> blocks <kbd className="admin-kbd">:</kbd> emoji <kbd className="admin-kbd">{keys(shortcutLabel("palette"))}</kbd> search and actions <kbd className="admin-kbd">{keys(shortcutLabel("publish"))}</kbd> publish
+          <Kbd size="sm">/</Kbd> blocks <Kbd size="sm">:</Kbd> emoji <Kbd size="sm">{keys(shortcutLabel("palette"))}</Kbd> search and actions <Kbd size="sm">{keys(shortcutLabel("publish"))}</Kbd> publish
         </span>
       </footer>
 

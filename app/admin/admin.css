@@ -176,23 +176,45 @@
   }
 }
 
-.admin-kbd {
-  display: inline-grid;
-  place-items: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  border-radius: 5px;
-  font-family: "Paper Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+.admin-kbd,
+kbd.admin-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
   font-size: 11px;
-  letter-spacing: 0;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   line-height: 1;
-  color: var(--a-ink-3);
-  box-shadow: inset 0 0 0 1px var(--a-line);
+  white-space: nowrap;
+  vertical-align: middle;
+  user-select: none;
+  pointer-events: none;
+  background-color: var(--kbd-bg, color-mix(in srgb, var(--paper, #fff) 85%, var(--foreground, #000) 4%));
+  color: var(--kbd-fg, var(--a-ink, var(--foreground, #171717)));
+  border: 1px solid var(--kbd-border, var(--a-line, rgba(0, 0, 0, 0.12)));
+  box-shadow: 0 1px 0 1px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
 }
-.admin-button-primary .admin-kbd {
-  color: color-mix(in srgb, var(--a-on-ink) 60%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--a-on-ink) 20%, transparent);
+
+[data-theme="dark"] .admin-kbd,
+[data-theme="dark"] kbd.admin-kbd {
+  background-color: var(--kbd-bg, color-mix(in srgb, var(--paper-raised, #1c1c1f) 85%, #fff 4%));
+  color: var(--kbd-fg, var(--a-ink, var(--foreground, #ededed)));
+  border-color: var(--kbd-border, var(--a-line, rgba(255, 255, 255, 0.12)));
+  box-shadow: 0 1px 0 1px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.admin-button-primary .admin-kbd,
+.admin-button-primary kbd.admin-kbd {
+  background-color: rgba(255, 255, 255, 0.18);
+  color: var(--a-on-ink, #fff);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 1px 0 1px rgba(0, 0, 0, 0.15);
 }
 
 /* ── Gate (signed out, misconfigured) ────────────────────────────────── */
@@ -1152,6 +1174,52 @@
 /* Leaving is quicker than arriving. */
 .sheet[data-variant="side"][data-ending-style] {
   transition-duration: 240ms, 200ms;
+}
+
+/* ── Sheet Resize Handle (Click to Collapse / Drag to Resize) ────────── */
+.sheet-resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -7px;
+  width: 14px;
+  z-index: 20;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  cursor: col-resize;
+  outline: none;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+.sheet-resize-line {
+  position: relative;
+  width: 2px;
+  height: 100%;
+  border-radius: 999px;
+  background: transparent;
+  transition: background-color 150ms ease, box-shadow 150ms ease, width 150ms ease;
+  pointer-events: none;
+}
+.sheet-resize-handle:hover .sheet-resize-line,
+.sheet-resize-handle:focus-visible .sheet-resize-line,
+.sheet-resize-handle:active .sheet-resize-line {
+  width: 3px;
+  background: var(--sidebar-ring, #3b82f6);
+  box-shadow: 0 0 10px rgb(59 130 246 / 0.55), 0 0 2px rgb(59 130 246 / 0.8);
+}
+.sheet[data-resizing="true"] {
+  transition: none !important;
+  user-select: none !important;
+}
+body[data-resizing-sheet="true"],
+body[data-resizing-sheet="true"] * {
+  cursor: col-resize !important;
+  user-select: none !important;
 }
 .sheet[data-variant="center"] {
   top: 50%;

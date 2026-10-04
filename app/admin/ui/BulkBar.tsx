@@ -23,6 +23,7 @@ import { trashToast } from "./trash-toast";
 import { api, ApiError, type BulkAction, type PostSummary } from "./api";
 import { exactTime } from "./bits";
 import DateTimePicker from "./DateTimePicker";
+import { Kbd } from "../../components/kit/kbd";
 import { keys } from "./menu";
 import type { Command } from "./registry";
 
@@ -371,7 +372,7 @@ export default function BulkBar({ bulk, total, onSelectAll, onClear }: { bulk: B
           </>
         )}
         <button type="button" className="bulk-action bulk-more" onClick={() => window.dispatchEvent(new Event("admin:palette"))} title="All actions for the selection" aria-label={`All actions for the selection, ${keys("⌘K")}`}>
-          <kbd>{keys("⌘K")}</kbd>
+          <Kbd size="sm">{keys("⌘K")}</Kbd>
         </button>
       </div>
 

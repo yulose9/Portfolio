@@ -15,6 +15,7 @@ import {
 } from "@phosphor-icons/react";
 import { Menu } from "@base-ui/react/menu";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { Kbd } from "../../components/kit/kbd";
 import { api, type PostSummary } from "./api";
 import { useRecentPages } from "./recent-pages";
 import { useExpandedPages } from "./page-tree-preferences";
@@ -602,9 +603,9 @@ export default function PageTree({
           onChange={(e) => setQuery(e.target.value)}
         />
         {query ? null : (
-          <kbd className="admin-kbd" aria-hidden>
+          <Kbd size="sm" aria-hidden>
             /
-          </kbd>
+          </Kbd>
         )}
       </label>
       <div className="page-tree-tools">

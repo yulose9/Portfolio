@@ -2,6 +2,7 @@
 import {
   createContext,
   forwardRef,
+  useCallback,
   useContext,
   useEffect,
   useLayoutEffect,
@@ -10,6 +11,7 @@ import {
   type ComponentProps,
   type CSSProperties,
   type FocusEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent,
   type ReactNode,
 } from "react";
@@ -36,6 +38,8 @@ import { LinkProvider, type LinkComponentProps } from "@cloudflare/kumo/utils";
 
 import { Button } from "../../components/kit/button";
 import { Tooltip } from "../../components/kit/tooltip";
+import { Kbd } from "../../components/kit/kbd";
+import { publishedWebsite } from "../../../cms/website";
 import { SoundToggle } from "../../components/ui/sound";
 import { ThemeToggle } from "../../components/ui/theme";
 import { keys } from "./menu";
@@ -79,6 +83,7 @@ export const DESTINATION_ICON: Record<Destination, Icon> = {
 
 const OPEN_KEY = "admin-sidebar";
 const RECENTS_OPEN_KEY = "admin-sidebar-recents";
+const WIDTH_KEY = "admin-sidebar-width";
 const PEEK_DELAY = 120;
 const PEEK_GRACE = 200;
 
@@ -97,6 +102,28 @@ function writeFlag(key: string, value: boolean) {
     /* a preference, not data */
   }
 }
+
+function readWidth(fallback: number) {
+  try {
+    const raw = localStorage.getItem(WIDTH_KEY);
+    if (!raw) return fallback;
+    const num = parseInt(raw, 10);
+    return Number.isFinite(num) && num >= 180 && num <= 500 ? num : fallback;
+  } catch {
+    return fallback;
+  }
+}
+function writeWidth(value: number) {
+  try {
+    localStorage.setItem(WIDTH_KEY, String(Math.round(value)));
+  } catch {}
+}
+
+const SidebarResizeContext = createContext<{
+  width: number;
+  setWidth: React.Dispatch<React.SetStateAction<number>>;
+  resetWidth: () => void;
+}>({ width: 260, setWidth: () => {}, resetWidth: () => {} });
 
 type Nav = {
   section: Destination;
@@ -159,36 +186,44 @@ export default function ControlShell({
   editing: boolean;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(() => readFlag(OPEN_KEY, true));
+  const [sidebarWidth, setSidebarWidth] = useState(() => readWidth(260));
+  const resetWidth = useCallback(() => {
+    setSidebarWidth(260);
+    try {
+      localStorage.removeItem(WIDTH_KEY);
+    } catch {}
+  }, []);
+
   return (
     <NavContext.Provider value={{ section, editing, onNavigate, onOpenRecent, onSearch }}>
-      <LinkProvider component={ShellLink}>
-        <Sidebar.Provider
-          className="control-shell control-kumo-shell"
-          open={open}
-          onOpenChange={(next) => {
-            setOpen(next);
-            writeFlag(OPEN_KEY, next);
-          }}
-          collapsible="icon"
-          peekable
-          mobileBreakpoint={768}
-          animationDuration={220}
-          style={
-            {
-              "--sidebar-width": "260px",
-              "--sidebar-width-icon": "64px",
-              "--sidebar-easing": "cubic-bezier(0.23, 1, 0.32, 1)",
-            } as CSSProperties
-          }
-        >
-          <ShellSidebar />
-          <div className="control-content" id="admin-content">
-            {editing ? null : <TopBar email={email} />}
-            {children}
-          </div>
-        </Sidebar.Provider>
-      </LinkProvider>
+      <SidebarResizeContext.Provider value={{ width: sidebarWidth, setWidth: setSidebarWidth, resetWidth }}>
+        <LinkProvider component={ShellLink}>
+          <Sidebar.Provider
+            className="control-shell control-kumo-shell"
+            defaultOpen={readFlag(OPEN_KEY, true)}
+            onOpenChange={(next) => {
+              writeFlag(OPEN_KEY, next);
+            }}
+            collapsible="icon"
+            peekable
+            mobileBreakpoint={768}
+            animationDuration={220}
+            style={
+              {
+                "--sidebar-width": `${sidebarWidth}px`,
+                "--sidebar-width-icon": "64px",
+                "--sidebar-easing": "cubic-bezier(0.23, 1, 0.32, 1)",
+              } as CSSProperties
+            }
+          >
+            <ShellSidebar />
+            <div className="control-content" id="admin-content">
+              {editing ? null : <TopBar email={email} />}
+              {children}
+            </div>
+          </Sidebar.Provider>
+        </LinkProvider>
+      </SidebarResizeContext.Provider>
     </NavContext.Provider>
   );
 }
@@ -243,6 +278,96 @@ function ShellSidebar() {
   };
   const inFooter = (target: EventTarget) => target instanceof Element && !!target.closest('[data-sidebar="footer"]');
 
+  const { width: currentWidth, setWidth, resetWidth } = useContext(SidebarResizeContext);
+  const dragRef = useRef<{
+    startX: number;
+    startWidth: number;
+    pointerId: number;
+    hasMoved: boolean;
+    startTime: number;
+  } | null>(null);
+
+  const handlePointerDown = useCallback((e: PointerEvent<HTMLButtonElement>) => {
+    if (e.button !== 0) return;
+    dragRef.current = {
+      startX: e.clientX,
+      startWidth: currentWidth,
+      pointerId: e.pointerId,
+      hasMoved: false,
+      startTime: Date.now(),
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  }, [currentWidth]);
+
+  const handlePointerMove = useCallback((e: PointerEvent<HTMLButtonElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== e.pointerId) return;
+
+    const deltaX = e.clientX - drag.startX; // Dragging right expands left sidebar
+    if (!drag.hasMoved && Math.abs(deltaX) > 3) {
+      drag.hasMoved = true;
+      document.body.setAttribute("data-resizing-sidebar", "true");
+    }
+
+    if (drag.hasMoved) {
+      const nextWidth = Math.max(180, Math.min(drag.startWidth + deltaX, 480));
+      setWidth(nextWidth);
+    }
+  }, [setWidth]);
+
+  const handlePointerUp = useCallback((e: PointerEvent<HTMLButtonElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== e.pointerId) return;
+
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+
+    const elapsed = Date.now() - drag.startTime;
+    const hasMoved = drag.hasMoved;
+    dragRef.current = null;
+    document.body.removeAttribute("data-resizing-sidebar");
+
+    if (!hasMoved && elapsed < 400) {
+      toggleSidebar();
+    } else if (hasMoved) {
+      writeWidth(currentWidth);
+    }
+  }, [currentWidth, toggleSidebar]);
+
+  const handlePointerCancel = useCallback((e: PointerEvent<HTMLButtonElement>) => {
+    if (dragRef.current?.pointerId === e.pointerId) {
+      dragRef.current = null;
+      document.body.removeAttribute("data-resizing-sidebar");
+    }
+  }, []);
+
+  const handleDoubleClick = useCallback(() => {
+    resetWidth();
+  }, [resetWidth]);
+
+  const handleKeyDown = useCallback((e: ReactKeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggleSidebar();
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      setWidth((prev) => {
+        const next = Math.min(prev + 20, 480);
+        writeWidth(next);
+        return next;
+      });
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      setWidth((prev) => {
+        const next = Math.max(prev - 20, 180);
+        writeWidth(next);
+        return next;
+      });
+    }
+  }, [setWidth, toggleSidebar]);
+
   return (
     <Sidebar
       className="control-sidebar-frame"
@@ -284,7 +409,7 @@ function ShellSidebar() {
     >
       <Sidebar.Header className="control-sidebar-header">
         <Brand />
-        <Sidebar.Close className="control-sidebar-close" />
+        {isMobile ? <Sidebar.Close className="control-sidebar-close" /> : null}
       </Sidebar.Header>
       <Sidebar.Content>
         <QuickSearch />
@@ -296,11 +421,15 @@ function ShellSidebar() {
           content={
             <span className="control-tip">
               {open ? "Collapse sidebar" : "Expand sidebar"}
-              <kbd className="admin-kbd">{keys("⌘B")}</kbd>
+              <Kbd size="sm">{keys("⌘B")}</Kbd>
             </span>
           }
         >
-          <Sidebar.Trigger className="control-sidebar-toggle" aria-keyshortcuts="Control+B Meta+B">
+          <Sidebar.Trigger
+            className="control-sidebar-toggle"
+            aria-keyshortcuts="Control+B Meta+B"
+            data-sound={open ? "close" : "open"}
+          >
             <SidebarSimple size={18} aria-hidden="true" />
           </Sidebar.Trigger>
         </Tooltip>
@@ -308,30 +437,52 @@ function ShellSidebar() {
           View website <ArrowUpRight size={14} aria-hidden="true" />
         </a>
       </Sidebar.Footer>
+      {open && !isMobile ? (
+        <Tooltip content="Drag to resize · Click to collapse" side="right" sideOffset={8} delay={120}>
+          <button
+            type="button"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Navigation sidebar border: Drag to resize · Click to collapse"
+            className="control-sidebar-resize-handle"
+            data-sound="close"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+            onDoubleClick={handleDoubleClick}
+            onKeyDown={handleKeyDown}
+          >
+            <span className="control-sidebar-resize-line" />
+          </button>
+        </Tooltip>
+      ) : null}
     </Sidebar>
   );
 }
 
 function Brand() {
   const { onNavigate } = useNav();
-  const { isMobile, setOpenMobile } = useSidebar();
+  const { isMobile, setOpenMobile, state } = useSidebar();
   return (
-    <button
-      type="button"
-      className="control-brand"
-      onClick={() => {
-        onNavigate("overview");
-        if (isMobile) setOpenMobile(false);
-      }}
-    >
-      {/* The site's favicon mark, from public/icon-192.png. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/icon-192.png" alt="" width={24} height={24} className="control-brand-mark" />
-      <span className="control-brand-text">
-        <span className="control-brand-name">nazarene.dev</span>
-        <span className="control-brand-sub">Personal workspace</span>
-      </span>
-    </button>
+    <Tooltip content="nazarene.dev · Personal workspace" side="right" sideOffset={10} disabled={state !== "collapsed"}>
+      <button
+        type="button"
+        className="control-brand"
+        onClick={() => {
+          onNavigate("overview");
+          if (isMobile) setOpenMobile(false);
+        }}
+      >
+        {/* The site's favicon mark, from public/icon-192.png. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icon-192.png" alt="" width={24} height={24} className="control-brand-mark" />
+        <span className="control-brand-text">
+          <span className="control-brand-name">nazarene.dev</span>
+          <span className="control-brand-sub">Personal workspace</span>
+        </span>
+      </button>
+    </Tooltip>
   );
 }
 
@@ -356,9 +507,9 @@ function QuickSearch() {
       <button type="button" className="control-quick-search" aria-label="Quick search" aria-keyshortcuts="Control+K Meta+K" onClick={onSearch}>
         <MagnifyingGlass size={16} weight="bold" aria-hidden="true" />
         <span className="control-quick-search-label">Quick search…</span>
-        <kbd className="admin-kbd" aria-hidden="true">
+        <Kbd size="sm" aria-hidden="true">
           {keys("⌘K")}
-        </kbd>
+        </Kbd>
       </button>
     </Tooltip>
   );
@@ -589,23 +740,54 @@ function Crumbs() {
 
 function Account({ email }: { email: string }) {
   const initial = (email.trim()[0] ?? "?").toUpperCase();
+  const name = publishedWebsite.profile.name || "John Nazarene Dela Pisa";
+  const photo = publishedWebsite.profile.photo || "/avatar-1024.webp";
+  const [photoFailed, setPhotoFailed] = useState(false);
+
   return (
     <DropdownMenu>
-      <DropdownMenu.Trigger className="control-account" aria-label={`Account, ${email}`}>
+      <DropdownMenu.Trigger className="control-account" aria-label={`Account, ${name} (${email})`}>
         <span className="control-avatar" aria-hidden="true">
-          {initial}
+          {photo && !photoFailed ? (
+            <img
+              src={photo}
+              alt=""
+              width={28}
+              height={28}
+              className="control-avatar-img"
+              onError={() => setPhotoFailed(true)}
+            />
+          ) : (
+            initial
+          )}
         </span>
       </DropdownMenu.Trigger>
       <DropdownMenu.Content align="end" sideOffset={6} className="control-menu">
         <DropdownMenu.Group>
-          <DropdownMenu.Label className="control-account-label">
-            Signed in as
-            <span title={email}>{email}</span>
-          </DropdownMenu.Label>
+          <div className="control-account-profile-header">
+            <span className="control-avatar control-avatar-menu" aria-hidden="true">
+              {photo && !photoFailed ? (
+                <img
+                  src={photo}
+                  alt=""
+                  width={36}
+                  height={36}
+                  className="control-avatar-img"
+                />
+              ) : (
+                initial
+              )}
+            </span>
+            <div className="control-account-meta">
+              <span className="control-account-name">{name}</span>
+              <span className="control-account-email" title={email}>{email}</span>
+            </div>
+          </div>
         </DropdownMenu.Group>
         <DropdownMenu.Separator />
         <DropdownMenu.LinkItem href="/admin/shortcuts" icon={Keyboard}>
-          Keyboard shortcuts
+          <span className="flex-1">Keyboard shortcuts</span>
+          <Kbd size="sm" variant="subtle">?</Kbd>
         </DropdownMenu.LinkItem>
         <DropdownMenu.LinkItem href="/cdn-cgi/access/logout" icon={SignOut} variant="danger">
           Sign out

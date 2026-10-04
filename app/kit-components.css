@@ -1863,3 +1863,124 @@
     --sf-bottom: rgb(242 113 107 / 0.1);
   }
 }
+
+/* ── Kobra Kbd: Keyboard input and shortcut hints ──────────────────────── */
+
+.kit-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+  box-sizing: border-box;
+  vertical-align: middle;
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, color 150ms ease;
+}
+
+/* Sizing */
+.kit-kbd[data-size="sm"] {
+  height: 20px;
+  min-width: 20px;
+  padding: 0 4.5px;
+  font-size: 11px;
+  border-radius: 4px;
+}
+.kit-kbd[data-size="md"] {
+  height: 22px;
+  min-width: 22px;
+  padding: 0 6px;
+  font-size: 12px;
+  border-radius: 5px;
+}
+.kit-kbd[data-size="lg"] {
+  height: 25px;
+  min-width: 25px;
+  padding: 0 7.5px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+.kit-kbd[data-size="xl"] {
+  height: 28px;
+  min-width: 28px;
+  padding: 0 9px;
+  font-size: 14px;
+  border-radius: 8px;
+}
+
+/* Default variant: tactile keycap with subtle bevel and shadow */
+.kit-kbd[data-variant="default"] {
+  background-color: var(--kbd-bg, color-mix(in srgb, var(--paper, #fff) 80%, var(--foreground, #000) 4%));
+  color: var(--kbd-fg, var(--a-ink, var(--foreground, #171717)));
+  border: 1px solid var(--kbd-border, var(--a-line, var(--border, rgba(0, 0, 0, 0.12))));
+  box-shadow: 0 1px 0 1px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+[data-theme="dark"] .kit-kbd[data-variant="default"],
+.dark .kit-kbd[data-variant="default"] {
+  background-color: var(--kbd-bg, color-mix(in srgb, var(--paper-raised, #1c1c1f) 85%, #fff 4%));
+  color: var(--kbd-fg, var(--a-ink, var(--foreground, #ededed)));
+  border-color: var(--kbd-border, var(--a-line, var(--border, rgba(255, 255, 255, 0.12))));
+  box-shadow: 0 1px 0 1px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Outline variant */
+.kit-kbd[data-variant="outline"] {
+  background-color: transparent;
+  color: var(--kbd-fg, var(--a-ink, var(--foreground, currentColor)));
+  border: 1px solid var(--kbd-border, var(--a-line, var(--border, rgba(0, 0, 0, 0.15))));
+  box-shadow: none;
+}
+
+/* Subtle variant */
+.kit-kbd[data-variant="subtle"] {
+  background-color: var(--kbd-bg, var(--wash, rgba(0, 0, 0, 0.05)));
+  color: var(--kbd-fg, var(--a-ink-2, var(--muted-foreground, #666)));
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+
+/* Plain variant */
+.kit-kbd[data-variant="plain"] {
+  background: transparent;
+  color: var(--kbd-fg, var(--a-ink-3, #888));
+  border: 0;
+  box-shadow: none;
+  padding: 0 2px;
+}
+
+/* In Tooltips: seamless transparency */
+.kit-tooltip .kit-kbd,
+[data-slot="tooltip-content"] .kit-kbd,
+.control-tip .kit-kbd {
+  border-color: transparent !important;
+  background-color: rgba(255, 255, 255, 0.16) !important;
+  color: inherit !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"] .kit-tooltip .kit-kbd,
+[data-theme="dark"] [data-slot="tooltip-content"] .kit-kbd,
+[data-theme="dark"] .control-tip .kit-kbd {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  color: inherit !important;
+}
+
+/* In dropdown menus */
+.control-menu .kit-kbd,
+[data-slot="dropdown-menu-item"] .kit-kbd {
+  border-color: var(--a-line, rgba(0, 0, 0, 0.1));
+  box-shadow: none;
+}
+
+.kit-kbd-group {
+  display: inline-flex;
+  align-items: center;
+  user-select: none;
+  vertical-align: middle;
+}
+
