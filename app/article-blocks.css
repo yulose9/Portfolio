@@ -635,8 +635,6 @@
 /* ── GitHub Embed Card ──────────────────────────────────────────────── */
 .article-body .embed-github {
   width: 100%;
-  display: grid;
-  justify-items: center;
   margin: 1.75rem 0;
 }
 
@@ -644,7 +642,7 @@
 .editor-body a.github-embed-card,
 .github-embed-card {
   display: block;
-  width: min(100%, 640px);
+  width: 100%;
   position: relative;
   text-decoration: none !important;
   color: inherit;

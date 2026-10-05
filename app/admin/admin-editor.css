@@ -690,12 +690,9 @@ html.is-block-dragging .editor-body .ProseMirror-selectednode {
 }
 .embed-github {
   width: 100%;
-  display: flex;
-  justify-content: center;
 }
 .embed-github .github-embed-card {
   width: 100%;
-  max-width: 640px;
 }
 .embed-tools {
   position: absolute;
