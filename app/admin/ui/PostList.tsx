@@ -46,6 +46,13 @@ import { TEMPLATES, type Template } from "./templates";
 import ResearchWorkspace from "./ResearchWorkspace";
 import Sheet from "./Sheet";
 import { useShellView } from "./shell-nav";
+import {
+  RailCard,
+  RailRow,
+  RailProgressRow,
+  RailStatusDot,
+  RailLinkRow,
+} from "./CloudflareRail";
 
 const CI = { size: 16, "aria-hidden": true } as const;
 
@@ -557,8 +564,10 @@ export default function PostList({
         ) : null}
       </div>
 
-      {loadError && !posts?.length ? (
-        <div className="control-notice" role="alert">
+      <div className="cc-layout-two-col">
+        <div className="cc-main-col">
+          {loadError && !posts?.length ? (
+            <div className="control-notice" role="alert">
           <strong>Couldn’t load your posts</strong>
           <p>{loadError}</p>
           <Button onClick={() => setVersion((v) => v + 1)}>Try again</Button>
@@ -729,6 +738,71 @@ export default function PostList({
           </span>
         </div>
       ) : null}
+        </div>
+
+        <div className="cc-rail-col">
+          <RailCard title="Content usage">
+            <RailProgressRow
+              label="Published posts"
+              current={counts.published}
+              total={live.length}
+              unit="posts"
+            />
+            <RailRow label="Drafts in progress" value={counts.draft} />
+            <RailRow label="Scheduled" value={counts.scheduled} />
+            <RailRow label="In Trash" value={counts.trash} />
+          </RailCard>
+
+          <RailCard title="Quick actions">
+            <Button
+              variant="secondary"
+              className="w-full justify-start !h-9 text-xs"
+              onClick={() => void create()}
+            >
+              <NotePencil size={14} className="mr-2" />
+              <span>New draft (N)</span>
+            </Button>
+            <Button
+              variant="secondary"
+              className="w-full justify-start !h-9 text-xs"
+              onClick={onTags}
+            >
+              <TagIcon size={14} className="mr-2" />
+              <span>Edit tag pages</span>
+            </Button>
+            <Button
+              variant="secondary"
+              className="w-full justify-start !h-9 text-xs"
+              onClick={() => setMediaOpen(true)}
+            >
+              <ImageSquare size={14} className="mr-2" />
+              <span>Media library</span>
+            </Button>
+            <Button
+              variant="secondary"
+              className="w-full justify-start !h-9 text-xs"
+              onClick={onSearch}
+            >
+              <MagnifyingGlass size={14} className="mr-2" />
+              <span>Search all (⌘K)</span>
+            </Button>
+          </RailCard>
+
+          <RailCard
+            title="Publication endpoint"
+            action={<RailStatusDot status="active" label="Live" />}
+          >
+            <RailLinkRow
+              label="Live route"
+              href="/writing"
+              value="nazarene.dev/writing"
+            />
+            <RailRow label="Format" value="Markdown + MDX" />
+            <RailRow label="RSS Feed" value="/feed.xml" />
+            <RailRow label="Edge Cache" value="Standard" />
+          </RailCard>
+        </div>
+      </div>
 
       <BulkBar
         bulk={bulk}

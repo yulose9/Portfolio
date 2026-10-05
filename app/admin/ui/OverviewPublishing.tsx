@@ -49,128 +49,172 @@ export default function OverviewPublishing({
   }, []);
 
   return (
-    <section className="control-panel overview-content-panel" aria-label="Publishing overview">
-      <div className="control-panel-heading">
-        <div>
-          <h2>Your content & publishing hub</h2>
-          <p>Real-time status of your articles, showcase projects, and homepage presentation.</p>
+    <div className="cc-overview-hero" aria-label="Publishing overview">
+      <div className="cc-overview-hero-top">
+        <div className="cc-overview-hero-heading">
+          <h1>What are we building today?</h1>
+          <p>Quick access to your writing, showcase case studies, and live site configuration.</p>
+        </div>
+        <div className="cc-overview-quick-chips">
+          <button
+            type="button"
+            className="cc-overview-quick-chip"
+            onClick={() => {
+              onNavigate("writing");
+              playSound("tap");
+            }}
+          >
+            <PenNib size={14} weight="bold" />
+            <span>New post</span>
+          </button>
+          <button
+            type="button"
+            className="cc-overview-quick-chip"
+            onClick={() => {
+              onNavigate("projects");
+              playSound("tap");
+            }}
+          >
+            <FolderSimple size={14} weight="bold" />
+            <span>New project</span>
+          </button>
+          <button
+            type="button"
+            className="cc-overview-quick-chip"
+            onClick={() => {
+              onNavigate("website");
+              playSound("tap");
+            }}
+          >
+            <Globe size={14} weight="bold" />
+            <span>Edit website</span>
+          </button>
+          <a
+            href="/"
+            target="_blank"
+            rel="noreferrer"
+            className="cc-overview-quick-chip"
+            onClick={() => playSound("tap")}
+          >
+            <span>Live site</span>
+            <ArrowRight size={13} />
+          </a>
         </div>
       </div>
+
       {error && <p role="alert" className="control-notice">Content status is unavailable. {error}</p>}
 
-      <div className="control-report-grid overview-cards-grid">
+      <div className="cc-overview-hub-grid">
         {(
           [
             {
               key: "writing" as const,
-              title: "Writing",
+              title: "Writing & Articles",
               icon: PenNib,
               manageText: "Manage writing",
+              desc: "Draft articles, essays, and notes with markdown & rich media support.",
             },
             {
               key: "projects" as const,
-              title: "Projects",
+              title: "Projects & Work",
               icon: FolderSimple,
               manageText: "Manage projects",
+              desc: "Engineering case studies, interactive tools, and portfolio highlights.",
             },
           ] as const
-        ).map(({ key, title, icon: Icon, manageText }) => {
+        ).map(({ key, title, icon: Icon, manageText, desc }) => {
           const pages = counts?.[key].filter((page) => !page.trashedAt);
           const publishedCount = pages?.filter((p) => p.liveSlug).length ?? 0;
           const awaitingCount = pages?.filter((p) => !p.liveSlug || p.dirty).length ?? 0;
 
           return (
-            <div key={key} className="overview-card">
-              <div className="overview-card-header">
-                <div className="overview-card-title-wrap">
-                  <span className="overview-card-icon" aria-hidden="true">
-                    <Icon size={18} weight="duotone" />
-                  </span>
-                  <h3>{title}</h3>
+            <div key={key} className="cc-hub-card">
+              <div>
+                <div className="cc-hub-card-header">
+                  <div className="cc-hub-card-title-group">
+                    <span className="cc-hub-card-icon" aria-hidden="true">
+                      <Icon size={18} weight="duotone" />
+                    </span>
+                    <h3>{title}</h3>
+                  </div>
+                  {pages ? (
+                    awaitingCount > 0 ? (
+                      <span className="overview-pill overview-pill-pending">
+                        <Clock size={11} aria-hidden="true" />
+                        {awaitingCount} draft
+                      </span>
+                    ) : (
+                      <span className="overview-pill overview-pill-clean">
+                        <CheckCircle size={11} aria-hidden="true" />
+                        Up to date
+                      </span>
+                    )
+                  ) : null}
                 </div>
-                {pages ? (
-                  awaitingCount > 0 ? (
-                    <span className="overview-pill overview-pill-pending">
-                      <Clock size={11} aria-hidden="true" />
-                      {awaitingCount} awaiting
-                    </span>
-                  ) : (
-                    <span className="overview-pill overview-pill-clean">
-                      <CheckCircle size={11} aria-hidden="true" />
-                      Up to date
-                    </span>
-                  )
-                ) : null}
+                <p className="cc-hub-card-desc">{desc}</p>
               </div>
 
-              <div className="overview-card-body">
-                <p className="overview-card-stats">
+              <div className="cc-hub-card-footer">
+                <span className="cc-hub-card-stat">
                   {pages
-                    ? `${publishedCount} published · ${awaitingCount} awaiting publication`
-                    : "Status loading…"}
-                </p>
-              </div>
-
-              <div className="overview-card-footer">
-                <Button
-                  variant="secondary"
-                  size="sm"
+                    ? `${publishedCount} published · ${awaitingCount} pending`
+                    : "Loading status…"}
+                </span>
+                <button
+                  type="button"
                   onClick={() => {
                     onNavigate(key);
                     playSound("select");
                   }}
-                  className="overview-card-action"
+                  className="cc-hub-card-action"
                 >
-                  {manageText}
+                  <span>{manageText}</span>
                   <ArrowRight size={13} aria-hidden="true" />
-                </Button>
+                </button>
               </div>
             </div>
           );
         })}
 
-        <div className="overview-card">
-          <div className="overview-card-header">
-            <div className="overview-card-title-wrap">
-              <span className="overview-card-icon" aria-hidden="true">
-                <Globe size={18} weight="duotone" />
-              </span>
-              <h3>Website</h3>
-            </div>
-            {counts?.website ? (
+        <div className="cc-hub-card">
+          <div>
+            <div className="cc-hub-card-header">
+              <div className="cc-hub-card-title-group">
+                <span className="cc-hub-card-icon" aria-hidden="true">
+                  <Globe size={18} weight="duotone" />
+                </span>
+                <h3>Website & Edge</h3>
+              </div>
               <span className="overview-pill overview-pill-clean">
                 <CheckCircle size={11} aria-hidden="true" />
                 Live
               </span>
-            ) : null}
-          </div>
-
-          <div className="overview-card-body">
-            <p className="overview-card-stats">
-              {counts?.website.receipt
-                ? `Last submitted ${new Date(counts.website.receipt.at).toLocaleDateString()}`
-                : counts
-                  ? "Profile, homepage sections & metadata"
-                  : "Status loading…"}
+            </div>
+            <p className="cc-hub-card-desc">
+              Custom domain, profile metadata, navigation tabs, and SEO search tags.
             </p>
           </div>
 
-          <div className="overview-card-footer">
-            <Button
-              variant="secondary"
-              size="sm"
+          <div className="cc-hub-card-footer">
+            <span className="cc-hub-card-stat">
+              {counts?.website.receipt
+                ? `Published ${new Date(counts.website.receipt.at).toLocaleDateString()}`
+                : "nazarene.dev · SSL Active"}
+            </span>
+            <button
+              type="button"
               onClick={() => {
                 onNavigate("website");
                 playSound("select");
               }}
-              className="overview-card-action"
+              className="cc-hub-card-action"
             >
-              Edit website
+              <span>Website settings</span>
               <ArrowRight size={13} aria-hidden="true" />
-            </Button>
+            </button>
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

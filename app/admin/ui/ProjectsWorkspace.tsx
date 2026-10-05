@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Input } from "@cloudflare/kumo/components/input";
 import { Button } from "@cloudflare/kumo/components/button";
 import { Table } from "@cloudflare/kumo/components/table";
-import { Plus, Briefcase, MagnifyingGlass, Trash } from "@phosphor-icons/react";
+import { Plus, Briefcase, MagnifyingGlass, Trash, ArrowSquareOut } from "@phosphor-icons/react";
 import { api, type Draft, type PostSummary } from "./api";
 import { cleanProject } from "../../../cms/projects";
 import { registerProtection } from "./session";
@@ -14,6 +14,13 @@ import { Tabs, TabsList, TabsTrigger } from "../../components/kit/tabs";
 import { SlidingNumber } from "../../components/kit/inputs/counter";
 import { useShellView } from "./shell-nav";
 import { playSound } from "../../components/ui/sound";
+import {
+  RailCard,
+  RailRow,
+  RailProgressRow,
+  RailStatusDot,
+  RailLinkRow,
+} from "./CloudflareRail";
 
 const FILTERS = [
   ["all", "All"],
@@ -143,12 +150,13 @@ export default function ProjectsWorkspace({
       setError((e as Error).message);
     }
   }
-  const counts = { all: 0, draft: 0, published: 0, trash: 0 };
+  const counts = { all: 0, draft: 0, published: 0, trash: 0, featured: 0 };
   for (const p of pages) {
     if (p.trashedAt) counts.trash++;
     else {
       counts.all++;
       if (p.status === "draft" || p.status === "published") counts[p.status]++;
+      if (p.project?.featured) counts.featured++;
     }
   }
   const filtered = pages
@@ -226,8 +234,10 @@ export default function ProjectsWorkspace({
           </TabsList>
         </Tabs>
       </div>
-      {loading ? (
-        <div className="cc-card cc-list" role="status" aria-label="Loading projects">
+      <div className="cc-layout-two-col">
+        <div className="cc-main-col">
+          {loading ? (
+            <div className="cc-card cc-list" role="status" aria-label="Loading projects">
           <ul className="admin-rows" aria-busy="true">
             {[0, 1, 2].map((i) => (
               <li key={i} className="admin-row admin-row-skeleton kit-skeleton skeleton-shimmer" />
@@ -351,6 +361,54 @@ export default function ProjectsWorkspace({
           </span>
         </div>
       ) : null}
+        </div>
+
+        <div className="cc-rail-col">
+          <RailCard title="Showcase usage">
+            <RailProgressRow
+              label="Featured projects"
+              current={counts.featured}
+              total={counts.all}
+              unit="featured"
+            />
+            <RailRow label="Published projects" value={counts.published} />
+            <RailRow label="Draft case studies" value={counts.draft} />
+            <RailRow label="Total showcase" value={counts.all} />
+          </RailCard>
+
+          <RailCard title="Quick actions">
+            <Button
+              variant="secondary"
+              className="w-full justify-start !h-9 text-xs"
+              onClick={() => void create()}
+            >
+              <Briefcase size={14} className="mr-2" />
+              <span>New case study</span>
+            </Button>
+            <Button
+              variant="secondary"
+              className="w-full justify-start !h-9 text-xs"
+              onClick={() => window.open("/projects", "_blank", "noopener")}
+            >
+              <ArrowSquareOut size={14} className="mr-2" />
+              <span>Live showcase</span>
+            </Button>
+          </RailCard>
+
+          <RailCard
+            title="Portfolio endpoint"
+            action={<RailStatusDot status="active" label="Live" />}
+          >
+            <RailLinkRow
+              label="Showcase URL"
+              href="/projects"
+              value="nazarene.dev/projects"
+            />
+            <RailRow label="Hosting" value="Cloudflare Pages" />
+            <RailRow label="Status" value="Production" />
+          </RailCard>
+        </div>
+      </div>
       {details && (
         <section className="control-panel" aria-label="Project details">
           <h2>{details.title} · Project details</h2>

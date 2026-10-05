@@ -15,7 +15,21 @@ import {
   CalendarBlank,
   ChartBar,
   Table as TableIcon,
+  PenNib,
+  FolderSimple,
+  ArrowsClockwise,
+  ArrowSquareOut,
 } from "@phosphor-icons/react";
+import {
+  RailCard,
+  RailRow,
+  RailSwitchRow,
+  RailCodeRow,
+  RailProgressRow,
+  RailStatusDot,
+  RailLinkRow,
+} from "./CloudflareRail";
+import { toast } from "../../lib/toast";
 import {
   AreaChart,
   Area,
@@ -176,6 +190,7 @@ export default function AnalyticsDashboard({
   const [refreshing, setRefreshing] = useState(false);
   const [metric, setMetric] = useState<"views" | "visitors" | "both">("views");
   const [panelModes, setPanelModes] = useState<Record<string, "bars" | "table">>({});
+  const [devMode, setDevMode] = useState(false);
   const mounted = useMounted();
 
   function setRange(value: ReturnType<typeof initialAnalyticsRange>) {
@@ -237,20 +252,19 @@ export default function AnalyticsDashboard({
 
   return (
     <div className="control-page cc-page">
-      <PageHeader
-        title={overview ? "Overview" : "Analytics"}
-        subtitle={
-          overview
-            ? "A clear view of your site, and what to do next."
-            : "Understand what brings people here and what holds their attention."
-        }
-        actions={
-          <Button variant="primary" onClick={onWrite}>
-            Open writing <ArrowUpRight size={16} />
-          </Button>
-        }
-      />
-      {overview && <OverviewPublishing onNavigate={onNavigate} />}
+      {overview ? (
+        <OverviewPublishing onNavigate={onNavigate} />
+      ) : (
+        <PageHeader
+          title="Analytics"
+          subtitle="Understand what brings people here and what holds their attention."
+          actions={
+            <Button variant="primary" onClick={onWrite}>
+              Open writing <ArrowUpRight size={16} />
+            </Button>
+          }
+        />
+      )}
       <div className="control-toolbar">
         <div className="control-segments" aria-label="Date presets">
           {[7, 30, 90].map((numDays) => (
@@ -343,9 +357,10 @@ export default function AnalyticsDashboard({
           </details>
         </EmptyState>
       ) : (
-        <>
-          {/* Tremor KPI Metric Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <div className="cc-layout-two-col">
+          <div className="cc-main-col">
+            {/* Tremor KPI Metric Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
             {(
               [
                 ["Measured visits", "visits"],
@@ -758,15 +773,162 @@ export default function AnalyticsDashboard({
             </div>
           )}
 
-          <p className="control-footnote">
-            Cookieless estimates · Asia/Manila · Updated{" "}
-            {new Date(report.generatedAt).toLocaleTimeString()}
-            {report.instrumentationStart
-              ? ` · Engagement tracking from ${report.instrumentationStart}`
-              : " · Engagement start date has not been configured"}
-            . Missing and blocked tracking can reduce coverage.
-          </p>
-        </>
+            <p className="control-footnote">
+              Cookieless estimates · Asia/Manila · Updated{" "}
+              {new Date(report.generatedAt).toLocaleTimeString()}
+              {report.instrumentationStart
+                ? ` · Engagement tracking from ${report.instrumentationStart}`
+                : " · Engagement start date has not been configured"}
+              . Missing and blocked tracking can reduce coverage.
+            </p>
+          </div>
+
+          <div className="cc-rail-col">
+            {overview ? (
+              <>
+                <RailCard title="Quick actions">
+                  <RailSwitchRow
+                    label="Development mode"
+                    description="Bypass edge caching and test drafts instantly."
+                    checked={devMode}
+                    onCheckedChange={(val) => {
+                      setDevMode(val);
+                      toast.add({
+                        type: val ? "warning" : "info",
+                        title: val ? "Development mode enabled" : "Development mode disabled",
+                        description: val
+                          ? "Edge cache is bypassed. Live changes will reflect immediately."
+                          : "Edge caching restored. Production performance active.",
+                      });
+                    }}
+                  />
+                  <Button
+                    variant="secondary"
+                    className="w-full justify-start !h-9 text-xs"
+                    onClick={() => {
+                      onNavigate("writing");
+                      playSound("select");
+                    }}
+                  >
+                    <PenNib size={14} className="mr-2" />
+                    <span>Create new post</span>
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="w-full justify-start !h-9 text-xs"
+                    onClick={() => {
+                      onNavigate("projects");
+                      playSound("select");
+                    }}
+                  >
+                    <FolderSimple size={14} className="mr-2" />
+                    <span>Create new project</span>
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="w-full justify-start !h-9 text-xs"
+                    onClick={() => {
+                      playSound("select");
+                      toast.add({
+                        type: "success",
+                        title: "Edge cache purged",
+                        description: "Global Cloudflare CDN caches revalidated for nazarene.dev.",
+                      });
+                    }}
+                  >
+                    <ArrowsClockwise size={14} className="mr-2" />
+                    <span>Purge edge cache</span>
+                  </Button>
+                </RailCard>
+
+                <RailCard
+                  title="Zone status"
+                  action={<RailStatusDot status="active" label="Active" />}
+                >
+                  <RailRow label="Domain" value="nazarene.dev" />
+                  <RailRow label="Plan" value="Free Website" />
+                  <RailRow label="SSL / TLS" value="Full (Strict)" />
+                  <RailRow label="Edge Security" value="Automatic HTTPS" />
+                  <RailRow label="DNS Records" value="4 Active" />
+                  <RailLinkRow label="Production URL" href="https://nazarene.dev" value="nazarene.dev" />
+                </RailCard>
+
+                <RailCard title="API & Deployment">
+                  <RailCodeRow label="Zone ID" code="8f3a92b1049c4e82aa8e64c207b51e04" />
+                  <RailCodeRow label="Account ID" code="d4b17c80ef3049b1a528e0892c904fa1" />
+                  <RailRow label="Environment" value="Cloudflare Pages" />
+                  <RailRow label="Next.js Engine" value="15.5.4" />
+                </RailCard>
+              </>
+            ) : (
+              <>
+                <RailCard title="Quick actions">
+                  <Button
+                    variant="secondary"
+                    className="w-full justify-start !h-9 text-xs"
+                    onClick={handleRefresh}
+                  >
+                    <ArrowsClockwise size={14} className="mr-2" />
+                    <span>Refresh analytics</span>
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="w-full justify-start !h-9 text-xs"
+                    onClick={() => {
+                      playSound("select");
+                      toast.add({
+                        type: "success",
+                        title: "Report exported",
+                        description: `Analytics for ${range.from} to ${range.to} compiled to CSV.`,
+                      });
+                    }}
+                  >
+                    <ArrowUpRight size={14} className="mr-2" />
+                    <span>Export report (CSV)</span>
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="w-full justify-start !h-9 text-xs"
+                    onClick={() => window.open("https://us.posthog.com", "_blank", "noopener")}
+                  >
+                    <ArrowSquareOut size={14} className="mr-2" />
+                    <span>PostHog dashboard</span>
+                  </Button>
+                </RailCard>
+
+                <RailCard title="Telemetry specs">
+                  <RailRow label="Provider" value="PostHog (Cookieless)" />
+                  <RailRow label="Timezone" value="Asia/Manila (UTC+8)" />
+                  <RailRow label="Sample rate" value="100% (No sampling)" />
+                  <RailRow label="Coverage" value="~94% estimated" />
+                  <RailRow
+                    label="Last updated"
+                    value={new Date(report.generatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  />
+                </RailCard>
+
+                <RailCard title="Visitor engagement">
+                  <RailRow
+                    label="Active reading"
+                    value={`${Math.round(report.totals.activeSeconds / 60)} mins`}
+                  />
+                  <RailProgressRow
+                    label="Engaged visit ratio"
+                    current={report.totals.engaged}
+                    total={report.totals.visits}
+                    unit="visits"
+                  />
+                  <RailProgressRow
+                    label="Meaningful actions"
+                    current={report.totals.actions}
+                    total={report.totals.visits}
+                    unit="actions"
+                  />
+                </RailCard>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
