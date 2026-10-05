@@ -1709,3 +1709,237 @@ html:not(.has-smooth-cursor) .editor-body a[href], html:not(.has-smooth-cursor) 
 [data-theme="dark"] .tag-page-fields [role=alert] {
   color: var(--red);
 }
+
+/* ── GitHub Paste Choice Dialog ──────────────────────────────────────── */
+.github-prompt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  animation: github-overlay-in 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@keyframes github-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.github-prompt-dialog {
+  width: 100%;
+  max-width: 440px;
+  background: var(--a-surface, #ffffff);
+  border: 1px solid var(--a-border, rgba(0, 0, 0, 0.1));
+  border-radius: 16px;
+  padding: 22px 20px 18px;
+  box-shadow: 0 20px 48px -12px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.08);
+  position: relative;
+  animation: github-dialog-in 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  font-family: inherit;
+  color: var(--a-ink, #111);
+}
+
+[data-theme="dark"] .github-prompt-dialog {
+  background: #18181b;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.7);
+}
+
+@keyframes github-dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.github-prompt-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--a-ink-faint, #777);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.github-prompt-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--a-ink, #000);
+}
+
+[data-theme="dark"] .github-prompt-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.github-prompt-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.github-prompt-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--a-ink, #111);
+  color: var(--a-surface, #fff);
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .github-prompt-badge {
+  background: #fff;
+  color: #111;
+}
+
+.github-prompt-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.github-prompt-url {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--a-ink-faint, #666);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+.github-prompt-question {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  color: var(--a-ink-subtle, #444);
+}
+
+.github-prompt-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 440px) {
+  .github-prompt-choices {
+    grid-template-columns: 1fr;
+  }
+}
+
+.github-prompt-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 14px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--a-border, rgba(0, 0, 0, 0.1));
+  background: var(--a-surface, #fff);
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease, transform 100ms ease;
+  font-family: inherit;
+  color: inherit;
+}
+
+[data-theme="dark"] .github-prompt-choice {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.github-prompt-choice:hover,
+.github-prompt-choice.is-selected {
+  border-color: var(--a-ink, #000);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .github-prompt-choice:hover,
+[data-theme="dark"] .github-prompt-choice.is-selected {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.github-prompt-choice.is-primary {
+  border-color: rgba(0, 0, 0, 0.18);
+}
+
+[data-theme="dark"] .github-prompt-choice.is-primary {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.github-prompt-choice:active {
+  transform: scale(0.97);
+}
+
+.github-prompt-choice-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.github-prompt-choice-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--a-ink, #222);
+}
+
+[data-theme="dark"] .github-prompt-choice-icon {
+  background: rgba(255, 255, 255, 0.08);
+  color: #eee;
+}
+
+.github-prompt-choice-icon.is-primary-icon {
+  background: var(--a-ink, #111);
+  color: #fff;
+}
+
+[data-theme="dark"] .github-prompt-choice-icon.is-primary-icon {
+  background: #fff;
+  color: #111;
+}
+
+.github-prompt-choice-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 3px;
+  line-height: 1.25;
+}
+
+.github-prompt-choice-hint {
+  font-size: 11.5px;
+  color: var(--a-ink-faint, #666);
+  line-height: 1.35;
+}
+
+.github-prompt-foot {
+  margin-top: 14px;
+  font-size: 11.5px;
+  color: var(--a-ink-faint, #777);
+  text-align: center;
+}
+

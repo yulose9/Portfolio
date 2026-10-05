@@ -28,7 +28,7 @@ export const SLASH_ORDER: Record<SlashGroup, string[]> = {
     "toggleH3",
     "page-link",
   ],
-  Media: ["image", "voice", "embed"],
+  Media: ["image", "voice", "embed", "github"],
   Advanced: ["table", "data-table", "code", "code-tabs", "chart", "poll", "citation", "heading-icon"],
   Inline: ["mention", "date", "emoji", "inline-logo"],
 };

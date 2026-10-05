@@ -7,12 +7,14 @@ import { Tweet, TweetSkeleton } from "react-tweet";
 
 import { parseEmbed, youtubeFrame, type FacebookEmbed, type InstagramEmbed, type ThreadsEmbed, type XEmbed } from "../../../../cms/embeds";
 import SocialEmbed, { type SocialMeta } from "../../../components/writing/SocialEmbed";
+import GithubEmbedCard from "../../../components/writing/GithubEmbed";
 import { EmbedBase } from "./blocks";
 
 /*
  * The embed, in the editor. A post on X is drawn by react-tweet's client component
  * directly, with a fallback link card on error or not found; Threads, Instagram, and
- * Facebook get the site's own responsive embed cards, and YouTube its player.
+ * Facebook get the site's own responsive embed cards, GitHub gets dynamic repo cards,
+ * and YouTube its player.
  */
 
 /** Threads, Instagram, and Facebook preview card. */
@@ -118,6 +120,10 @@ function View({ node, updateAttributes, deleteNode, selected }: ReactNodeViewPro
             <div className="embed embed-social">
               <SocialPreview embed={embed} />
             </div>
+          ) : embed.kind === "github" ? (
+            <div className="embed embed-github">
+              <GithubEmbedCard embed={embed} inEditor={true} />
+            </div>
           ) : (
             <div className="embed embed-youtube">
               <iframe
@@ -139,7 +145,7 @@ function View({ node, updateAttributes, deleteNode, selected }: ReactNodeViewPro
           onSubmit={(e) => {
             e.preventDefault();
             if (!parseEmbed(draft)) {
-              setError("Paste a link to a post on X, Threads, Instagram, or Facebook, or a YouTube video.");
+              setError("Paste a link to a GitHub repo/issue, post on X, Threads, Instagram, Facebook, or YouTube.");
               return;
             }
             updateAttributes({ url: draft.trim() });
@@ -159,7 +165,7 @@ function View({ node, updateAttributes, deleteNode, selected }: ReactNodeViewPro
                 deleteNode();
               }
             }}
-            placeholder="Paste a link to a post on X, Threads, Instagram, or Facebook, or a YouTube video"
+            placeholder="Paste a link to a GitHub repository or issue, post on X, Threads, Instagram, Facebook, or YouTube"
             aria-label="Embed link"
           />
           <button type="submit" className="admin-button admin-button-primary">

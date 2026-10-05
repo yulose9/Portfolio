@@ -309,7 +309,8 @@ export const EmbedBase = Node.create({
         props: {
           handlePaste: (view, event) => {
             const text = event.clipboardData?.getData("text/plain")?.trim() ?? "";
-            if (!text || /\s/.test(text) || !parseEmbed(text)) return false;
+            const embed = text && !/\s/.test(text) ? parseEmbed(text) : null;
+            if (!embed || embed.kind === "github") return false;
             const { $from, empty } = view.state.selection;
             if (!empty || $from.parent.type.name !== "paragraph" || $from.parent.textContent) return false;
             const pos = $from.before();

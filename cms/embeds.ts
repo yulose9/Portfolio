@@ -7,6 +7,42 @@
 
 export type FacebookFormat = "post" | "video" | "reel";
 export type InstagramFormat = "reel" | "post";
+export type GithubFormat = "repo" | "issue" | "pull" | "discussion";
+
+export type GithubEmbed = {
+  kind: "github";
+  format: GithubFormat;
+  owner: string;
+  repo: string;
+  number?: string;
+  url: string;
+};
+
+export type GithubData = {
+  type: "repo" | "issue" | "pull" | "discussion";
+  owner: string;
+  repo: string;
+  name: string;
+  fullName: string;
+  description: string;
+  ownerAvatar: string;
+  stars?: number;
+  forks?: number;
+  issues?: number;
+  contributors?: number;
+  language?: string;
+  languageColor?: string;
+  license?: string;
+  // Issue / PR details
+  number?: number;
+  title?: string;
+  state?: "open" | "closed" | "merged" | "answered";
+  author?: string;
+  authorAvatar?: string;
+  comments?: number;
+  createdAt?: string;
+  url: string;
+};
 
 export type Embed =
   | { kind: "x"; id: string; url: string }
@@ -15,7 +51,8 @@ export type Embed =
   /** `page` is the page or profile name when the link carries one. */
   | { kind: "facebook"; format: FacebookFormat; page?: string; url: string }
   | { kind: "instagram"; format: InstagramFormat; id: string; url: string }
-  | { kind: "youtube"; id: string; url: string };
+  | { kind: "youtube"; id: string; url: string }
+  | GithubEmbed;
 
 export type ThreadsEmbed = Extract<Embed, { kind: "threads" }>;
 export type FacebookEmbed = Extract<Embed, { kind: "facebook" }>;
@@ -90,6 +127,38 @@ function parseFacebook(host: string, url: URL, parts: string[]): FacebookEmbed |
   return null;
 }
 
+const GITHUB_NAME = /^[\w.-]{1,100}$/;
+const GITHUB_RESERVED = new Set([
+  "settings", "pricing", "features", "explore", "trending", "marketplace",
+  "login", "signup", "organizations", "about", "contact", "security", "pulse",
+  "notifications", "search", "new", "stars", "topics", "collections", "site",
+]);
+
+function parseGithub(host: string, parts: string[]): GithubEmbed | null {
+  if (host !== "github.com") return null;
+  const [owner, repo, type, number] = parts;
+  if (!owner || !repo) return null;
+  if (GITHUB_RESERVED.has(owner.toLowerCase())) return null;
+  if (!GITHUB_NAME.test(owner) || !GITHUB_NAME.test(repo)) return null;
+
+  const cleanRepo = repo.replace(/\.git$/, "");
+  const base = `https://github.com/${owner}/${cleanRepo}`;
+
+  if (!type) {
+    return { kind: "github", format: "repo", owner, repo: cleanRepo, url: base };
+  }
+  if (type === "issues" && number && /^\d+$/.test(number)) {
+    return { kind: "github", format: "issue", owner, repo: cleanRepo, number, url: `${base}/issues/${number}` };
+  }
+  if ((type === "pull" || type === "pulls") && number && /^\d+$/.test(number)) {
+    return { kind: "github", format: "pull", owner, repo: cleanRepo, number, url: `${base}/pull/${number}` };
+  }
+  if (type === "discussions" && number && /^\d+$/.test(number)) {
+    return { kind: "github", format: "discussion", owner, repo: cleanRepo, number, url: `${base}/discussions/${number}` };
+  }
+  return null;
+}
+
 export function parseEmbed(raw: string): Embed | null {
   let url: URL;
   try {
@@ -135,6 +204,8 @@ export function parseEmbed(raw: string): Embed | null {
   }
   const facebook = parseFacebook(host, url, parts);
   if (facebook) return facebook;
+  const github = parseGithub(host, parts);
+  if (github) return github;
   if (host === "youtube.com" || host === "youtu.be" || host === "youtube-nocookie.com") {
     const id =
       host === "youtu.be"
@@ -147,6 +218,11 @@ export function parseEmbed(raw: string): Embed | null {
     if (id && /^[\w-]{11}$/.test(id)) return { kind: "youtube", id, url: `https://www.youtube.com/watch?v=${id}` };
   }
   return null;
+}
+
+export function isGithubUrl(raw: string): boolean {
+  const embed = parseEmbed(raw);
+  return embed?.kind === "github";
 }
 
 /**

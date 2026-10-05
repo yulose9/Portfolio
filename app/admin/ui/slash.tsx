@@ -16,7 +16,7 @@ import {
   useState,
 } from "react";
 
-import { At, CalendarBlank, ChartBar, ChartBarHorizontal, FileText, Quotes, Table, Tabs } from "@phosphor-icons/react";
+import { At, CalendarBlank, ChartBar, ChartBarHorizontal, FileText, GithubLogo, Quotes, Table, Tabs } from "@phosphor-icons/react";
 
 import { DEFAULT_CHART_CSV, newPollId } from "../../../cms/blocks";
 import { BLOCKS, inserts, turnInto, type BlockKind } from "./commands";
@@ -113,6 +113,11 @@ const typeTrigger = (trigger: string) => (e: Editor, r: Range) => {
 /* The newer blocks (extensions/blocks-schema.ts and their views). */
 const EI = { size: 15 } as const;
 const EXTRA_ITEMS: SlashItem[] = [
+  {
+    id: "github", group: slashGroupOf("github"), title: "GitHub embed", hint: "Repository or issue card with live stats",
+    keywords: ["github", "repo", "repository", "git", "stars", "forks", "embed", "code"], icon: <GithubLogo {...EI} />,
+    run: (e, r) => { fresh(e, r); e.chain().focus().setEmbed("").run(); },
+  },
   {
     id: "code-tabs", group: slashGroupOf("code-tabs"), title: "Code tabs", hint: "npm / pnpm / yarn, or several files",
     keywords: ["code", "tabs", "install", "npm", "pnpm", "yarn", "bun", "files", "snippet"], icon: <Tabs {...EI} />,

@@ -14,6 +14,7 @@ import Citation from "./Citation";
 import DataTable, { type DataTableCell, type DataTableProps } from "./DataTable";
 import { MentionSpan } from "./DateMention";
 import SocialEmbed from "./SocialEmbed";
+import GithubEmbedCard from "./GithubEmbed";
 import VideoPlayer from "./VideoPlayer";
 import { Glimpse, type GlimpseData } from "../kit/inputs/glimpse";
 
@@ -58,6 +59,13 @@ function EmbedBlock(props: Record<string, unknown>) {
     return (
       <div className="embed embed-social">
         <SocialEmbed embed={embed} />
+      </div>
+    );
+  }
+  if (embed.kind === "github") {
+    return (
+      <div className="embed embed-github">
+        <GithubEmbedCard embed={embed} />
       </div>
     );
   }

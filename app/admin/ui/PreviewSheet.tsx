@@ -19,6 +19,7 @@ import Byline from "../../components/writing/Byline";
 import FluentText from "../../components/writing/FluentText";
 import ShareRow from "../../components/writing/ShareRow";
 import SocialEmbed from "../../components/writing/SocialEmbed";
+import GithubEmbedCard from "../../components/writing/GithubEmbed";
 import Tag from "../../components/writing/Tag";
 import Toc from "../../components/writing/Toc";
 import { api, type Draft } from "./api";
@@ -116,10 +117,16 @@ function EmbedPreview(props: Record<string, unknown>) {
         <iframe src={youtubeFrame(embed)} title="YouTube video" loading="lazy" referrerPolicy="strict-origin-when-cross-origin" />
       </div>
     );
-  if (embed.kind === "threads" || embed.kind === "facebook")
+  if (embed.kind === "threads" || embed.kind === "facebook" || embed.kind === "instagram")
     return (
       <div className="embed embed-social">
         <SocialEmbed embed={embed} />
+      </div>
+    );
+  if (embed.kind === "github")
+    return (
+      <div className="embed embed-github">
+        <GithubEmbedCard embed={embed} />
       </div>
     );
   return (

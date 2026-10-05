@@ -280,7 +280,7 @@ function rehypeEditorial(options: { resolvePage?: PageResolver } = {}) {
           if (link?.type === "element" && link.tagName === "a") {
             const href = String(link.properties?.href ?? "");
             const embed = parseEmbed(href);
-            if (embed && textOf(link).trim() === href) {
+            if (embed && textOf(link).trim() === href && !link.properties?.dataPlain) {
               kids[i] = el("x-embed", { dataEmbed: JSON.stringify(embed) }, []);
               continue;
             }

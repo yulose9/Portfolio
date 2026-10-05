@@ -91,6 +91,8 @@ import { announceSave, usePulse, type Pulse } from "./live";
 import { keys, MenuSurface, MItem, MLabel } from "./menu";
 import { Outline } from "./Outline";
 import { Embed } from "./extensions/EmbedView";
+import GithubPastePrompt, { type GithubPasteChoice } from "./GithubPastePrompt";
+import { isGithubUrl, parseEmbed } from "../../../cms/embeds";
 import { MediaPlus as Media } from "./extensions/media-plus";
 import { CalloutIconPicker, CalloutWithPicker as Callout } from "./extensions/callout-view";
 import { CoverActions, CoverPicker, EditorBanner } from "./CoverEditor";
@@ -396,6 +398,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
   const [recording, setRecording] = useState(false);
   useEffect(() => { if (recording) return beginPendingWork(); }, [recording]);
   const plainPaste = useRef(false);
+  const [pendingGithub, setPendingGithub] = useState<GithubPasteChoice | null>(null);
   const [modes, setModes] = useState<Modes>(readModes);
   const [deploy, setDeploy] = useState<Deploy | null>(() => recallDeploy(initial.id));
   const toggleMode = useCallback((mode: keyof Modes) => {
@@ -565,6 +568,20 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
           e.chain().focus().insertContent(proseToParagraphs(text).map((p) => ({ type: "paragraph", content: [{ type: "text", text: p }] }))).run();
           return true;
         }
+        // GitHub link: prompt the user to choose between standard link text or component embed
+        const trimmed = text.trim();
+        if (isGithubUrl(trimmed)) {
+          const parsed = parseEmbed(trimmed);
+          if (parsed && parsed.kind === "github") {
+            setPendingGithub({
+              url: trimmed,
+              owner: parsed.owner,
+              repo: parsed.repo,
+              format: parsed.format,
+            });
+            return true;
+          }
+        }
         // Markdown source, bare or wrapped in <p>s: parse it as Markdown.
         if ((!html || htmlIsWrappedMarkdown(html, text)) && looksLikeMarkdown(text)) {
           e.chain().focus().insertContent(text, { contentType: "markdown" } as never).run();
@@ -627,6 +644,43 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
       setFind({ query: query ?? (selected.length < 80 ? selected : ""), index: 0, replace });
     };
   }, [editor]);
+
+  const handleChooseGithubLink = useCallback(() => {
+    if (!pendingGithub || !editor) return;
+    const url = pendingGithub.url;
+    setPendingGithub(null);
+    editor
+      .chain()
+      .focus()
+      .insertContent([
+        {
+          type: "text",
+          marks: [{ type: "link", attrs: { href: url, "data-plain": "true" } }],
+          text: url,
+        },
+        { type: "text", text: " " },
+      ])
+      .run();
+  }, [pendingGithub, editor]);
+
+  const handleChooseGithubEmbed = useCallback(() => {
+    if (!pendingGithub || !editor) return;
+    const url = pendingGithub.url;
+    setPendingGithub(null);
+    const { $from, empty } = editor.state.selection;
+    if (empty && $from.parent.type.name === "paragraph" && !$from.parent.textContent) {
+      const pos = $from.before();
+      editor.view.dispatch(
+        editor.state.tr.replaceWith(
+          pos,
+          pos + $from.parent.nodeSize,
+          editor.schema.nodes.embed.create({ url })
+        )
+      );
+    } else {
+      editor.chain().focus().setEmbed(url).run();
+    }
+  }, [pendingGithub, editor]);
 
   useEffect(() => {
     OPEN_POST.id = initial.id;
@@ -1571,6 +1625,14 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
         }}
         onPageChange={(page) => setMeta((m) => ({ ...m, page }))}
       />
+      {pendingGithub ? (
+        <GithubPastePrompt
+          pending={pendingGithub}
+          onChooseLink={handleChooseGithubLink}
+          onChooseEmbed={handleChooseGithubEmbed}
+          onCancel={handleChooseGithubLink}
+        />
+      ) : null}
     </div>
   );
 }
