@@ -1,7 +1,8 @@
 "use client";
 
 import type { Editor } from "@tiptap/core";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 
 import { advanceStable, makeSpring, POINTER_SPRING } from "../../lib/spring";
 
@@ -13,8 +14,7 @@ import { advanceStable, makeSpring, POINTER_SPRING } from "../../lib/spring";
  * another paragraph. This draws the caret itself and moves it on the same
  * critically damped spring as the custom pointer (POINTER_SPRING, ~28ms
  * behind, never overshooting), so it travels to where you are and you can
- * follow it. While it moves it's solid and stretches a little along its path;
- * once it settles it blinks, like a caret should.
+ * follow it. While it moves it's solid; once it settles it blinks, like a caret should.
  *
  * It covers the body (ProseMirror) and the title and standfirst (textareas,
  * measured with a mirror element). Pointer devices only: on a phone the
@@ -50,7 +50,7 @@ const MIRRORED = [
   "textWrap",
 ] as const;
 
-/** Where the caret sits in a textarea, in page coordinates, via an invisible copy of it. */
+/** Where the caret sits in a textarea, in viewport coordinates, via an invisible copy of it. */
 function textareaCaret(el: HTMLTextAreaElement): Target {
   if (el.selectionStart !== el.selectionEnd) return null;
   const cs = getComputedStyle(el);
@@ -69,13 +69,13 @@ function textareaCaret(el: HTMLTextAreaElement): Target {
   const pos = el.selectionStart;
   mirror.textContent = el.value.slice(0, pos);
   const marker = document.createElement("span");
-  marker.textContent = el.value.slice(pos) || "​";
+  marker.textContent = el.value.slice(pos) || "\u200b";
   mirror.appendChild(marker);
   document.body.appendChild(mirror);
   const rect = el.getBoundingClientRect();
   const lineHeight = Number.parseFloat(cs.lineHeight) || Number.parseFloat(cs.fontSize) * 1.2;
-  const x = rect.left + window.scrollX + marker.offsetLeft;
-  const y = rect.top + window.scrollY + marker.offsetTop - el.scrollTop;
+  const x = rect.left + marker.offsetLeft - el.scrollLeft;
+  const y = rect.top + marker.offsetTop - el.scrollTop;
   mirror.remove();
   // The glyph box is shorter than the line; sit the caret on the text, not the leading.
   const fontSize = Number.parseFloat(cs.fontSize);
@@ -90,16 +90,23 @@ function editorCaret(editor: Editor): Target {
     const c = editor.view.coordsAtPos(selection.head);
     const h = c.bottom - c.top;
     if (!h) return null;
-    return { x: c.left + window.scrollX, y: c.top + window.scrollY, h };
+    return { x: c.left, y: c.top, h };
   } catch {
     return null;
   }
 }
 
+const emptySubscribe = () => () => {};
+function useIsClient() {
+  return useSyncExternalStore(emptySubscribe, () => true, () => false);
+}
+
 export default function SmoothCaret({ editor }: { editor: Editor }) {
   const el = useRef<HTMLDivElement>(null);
+  const isClient = useIsClient();
 
   useEffect(() => {
+    if (!isClient) return;
     const caret = el.current;
     const fine = window.matchMedia("(any-hover: hover) and (any-pointer: fine)").matches;
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -127,17 +134,27 @@ export default function SmoothCaret({ editor }: { editor: Editor }) {
       const dt = Math.min(0.05, (now - last) / 1000 || 1 / 60);
       last = now;
       if (!target) return;
-      advanceStable(x, target.x, dt, POINTER_SPRING.stiffness, POINTER_SPRING.damping);
-      advanceStable(y, target.y, dt, POINTER_SPRING.stiffness, POINTER_SPRING.damping);
-      advanceStable(h, target.h, dt, POINTER_SPRING.stiffness, POINTER_SPRING.damping);
-      // Stretch along the direction of travel, a little, like a brush stroke.
-      const speed = Math.abs(x.velocity);
-      const stretch = Math.min(4, 1 + speed / 900);
-      const origin = x.velocity > 0 ? "100%" : "0%";
-      caret.style.transform = `translate3d(${x.value}px, ${y.value}px, 0) scaleX(${stretch.toFixed(3)})`;
-      caret.style.transformOrigin = `${origin} 50%`;
+
+      const dx = Math.abs(x.value - target.x);
+      const dy = Math.abs(y.value - target.y);
+
+      // Typing small delta on the same line: snap immediately so typing has 0ms lag
+      if (dx < 45 && dy < 6) {
+        x.value = target.x;
+        y.value = target.y;
+        h.value = target.h;
+        x.velocity = 0;
+        y.velocity = 0;
+        h.velocity = 0;
+      } else {
+        advanceStable(x, target.x, dt, POINTER_SPRING.stiffness, POINTER_SPRING.damping);
+        advanceStable(y, target.y, dt, POINTER_SPRING.stiffness, POINTER_SPRING.damping);
+        advanceStable(h, target.h, dt, POINTER_SPRING.stiffness, POINTER_SPRING.damping);
+      }
+
+      caret.style.transform = `translate3d(${x.value}px, ${y.value}px, 0)`;
       caret.style.height = `${h.value}px`;
-      const moving = Math.abs(x.value - target.x) > 0.3 || Math.abs(y.value - target.y) > 0.3 || speed > 5;
+      const moving = Math.abs(x.value - target.x) > 0.3 || Math.abs(y.value - target.y) > 0.3;
       if (moving) {
         settledAt = now;
         caret.removeAttribute("data-blink");
@@ -185,6 +202,7 @@ export default function SmoothCaret({ editor }: { editor: Editor }) {
     editor.on("blur", soon);
     document.addEventListener("selectionchange", soon);
     window.addEventListener("resize", soon);
+    window.addEventListener("scroll", soon, { passive: true });
     document.fonts?.addEventListener?.("loadingdone", soon);
     return () => {
       root?.removeAttribute("data-smooth-caret");
@@ -195,9 +213,11 @@ export default function SmoothCaret({ editor }: { editor: Editor }) {
       editor.off("blur", soon);
       document.removeEventListener("selectionchange", soon);
       window.removeEventListener("resize", soon);
+      window.removeEventListener("scroll", soon);
       document.fonts?.removeEventListener?.("loadingdone", soon);
     };
-  }, [editor]);
+  }, [editor, isClient]);
 
-  return <div ref={el} className="smooth-caret" aria-hidden="true" />;
+  if (!isClient || typeof document === "undefined") return null;
+  return createPortal(<div ref={el} className="smooth-caret" aria-hidden="true" />, document.body);
 }

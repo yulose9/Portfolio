@@ -643,6 +643,7 @@ kbd.admin-kbd {
   background: transparent;
   font-family: inherit;
   color: inherit;
+  caret-color: var(--a-ink);
 }
 /* Placeholders at 3.4:1: visibly a hint, still legible. */
 .editor-field::placeholder {

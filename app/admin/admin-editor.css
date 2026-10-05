@@ -82,6 +82,11 @@
   }
 }
 
+textarea.article-title,
+textarea.article-dek {
+  text-wrap: normal !important;
+}
+
 /* The subtitle, and the ghost button that hides it. The button hangs in the
    right gutter on wide screens, so the field keeps the column's full width. */
 .editor-dek {

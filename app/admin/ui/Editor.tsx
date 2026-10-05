@@ -215,7 +215,7 @@ function useAutosize(value: string, mounted = true) {
     const el = ref.current;
     if (!el) return;
     const fit = () => {
-      el.style.height = "0px";
+      el.style.height = "auto";
       el.style.height = `${el.scrollHeight}px`;
     };
     fit();
@@ -299,11 +299,22 @@ const OPEN_POST = { id: "" };
  *  - spellcheck: the browser's squiggles.
  */
 type Modes = { focus: boolean; typewriter: boolean; outline: boolean; smoothCaret: boolean; spellcheck: boolean };
-const MODES_KEY = "admin-writing-modes";
-const DEFAULT_MODES: Modes = { focus: false, typewriter: false, outline: true, smoothCaret: true, spellcheck: true };
+const MODES_KEY = "admin-writing-modes-v2";
+const DEFAULT_MODES: Modes = { focus: false, typewriter: false, outline: true, smoothCaret: false, spellcheck: true };
 function readModes(): Modes {
   try {
-    return { ...DEFAULT_MODES, ...(JSON.parse(localStorage.getItem(MODES_KEY) ?? "{}") as Partial<Modes>) };
+    const raw = localStorage.getItem(MODES_KEY);
+    if (!raw) {
+      const oldRaw = localStorage.getItem("admin-writing-modes");
+      if (oldRaw) {
+        const parsed = JSON.parse(oldRaw) as Partial<Modes>;
+        const migrated: Modes = { ...DEFAULT_MODES, ...parsed, smoothCaret: false };
+        localStorage.setItem(MODES_KEY, JSON.stringify(migrated));
+        return migrated;
+      }
+      return DEFAULT_MODES;
+    }
+    return { ...DEFAULT_MODES, ...(JSON.parse(raw) as Partial<Modes>) };
   } catch {
     return DEFAULT_MODES;
   }

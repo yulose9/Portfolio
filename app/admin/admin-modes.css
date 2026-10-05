@@ -6,15 +6,15 @@
   caret-color: transparent;
 }
 .smooth-caret {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
-  z-index: 15;
-  /* A hairline, like the native caret: 2px read as bold next to body text. */
-  width: 1px;
+  z-index: 99999;
+  /* A hairline, like the native caret: 1.5px sits cleanly on text */
+  width: 1.5px;
   height: 20px;
-  margin-left: -0.5px;
-  border-radius: 0.5px;
+  margin-left: -0.75px;
+  border-radius: 1px;
   background: var(--a-ink);
   pointer-events: none;
   opacity: 0;
