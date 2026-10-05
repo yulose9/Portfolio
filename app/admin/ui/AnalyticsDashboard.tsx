@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useSyncExternalStore } from "react";
+
+const emptySubscribe = () => () => {};
+function useMounted() {
+  return useSyncExternalStore(emptySubscribe, () => true, () => false);
+}
 import { Table } from "@cloudflare/kumo/components/table";
 import { Button } from "@cloudflare/kumo/components/button";
 import {
@@ -171,11 +176,7 @@ export default function AnalyticsDashboard({
   const [refreshing, setRefreshing] = useState(false);
   const [metric, setMetric] = useState<"views" | "visitors" | "both">("views");
   const [panelModes, setPanelModes] = useState<Record<string, "bars" | "table">>({});
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useMounted();
 
   function setRange(value: ReturnType<typeof initialAnalyticsRange>) {
     setLoading(true);
@@ -217,7 +218,7 @@ export default function AnalyticsDashboard({
     return () => controller.abort();
   }, [range, refresh]);
 
-  const days = report?.days ?? [];
+  const days = useMemo(() => report?.days ?? [], [report?.days]);
   const totalViews = useMemo(() => days.reduce((acc, d) => acc + d.views, 0), [days]);
   const totalVisitors = useMemo(() => days.reduce((acc, d) => acc + d.visitors, 0), [days]);
   const peakDay = useMemo(() => {
@@ -388,7 +389,6 @@ export default function AnalyticsDashboard({
                     type="button"
                     role="radio"
                     aria-checked={metric === value}
-                    aria-pressed={metric === value}
                     onClick={() => {
                       setMetric(value);
                       playSound("select");

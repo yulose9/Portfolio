@@ -68,7 +68,8 @@ const TOOLS: Tool[] = [
       const section = String(input.section);
       if (!(SECTIONS as readonly string[]).includes(section)) throw new Error(`Pick one of: ${SECTIONS.join(", ")}.`);
       if (window.location.pathname === "/") window.location.hash = section;
-      else window.location.assign(`/#${section}`);
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      else window.location.href = `/#${section}`;
       return `Showing ${section}.`;
     },
   },

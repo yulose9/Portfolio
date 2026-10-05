@@ -1,11 +1,8 @@
 declare global {
   interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    beacon: (opts: any) => void;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    gtag: (...args: any[]) => void;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    clarity: (...args: any[]) => void;
+    beacon: (opts: unknown) => void;
+    gtag: (...args: unknown[]) => void;
+    clarity: (...args: unknown[]) => void;
   }
 }
 
