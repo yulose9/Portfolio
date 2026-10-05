@@ -183,6 +183,34 @@ html[data-theme="dark"] .admin-body {
   margin: 24px 0 12px;
   overflow: visible;
 }
+.control-chart-wrapper {
+  margin: 20px 0 16px;
+  width: 100%;
+  min-height: 250px;
+}
+.control-chart-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 14px 0;
+  padding: 10px 14px;
+  background: var(--control-tint);
+  border: 1px solid var(--control-line);
+  border-radius: 9px;
+  font-size: 12px;
+  color: var(--control-muted);
+}
+.control-chart-summary-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.control-chart-summary strong {
+  color: var(--control-ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
 .control-chart-line {
   stroke: var(--control-accent);
   stroke-width: 2;
@@ -197,9 +225,12 @@ html[data-theme="dark"] .admin-body {
 .control-chart-data {
   font-size: 12px;
   color: var(--control-muted);
+  margin-top: 14px;
 }
 .control-chart-data summary {
   cursor: pointer;
+  padding: 4px 0;
+  user-select: none;
 }
 .control-report-grid {
   display: grid;

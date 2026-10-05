@@ -1,10 +1,36 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useEffect, useState, useMemo } from "react";
 import { Table } from "@cloudflare/kumo/components/table";
 import { Button } from "@cloudflare/kumo/components/button";
-import { ArrowClockwise, ArrowUpRight, ChartLine, CalendarBlank } from "@phosphor-icons/react";
+import {
+  ArrowClockwise,
+  ArrowUpRight,
+  ChartLine,
+  CalendarBlank,
+  ChartBar,
+  Table as TableIcon,
+} from "@phosphor-icons/react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
 import { Popover } from "@base-ui/react/popover";
 import { Calendar } from "../../components/kit/inputs/calendar";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "../../components/kit/chart";
+import {
+  BarList,
+  CategoryBar,
+  TremorMetricCard,
+} from "../../components/kit/tremor";
 import AdminSelect from "./AdminSelect";
 import { playSound } from "../../components/ui/sound";
 import { cn } from "../../lib/cn";
@@ -22,11 +48,53 @@ const number = (value: number) =>
   new Intl.NumberFormat("en", {
     notation: value >= 10000 ? "compact" : "standard",
   }).format(value);
+
 function comparison(now: number, previous: number) {
   if (!previous) return now ? "No previous baseline" : "No change";
   const percent = Math.round(((now - previous) / previous) * 100);
   return `${percent > 0 ? "+" : ""}${percent}% vs previous period`;
 }
+
+function formatAxisDate(dayStr: string) {
+  try {
+    const d = new Date(dayStr + "T00:00:00");
+    return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(d);
+  } catch {
+    return dayStr;
+  }
+}
+
+function formatTooltipDate(dayStr: string) {
+  try {
+    const d = new Date(dayStr + "T00:00:00");
+    return new Intl.DateTimeFormat("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(d);
+  } catch {
+    return dayStr;
+  }
+}
+
+const chartConfig: ChartConfig = {
+  views: {
+    label: "Page views",
+    color: "var(--control-accent, #2456d9)",
+  },
+  visitors: {
+    label: "Unique visitors",
+    color: "#10b981",
+  },
+};
+
+const DEVICE_COLORS: Record<string, string> = {
+  Desktop: "var(--control-accent, #2456d9)",
+  Mobile: "#10b981",
+  Tablet: "#8b5cf6",
+};
+
 function DatePickerPopover({
   label,
   value,
@@ -101,6 +169,13 @@ export default function AnalyticsDashboard({
   const [loading, setLoading] = useState(true);
   const [refresh, updateRefresh] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [metric, setMetric] = useState<"views" | "visitors" | "both">("views");
+  const [panelModes, setPanelModes] = useState<Record<string, "bars" | "table">>({});
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   function setRange(value: ReturnType<typeof initialAnalyticsRange>) {
     setLoading(true);
@@ -118,7 +193,15 @@ export default function AnalyticsDashboard({
     setRefresh((v) => v + 1);
     setTimeout(() => setRefreshing(false), 700);
   };
-  const [metric, setMetric] = useState<"views" | "visitors">("views");
+
+  const togglePanelMode = (kind: string) => {
+    setPanelModes((prev) => ({
+      ...prev,
+      [kind]: prev[kind] === "table" ? "bars" : "table",
+    }));
+    playSound("tap");
+  };
+
   useEffect(() => {
     const controller = new AbortController();
     void call<AnalyticsReport>(`/analytics?${new URLSearchParams(range)}`, {
@@ -133,14 +216,24 @@ export default function AnalyticsDashboard({
       });
     return () => controller.abort();
   }, [range, refresh]);
+
   const days = report?.days ?? [];
-  const max = Math.max(1, ...days.map((day) => day[metric]));
-  const path = days
-    .map(
-      (day, i) =>
-        `${i ? "L" : "M"}${((i / Math.max(1, days.length - 1)) * 960).toFixed(2)},${(160 - (day[metric] / max) * 144).toFixed(2)}`,
-    )
-    .join(" ");
+  const totalViews = useMemo(() => days.reduce((acc, d) => acc + d.views, 0), [days]);
+  const totalVisitors = useMemo(() => days.reduce((acc, d) => acc + d.visitors, 0), [days]);
+  const peakDay = useMemo(() => {
+    if (!days.length) return null;
+    return days.reduce((max, d) => {
+      const curVal = metric === "visitors" ? d.visitors : d.views;
+      const maxVal = metric === "visitors" ? max.visitors : max.views;
+      return curVal > maxVal ? d : max;
+    }, days[0]);
+  }, [days, metric]);
+  const avgDaily = useMemo(() => {
+    if (!days.length) return 0;
+    const target = metric === "visitors" ? totalVisitors : totalViews;
+    return Math.round(target / days.length);
+  }, [days, metric, totalViews, totalVisitors]);
+
   return (
     <div className="control-page cc-page">
       <PageHeader
@@ -159,15 +252,15 @@ export default function AnalyticsDashboard({
       {overview && <OverviewPublishing onNavigate={onNavigate} />}
       <div className="control-toolbar">
         <div className="control-segments" aria-label="Date presets">
-          {[7, 30, 90].map((days) => (
+          {[7, 30, 90].map((numDays) => (
             <button
-              key={days}
+              key={numDays}
               onClick={() => {
-                setRange({ ...initialAnalyticsRange(days), scope: range.scope });
+                setRange({ ...initialAnalyticsRange(numDays), scope: range.scope });
                 playSound("tap");
               }}
             >
-              {days} days
+              {numDays} days
             </button>
           ))}
         </div>
@@ -250,7 +343,8 @@ export default function AnalyticsDashboard({
         </EmptyState>
       ) : (
         <>
-          <div className="control-metrics">
+          {/* Tremor KPI Metric Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
             {(
               [
                 ["Measured visits", "visits"],
@@ -259,15 +353,16 @@ export default function AnalyticsDashboard({
                 ["Meaningful actions", "actions"],
               ] as const
             ).map(([label, key]) => (
-              <section key={key}>
-                <h2>{label}</h2>
-                <strong>{number(report.totals[key])}</strong>
-                <span>
-                  {comparison(report.totals[key], report.previous[key])}
-                </span>
-              </section>
+              <TremorMetricCard
+                key={key}
+                title={label}
+                metric={number(report.totals[key])}
+                comparisonText={comparison(report.totals[key], report.previous[key])}
+              />
             ))}
           </div>
+
+          {/* Shadcn/Tremor Style Traffic Chart */}
           <section className="control-panel">
             <div className="control-panel-heading">
               <div>
@@ -275,41 +370,161 @@ export default function AnalyticsDashboard({
                 <p>
                   {metric === "visitors"
                     ? "Daily visitor estimates; not distinct visitors across the whole period."
+                    : metric === "both"
+                    ? "Page views and daily visitor estimates combined."
                     : "Page views across the selected period."}
                 </p>
               </div>
-              <div className="control-segments">
-                {(["views", "visitors"] as const).map((value) => (
+              <div className="control-segments" role="radiogroup" aria-label="Metric toggle">
+                {(
+                  [
+                    ["views", "Views"],
+                    ["visitors", "Visitors"],
+                    ["both", "Both"],
+                  ] as const
+                ).map(([value, label]) => (
                   <button
                     key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={metric === value}
                     aria-pressed={metric === value}
-                    onClick={() => setMetric(value)}
+                    onClick={() => {
+                      setMetric(value);
+                      playSound("select");
+                    }}
                   >
-                    {value === "views" ? "Views" : "Visitors"}
+                    {label}
                   </button>
                 ))}
               </div>
             </div>
-            {days.length ? (
-              <svg
-                className="control-chart"
-                viewBox="0 0 960 180"
-                role="img"
-                aria-label={`${metric} over time; exact values in the table below`}
-              >
-                <path
-                  d="M0 160 H960 M0 88 H960 M0 16 H960"
-                  className="control-chart-grid"
-                />
-                <path d={path} className="control-chart-line" />
-              </svg>
+
+            {days.length > 0 && (
+              <div className="control-chart-summary">
+                <div className="control-chart-summary-item">
+                  <span>Total:</span>
+                  <strong>{number(metric === "visitors" ? totalVisitors : totalViews)}</strong>
+                </div>
+                <div className="control-chart-summary-item">
+                  <span>Daily avg:</span>
+                  <strong>{number(avgDaily)}</strong>
+                </div>
+                {peakDay && (
+                  <div className="control-chart-summary-item">
+                    <span>Peak:</span>
+                    <strong>
+                      {number(metric === "visitors" ? peakDay.visitors : peakDay.views)}{" "}
+                      <span className="font-normal opacity-75">({formatAxisDate(peakDay.day)})</span>
+                    </strong>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {days.length && mounted ? (
+              <div className="control-chart-wrapper">
+                <ChartContainer config={chartConfig} height={250} className="w-full">
+                  <AreaChart
+                    data={days}
+                    margin={{ top: 12, right: 10, left: -22, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="fillViews" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--control-accent, #2456d9)" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="var(--control-accent, #2456d9)" stopOpacity={0.0} />
+                      </linearGradient>
+                      <linearGradient id="fillVisitors" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="var(--control-line, #e1e5ec)"
+                      opacity={0.6}
+                    />
+                    <XAxis
+                      dataKey="day"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={10}
+                      tickFormatter={formatAxisDate}
+                      fontSize={11}
+                      stroke="var(--control-muted, #697181)"
+                    />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      tickFormatter={(v) => number(v)}
+                      fontSize={11}
+                      stroke="var(--control-muted, #697181)"
+                      width={44}
+                    />
+                    <ChartTooltip
+                      cursor={{
+                        stroke: "var(--control-line, #e1e5ec)",
+                        strokeWidth: 1.5,
+                        strokeDasharray: "4 4",
+                      }}
+                      content={
+                        <ChartTooltipContent
+                          indicator="dot"
+                          labelFormatter={(val) => formatTooltipDate(String(val))}
+                        />
+                      }
+                    />
+                    {(metric === "views" || metric === "both") && (
+                      <Area
+                        dataKey="views"
+                        type="monotone"
+                        name="views"
+                        fill="url(#fillViews)"
+                        fillOpacity={0.9}
+                        stroke="var(--control-accent, #2456d9)"
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{
+                          r: 5,
+                          fill: "var(--control-accent, #2456d9)",
+                          stroke: "var(--control-surface, #ffffff)",
+                          strokeWidth: 2,
+                        }}
+                      />
+                    )}
+                    {(metric === "visitors" || metric === "both") && (
+                      <Area
+                        dataKey="visitors"
+                        type="monotone"
+                        name="visitors"
+                        fill="url(#fillVisitors)"
+                        fillOpacity={metric === "both" ? 0.35 : 0.9}
+                        stroke="#10b981"
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{
+                          r: 5,
+                          fill: "#10b981",
+                          stroke: "var(--control-surface, #ffffff)",
+                          strokeWidth: 2,
+                        }}
+                      />
+                    )}
+                  </AreaChart>
+                </ChartContainer>
+              </div>
+            ) : days.length ? (
+              <div className="h-[250px] w-full animate-pulse bg-[var(--control-tint)] rounded-lg my-4" />
             ) : (
               <p className="control-empty-inline">
                 No measured traffic in this period.
               </p>
             )}
+
             <details className="control-chart-data">
-              <summary>View chart data</summary>
+              <summary>View chart data table</summary>
               <Table>
                 <Table.Header>
                   <Table.Row>
@@ -322,14 +537,16 @@ export default function AnalyticsDashboard({
                   {days.map((day) => (
                     <Table.Row key={day.day}>
                       <Table.Cell>{day.day}</Table.Cell>
-                      <Table.Cell>{day.views}</Table.Cell>
-                      <Table.Cell>{day.visitors}</Table.Cell>
+                      <Table.Cell>{number(day.views)}</Table.Cell>
+                      <Table.Cell>{number(day.visitors)}</Table.Cell>
                     </Table.Row>
                   ))}
                 </Table.Body>
               </Table>
             </details>
           </section>
+
+          {/* Tremor Style Breakdown Panels */}
           <div className="control-report-grid">
             {(overview
               ? [
@@ -345,52 +562,113 @@ export default function AnalyticsDashboard({
                   ["browser", "Browsers"],
                   ["depth", "Reading depth"],
                 ]
-            ).map(([kind, title]) => (
-              <section className="control-panel" key={kind}>
-                <h2>{title}</h2>
-                <Table>
-                  <Table.Header>
-                    <Table.Row>
-                      <Table.Head>
-                        {kind === "page" ? "Page" : "Name"}
-                      </Table.Head>
-                      <Table.Head>Events</Table.Head>
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
-                    {report.breakdowns
-                      .filter((row) => row.kind === kind)
-                      .slice(0, overview ? 5 : 15)
-                      .map((row) => (
-                        <Table.Row key={row.label}>
-                          <Table.Cell>
-                            {kind === "page" &&
-                            // Visitor-supplied: "/\evil.com" or "/\t/evil.com" would leave the site.
-                            /^\/(?:[^/\\\s][^\\\s]*)?$/.test(row.label) ? (
-                              <a
-                                href={row.label}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                {row.label}
-                              </a>
-                            ) : (
-                              row.label
-                            )}
-                          </Table.Cell>
-                          <Table.Cell>{number(row.count)}</Table.Cell>
+            ).map(([kind, title]) => {
+              const currentMode = panelModes[kind] || "bars";
+              const rows = report.breakdowns
+                .filter((row) => row.kind === kind)
+                .slice(0, overview ? 5 : 15);
+
+              return (
+                <section className="control-panel" key={kind}>
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <h2 className="!mb-0 text-[14px] font-semibold text-[var(--control-ink,#20232b)]">
+                      {title}
+                    </h2>
+                    {rows.length > 0 && (
+                      <div
+                        className="control-segments !p-0.5"
+                        role="group"
+                        aria-label={`${title} view`}
+                      >
+                        <button
+                          type="button"
+                          aria-pressed={currentMode === "bars"}
+                          onClick={() => togglePanelMode(kind)}
+                          className="!py-0.5 !px-2 !text-[11px] flex items-center gap-1"
+                          title="Visual bars"
+                        >
+                          <ChartBar size={12} />
+                          <span>Bars</span>
+                        </button>
+                        <button
+                          type="button"
+                          aria-pressed={currentMode === "table"}
+                          onClick={() => togglePanelMode(kind)}
+                          className="!py-0.5 !px-2 !text-[11px] flex items-center gap-1"
+                          title="Table view"
+                        >
+                          <TableIcon size={12} />
+                          <span>Table</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {rows.length === 0 ? (
+                    <p className="control-empty-inline">No measured activity yet.</p>
+                  ) : currentMode === "bars" ? (
+                    <div>
+                      {kind === "device" && rows.length > 1 && (
+                        <CategoryBar
+                          items={rows.map((r) => ({
+                            name: r.label,
+                            value: r.count,
+                            color: DEVICE_COLORS[r.label] || "var(--control-accent, #2456d9)",
+                          }))}
+                          className="mb-4"
+                        />
+                      )}
+                      <BarList
+                        data={rows.map((row) => ({
+                          name: row.label,
+                          value: row.count,
+                          href:
+                            kind === "page" &&
+                            /^\/(?:[^/\\\s][^\\\s]*)?$/.test(row.label)
+                              ? row.label
+                              : undefined,
+                        }))}
+                        valueFormatter={(v) => number(v)}
+                        color="var(--control-accent, #2456d9)"
+                      />
+                    </div>
+                  ) : (
+                    <Table>
+                      <Table.Header>
+                        <Table.Row>
+                          <Table.Head>{kind === "page" ? "Page" : "Name"}</Table.Head>
+                          <Table.Head>Events</Table.Head>
                         </Table.Row>
-                      ))}
-                  </Table.Body>
-                </Table>
-                {!report.breakdowns.some((row) => row.kind === kind) && (
-                  <p className="control-empty-inline">
-                    No measured activity yet.
-                  </p>
-                )}
-              </section>
-            ))}
+                      </Table.Header>
+                      <Table.Body>
+                        {rows.map((row) => (
+                          <Table.Row key={row.label}>
+                            <Table.Cell>
+                              {kind === "page" &&
+                              /^\/(?:[^/\\\s][^\\\s]*)?$/.test(row.label) ? (
+                                <a
+                                  href={row.label}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="hover:underline"
+                                >
+                                  {row.label}
+                                </a>
+                              ) : (
+                                row.label
+                              )}
+                            </Table.Cell>
+                            <Table.Cell>{number(row.count)}</Table.Cell>
+                          </Table.Row>
+                        ))}
+                      </Table.Body>
+                    </Table>
+                  )}
+                </section>
+              );
+            })}
           </div>
+
           {!overview && (
             <section className="control-panel">
               <h2>Active time</h2>
@@ -402,37 +680,84 @@ export default function AnalyticsDashboard({
               </p>
             </section>
           )}
+
           {!overview && report.journeys.length > 0 && (
             <div className="control-report-grid">
-              {report.journeys.map((journey) => (
-                <section className="control-panel" key={journey.name}>
-                  <h2>{journey.name}</h2>
-                  <p>
-                    Ordered steps within the same measured visit, across all
-                    content.
-                  </p>
-                  <Table>
-                    <Table.Header>
-                      <Table.Row>
-                        <Table.Head>Step</Table.Head>
-                        <Table.Head>Visits</Table.Head>
-                      </Table.Row>
-                    </Table.Header>
-                    <Table.Body>
-                      {journey.steps.map((step, index) => (
-                        <Table.Row key={step.label}>
-                          <Table.Cell>
-                            {index + 1}. {step.label}
-                          </Table.Cell>
-                          <Table.Cell>{number(step.count)}</Table.Cell>
-                        </Table.Row>
-                      ))}
-                    </Table.Body>
-                  </Table>
-                </section>
-              ))}
+              {report.journeys.map((journey) => {
+                const modeKey = `journey-${journey.name}`;
+                const currentMode = panelModes[modeKey] || "bars";
+
+                return (
+                  <section className="control-panel" key={journey.name}>
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <h2 className="!mb-0 text-[14px] font-semibold text-[var(--control-ink,#20232b)]">
+                        {journey.name}
+                      </h2>
+                      <div
+                        className="control-segments !p-0.5"
+                        role="group"
+                        aria-label={`${journey.name} view`}
+                      >
+                        <button
+                          type="button"
+                          aria-pressed={currentMode === "bars"}
+                          onClick={() => togglePanelMode(modeKey)}
+                          className="!py-0.5 !px-2 !text-[11px] flex items-center gap-1"
+                          title="Visual bars"
+                        >
+                          <ChartBar size={12} />
+                          <span>Bars</span>
+                        </button>
+                        <button
+                          type="button"
+                          aria-pressed={currentMode === "table"}
+                          onClick={() => togglePanelMode(modeKey)}
+                          className="!py-0.5 !px-2 !text-[11px] flex items-center gap-1"
+                          title="Table view"
+                        >
+                          <TableIcon size={12} />
+                          <span>Table</span>
+                        </button>
+                      </div>
+                    </div>
+                    <p className="mb-3">
+                      Ordered steps within the same measured visit, across all content.
+                    </p>
+                    {currentMode === "bars" ? (
+                      <BarList
+                        data={journey.steps.map((step, idx) => ({
+                          name: `${idx + 1}. ${step.label}`,
+                          value: step.count,
+                        }))}
+                        valueFormatter={(v) => number(v)}
+                        color="var(--control-accent, #2456d9)"
+                      />
+                    ) : (
+                      <Table>
+                        <Table.Header>
+                          <Table.Row>
+                            <Table.Head>Step</Table.Head>
+                            <Table.Head>Visits</Table.Head>
+                          </Table.Row>
+                        </Table.Header>
+                        <Table.Body>
+                          {journey.steps.map((step, index) => (
+                            <Table.Row key={step.label}>
+                              <Table.Cell>
+                                {index + 1}. {step.label}
+                              </Table.Cell>
+                              <Table.Cell>{number(step.count)}</Table.Cell>
+                            </Table.Row>
+                          ))}
+                        </Table.Body>
+                      </Table>
+                    )}
+                  </section>
+                );
+              })}
             </div>
           )}
+
           <p className="control-footnote">
             Cookieless estimates · Asia/Manila · Updated{" "}
             {new Date(report.generatedAt).toLocaleTimeString()}
