@@ -4,15 +4,15 @@ parentId: null
 title: "AI State of Play"
 slug: "ai-state-play"
 dek: "This week, people used AI to stitch whole games together. It's fun, it's funny, and if you think about it long enough, it's a little scary."
-icon: null
+icon: "🤖"
 authors: [{"name":"John Nazarene Dela Pisa","email":"jannazarene09@gmail.com","avatar":"/avatar-1024.webp"}]
 fonts: null
 page: true
 ogImage: null
 tags: ["AI","Gaming","Modding"]
 cover: null
-publishedAt: "2026-10-04T05:43:01.705Z"
-updatedAt: "2026-10-04T05:43:01.705Z"
+publishedAt: "2026-10-05T02:36:45.230Z"
+updatedAt: "2026-10-05T02:36:45.230Z"
 redirectFrom: []
 ---
 
