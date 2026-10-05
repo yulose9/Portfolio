@@ -31,6 +31,11 @@
     padding: 16px max(16px, env(safe-area-inset-right)) 32px max(16px, env(safe-area-inset-left));
   }
 }
+@media (max-width: 374px) {
+  .cc-page {
+    padding: 14px max(12px, env(safe-area-inset-right)) 28px max(12px, env(safe-area-inset-left));
+  }
+}
 
 /* ── Header ──────────────────────────────────────────────────────────── */
 
@@ -101,6 +106,14 @@
   }
   .cc-page-actions {
     width: 100%;
+    gap: 10px;
+  }
+  .cc-page-actions > * {
+    min-height: 44px;
+  }
+  .cc-split > button {
+    min-height: 44px;
+    padding: 0 14px;
   }
 }
 
@@ -189,6 +202,13 @@
   border-radius: 8px;
   color: var(--control-ink);
 }
+@media (max-width: 639px), (pointer: coarse) {
+  .control-toolbar select,
+  .control-date input {
+    height: 44px;
+    font-size: 14px;
+  }
+}
 
 /* ── Card, table and list ────────────────────────────────────────────── */
 
@@ -203,6 +223,7 @@
 /* Projects: a Kumo Table inside the card. */
 .cc-table {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .cc-page .cc-table table {
   margin: 0;
@@ -248,6 +269,16 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+@media (pointer: coarse) {
+  .cc-row-actions button,
+  .cc-row-actions a {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 @container (max-width: 600px) {
   .cc-table .cc-col-updated {
@@ -511,6 +542,16 @@ html[data-theme="dark"] .control-notice {
   }
   .cc-rail-col {
     width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+  }
+}
+@media (max-width: 679px) {
+  .cc-rail-col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
 }
 
@@ -581,6 +622,12 @@ html[data-theme="dark"] .control-notice {
 .cc-rail-link:hover {
   text-decoration: underline;
   opacity: 0.85;
+}
+@media (pointer: coarse) {
+  .cc-rail-link {
+    min-height: 44px;
+    padding: 0 4px;
+  }
 }
 
 /* Status Pill with indicator dot */
@@ -684,6 +731,7 @@ html[data-theme="dark"] .control-notice {
   white-space: nowrap;
 }
 .cc-rail-code-copy-btn {
+  position: relative;
   display: grid;
   place-items: center;
   width: 24px;
@@ -696,6 +744,17 @@ html[data-theme="dark"] .control-notice {
   cursor: pointer;
   transition: all 120ms ease;
   flex-shrink: 0;
+}
+@media (pointer: coarse) {
+  .cc-rail-code-copy-btn {
+    width: 32px;
+    height: 32px;
+  }
+  .cc-rail-code-copy-btn::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+  }
 }
 .cc-rail-code-copy-btn:hover {
   background: var(--control-surface);
@@ -790,6 +849,13 @@ html[data-theme="dark"] .control-notice {
   transition: all 140ms cubic-bezier(0.2, 0, 0, 1);
   text-decoration: none;
 }
+@media (max-width: 639px), (pointer: coarse) {
+  .cc-overview-quick-chip {
+    min-height: 44px;
+    padding: 0 14px;
+    font-size: 13.5px;
+  }
+}
 .cc-overview-quick-chip:hover {
   background: var(--control-tint);
   border-color: var(--control-muted);
@@ -806,6 +872,11 @@ html[data-theme="dark"] .control-notice {
   margin-bottom: 28px;
 }
 @media (max-width: 960px) {
+  .cc-overview-hub-grid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+}
+@media (max-width: 639px) {
   .cc-overview-hub-grid {
     grid-template-columns: 1fr;
   }

@@ -467,6 +467,7 @@ export default function AnalyticsDashboard({
                       tickMargin={10}
                       tickFormatter={formatAxisDate}
                       fontSize={11}
+                      minTickGap={24}
                       stroke="var(--control-muted, #697181)"
                     />
                     <YAxis
