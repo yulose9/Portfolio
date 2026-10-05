@@ -229,7 +229,7 @@ export function isGithubUrl(raw: string): boolean {
  * Instagram's official embed frame for reels and posts.
  */
 export const instagramFrame = (e: InstagramEmbed): string =>
-  `https://www.instagram.com/${e.format === "reel" ? "reel" : "p"}/${e.id}/embed/`;
+  `https://www.instagram.com/p/${e.id}/embed/`;
 
 /**
  * Threads' own embed page. `theme` "dark" or "auto" gives it a transparent
