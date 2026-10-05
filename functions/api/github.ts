@@ -115,7 +115,7 @@ export const onRequestGet = async ({ env, request }: PagesContext<Env>) => {
     name: repo,
     fullName: `${owner}/${repo}`,
     description: "",
-    ownerAvatar: `https://github.com/${owner}.png?size=120`,
+    ownerAvatar: `https://github.com/${owner}.png?size=160`,
     url,
     languageColor: "#24292e",
   };
@@ -170,6 +170,11 @@ export const onRequestGet = async ({ env, request }: PagesContext<Env>) => {
       const language = repoJson.language || undefined;
       const langColor = (language && LANGUAGE_COLORS[language]) || "#24292e";
 
+      const rawAvatar = repoJson.owner?.avatar_url || `https://github.com/${owner}.png`;
+      const ownerAvatar = rawAvatar.includes("?")
+        ? `${rawAvatar}&size=160`
+        : `${rawAvatar}?size=160`;
+
       const data: GithubData = {
         type: "repo",
         owner,
@@ -177,7 +182,7 @@ export const onRequestGet = async ({ env, request }: PagesContext<Env>) => {
         name: repoJson.name || repo,
         fullName: repoJson.full_name || `${owner}/${repo}`,
         description: repoJson.description || "",
-        ownerAvatar: repoJson.owner?.avatar_url || `https://github.com/${owner}.png?size=120`,
+        ownerAvatar,
         stars: repoJson.stargazers_count ?? 0,
         forks: repoJson.forks_count ?? 0,
         issues: repoJson.open_issues_count ?? 0,
@@ -219,6 +224,11 @@ export const onRequestGet = async ({ env, request }: PagesContext<Env>) => {
       state = isPR ? "merged" : "closed";
     }
 
+    const rawAuthorAvatar = issueJson.user?.avatar_url || `https://github.com/${issueJson.user?.login || owner}.png`;
+    const authorAvatar = rawAuthorAvatar.includes("?")
+      ? `${rawAuthorAvatar}&size=160`
+      : `${rawAuthorAvatar}?size=160`;
+
     const data: GithubData = {
       type: isPR ? "pull" : format,
       owner,
@@ -226,12 +236,12 @@ export const onRequestGet = async ({ env, request }: PagesContext<Env>) => {
       name: repo,
       fullName: `${owner}/${repo}`,
       description: issueJson.title || "",
-      ownerAvatar: `https://github.com/${owner}.png?size=120`,
+      ownerAvatar: `https://github.com/${owner}.png?size=160`,
       number: issueJson.number || (number ? parseInt(number, 10) : undefined),
       title: issueJson.title || "",
       state,
       author: issueJson.user?.login,
-      authorAvatar: issueJson.user?.avatar_url,
+      authorAvatar,
       comments: issueJson.comments ?? 0,
       createdAt: issueJson.created_at,
       languageColor: state === "open" ? "#238636" : state === "merged" ? "#8957e5" : "#da3633",

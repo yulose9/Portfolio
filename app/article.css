@@ -137,7 +137,7 @@
   margin-bottom: 0;
 }
 .article-cover img,
-.article-body img {
+.article-body img:not(.github-embed-avatar):not(.inline-logo-image) {
   display: block;
   width: 100%;
   height: auto;
@@ -152,7 +152,7 @@
    max-height narrows and centres rather than showing bars, and a small
    image isn't stretched past its own size. The cover always spans the
    column and crops instead. */
-.article-body img {
+.article-body img:not(.github-embed-avatar):not(.inline-logo-image) {
   width: auto;
   max-width: 100%;
   margin-inline: auto;
@@ -222,7 +222,7 @@
 .article-body > h3 + * {
   margin-top: 0.6em;
 }
-.article-body a {
+.article-body a:not(.github-embed-card):not(.embed-tool) {
   color: var(--ink);
   text-decoration-line: underline;
   text-decoration-color: #d4d4d8;
@@ -231,7 +231,7 @@
   transition: text-decoration-color 150ms ease;
 }
 @media (hover: hover) and (pointer: fine) {
-  .article-body a:hover {
+  .article-body a:not(.github-embed-card):not(.embed-tool):hover {
     text-decoration-color: currentColor;
   }
 }
@@ -627,12 +627,12 @@
 [data-theme="dark"] .article-body {
   color: var(--fg);
 }
-[data-theme="dark"] .article-body a {
+[data-theme="dark"] .article-body a:not(.github-embed-card):not(.embed-tool) {
   /* The underline is what marks a link in body text: 4.5:1, not 2.5:1. */
   text-decoration-color: rgb(255 255 255 / 0.45);
 }
 @media (hover: hover) and (pointer: fine) {
-  [data-theme="dark"] .article-body a:hover {
+  [data-theme="dark"] .article-body a:not(.github-embed-card):not(.embed-tool):hover {
     text-decoration-color: currentColor;
   }
 }

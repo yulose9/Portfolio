@@ -68,7 +68,7 @@ export default function GithubEmbedCard({ embed, inEditor = false }: { embed: Gi
       name: embed.repo,
       fullName: `${embed.owner}/${embed.repo}`,
       description: "",
-      ownerAvatar: `https://github.com/${embed.owner}.png?size=120`,
+      ownerAvatar: `https://github.com/${embed.owner}.png?size=160`,
       url: embed.url,
       languageColor: "#24292e",
     };
@@ -95,6 +95,8 @@ export default function GithubEmbedCard({ embed, inEditor = false }: { embed: Gi
               language?: string;
               owner?: { avatar_url?: string };
             };
+            const rawAvatar = d.owner?.avatar_url || `https://github.com/${embed.owner}.png`;
+            const ownerAvatar = rawAvatar.includes("?") ? `${rawAvatar}&size=160` : `${rawAvatar}?size=160`;
             return {
               type: "repo",
               owner: embed.owner,
@@ -102,7 +104,7 @@ export default function GithubEmbedCard({ embed, inEditor = false }: { embed: Gi
               name: d.name || embed.repo,
               fullName: d.full_name || `${embed.owner}/${embed.repo}`,
               description: d.description || "",
-              ownerAvatar: d.owner?.avatar_url || `https://github.com/${embed.owner}.png?size=120`,
+              ownerAvatar,
               stars: d.stargazers_count ?? 0,
               forks: d.forks_count ?? 0,
               issues: d.open_issues_count ?? 0,
@@ -141,7 +143,7 @@ export default function GithubEmbedCard({ embed, inEditor = false }: { embed: Gi
     name: embed.repo,
     fullName: `${embed.owner}/${embed.repo}`,
     description: "",
-    ownerAvatar: `https://github.com/${embed.owner}.png?size=120`,
+    ownerAvatar: `https://github.com/${embed.owner}.png?size=160`,
     url: embed.url,
     languageColor: "#24292e",
     stars: 0,
@@ -187,17 +189,18 @@ export default function GithubEmbedCard({ embed, inEditor = false }: { embed: Gi
             ) : null}
           </div>
 
-          <div className="github-embed-avatar-wrap">
+          <div className="github-embed-avatar-wrap" aria-hidden="true" style={{ width: 76, height: 76, minWidth: 76, minHeight: 76, maxWidth: 76, maxHeight: 76, flexShrink: 0 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={resolved.ownerAvatar}
               alt=""
-              width={52}
-              height={52}
+              width={76}
+              height={76}
               className="github-embed-avatar"
               loading="lazy"
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
               onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = `https://github.com/${resolved.owner}.png?size=120`;
+                (e.currentTarget as HTMLImageElement).src = `https://github.com/${resolved.owner}.png?size=160`;
               }}
             />
           </div>
