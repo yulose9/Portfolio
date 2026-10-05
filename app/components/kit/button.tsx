@@ -63,11 +63,15 @@ export function Button({
   const busy = !!loading;
   const done = !busy && !!success;
 
+  const isNonButton = props.render && typeof props.render === "object" && "type" in props.render && (props.render as { type: unknown }).type !== "button";
+  const nativeButton = props.nativeButton ?? (isNonButton ? false : undefined);
+
   return (
     <BaseButton
       data-slot="button"
       data-variant={variant}
       data-size={size}
+      nativeButton={nativeButton}
       aria-busy={faced ? busy : undefined}
       className={buttonClassName(variant, className)}
       onClick={(event) => {

@@ -34,14 +34,21 @@ export async function analyticsReport(
     breakdowns: [],
     journeys: [],
   };
-  if (!env.POSTHOG_QUERY_KEY || !env.POSTHOG_PROJECT_ID) return report;
-  if (!/^\d+$/.test(env.POSTHOG_PROJECT_ID))
-    throw new HttpError("Analytics project configuration is invalid.", 503);
-  const host =
-    env.POSTHOG_REGION === "eu"
-      ? "https://eu.posthog.com"
-      : "https://us.posthog.com";
-  const cacheKey = `analytics/v2/${env.POSTHOG_REGION ?? "us"}/${env.POSTHOG_PROJECT_ID}/${range.scope}/${range.from}/${range.to}.json`;
+  const rawProjectId = env.POSTHOG_PROJECT_ID?.trim().replace(/^['"]|['"]$/g, "");
+  const rawQueryKey = env.POSTHOG_QUERY_KEY?.trim().replace(/^['"]|['"]$/g, "");
+  const cleanKey = rawQueryKey?.replace(/^Bearer\s+/i, "");
+
+  if (!cleanKey || !rawProjectId) return report;
+  if (!/^\d+$/.test(rawProjectId))
+    throw new HttpError(
+      `Analytics project configuration is invalid: POSTHOG_PROJECT_ID must be the numeric project ID from PostHog Project Settings, not a key.`,
+      503,
+    );
+  const rawRegion = env.POSTHOG_REGION?.trim().toLowerCase();
+  const isEu = rawRegion === "eu" || !!rawRegion?.includes("eu.") || !!rawRegion?.includes("eu-");
+  const host = isEu ? "https://eu.posthog.com" : "https://us.posthog.com";
+  const regionSlug = isEu ? "eu" : "us";
+  const cacheKey = `analytics/v2/${regionSlug}/${rawProjectId}/${range.scope}/${range.from}/${range.to}.json`;
   const cached = await env.WRITING.get(cacheKey);
   if (cached) {
     const value = await cached.json<AnalyticsReport>();
@@ -58,11 +65,11 @@ export async function analyticsReport(
   const current = `timestamp >= toDateTime('${range.from} 00:00:00', 'Asia/Manila')`;
   async function query(sql: string): Promise<unknown[][]> {
     const response = await fetch(
-      `${host}/api/projects/${env.POSTHOG_PROJECT_ID}/query/`,
+      `${host}/api/projects/${rawProjectId}/query/`,
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${env.POSTHOG_QUERY_KEY}`,
+          Authorization: `Bearer ${cleanKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -72,19 +79,27 @@ export async function analyticsReport(
         signal: AbortSignal.timeout(25000),
       },
     );
-    if (!response.ok)
+    if (!response.ok) {
+      let detail = "";
+      try {
+        const errJson = (await response.json()) as { detail?: string; error?: string; message?: string };
+        detail = errJson.detail || errJson.error || errJson.message || "";
+      } catch {
+        detail = await response.text().catch(() => "");
+      }
       throw new HttpError(
         response.status === 429
           ? "Analytics is busy. Try again shortly."
-          : "Analytics could not be loaded. Check the reporting credentials and project access.",
+          : `Analytics could not be loaded (PostHog ${response.status}): ${detail || "Check reporting credentials and project access."}`,
         503,
       );
+    }
     const data = (await response.json()) as {
       results?: unknown[][];
       error?: string;
     };
     if (!Array.isArray(data.results) || data.error)
-      throw new HttpError("Analytics returned an incomplete report.", 503);
+      throw new HttpError(`Analytics returned an incomplete report: ${data.error ?? "Invalid results format."}`, 503);
     return data.results;
   }
   // Fixed queries only: dates and scope are validated above; the browser cannot supply SQL.
