@@ -1,0 +1,679 @@
+// @ts-nocheck
+"use client";
+import { AnimatePresence, motion } from "framer-motion";
+import { Bell, Check, Clock, X } from "lucide-react";
+import React, { useCallback, useEffect, useState } from "react";
+import { useWebHaptics } from "web-haptics/react";
+import {
+  DIALOG_SPRING,
+  FADE,
+  FADE_EXIT,
+  ICON_ENTER,
+  ICON_SPRING,
+  ICON_VISIBLE,
+  TAP,
+  TAP_CARD,
+  TAP_TRANSITION,
+} from "@/lib/seneca/constants/motion";
+import { useWealthLiabilities, useWealthTransactions } from "@/lib/seneca/data/syncedData";
+import Sheet from "./Sheet";
+
+// LocalStorage keys for snooze
+const SNOOZE_KEY = "obligation_reminder_snooze";
+const TASKS_SNOOZE_KEY = "tasks_reminder_snooze";
+
+// Snooze options (shared by both settings sheets)
+const SNOOZE_OPTIONS = [
+  { label: "Every app open", description: "Always remind me", ms: 0 },
+  {
+    label: "3 Hours",
+    description: "Snooze for 3 hours",
+    ms: 3 * 60 * 60 * 1000,
+  },
+  { label: "1 Day", description: "Snooze for 1 day", ms: 24 * 60 * 60 * 1000 },
+  {
+    label: "3 Days",
+    description: "Snooze for 3 days",
+    ms: 3 * 24 * 60 * 60 * 1000,
+  },
+];
+
+// Generic snooze helpers that work with any key
+const isSnoozedKey = (key) => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return false;
+    const snoozeUntil = JSON.parse(raw);
+    if (Date.now() < snoozeUntil) return true;
+    localStorage.removeItem(key);
+    return false;
+  } catch {
+    return false;
+  }
+};
+
+const setSnoozeKey = (key, durationMs) => {
+  if (durationMs <= 0) {
+    localStorage.removeItem(key);
+  } else {
+    localStorage.setItem(key, JSON.stringify(Date.now() + durationMs));
+  }
+};
+
+const getSnoozeInfoKey = (key) => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return { snoozed: false, label: "Every app open" };
+    const snoozeUntil = JSON.parse(raw);
+    if (Date.now() >= snoozeUntil) {
+      localStorage.removeItem(key);
+      return { snoozed: false, label: "Every app open" };
+    }
+    const remaining = snoozeUntil - Date.now();
+    const hours = Math.ceil(remaining / (60 * 60 * 1000));
+    if (hours < 24) return { snoozed: true, label: `Snoozed (${hours}h left)` };
+    const days = Math.ceil(remaining / (24 * 60 * 60 * 1000));
+    return { snoozed: true, label: `Snoozed (${days}d left)` };
+  } catch {
+    return { snoozed: false, label: "Every app open" };
+  }
+};
+
+// Which snooze option is currently in effect: 0 when not snoozed, otherwise the
+// smallest option that still covers the remaining time.
+const getActiveSnoozeMsKey = (key) => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return 0;
+    const remaining = JSON.parse(raw) - Date.now();
+    if (remaining <= 0) return 0;
+    const match = SNOOZE_OPTIONS.find((o) => o.ms > 0 && remaining <= o.ms);
+    return match ? match.ms : null;
+  } catch {
+    return 0;
+  }
+};
+
+// Convenience wrappers for obligation
+const isObligationSnoozed = () => isSnoozedKey(SNOOZE_KEY);
+const setObligationSnooze = (ms) => setSnoozeKey(SNOOZE_KEY, ms);
+const getObligationSnoozeInfo = () => ({
+  ...getSnoozeInfoKey(SNOOZE_KEY),
+  activeMs: getActiveSnoozeMsKey(SNOOZE_KEY),
+});
+
+// Convenience wrappers for tasks
+const isTasksSnoozed = () => isSnoozedKey(TASKS_SNOOZE_KEY);
+const setTasksSnooze = (ms) => setSnoozeKey(TASKS_SNOOZE_KEY, ms);
+const getTasksSnoozeInfo = () => ({
+  ...getSnoozeInfoKey(TASKS_SNOOZE_KEY),
+  activeMs: getActiveSnoozeMsKey(TASKS_SNOOZE_KEY),
+});
+
+// ─── Notification Popup (shows on app open) ─────────────────────────
+// Format a date into a human-readable relative time
+const formatRelativeTime = (dateStr) => {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return "today";
+  if (diffDays === 1) return "yesterday";
+  if (diffDays <= 6) {
+    const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+    return `last ${dayName}`;
+  }
+  if (diffDays <= 13) return "a week ago";
+  if (diffDays <= 29) return `${Math.floor(diffDays / 7)} weeks ago`;
+  if (diffDays <= 59) return "a month ago";
+  if (diffDays <= 364) return `${Math.floor(diffDays / 30)} months ago`;
+  return "over a year ago";
+};
+
+// Find the last payment transaction for a specific liability
+const findLastPayment = (transactions, liability) => {
+  // Match by accountId or bank name, only "payment" or "deposit" on Liabilities category
+  const payments = transactions.filter(
+    (t) =>
+      t.category === "Liabilities" &&
+      (t.type === "payment" || t.type === "deposit") &&
+      (t.accountId === liability.id || t.bank === liability.name),
+  );
+  if (payments.length === 0) return null;
+  // Sort by date descending, return most recent
+  payments.sort((a, b) => new Date(b.date) - new Date(a.date));
+  return payments[0];
+};
+
+export default function ObligationReminder({ isOpen, onClose }) {
+  const haptic = useWebHaptics();
+  // Same live values the Wealth page uses (instant from cache, then Firestore)
+  const [liabilities] = useWealthLiabilities();
+  const [transactions] = useWealthTransactions();
+
+  const totalObligations = liabilities.reduce(
+    (sum, l) => sum + (l.amount || 0),
+    0,
+  );
+  const kuyaLoan = liabilities.find((l) => l.id === "kuya" || l.isPriority);
+  const otherLoans = liabilities.filter(
+    (l) => l.id !== "kuya" && !l.isPriority,
+  );
+
+  const handleDismiss = () => {
+    haptic.trigger("warning");
+    onClose?.();
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={FADE}
+            className="fixed inset-0 sn-scrim z-[9999]"
+            onClick={handleDismiss}
+          />
+
+          {/* Card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98, transition: FADE_EXIT }}
+            transition={DIALOG_SPRING}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Obligation Reminder"
+            className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[10000] max-w-md mx-auto"
+          >
+            <div className="bg-surface rounded-sheet overflow-hidden shadow-float select-none">
+              {/* Header */}
+              <div className="bg-negative px-6 pt-6 pb-5 relative">
+                {/* Close button */}
+                <motion.button
+                  whileTap={TAP}
+                  transition={TAP_TRANSITION}
+                  onClick={handleDismiss}
+                  aria-label="Close"
+                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center after:absolute after:-inset-1.5 after:content-['']"
+                >
+                  <X size={16} className="text-white" />
+                </motion.button>
+
+                <div className="flex items-center gap-2.5 mb-3 pr-10">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                    <Bell size={20} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-body font-bold text-white">
+                      Obligation Reminder
+                    </h3>
+                    <p className="text-caption text-white/70 font-medium">
+                      Total Outstanding
+                    </p>
+                  </div>
+                </div>
+                <p className="text-large-title font-bold text-white tabular-nums">
+                  ₱{totalObligations.toLocaleString()}
+                </p>
+              </div>
+
+              {/* Liabilities */}
+              <div className="px-6 py-4 space-y-3">
+                {kuyaLoan &&
+                  (() => {
+                    const lastPay = findLastPayment(transactions, kuyaLoan);
+                    return (
+                      <div className="rounded-2xl bg-negative/5 border border-negative/10 overflow-hidden">
+                        <div className="flex items-center justify-between py-3 px-4">
+                          <div className="flex items-center gap-3">
+                            <span className="text-title-2">
+                              {kuyaLoan.icon || "🧑"}
+                            </span>
+                            <div>
+                              <p className="text-subhead font-semibold text-ink">
+                                {kuyaLoan.name || "Loan from Kuya"}
+                              </p>
+                              <p className="text-caption text-ink-2 font-medium">
+                                {kuyaLoan.platform || "Personal"} • Priority
+                              </p>
+                            </div>
+                          </div>
+                          <p className="text-body font-bold text-negative tabular-nums">
+                            ₱{(kuyaLoan.amount || 0).toLocaleString()}
+                          </p>
+                        </div>
+                        {/* Last payment info */}
+                        <div className="px-4 pb-3 pt-0">
+                          <div className="bg-white/70 rounded-xl px-3 py-2">
+                            {lastPay ? (
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  <div className="w-4 h-4 rounded-full bg-positive/15 flex items-center justify-center">
+                                    <Check
+                                      size={10}
+                                      className="text-positive"
+                                    />
+                                  </div>
+                                  <p className="text-caption-2 text-ink-2 font-medium">
+                                    Paid{" "}
+                                    <span className="font-semibold text-positive tabular-nums">
+                                      ₱{(lastPay.amount || 0).toLocaleString()}
+                                    </span>{" "}
+                                    · {formatRelativeTime(lastPay.date)}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-caption-2 text-ink-3 font-medium italic">
+                                No payments recorded yet
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                {otherLoans.length > 0 &&
+                  otherLoans.map((loan) => {
+                    const lastPay = findLastPayment(transactions, loan);
+                    return (
+                      <div
+                        key={loan.id}
+                        className="rounded-2xl bg-fill border border-separator overflow-hidden"
+                      >
+                        <div className="flex items-center justify-between py-3 px-4">
+                          <div className="flex items-center gap-3">
+                            <span className="text-title-2">
+                              {loan.icon || "🍀"}
+                            </span>
+                            <div>
+                              <p className="text-subhead font-semibold text-ink">
+                                {loan.name}
+                              </p>
+                              <p className="text-caption text-ink-2 font-medium">
+                                {loan.platform || "Bank / Other"}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="text-body font-bold text-ink tabular-nums">
+                            ₱{(loan.amount || 0).toLocaleString()}
+                          </p>
+                        </div>
+                        {/* Last payment info */}
+                        <div className="px-4 pb-3 pt-0">
+                          <div className="bg-white/70 rounded-xl px-3 py-2">
+                            {lastPay ? (
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  <div className="w-4 h-4 rounded-full bg-positive/15 flex items-center justify-center">
+                                    <Check
+                                      size={10}
+                                      className="text-positive"
+                                    />
+                                  </div>
+                                  <p className="text-caption-2 text-ink-2 font-medium">
+                                    Paid{" "}
+                                    <span className="font-semibold text-positive tabular-nums">
+                                      ₱{(lastPay.amount || 0).toLocaleString()}
+                                    </span>{" "}
+                                    · {formatRelativeTime(lastPay.date)}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-caption-2 text-ink-3 font-medium italic">
+                                No payments recorded yet
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                {/* Motivational message */}
+                <div className="pt-2 pb-1">
+                  <p className="text-center text-subhead text-ink-2 leading-relaxed italic">
+                    "Have you paid or lessened this? Every peso counts."
+                  </p>
+                </div>
+              </div>
+
+              {/* Dismiss action */}
+              <div className="px-6 pb-6">
+                <motion.button
+                  whileTap={TAP}
+                  transition={TAP_TRANSITION}
+                  onClick={handleDismiss}
+                  className="w-full py-3.5 rounded-xl bg-fill text-subhead font-semibold text-ink flex items-center justify-center gap-2"
+                >
+                  <Clock size={16} />
+                  Remind Me Later
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ─── Obligation Reminder Settings Sheet (for Wealth bell icon) ──────
+export function ReminderSettingsSheet({ visible, onClose }) {
+  const haptic = useWebHaptics();
+  const [snoozeInfo, setSnoozeInfo] = useState(getObligationSnoozeInfo);
+
+  const handleSetSnooze = (ms) => {
+    setObligationSnooze(ms);
+    setSnoozeInfo(getObligationSnoozeInfo());
+  };
+
+  // Refresh snooze info when opened
+  useEffect(() => {
+    if (visible) setSnoozeInfo(getObligationSnoozeInfo());
+  }, [visible]);
+
+  return (
+    <Sheet
+      open={visible}
+      onClose={onClose}
+      zIndex={9998}
+      label="Obligation reminder settings"
+      className="fixed inset-x-0 bottom-0 max-w-md mx-auto"
+    >
+        <div className="bg-surface rounded-t-sheet shadow-float pb-10">
+          {/* Handle */}
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-9 h-1 rounded-full bg-separator" />
+          </div>
+
+          {/* Header */}
+          <div className="px-6 pt-3 pb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-body font-bold text-ink">
+                Reminder Settings
+              </h3>
+              <p className="text-footnote text-ink-2 mt-0.5">
+                {snoozeInfo.label}
+              </p>
+            </div>
+            <motion.button
+              whileTap={TAP}
+              transition={TAP_TRANSITION}
+              onClick={onClose}
+              aria-label="Close"
+              className="relative w-8 h-8 rounded-full bg-fill flex items-center justify-center after:absolute after:-inset-1.5 after:content-['']"
+            >
+              <X size={16} className="text-ink-2" />
+            </motion.button>
+          </div>
+
+          {/* Frequency label */}
+          <div className="px-6 pb-2">
+            <p className="text-footnote font-semibold text-ink-3">
+              Reminder Frequency
+            </p>
+          </div>
+
+          {/* Options */}
+          <div className="px-6 space-y-1">
+            {SNOOZE_OPTIONS.map((opt) => {
+              const isActive = snoozeInfo.activeMs === opt.ms;
+
+              return (
+                <motion.button
+                  key={opt.label}
+                  whileTap={TAP_CARD}
+                  transition={TAP_TRANSITION}
+                  aria-pressed={isActive}
+                  onClick={() => {
+                    haptic.trigger("selection");
+                    handleSetSnooze(opt.ms);
+                  }}
+                  className={`w-full py-3.5 px-4 rounded-xl flex items-center justify-between transition-colors ${
+                    isActive
+                      ? "bg-accent/8 border border-accent/15"
+                      : "bg-fill border border-transparent active:bg-fill"
+                  }`}
+                  style={
+                    isActive
+                      ? {
+                          backgroundColor: "rgba(0,122,255,0.08)",
+                          borderColor: "rgba(0,122,255,0.15)",
+                        }
+                      : {}
+                  }
+                >
+                  <div className="flex items-center gap-3">
+                    <Clock
+                      size={18}
+                      className={
+                        isActive
+                          ? "text-accent"
+                          : "text-ink-3"
+                      }
+                    />
+                    <div className="text-left">
+                      <p
+                        className={`text-subhead font-semibold ${isActive ? "text-accent" : "text-ink"}`}
+                      >
+                        {opt.label}
+                      </p>
+                      <p className="text-caption text-ink-2">
+                        {opt.description}
+                      </p>
+                    </div>
+                  </div>
+                  <AnimatePresence initial={false}>
+                    {isActive && (
+                      <motion.span
+                        key="check"
+                        initial={ICON_ENTER}
+                        animate={ICON_VISIBLE}
+                        exit={ICON_ENTER}
+                        transition={ICON_SPRING}
+                      >
+                        <Check size={18} className="text-accent" />
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+              );
+            })}
+          </div>
+
+          {/* Info note */}
+          <div className="px-6 pt-4">
+            <p className="text-caption text-ink-3 text-center leading-relaxed">
+              You can't turn off reminders completely. This ensures you stay
+              on top of your obligations.
+            </p>
+          </div>
+        </div>
+    </Sheet>
+  );
+}
+
+// ─── Hook: auto-show on every app open (page load) ─────────────────
+// Each notification has its own independent snooze.
+// Chains: obligation popup → (dismiss) → daily tasks popup (if not snoozed).
+export function useObligationReminder(autoShow = false) {
+  const [showReminder, setShowReminder] = useState(false);
+  const [showTasksReminder, setShowTasksReminder] = useState(false);
+
+  useEffect(() => {
+    if (!autoShow) return;
+    const obligationSnoozed = isObligationSnoozed();
+    const tasksSnoozed = isTasksSnoozed();
+
+    if (!obligationSnoozed) {
+      // Show obligation first, tasks will chain after dismiss
+      const timer = setTimeout(() => setShowReminder(true), 800);
+      return () => clearTimeout(timer);
+    } else if (!tasksSnoozed) {
+      // Obligation snoozed, go straight to tasks
+      const timer = setTimeout(() => setShowTasksReminder(true), 800);
+      return () => clearTimeout(timer);
+    }
+    // Both snoozed → show nothing
+  }, [autoShow]);
+
+  const openReminder = useCallback(() => setShowReminder(true), []);
+
+  const closeReminder = useCallback(() => {
+    setShowReminder(false);
+    // After dismissing obligation, show tasks if not snoozed
+    if (!isTasksSnoozed()) {
+      setTimeout(() => setShowTasksReminder(true), 400);
+    }
+  }, []);
+
+  const closeTasksReminder = useCallback(() => {
+    setShowTasksReminder(false);
+  }, []);
+
+  return {
+    showReminder,
+    openReminder,
+    closeReminder,
+    showTasksReminder,
+    closeTasksReminder,
+  };
+}
+
+// ─── Tasks Reminder Settings Sheet (for Protocol bell icon) ─────────
+export function TasksReminderSettingsSheet({ visible, onClose }) {
+  const haptic = useWebHaptics();
+  const [snoozeInfo, setSnoozeInfo] = useState(getTasksSnoozeInfo);
+
+  const handleSetSnooze = (ms) => {
+    setTasksSnooze(ms);
+    setSnoozeInfo(getTasksSnoozeInfo());
+  };
+
+  useEffect(() => {
+    if (visible) setSnoozeInfo(getTasksSnoozeInfo());
+  }, [visible]);
+
+  return (
+    <Sheet
+      open={visible}
+      onClose={onClose}
+      zIndex={9998}
+      label="Task reminder settings"
+      className="fixed inset-x-0 bottom-0 max-w-md mx-auto"
+    >
+        <div className="bg-surface rounded-t-sheet shadow-float pb-10">
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-9 h-1 rounded-full bg-separator" />
+          </div>
+
+          <div className="px-6 pt-3 pb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-body font-bold text-ink">
+                Tasks Reminder
+              </h3>
+              <p className="text-footnote text-ink-2 mt-0.5">
+                {snoozeInfo.label}
+              </p>
+            </div>
+            <motion.button
+              whileTap={TAP}
+              transition={TAP_TRANSITION}
+              onClick={onClose}
+              aria-label="Close"
+              className="relative w-8 h-8 rounded-full bg-fill flex items-center justify-center after:absolute after:-inset-1.5 after:content-['']"
+            >
+              <X size={16} className="text-ink-2" />
+            </motion.button>
+          </div>
+
+          <div className="px-6 pb-2">
+            <p className="text-footnote font-semibold text-ink-3">
+              Reminder Frequency
+            </p>
+          </div>
+
+          <div className="px-6 space-y-1">
+            {SNOOZE_OPTIONS.map((opt) => {
+              const isActive = snoozeInfo.activeMs === opt.ms;
+
+              return (
+                <motion.button
+                  key={opt.label}
+                  whileTap={TAP_CARD}
+                  transition={TAP_TRANSITION}
+                  aria-pressed={isActive}
+                  onClick={() => {
+                    haptic.trigger("selection");
+                    handleSetSnooze(opt.ms);
+                  }}
+                  className={`w-full py-3.5 px-4 rounded-xl flex items-center justify-between transition-colors ${
+                    isActive
+                      ? "bg-caution/8 border border-caution/15"
+                      : "bg-fill border border-transparent active:bg-fill"
+                  }`}
+                  style={
+                    isActive
+                      ? {
+                          backgroundColor: "rgba(255,149,0,0.08)",
+                          borderColor: "rgba(255,149,0,0.15)",
+                        }
+                      : {}
+                  }
+                >
+                  <div className="flex items-center gap-3">
+                    <Clock
+                      size={18}
+                      className={
+                        isActive
+                          ? "text-caution"
+                          : "text-ink-3"
+                      }
+                    />
+                    <div className="text-left">
+                      <p
+                        className={`text-subhead font-semibold ${isActive ? "text-caution" : "text-ink"}`}
+                      >
+                        {opt.label}
+                      </p>
+                      <p className="text-caption text-ink-2">
+                        {opt.description}
+                      </p>
+                    </div>
+                  </div>
+                  <AnimatePresence initial={false}>
+                    {isActive && (
+                      <motion.span
+                        key="check"
+                        initial={ICON_ENTER}
+                        animate={ICON_VISIBLE}
+                        exit={ICON_ENTER}
+                        transition={ICON_SPRING}
+                      >
+                        <Check size={18} className="text-caution" />
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+              );
+            })}
+          </div>
+
+          <div className="px-6 pt-4">
+            <p className="text-caption text-ink-3 text-center leading-relaxed">
+              Controls when the daily tasks reminder appears on app open.
+            </p>
+          </div>
+        </div>
+    </Sheet>
+  );
+}

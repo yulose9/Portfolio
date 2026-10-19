@@ -16,6 +16,7 @@ public/optimized/
 
 # next.js
 /.next/
+/.next-dev/
 /out/
 
 # production

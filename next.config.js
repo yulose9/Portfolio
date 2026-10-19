@@ -84,12 +84,50 @@ if (
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Next 15 otherwise lets dev and production overwrite the same manifests.
+  distDir: process.env.NODE_ENV === "development" ? ".next-dev" : ".next",
   output: "export",
   images: {
     // `output: "export"` has no image server, so next/image must not try to
     // optimize on request. Without this, adding next/image breaks the build.
     unoptimized: true,
   },
+  ...(process.env.NODE_ENV === "development"
+    ? {
+        async headers() {
+          return [
+            {
+              source: "/:path*",
+              headers: [
+                {
+                  key: "Document-Policy",
+                  value: "js-profiling",
+                },
+              ],
+            },
+          ];
+        },
+      }
+    : {}),
 };
 
-module.exports = nextConfig;
+// BEGIN OPTIONAL SENTRY
+const { enabled: sentryEnabled } = require("./sentry.settings.json");
+
+module.exports = sentryEnabled ? require("@sentry/nextjs/config").withSentryConfig(nextConfig, {
+  // Sentry project configuration
+  org: "personal-organization-ra",
+  project: "javascript-nextjs",
+
+  // Only print logs for uploading source maps in CI
+  silent: !process.env.CI,
+
+  // Only upload source maps when SENTRY_AUTH_TOKEN is provided
+  sourcemaps: {
+    disable: !process.env.SENTRY_AUTH_TOKEN,
+  },
+
+  // Automatically tree-shake Sentry logger statements to reduce bundle size
+  disableLogger: true,
+}) : nextConfig;
+// END OPTIONAL SENTRY

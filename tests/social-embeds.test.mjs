@@ -66,7 +66,8 @@ test("Instagram reels and posts parse and generate embed frames", () => {
   assert.deepEqual(reel, {
     kind: "instagram", format: "reel", id: "C8FZ4rrSsxc", url: "https://www.instagram.com/reel/C8FZ4rrSsxc/",
   });
-  assert.equal(instagramFrame(reel), "https://www.instagram.com/reel/C8FZ4rrSsxc/embed/");
+  // Reels embed through the universal /p/ endpoint (commit 0a40d59).
+  assert.equal(instagramFrame(reel), "https://www.instagram.com/p/C8FZ4rrSsxc/embed/");
 
   const post = parseEmbed("https://instagram.com/p/DV_pLGWAugC");
   assert.deepEqual(post, {

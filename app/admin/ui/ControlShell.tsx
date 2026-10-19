@@ -22,6 +22,7 @@ import {
   ChartLine,
   ClockCounterClockwise,
   FileText,
+  Flame,
   FolderSimple,
   Globe,
   Keyboard,
@@ -76,6 +77,7 @@ export const DESTINATION_ICON: Record<Destination, Icon> = {
   writing: NotePencil,
   projects: Briefcase,
   website: Globe,
+  seneca: Flame,
 };
 
 /*
@@ -89,8 +91,6 @@ export const DESTINATION_ICON: Record<Destination, Icon> = {
 const OPEN_KEY = "admin-sidebar";
 const RECENTS_OPEN_KEY = "admin-sidebar-recents";
 const WIDTH_KEY = "admin-sidebar-width";
-const PEEK_DELAY = 120;
-const PEEK_GRACE = 200;
 
 function readFlag(key: string, fallback: boolean) {
   try {
@@ -166,7 +166,7 @@ const ShellLink = forwardRef<HTMLAnchorElement, LinkComponentProps>(function She
         if (!section || !DESTINATIONS.includes(section)) return;
         event.preventDefault();
         const view = url.searchParams.get("view");
-        if (view && (section === "writing" || section === "projects")) requestView(section, view);
+        if (view && (section === "writing" || section === "projects" || section === "seneca")) requestView(section, view);
         nav.onNavigate(section);
       }}
     />
@@ -243,21 +243,7 @@ export default function ControlShell({
  */
 function ShellSidebar() {
   const sidebar = useSidebar();
-  const { open, isMobile, isPeeking, startPeek, stopPeek, toggleSidebar } = sidebar;
-  const compact = !open && !isMobile;
-  const [want, setWant] = useState(false);
-  if (!compact && want) setWant(false);
-  const timer = useRef(0);
-  const pointerInside = useRef(false);
-  const keyboardInside = useRef(false);
-
-  useLayoutEffect(() => {
-    if (!compact) return;
-    if (want && !isPeeking) startPeek();
-    else if (!want && isPeeking) stopPeek();
-  }, [compact, want, isPeeking, startPeek, stopPeek]);
-
-  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const { open, isMobile, toggleSidebar } = sidebar;
 
   // ⌘B / Ctrl+B, as in Cloudflare's dashboard and VS Code. Not while typing:
   // in a field or the editor it is bold.
@@ -276,12 +262,6 @@ function ShellSidebar() {
       window.removeEventListener("admin:sidebar-toggle", toggleSidebar);
     };
   }, [toggleSidebar]);
-
-  const schedule = (next: boolean, delay: number) => {
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setWant(next), delay);
-  };
-  const inFooter = (target: EventTarget) => target instanceof Element && !!target.closest('[data-sidebar="footer"]');
 
   const { width: currentWidth, setWidth, resetWidth } = useContext(SidebarResizeContext);
   const dragRef = useRef<{
@@ -377,40 +357,6 @@ function ShellSidebar() {
     <Sidebar
       className="control-sidebar-frame"
       contentClassName="control-kumo-nav"
-      onPointerOver={(event: PointerEvent<HTMLElement>) => {
-        if (!compact || event.pointerType === "touch") return;
-        pointerInside.current = true;
-        if (want) window.clearTimeout(timer.current);
-        else if (!inFooter(event.target)) schedule(true, PEEK_DELAY);
-        else window.clearTimeout(timer.current);
-      }}
-      onPointerLeave={() => {
-        pointerInside.current = false;
-        if (!compact) return;
-        if (!want) window.clearTimeout(timer.current);
-        else if (!keyboardInside.current) schedule(false, PEEK_GRACE);
-      }}
-      onFocus={(event: FocusEvent<HTMLElement>) => {
-        if (!compact || inFooter(event.target) || !(event.target as Element).matches?.(":focus-visible")) return;
-        keyboardInside.current = true;
-        window.clearTimeout(timer.current);
-        setWant(true);
-      }}
-      onBlur={(event: FocusEvent<HTMLElement>) => {
-        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-        keyboardInside.current = false;
-        if (compact && !pointerInside.current) {
-          window.clearTimeout(timer.current);
-          setWant(false);
-        }
-      }}
-      onKeyDown={(event) => {
-        if (event.key === "Escape" && compact && want) {
-          keyboardInside.current = false;
-          window.clearTimeout(timer.current);
-          setWant(false);
-        }
-      }}
     >
       <Sidebar.Header className="control-sidebar-header">
         <Brand />
@@ -562,6 +508,12 @@ function Navigation() {
         <Sidebar.Menu>
           <ViewGroup scope="writing" />
           <ViewGroup scope="projects" />
+        </Sidebar.Menu>
+      </Sidebar.Group>
+      <Sidebar.Group>
+        <Sidebar.GroupLabel>Seneca</Sidebar.GroupLabel>
+        <Sidebar.Menu>
+          <ViewGroup scope="seneca" />
         </Sidebar.Menu>
       </Sidebar.Group>
       <Sidebar.Group>
@@ -788,23 +740,29 @@ function Crumbs() {
   const { section } = useNav();
   const writing = useShownView("writing");
   const projects = useShownView("projects");
+  const seneca = useShownView("seneca");
   const label = DESTINATION_LABEL[section];
-  if (section !== "writing" && section !== "projects")
+  if (section !== "writing" && section !== "projects" && section !== "seneca")
     return (
       <Breadcrumbs size="sm" className="control-crumbs">
         <Breadcrumbs.Current>{label}</Breadcrumbs.Current>
       </Breadcrumbs>
     );
   const views = VIEWS[section];
-  const shown = section === "writing" ? writing : projects;
+  const shown = section === "writing" ? writing : section === "projects" ? projects : seneca;
   const current = views.find((v) => v.id === shown) ?? views[0];
+  const defaultView = section === "seneca" ? "home" : "all";
   return (
     <Breadcrumbs size="sm" className="control-crumbs">
-      <Breadcrumbs.Link href={`/admin?section=${section}&view=all`}>{label}</Breadcrumbs.Link>
+      <Breadcrumbs.Link href={`/admin?section=${section}&view=${defaultView}`}>{label}</Breadcrumbs.Link>
       <Breadcrumbs.Separator />
       {/* The current view doubles as a switcher between its siblings. */}
       <DropdownMenu>
-        <DropdownMenu.Trigger className="control-crumb-switch" aria-current="page">
+        <DropdownMenu.Trigger
+          render={
+            <button type="button" className="control-crumb-switch" aria-current="page" />
+          }
+        >
           <span className="control-crumb-current">{current.label}</span>
           <CaretUpDown size={12} weight="bold" aria-hidden="true" />
           <span className="sr-only">, switch view</span>
@@ -829,7 +787,15 @@ function Account({ email }: { email: string }) {
 
   return (
     <DropdownMenu>
-      <DropdownMenu.Trigger className="control-account" aria-label={`Account, ${name} (${email})`}>
+      <DropdownMenu.Trigger
+        render={
+          <button
+            type="button"
+            className="control-account"
+            aria-label={`Account, ${name} (${email})`}
+          />
+        }
+      >
         <span className="control-avatar" aria-hidden="true">
           {photo && !photoFailed ? (
             <img

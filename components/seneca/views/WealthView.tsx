@@ -1,0 +1,1387 @@
+// @ts-nocheck
+"use client";
+import WealthWorkbench from "../WealthWorkbench";
+import { mutateWealth } from "@/lib/seneca/services/wealthLedger";
+import { recordMoney, removeMoney } from "@/lib/seneca/utils/wealthLedger";
+import CategoryBudgets from "../CategoryBudgets";
+import clsx from "clsx";
+import { useWebHaptics } from "web-haptics/react";
+import {
+  AnimatePresence,
+  motion,
+} from "framer-motion";
+import Fuse from "fuse.js";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Bell,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  MapPin,
+  Plus,
+  Search,
+  X,
+} from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "@/lib/seneca/context/SenecaNavContext";
+import AccountDetailSheet from "@/components/seneca/AccountDetailSheet";
+import AddTransactionSheet from "@/components/seneca/AddTransactionSheet";
+import { ReminderSettingsSheet } from "@/components/seneca/ObligationReminder";
+import PageTransition from "@/components/seneca/PageTransition";
+import Num from "@/components/seneca/Num";
+import WealthFlow from "@/components/seneca/WealthFlow";
+import PageHeader from "@/components/seneca/PageHeader";
+import SwipeRow from "@/components/seneca/SwipeRow";
+import TransactionDetailSheet from "@/components/seneca/TransactionDetailSheet";
+import {
+  DIALOG_SPRING,
+  EASE_OUT,
+  FADE,
+  ICON_ENTER,
+  ICON_SPRING,
+  ICON_VISIBLE,
+  LAYOUT_SPRING,
+  FADE_EXIT,
+  TAP,
+  TAP_CARD,
+  TAP_TRANSITION,
+} from "@/lib/seneca/constants/motion";
+import { updateGlobalData, updateTodayLog } from "@/lib/seneca/services/dataLogger";
+import {
+  useWealthAssets,
+  useWealthLiabilities,
+  useWealthSearchHistory,
+  useWealthTransactions,
+} from "@/lib/seneca/data/syncedData";
+import { getPhDateKey, toDateKey } from "@/lib/seneca/utils/timeUtils";
+import { ROUTE_PUSHED } from '@/app/admin/ui/shell-nav';
+
+// Default data (amounts are 0 — real values come from Firestore)
+const DEFAULT_LIABILITIES = [
+  {
+    id: "kuya",
+    icon: "🤝",
+    name: "Loan from Kuya",
+    platform: "Personal",
+    amount: 0,
+    value: 0,
+    category: "Liabilities",
+    isPriority: true,
+    tags: ["Personal", "Priority"],
+  },
+  {
+    id: "other",
+    icon: "🍀",
+    name: "Other Loans",
+    platform: "Bank / Other",
+    amount: 0,
+    value: 0,
+    category: "Liabilities",
+    isPriority: false,
+    tags: ["Bank"],
+  },
+];
+
+// Hydrate a liability from cloud data by restoring missing fields from defaults
+const hydrateLiability = (cloudLiability) => {
+  const defaults = DEFAULT_LIABILITIES.find((d) => d.id === cloudLiability.id);
+  if (defaults) {
+    return { ...defaults, ...cloudLiability, category: "Liabilities" };
+  }
+  // Unknown liability — ensure category is present
+  return {
+    icon: "🏦",
+    category: "Liabilities",
+    value: 0,
+    ...cloudLiability,
+  };
+};
+
+// Rolling Number Component
+const RollingNumber = ({ value, prefix = "", className }) => <Num value={value} prefix={prefix} className={className} format={{ minimumFractionDigits: 2, maximumFractionDigits: 2 }} />;
+
+const ConfirmDialog = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  confirmText = "Delete",
+}) => (
+  <AnimatePresence>
+    {isOpen && (
+      <>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={FADE}
+          onClick={onClose}
+          className="fixed inset-0 sn-scrim z-[300]"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95, transition: FADE }}
+          transition={DIALOG_SPRING}
+          className="fixed left-4 right-4 top-1/2 -translate-y-1/2 bg-surface rounded-2xl overflow-hidden z-[301] max-w-sm mx-auto shadow-float"
+        >
+          <div className="p-6 text-center">
+            <h3 className="text-body font-semibold text-ink mb-2">
+              {title}
+            </h3>
+            <p className="text-subhead text-ink-2">{message}</p>
+          </div>
+          <div className="border-t border-separator flex">
+            <motion.button
+              whileTap={{ backgroundColor: "rgba(0,0,0,0.05)" }}
+              onClick={onClose}
+              className="flex-1 py-4 text-body font-medium text-accent border-r border-separator"
+            >
+              Cancel
+            </motion.button>
+            <motion.button
+              whileTap={{ backgroundColor: "rgba(0,0,0,0.05)" }}
+              onClick={onConfirm}
+              className="flex-1 py-4 text-body font-semibold text-negative"
+            >
+              {confirmText}
+            </motion.button>
+          </div>
+        </motion.div>
+      </>
+    )}
+  </AnimatePresence>
+);
+
+// Swipeable + selectable list row (swipe/long-press handled by SwipeRow)
+const SwipeableRow = ({
+  children,
+  onSwipeDelete,
+  onSelect,
+  onClick,
+  isSelecting,
+  isSelected,
+  item,
+  onLongPress,
+}) => (
+  <SwipeRow
+    onDelete={() => onSwipeDelete(item)}
+    disabled={isSelecting}
+    onLongPress={() => onLongPress?.(item.id)}
+    onClick={() => (isSelecting ? onSelect(item.id) : onClick?.(item))}
+    inset
+    whileTap={{ backgroundColor: "rgba(0,0,0,0.04)" }}
+    className={clsx("bg-surface", isSelecting && "pl-12")}
+  >
+    {/* Selection Checkbox */}
+    <AnimatePresence>
+      {isSelecting && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, x: -20 }}
+          animate={{ opacity: 1, scale: 1, x: 0 }}
+          exit={{ opacity: 0, scale: 0.9, x: -20 }}
+          transition={LAYOUT_SPRING}
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-20"
+        >
+          <div
+            className={clsx(
+              "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors duration-150",
+              isSelected ? "bg-accent border-accent" : "border-ink-3 bg-transparent",
+            )}
+          >
+            <AnimatePresence initial={false}>
+              {isSelected && (
+                <motion.span
+                  key="check"
+                  initial={ICON_ENTER}
+                  animate={ICON_VISIBLE}
+                  exit={ICON_ENTER}
+                  transition={ICON_SPRING}
+                >
+                  <Check size={14} className="text-white" strokeWidth={3} />
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+    {children}
+  </SwipeRow>
+);
+
+// AssetRow (Phantom-style)
+const AssetRow = (props) => (
+  <SwipeableRow {...props} item={props} onSwipeDelete={props.onDelete}>
+    <div className="sn-wallet-card flex items-center p-4 cursor-pointer">
+      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-white/20 to-white/5 border border-white/10 flex items-center justify-center text-title-3 mr-3 shrink-0">
+        {props.icon || "₱"}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-callout font-semibold text-ink truncate">
+          {props.name}
+        </p>
+        <p className="text-footnote text-ink-2">
+          {props.platform || props.category}
+        </p>
+      </div>
+      <div className="text-right">
+        <p className="text-callout font-bold text-ink tabular-nums">
+          ₱{(props.amount || 0).toLocaleString()}
+        </p>
+        {props.change !== undefined && (
+          <p
+            className={clsx(
+              "text-footnote font-semibold tabular-nums",
+              props.isPositive ? "text-positive" : "text-negative",
+            )}
+          >
+            {props.isPositive ? "+" : "-"}₱
+            {Math.abs(props.change || 0).toLocaleString()}
+          </p>
+        )}
+      </div>
+    </div>
+  </SwipeableRow>
+);
+
+// LiabilityRow
+const LiabilityRow = (props) => (
+  <SwipeableRow {...props} item={props} onSwipeDelete={props.onDelete}>
+    <div
+      className="flex items-center p-4 cursor-pointer"
+    >
+      <div
+        className="w-11 h-11 rounded-full flex items-center justify-center text-title-3 mr-3 shrink-0 bg-fill"
+      >
+        {props.icon}
+      </div>
+      <div className="flex-1">
+        <p className="text-callout font-semibold text-ink">{props.name}</p>
+        <div className="flex items-center gap-1.5 mt-1">
+          {(props.tags || []).map((tag) => (
+            <span
+              key={tag}
+              className={clsx(
+                "text-caption-2 font-bold px-2 py-0.5 rounded-full",
+                tag === "Priority"
+                  ? "bg-negative text-white"
+                  : "bg-black/[0.06] text-ink-2",
+              )}
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      </div>
+      <p className="text-callout font-bold text-negative tabular-nums">
+        -₱{(props.amount || 0).toLocaleString()}
+      </p>
+    </div>
+  </SwipeableRow>
+);
+
+// Transaction Row (Swipeable & Selectable)
+const TransactionRow = ({
+  item,
+  isLast,
+  isSelecting,
+  isSelected,
+  onSelect,
+  onDelete,
+  onLongPress,
+  onClick,
+  ...props
+}) => {
+  return (
+    <SwipeRow
+      onDelete={() => onDelete(item.id)}
+      deleteLabel="Delete transaction"
+      disabled={isSelecting}
+      onLongPress={() => onLongPress?.(item.id)}
+      onClick={() => (isSelecting ? onSelect(item.id) : onClick?.(item))}
+      inset
+      whileTap={TAP_CARD}
+      className="flex items-center p-4 mb-2 bg-surface rounded-2xl shadow-card select-none"
+    >
+        <AnimatePresence>
+          {isSelecting && (
+            <motion.div
+              initial={{ width: 0, opacity: 0, marginRight: 0 }}
+              animate={{ width: 28, opacity: 1, marginRight: 12 }}
+              exit={{ width: 0, opacity: 0, marginRight: 0 }}
+              transition={FADE}
+              className="shrink-0 overflow-hidden"
+            >
+              <div
+                className={clsx(
+                  "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors duration-150",
+                  isSelected
+                    ? "bg-accent border-accent"
+                    : "border-ink-3",
+                )}
+              >
+                <AnimatePresence initial={false}>
+                  {isSelected && (
+                    <motion.span
+                      key="check"
+                      initial={ICON_ENTER}
+                      animate={ICON_VISIBLE}
+                      exit={ICON_ENTER}
+                      transition={ICON_SPRING}
+                    >
+                      <Check size={14} className="text-white" strokeWidth={3} />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="w-10 h-10 rounded-full border-2 border-separator flex items-center justify-center mr-3 shrink-0">
+          {item.type === "deposit" || item.type === "payment" ? (
+            <ArrowDownLeft size={18} className="text-positive" />
+          ) : (
+            <ArrowUpRight size={18} className="text-negative" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-callout font-semibold text-ink flex items-center">
+            <span
+              onClick={(e) => {
+                if (props.onAccountClick && !isSelecting) {
+                  e.stopPropagation();
+                  props.onAccountClick(item);
+                }
+              }}
+              className={
+                props.onAccountClick && !isSelecting
+                  ? "hover:underline cursor-pointer active:text-accent transition-colors duration-150"
+                  : ""
+              }
+            >
+              {item.bank}
+            </span>
+          </p>
+          <p className="text-footnote text-ink-2 truncate">
+            {["transfer","lend","collect","borrow"].includes(item.type) ? item.type.charAt(0).toUpperCase()+item.type.slice(1) : item.spendingCategory || item.note || item.location}
+          </p>
+        </div>
+        <div className="text-right">
+          <p
+            className={clsx(
+              "text-body font-bold tabular-nums",
+              item.type === "deposit" || item.type === "payment"
+                ? "text-ink"
+                : "text-negative",
+            )}
+          >
+            {item.type === "withdrawal" && "-"}₱
+            {(item.amount || 0).toLocaleString()}
+          </p>
+        </div>
+    </SwipeRow>
+  );
+};
+
+// Category Dropdown
+const CategoryDropdown = ({
+  selected,
+  options,
+  onSelect,
+  isOpen,
+  setIsOpen,
+}) => (
+  <div className="relative z-50">
+    <motion.button
+      whileTap={TAP}
+      transition={TAP_TRANSITION}
+      aria-expanded={isOpen}
+      onClick={() => setIsOpen(!isOpen)}
+      className="sn-hit flex items-center gap-2 text-white/90 font-semibold text-subhead"
+    >
+      {selected}
+      <ChevronDown
+        size={18}
+        className={clsx("transition-transform duration-200 ease-out", isOpen && "rotate-180")}
+      />
+    </motion.button>
+
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: -4, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -4, scale: 0.95 }}
+          transition={{ duration: 0.15, ease: EASE_OUT }}
+          className="origin-top-left absolute top-full left-0 mt-2 bg-surface rounded-xl shadow-float overflow-hidden min-w-[140px] z-[100]"
+        >
+          {options.map((option) => (
+            <motion.button
+              key={option}
+              whileTap={{ backgroundColor: "rgba(0,0,0,0.04)" }}
+              onClick={() => {
+                onSelect(option);
+                setIsOpen(false);
+              }}
+              className={clsx(
+                "w-full px-4 py-3 text-left text-subhead font-medium",
+                selected === option
+                  ? "text-accent bg-accent/5"
+                  : "text-ink",
+              )}
+            >
+              {option}
+            </motion.button>
+          ))}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </div>
+);
+
+export default function Wealth() {
+  const haptic = useWebHaptics();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedCategory = searchParams.get("category") || "All Assets";
+  const [moneyView, setMoneyView] = useState(() => ['held', 'income', 'expenses'].includes(searchParams.get('money')) ? searchParams.get('money') : 'all');
+  const moneyTitle = moneyView === 'income' ? 'Income' : moneyView === 'expenses' ? 'Expenses' : 'Transactions';
+
+  const setSelectedCategory = (category) => {
+    setSearchParams({ category });
+  };
+
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [ledgerError,setLedgerError] = useState("");
+  const [viewTransaction, setViewTransaction] = useState(null);
+  const [showAddSheet, setShowAddSheet] = useState(false);
+  const [showReminderSettings, setShowReminderSettings] = useState(false);
+
+  // Search state
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [activeFilter, setActiveFilter] = useState("All");
+
+  const FILTER_OPTIONS = [
+    { id: "All", label: "All" },
+    { id: "deposit", label: "Income", icon: <ArrowDownLeft size={13} /> },
+    { id: "withdrawal", label: "Expenses", icon: <ArrowUpRight size={13} /> },
+    { id: "has_location", label: "Places", icon: <MapPin size={13} /> },
+    {
+      id: "high_value",
+      label: "High Value (>₱1k)",
+      icon: <div className="text-caption-2 font-bold">₱₱</div>,
+    }, // Custom icon
+    {
+      id: "recent",
+      label: "Recent",
+      icon: <div className="w-1.5 h-1.5 rounded-full bg-current" />,
+    },
+  ];
+
+  // Transaction selection state
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    type: null,
+    itemId: null,
+  });
+
+  const categories = ["All Assets", "Savings", "Investments", "Liabilities"];
+
+  // Accounts, transactions and search history — each a field of
+  // global_data/wealth, synced across devices and cached in localStorage.
+  // Only fields changed on THIS device are written; remote edits (including
+  // deletions) replace local state without being echoed back.
+  const [assets] = useWealthAssets();
+  const [storedLiabilities] = useWealthLiabilities();
+  const [transactions] = useWealthTransactions();
+  const [searchHistory, setSearchHistory] = useWealthSearchHistory();
+
+  // Liabilities stored in the cloud may lack display fields — restore them
+  const liabilities = useMemo(() => storedLiabilities.map(hydrateLiability), [storedLiabilities]);
+  // Derived totals for dashboards/analytics (diffed by dataLogger — nothing is
+  // written when they haven't changed)
+  useEffect(() => {
+    const totalAssets = assets.filter(a => !a.excludeFromTotal).reduce((sum, a) => sum + (a.amount || 0), 0);
+    const totalLiabilities = liabilities.reduce((sum, l) => sum + (l.amount || 0), 0);
+    const netWorth = totalAssets - totalLiabilities;
+    const spendingByCategory = transactions
+      .filter((t) => t.type === "withdrawal")
+      .reduce((acc, t) => {
+        const cat = t.category || "Other";
+        acc[cat] = (acc[cat] || 0) + t.amount;
+        return acc;
+      }, {});
+
+    updateGlobalData("wealth", {
+      net_worth: netWorth,
+      total_assets: totalAssets,
+      total_liabilities: totalLiabilities,
+      spending_by_category: spendingByCategory,
+    });
+
+    const today = getPhDateKey();
+    updateTodayLog("wealth", {
+      net_worth: netWorth,
+      total_assets: totalAssets,
+      total_liabilities: totalLiabilities,
+      transactions_today: transactions.filter((t) => t.date && toDateKey(new Date(t.date)) === today).length,
+      spending_by_category: spendingByCategory,
+    });
+  }, [assets, liabilities, transactions]);
+
+  const handleSaveSearch = () => {
+    if (searchQuery.trim().length > 0) {
+      setSearchHistory((prev) => {
+        const newHistory = [
+          searchQuery,
+          ...prev.filter((s) => s !== searchQuery),
+        ].slice(0, 10); // Keep last 10 unique
+        return newHistory;
+      });
+    }
+  };
+
+  const archiveAccount = (account, field) => setConfirmDialog({isOpen:true,title:'Archive '+account.name+'?',message:'History and balances are kept. You can restore this account in Money tools.',confirmText:'Archive',onConfirm:async()=>{
+    try {await mutateWealth(state=>({...state,[field]:state[field].map(a=>a.id===account.id?{...a,archived:true}:a)}));setConfirmDialog({isOpen:false,type:null,itemId:null});}catch(error){setLedgerError(error.message);}
+  }});
+  const handleDeleteAsset = account => archiveAccount(account,'assets');
+  const handleDeleteLiability = account => archiveAccount(account,'liabilities');
+
+  // Account Viewing State
+  const [viewingAccount, setViewingAccount] = useState(null);
+  const [highlightTransactionId, setHighlightTransactionId] = useState(null);
+
+  const handleAssetClick = (asset) => {
+    haptic.trigger("light");
+    setViewingAccount(asset);
+    setHighlightTransactionId(null);
+  };
+
+  const handleLiabilityClick = (liability) => {
+    haptic.trigger("light");
+    setViewingAccount(liability);
+    setHighlightTransactionId(null);
+  };
+
+  const handleTransactionAccountClick = (transaction) => {
+    const matchedAccount = [...assets, ...liabilities].find(
+      (a) => a.name === transaction.bank,
+    );
+    if (matchedAccount) {
+      setViewingAccount(matchedAccount);
+      setHighlightTransactionId(transaction.id);
+    }
+  };
+
+  // Helper for Relative Dates
+  const getRelativeHeader = (dateStr) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const dateFormatted = date.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    if (diffDays === 0 && date.getDate() === now.getDate())
+      return `Today, ${dateFormatted}`;
+    if (diffDays === 1) return `Yesterday, ${dateFormatted}`;
+    if (diffDays === 3) return `Three Days Ago, ${dateFormatted}`;
+    if (diffDays <= 7) return `A Week Ago, ${dateFormatted}`;
+    if (diffDays <= 30) return `A Month Ago, ${dateFormatted}`;
+    return dateFormatted;
+  };
+
+  // Configure Fuse.js
+  const fuse = useMemo(() => {
+    const enrichedTransactions = transactions.map((t) => ({
+      ...t,
+      dateLocal: new Date(t.date).toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+      dateRelative: getRelativeHeader(t.date),
+    }));
+
+    return new Fuse(enrichedTransactions, {
+      keys: [
+        { name: "bank", weight: 0.7 },
+        { name: "location", weight: 0.5 },
+        { name: "amount", weight: 0.3 },
+        { name: "dateLocal", weight: 0.4 },
+        { name: "dateRelative", weight: 0.6 },
+        { name: "type", weight: 0.2 },
+      ],
+      threshold: 0.3,
+      ignoreLocation: true,
+    });
+  }, [transactions]);
+
+  // Combined Search Logic
+  const filteredSearchResults = useMemo(() => {
+    let results = transactions;
+
+    // 1. Text Search (if any)
+    if (searchQuery.length > 0) {
+      results = fuse.search(searchQuery).map((r) => r.item);
+    }
+
+    // 2. Category Filter
+    if (activeFilter !== "All") {
+      if (activeFilter === "recent") {
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        results = results.filter((t) => new Date(t.date) >= oneWeekAgo);
+      } else if (activeFilter === "has_location") {
+        // Filter for transactions with specific locations (ignoring generic ones)
+        results = results.filter(
+          (t) =>
+            t.location &&
+            !["Payment", "Interest", "Deposit", "Transfer"].includes(
+              t.location,
+            ),
+        );
+      } else if (activeFilter === "high_value") {
+        results = results.filter((t) => t.amount > 1000);
+      } else {
+        results = results.filter((t) => t.type === activeFilter);
+      }
+    }
+
+    return results;
+  }, [searchQuery, activeFilter, transactions, fuse]);
+
+  useEffect(() => {
+    // Only update search results if searching
+    if (isSearching) {
+      setSearchResults(filteredSearchResults);
+    }
+  }, [filteredSearchResults, isSearching]);
+
+  // Group transactions (standard view)
+  const groupedTransactions = useMemo(() => {
+    let filtered = transactions;
+
+    if (selectedCategory === "Liabilities") {
+      filtered = transactions.filter((t) => t.category === "Liabilities");
+    } else if (selectedCategory !== "All Assets") {
+      const categoryAssets = assets.filter(
+        (a) => a.category === selectedCategory,
+      );
+      const assetNames = categoryAssets.map((a) => a.name);
+
+      filtered = transactions.filter(
+        (t) => t.category === selectedCategory || assetNames.includes(t.bank),
+      );
+    }
+
+    if (moneyView === 'income' || moneyView === 'expenses') {
+      filtered = filtered.filter(t => (moneyView === 'income' ? t.type === 'deposit' : ['withdrawal', 'payment'].includes(t.type)) && t.note?.trim().toLowerCase() !== 'balance adjustment');
+    }
+    return filtered.reduce((groups, transaction) => {
+      const header = getRelativeHeader(transaction.date);
+      if (!groups[header]) groups[header] = [];
+      groups[header].push(transaction);
+      return groups;
+    }, {});
+  }, [transactions, selectedCategory, assets, moneyView]);
+
+  // Transaction Actions
+  const handleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const newSet = new Set(prev);
+      newSet.has(id) ? newSet.delete(id) : newSet.add(id);
+      return newSet;
+    });
+  };
+  const handleDeleteSingle = (id) =>
+    setConfirmDialog({ isOpen: true, type: "single", itemId: id });
+  const handleDeleteSelected = () => {
+    if (selectedIds.size > 0)
+      setConfirmDialog({ isOpen: true, type: "bulk", itemId: null });
+  };
+  const handleConfirmDelete = async () => {
+
+    try {
+      await mutateWealth(state => ({...state,...removeMoney(state,confirmDialog.type === "single" ? [confirmDialog.itemId] : [...selectedIds])}));
+      setSelectedIds(new Set()); setIsSelecting(false);
+    } catch(error) { setConfirmDialog({...confirmDialog, message: error.message}); return; }
+    setConfirmDialog({ isOpen: false, type: null, itemId: null });
+  };
+  const handleSelectAll = () =>
+    setSelectedIds(
+      selectedIds.size === transactions.length
+        ? new Set()
+        : new Set(transactions.map((t) => t.id)),
+    );
+  const handleLongPress = (id) => {
+    setIsSelecting(true);
+    setSelectedIds(new Set([id]));
+  };
+
+  const handleUpdateBalance = async (account, newBalance) => {
+
+    // Determine if this is a liability by checking the liabilities array
+    // (more reliable than account.category which may be stripped by cloud sync)
+    const isLiability = liabilities.some((l) => l.id === account.id);
+    const id = crypto.randomUUID();
+    const date = new Date().toISOString();
+
+    try {
+      await mutateWealth(state => {
+        const current = (isLiability ? state.liabilities : state.assets).find(a => a.id === account.id);
+        if (!current) throw new Error("This account no longer exists.");
+        if (!Number.isFinite(newBalance) || newBalance < 0) throw new Error("Enter a valid balance.");
+        const difference = Math.round(newBalance * 100) - Math.round(current.amount * 100);
+        if (!difference) return state;
+        return {...state,...recordMoney(state, {id,date,amount:Math.abs(difference)/100,accountId:account.id,type:"adjustment",adjustmentDirection:difference>0?"up":"down",category:isLiability?"Liabilities":account.category,bank:account.name,note:"Balance Adjustment",excludeFromReport:true})};
+      });
+      setViewingAccount(prev => ({...prev,amount:newBalance}));
+    } catch(error) {setLedgerError(error.message);}
+  };
+
+  const totalAssets = assets.filter(a=>!a.excludeFromTotal).reduce((sum, a) => sum + a.amount, 0);
+  const totalLiabilities = liabilities.reduce((sum, l) => sum + l.amount, 0);
+  const netWorth = totalAssets - totalLiabilities;
+
+  // Calculate this month's activity from actual transactions
+  // Calculate this month's activity from actual transactions, filtered by category
+  const thisMonthTransactions = useMemo(() => {
+    const monthKey = getPhDateKey().slice(0, 7);
+
+    let relevantTransactions = transactions;
+
+    if (selectedCategory === "Savings") {
+      const savingsBanks = assets
+        .filter((a) => a.category === "Savings")
+        .map((a) => a.name);
+      relevantTransactions = transactions.filter((t) =>
+        savingsBanks.includes(t.bank),
+      );
+    } else if (selectedCategory === "Investments") {
+      const investmentBanks = assets
+        .filter((a) => a.category === "Investments")
+        .map((a) => a.name);
+      relevantTransactions = transactions.filter((t) =>
+        investmentBanks.includes(t.bank),
+      );
+    } else if (selectedCategory === "Liabilities") {
+      // Assuming liabilities logic (if transactions were linked, for now maybe just withdrawals?)
+      // Or maybe we don't show "income/expense" for liabilities in the same way?
+      // For now, let's keep it consistent or empty if no transactions map.
+      relevantTransactions = [];
+    }
+
+    return relevantTransactions.filter((t) => !t.excludeFromReport && Number.isFinite(new Date(t.date).getTime()) && toDateKey(new Date(t.date)).startsWith(monthKey)).flatMap(t => ["transfer","lend","collect"].includes(t.type) ? (t.fee ? [{...t,id:`${t.id}:fee`,type:"withdrawal",amount:t.fee,note:"Transaction fee"}] : []) : [t]);
+  }, [transactions, selectedCategory, assets]);
+
+  const monthlyDeposits = thisMonthTransactions
+    .filter((t) => t.type === "deposit")
+    .reduce((sum, t) => sum + t.amount, 0);
+  const monthlyWithdrawals = thisMonthTransactions
+    .filter((t) => t.type === "withdrawal")
+    .reduce((sum, t) => sum + t.amount, 0);
+  const filteredAssets =
+    selectedCategory === "All Assets"
+      ? assets
+      : selectedCategory === "Liabilities"
+        ? []
+        : assets.filter((a) => !a.archived && a.category === selectedCategory);
+
+  const filteredLiabilities =
+    selectedCategory === "All Assets" || selectedCategory === "Liabilities"
+      ? liabilities
+      : [];
+
+  const displayedBalance =
+    selectedCategory === "Liabilities"
+      ? totalLiabilities
+      : selectedCategory === "All Assets"
+        ? netWorth
+        : filteredAssets.reduce((sum, a) => sum + a.amount, 0);
+
+  return (
+    <PageTransition className="w-full pb-8 sn-wealth-board">
+      {ledgerError && <p role="alert" className="sn-workbench-error">{ledgerError}</p>}
+      <PageHeader
+        title="Wealth"
+        subtitle="Financial telemetry, assets, liabilities, and transactions."
+      />
+      <div className={`sn-wealth-overview ${isSearching ? "is-searching" : ""}`}>
+      {/* Wealth Header Card */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        layout
+        className="sn-wealth-balance relative z-20 rounded-2xl overflow-hidden shadow-card"
+      >
+        <div className="absolute inset-0 bg-[#262523] [background-image:radial-gradient(120%_80%_at_100%_0%,rgb(245_165_91/0.16),transparent_60%)]" />
+
+        <div className="relative py-6 px-6">
+          {/* Header: Search vs Normal */}
+          <div
+            className={clsx(
+              "sn-wealth-head flex items-center justify-between mb-4",
+              isSearching ? "gap-2" : "mb-6",
+            )}
+          >
+            {!isSearching ? (
+              <>
+                <CategoryDropdown
+                  selected={selectedCategory}
+                  options={categories}
+                  onSelect={(cat) => { haptic.trigger("selection"); setSelectedCategory(cat); }}
+                  isOpen={isDropdownOpen}
+                  setIsOpen={setIsDropdownOpen}
+                />
+                <div className="flex items-center gap-2">
+                  <motion.button
+                    whileTap={{ scale: 0.96 }}
+                    transition={TAP_TRANSITION}
+                    aria-label="Add transaction"
+                    title="Add transaction"
+                    onClick={() => { haptic.trigger("medium"); setShowAddSheet(true); }}
+                    className="sn-btn sn-btn-primary"
+                  >
+                    <Plus size={15} strokeWidth={2.5} />
+                    <span className="sn-hide-xs">Transaction</span>
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.96 }}
+                    transition={TAP_TRANSITION}
+                    aria-label="Reminder settings"
+                    title="Reminder settings"
+                    onClick={() => setShowReminderSettings(true)}
+                    className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/15 flex items-center justify-center relative transition-colors"
+                  >
+                    <Bell size={16} className="text-white" />
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.96 }}
+                    transition={TAP_TRANSITION}
+                    aria-label="Search transactions"
+                    title="Search transactions"
+                    onClick={() => setIsSearching(true)}
+                    className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/15 flex items-center justify-center transition-colors"
+                  >
+                    <Search size={16} className="text-white" />
+                  </motion.button>
+                </div>
+              </>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={FADE}
+                className="flex-1 flex items-center gap-3"
+              >
+                <div className="flex-1 relative">
+                  <Search
+                    size={18}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50"
+                  />
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="Search date, place, amount..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSaveSearch()}
+                    className="w-full bg-white/10 text-white placeholder-white/50 rounded-xl pl-10 pr-10 py-2.5 outline-none focus:bg-white/20 transition-colors duration-150"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      aria-label="Clear search"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 p-2"
+                    >
+                      <div className="bg-white/20 rounded-full p-0.5">
+                        <X size={12} className="text-white" />
+                      </div>
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={() => {
+                    setIsSearching(false);
+                    setSearchQuery("");
+                    setActiveFilter("All");
+                  }}
+                  className="text-white font-medium"
+                >
+                  Cancel
+                </button>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Dynamic Filters - Only visible when searching */}
+          <AnimatePresence>
+            {isSearching && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={FADE}
+                className="overflow-x-auto no-scrollbar -mx-5 px-5 pb-2"
+              >
+                <div className="flex items-center gap-2">
+                  {FILTER_OPTIONS.map((filter, index) => (
+                    <motion.button
+                      key={filter.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      whileTap={TAP}
+                      transition={{ ...FADE, delay: index * 0.03 }}
+                      onClick={() => setActiveFilter(filter.id)}
+                      className={clsx(
+                        "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-footnote font-medium whitespace-nowrap transition-[background-color,color,box-shadow,scale] duration-150 ease-out",
+                        activeFilter === filter.id
+                          ? "bg-white text-[#1f1e1c] shadow-float scale-105"
+                          : "bg-white/10 text-white/80 hover:bg-white/15",
+                      )}
+                    >
+                      {filter.icon && <span>{filter.icon}</span>}
+                      {filter.label}
+                    </motion.button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Balance Display (Hidden in Search Mode to reduce noise) */}
+          {!isSearching && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: EASE_OUT, delay: 0.05 }}
+              className="sn-wealth-amount text-center mb-6"
+            >
+              <p className="sn-wealth-balance-label">{selectedCategory === "All Assets" ? "Net worth" : `${selectedCategory} balance`}</p>
+              <div
+                className={clsx(
+                  "text-display font-bold",
+                  displayedBalance >= 0
+                    ? "text-[#F5A55B]"
+                    : "text-[#F07B73]",
+                )}
+              >
+                <RollingNumber
+                  value={Math.abs(displayedBalance)}
+                  prefix={displayedBalance < 0 ? "-₱" : "₱"}
+                />
+              </div>
+              {selectedCategory !== "Liabilities" &&
+                thisMonthTransactions.length > 0 && (
+                  <div className="flex items-center justify-center gap-3 mt-2">
+                    {monthlyDeposits > 0 && (
+                      <div className="flex items-center gap-1">
+                        <ArrowDownLeft size={14} className="text-[#9BD0A6]" />
+                        <span className="text-[#9BD0A6] text-subhead font-semibold">
+                          <RollingNumber value={monthlyDeposits} prefix="₱" />
+                        </span>
+                      </div>
+                    )}
+                    {monthlyWithdrawals > 0 && (
+                      <div className="flex items-center gap-1">
+                        <ArrowUpRight size={14} className="text-[#F07B73]" />
+                        <span className="text-[#F07B73] text-subhead font-semibold">
+                          <RollingNumber
+                            value={monthlyWithdrawals}
+                            prefix="₱"
+                          />
+                        </span>
+                      </div>
+                    )}
+                    <span className="text-white/50 text-caption">
+                      this month
+                    </span>
+                  </div>
+                )}
+            </motion.div>
+          )}
+        </div>
+      </motion.div>
+
+      {!isSearching && <WealthFlow transactions={thisMonthTransactions} deposits={monthlyDeposits} withdrawals={monthlyWithdrawals} />}
+      </div>
+      {/* Main Content Area */}
+      {!isSearching ? (
+        <>
+          <div className="sn-wealth-ledger">
+          {/* Standard View */}
+          <AnimatePresence>
+            {isSelecting && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={FADE}
+                className="px-5 mt-4 overflow-hidden"
+              >
+                <div className="flex items-center justify-between bg-surface rounded-xl p-3 shadow-card">
+                  <button
+                    onClick={handleSelectAll}
+                    className="text-subhead font-medium text-accent active:opacity-60"
+                  >
+                    {selectedIds.size === transactions.length
+                      ? "Deselect All"
+                      : "Select All"}
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <span className="text-footnote text-ink-2">
+                      {selectedIds.size} selected
+                    </span>
+                    <button
+                      onClick={handleDeleteSelected}
+                      disabled={selectedIds.size === 0}
+                      className={clsx(
+                        "px-4 py-2 rounded-lg text-subhead font-semibold transition-colors duration-150 active:opacity-60",
+                        selectedIds.size > 0
+                          ? "bg-negative text-white"
+                          : "bg-fill text-ink-3",
+                      )}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Priority Liabilities Alert */}
+          <AnimatePresence initial={false}>
+            {liabilities.some((l) => l.isPriority) &&
+              selectedCategory !== "Savings" &&
+              selectedCategory !== "Investments" &&
+              !isSelecting && (
+                <motion.section
+                  key="priority-alert"
+                  layout
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={LAYOUT_SPRING}
+                  className="mx-5 mt-6 overflow-hidden"
+                >
+                  <motion.div
+                    whileTap={TAP_CARD}
+                    onClick={() => setSelectedCategory("Liabilities")}
+                    className="sn-wealth-priority cursor-pointer rounded-2xl p-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-title-2">
+                        ⚠️
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-footnote font-semibold text-white/80">
+                          Priority payment
+                        </p>
+                        <p className="sn-priority-name text-title-3 font-bold text-white line-clamp-2">
+                          {liabilities.find((l) => l.isPriority)?.name}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="text-title-2 font-bold text-white tabular-nums">
+                          ₱
+                          {(
+                            liabilities.find((l) => l.isPriority)?.amount || 0
+                          ).toLocaleString()}
+                        </p>
+                        <p className="text-caption text-white/70">Outstanding</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                </motion.section>
+              )}
+          </AnimatePresence>
+
+          {/* Liabilities List */}
+          <AnimatePresence initial={false}>
+            {filteredLiabilities.length > 0 && !isSelecting && (
+              <motion.section
+                key="liabilities-list"
+                layout
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                transition={LAYOUT_SPRING}
+                className="sn-wealth-accounts"
+                data-nav-focus="money-accounts"
+              >
+                <h3 className="text-footnote font-semibold text-ink-2 mb-2 px-1">
+                  Obligations
+                </h3>
+                <motion.div
+                  layout
+                  className="sn-wealth-account-list bg-surface rounded-2xl overflow-hidden shadow-card"
+                >
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {filteredLiabilities.map((liability, index) => (
+                      <motion.div
+                        key={liability.id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, height: 0, overflow: "hidden" }}
+                        transition={FADE}
+                      >
+                        <LiabilityRow
+                          {...liability}
+                          item={liability}
+                          onDelete={handleDeleteLiability}
+                          onClick={() => handleLiabilityClick(liability)}
+                          isSelecting={isSelecting}
+                          isSelected={false} // Todo: Implement selection for accounts if needed
+                        />
+                        {index < filteredLiabilities.length - 1 && (
+                          <div className="h-px bg-separator ml-[68px]" />
+                        )}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+              </motion.section>
+            )}
+          </AnimatePresence>
+
+          {/* Assets List */}
+          <AnimatePresence initial={false}>
+            {filteredAssets.length > 0 && !isSelecting && (
+              <motion.section
+                key="assets-list"
+                layout
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                transition={LAYOUT_SPRING}
+                className="sn-wealth-accounts"
+              >
+                <h3 className="text-footnote font-semibold text-ink-2 mb-2 px-1">
+                  Assets
+                </h3>
+                <motion.div
+                  layout
+                  className="sn-wealth-account-list bg-surface rounded-2xl overflow-hidden shadow-card"
+                >
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {filteredAssets.map((asset, index) => (
+                      <motion.div
+                        key={asset.id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, height: 0, overflow: "hidden" }}
+                        transition={FADE}
+                      >
+                        <AssetRow
+                          {...asset}
+                          item={asset}
+                          onDelete={handleDeleteAsset}
+                          onClick={() => handleAssetClick(asset)}
+                          isSelecting={isSelecting}
+                          isSelected={false}
+                        />
+                        {index < filteredAssets.length - 1 && (
+                          <div className="h-px bg-separator ml-[68px]" />
+                        )}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+              </motion.section>
+            )}
+          </AnimatePresence>
+
+          {/* Transactions Section */}
+          <motion.section
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: EASE_OUT, delay: 0.1 }}
+            className="sn-wealth-transactions"
+            data-nav-focus="money-records"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-title-3 font-bold text-ink">{moneyTitle}</h3>
+              <button
+                onClick={() => {
+                  setIsSelecting(!isSelecting);
+                  setSelectedIds(new Set());
+                }}
+                className="sn-hit text-subhead font-medium text-accent active:opacity-60"
+              >
+                {isSelecting ? "Done" : "Edit"}
+              </button>
+            </div>
+
+            <nav className="mh-wealth-filters" aria-label="Money records">
+              {[['all', 'All transactions'], ['income', 'Income'], ['expenses', 'Expenses']].map(([value, label]) => <button key={value} className="hz-view" aria-pressed={moneyView === value} data-sound="select" onClick={() => { setMoneyView(value); const url = new URL(window.location.href); if (value === 'all') url.searchParams.delete('money'); else url.searchParams.set('money', value); window.history.replaceState(window.history.state, '', url.toString()); window.dispatchEvent(new Event(ROUTE_PUSHED)); }}>{label}</button>)}
+            </nav>
+            {Object.entries(groupedTransactions).map(([dateLabel, items]) => (
+              <div key={dateLabel} className="mb-6">
+                <p className="text-footnote font-semibold text-ink-2 mb-2">
+                  {dateLabel}
+                </p>
+                <div className="space-y-2">
+                  <AnimatePresence initial={false}>
+                    {items.map((transaction) => (
+                      <motion.div
+                        key={transaction.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0, height: 0, transition: FADE_EXIT }}
+                        transition={FADE}
+                        className="overflow-hidden"
+                      >
+                        <TransactionRow
+                          item={transaction}
+                          isSelecting={isSelecting}
+                          isSelected={selectedIds.has(transaction.id)}
+                          onSelect={handleSelect}
+                          onDelete={handleDeleteSingle}
+                          onLongPress={handleLongPress}
+                          onClick={() => { haptic.trigger("light"); setViewTransaction(transaction); }}
+                          onAccountClick={handleTransactionAccountClick}
+                        />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </div>
+            ))}
+
+            {!Object.keys(groupedTransactions).length && <div className="sn-wealth-empty"><p>No transactions in this view yet.</p><button className="sn-btn sn-btn-primary" onClick={() => setShowAddSheet(true)}><Plus size={16} />Record a transaction</button></div>}
+          </motion.section>
+          </div>
+        </>
+      ) : (
+        /* Search Results View */
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={FADE}
+          className="px-5 pt-4 pb-32"
+        >
+          {/* Recent Searches History */}
+          {!searchQuery && searchHistory.length > 0 && (
+            <div className="mb-6">
+              <p className="text-footnote font-semibold text-ink-2 mb-3 px-1">
+                Recent searches
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {searchHistory.map((term) => (
+                  <motion.button
+                    key={term}
+                    whileTap={TAP}
+                    transition={TAP_TRANSITION}
+                    onClick={() => setSearchQuery(term)}
+                    className="px-3 py-1.5 bg-surface rounded-full text-subhead text-ink font-medium shadow-card"
+                  >
+                    {term}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <p className="text-footnote font-semibold text-ink-2 mb-4">
+            {searchResults.length > 0
+              ? `${searchResults.length} ${searchResults.length === 1 ? "result" : "results"}`
+              : searchQuery || activeFilter !== "All"
+                ? "No matches"
+                : "Search Transactions"}
+          </p>
+
+          <div className="space-y-2">
+            {searchResults.map((transaction) => (
+              <TransactionRow
+                key={transaction.id}
+                item={transaction}
+                isSelecting={false}
+                isSelected={false}
+                onSelect={() => {}}
+                onDelete={handleDeleteSingle}
+                onClick={() => setViewTransaction(transaction)}
+              />
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {!isSearching && <WealthWorkbench />}
+      {!isSearching && <CategoryBudgets transactions={transactions} />}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() =>
+          setConfirmDialog({ isOpen: false, type: null, itemId: null })
+        }
+        onConfirm={handleConfirmDelete}
+        title={
+          confirmDialog.type === "bulk"
+            ? `Delete ${selectedIds.size} Transactions?`
+            : "Delete Transaction?"
+        }
+        message="This action cannot be undone."
+      />
+
+      <TransactionDetailSheet
+        visible={!!viewTransaction}
+        onClose={() => setViewTransaction(null)}
+        transaction={viewTransaction}
+        onAccountClick={(t) => {
+          setViewTransaction(null);
+          handleTransactionAccountClick(t);
+        }}
+      />
+
+      <AccountDetailSheet
+        isOpen={!!viewingAccount}
+        onClose={() => setViewingAccount(null)}
+        account={viewingAccount}
+        transactions={transactions}
+        highlightTransactionId={highlightTransactionId}
+        onUpdateBalance={(newBalance) =>
+          handleUpdateBalance(viewingAccount, newBalance)
+        }
+        onAddTransaction={() => {
+          setViewingAccount(null);
+          if (viewingAccount?.category)
+            setSelectedCategory(viewingAccount.category);
+          setShowAddSheet(true);
+        }}
+      />
+
+      <AddTransactionSheet
+        visible={showAddSheet}
+        onClose={() => setShowAddSheet(false)}
+        currentCategory={selectedCategory}
+        savingsAccounts={assets.filter((a) => a.category === "Savings")}
+        investmentAccounts={assets.filter((a) => a.category === "Investments")}
+        liabilities={liabilities}
+        onAdd={async (transaction) => {
+          await mutateWealth(state => ({...state, ...recordMoney(state, transaction)}));
+        }}
+      />
+
+      {/* Reminder Settings Sheet */}
+      <ReminderSettingsSheet
+        visible={showReminderSettings}
+        onClose={() => setShowReminderSettings(false)}
+      />
+    </PageTransition>
+  );
+}
+

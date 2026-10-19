@@ -1,4 +1,5 @@
 import { POLL_ID } from "../../../cms/blocks";
+import { readJson, HttpError } from "../../../cms/server/http";
 import { optionCount, remember, results, sha, tally } from "../../../cms/server/poll-store";
 
 /*
@@ -68,13 +69,11 @@ async function writeRequest(env: Env, id: string, request: Request) {
   const origin = request.headers.get("Origin");
   if (origin && origin !== new URL(request.url).origin) return reply({ error: "Cross-site vote refused." }, 403);
   if ((request.headers.get("Content-Type") ?? "").split(";")[0].trim() !== "application/json") return reply({ error: "Expected JSON." }, 415);
-  const raw = await request.text();
-  if (raw.length > 1024) return reply({ error: "Too large." }, 413);
   let body: { option?: unknown; options?: unknown; voter?: unknown };
   try {
-    body = JSON.parse(raw);
-  } catch {
-    return reply({ error: "Expected JSON." }, 400);
+    body = await readJson(request, 1024);
+  } catch (error) {
+    return reply({ error: "Invalid vote payload." }, error instanceof HttpError ? error.status : 400);
   }
   const options = optionCount(body.options);
   const voter = typeof body.voter === "string" && /^[a-z0-9]{16,40}$/.test(body.voter) ? body.voter : null;

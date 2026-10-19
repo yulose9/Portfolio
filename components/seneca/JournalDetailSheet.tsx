@@ -1,0 +1,767 @@
+// @ts-nocheck
+"use client";
+import Highlight from "@tiptap/extension-highlight";
+import Image from "@tiptap/extension-image";
+import Link from "@tiptap/extension-link";
+import TaskItem from "@tiptap/extension-task-item";
+import TaskList from "@tiptap/extension-task-list";
+import TextAlign from "@tiptap/extension-text-align";
+import Underline from "@tiptap/extension-underline";
+import { generateHTML } from "@tiptap/html";
+import StarterKit from "@tiptap/starter-kit";
+import clsx from "clsx";
+import EmojiPicker from "emoji-picker-react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Calendar,
+  ChevronLeft,
+  Clock,
+  History as HistoryIcon,
+  RotateCcw,
+  Save,
+  Sparkles,
+  Trash2,
+  X,
+} from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useWebHaptics } from "web-haptics/react";
+import {
+  DIALOG_SPRING,
+  EASE_OUT,
+  FADE,
+  FADE_EXIT,
+  SHEET_EXIT,
+  SHEET_SPRING,
+} from "@/lib/seneca/constants/motion";
+import { refineEntryWithGemini } from "@/lib/seneca/services/journalAI";
+import RichTextEditor from "./RichTextEditor";
+import { htmlToText, sanitizeHtml } from "@/lib/seneca/utils/safeHtml";
+import { toDateKey } from "@/lib/seneca/utils/timeUtils";
+
+// TipTap extensions for HTML generation
+const extensions = [
+  StarterKit,
+  Underline,
+  Highlight,
+  TextAlign.configure({ types: ["heading", "paragraph"] }),
+  TaskList,
+  TaskItem.configure({ nested: true }),
+  Link,
+  Image,
+];
+
+// Helper to convert TipTap JSON to HTML
+const jsonToHtml = (content) => {
+  if (!content) return "";
+  // Legacy HTML / AI output is untrusted — sanitise before it hits the DOM
+  if (typeof content === "string") return sanitizeHtml(content);
+  // If it's a JSON object, convert to HTML
+  if (typeof content === "object" && content.type === "doc") {
+    try {
+      return sanitizeHtml(generateHTML(content, extensions));
+    } catch (e) {
+      console.error("Error generating HTML:", e);
+      return "";
+    }
+  }
+  return "";
+};
+
+// Relative Time Helper
+const getRelativeTime = (dateStr) => {
+  if (!dateStr) return "Today";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const d1 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const d2 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffTime = d2 - d1;
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+  return "Over a year ago";
+};
+
+// Convert 12-hour format (e.g., "2:25 AM") to 24-hour format (e.g., "02:25")
+const to24Hour = (time12h) => {
+  if (!time12h) return "";
+  // If already in 24-hour format (no AM/PM), return as is
+  if (!time12h.includes("AM") && !time12h.includes("PM")) return time12h;
+
+  try {
+    const [time, modifier] = time12h.split(" ");
+    let [hours, minutes] = time.split(":");
+
+    if (hours === "12") {
+      hours = "00";
+    }
+
+    if (modifier === "PM") {
+      hours = parseInt(hours, 10) + 12;
+    }
+
+    return `${String(hours).padStart(2, "0")}:${minutes}`;
+  } catch {
+    return "";
+  }
+};
+
+// Convert 24-hour format (e.g., "14:25") to 12-hour format (e.g., "2:25 PM")
+const to12Hour = (time24h) => {
+  if (!time24h) return "";
+
+  try {
+    const [hours, minutes] = time24h.split(":");
+    const hour = parseInt(hours, 10);
+    const modifier = hour >= 12 ? "PM" : "AM";
+    const hour12 = hour % 12 || 12;
+
+    return `${hour12}:${minutes} ${modifier}`;
+  } catch {
+    return "";
+  }
+};
+
+const HistoryViewer = ({ history, onRestore, onClose }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 16 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: 8, transition: FADE }}
+    transition={DIALOG_SPRING}
+    className="absolute inset-x-4 top-20 bottom-4 bg-surface rounded-2xl shadow-float border border-separator z-50 overflow-hidden flex flex-col"
+  >
+    <div className="flex items-center justify-between p-4 border-b border-separator bg-canvas/60">
+      <h3 className="font-semibold text-body flex items-center gap-2">
+        <HistoryIcon size={18} />
+        Entry History
+      </h3>
+      <button
+        onClick={onClose}
+        aria-label="Close history"
+        className="p-2 -m-1 hover:bg-fill rounded-full transition-colors duration-150"
+      >
+        <X size={20} />
+      </button>
+    </div>
+    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      {(!history || history.length === 0) && (
+        <div className="text-center text-ink-2 py-8">
+          No edit history available.
+        </div>
+      )}
+      {history
+        ?.slice()
+        .reverse()
+        .map((ver, idx) => (
+          <div
+            key={ver.timestamp || idx}
+            className="border border-separator rounded-xl p-3 hover:bg-fill transition-colors duration-150"
+          >
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <span className="text-caption font-semibold text-accent block mb-0.5">
+                  {ver.action || "Edit"}
+                </span>
+                <span className="text-caption text-ink-2 tabular-nums">
+                  {new Date(ver.timestamp).toLocaleString()}
+                </span>
+              </div>
+              <button
+                onClick={() => onRestore(ver)}
+                className="flex items-center gap-1 text-caption font-semibold bg-fill px-2 py-1 rounded-lg hover:bg-fill-strong active:scale-[0.96] transition-[background-color,scale] duration-150"
+              >
+                <RotateCcw size={12} /> Restore
+              </button>
+            </div>
+            <p className="font-medium text-subhead text-ink truncate">
+              {ver.title}
+            </p>
+            <div
+              className="text-caption text-ink-2 line-clamp-2 mt-1"
+              dangerouslySetInnerHTML={{ __html: jsonToHtml(ver.content) }}
+            />
+          </div>
+        ))}
+    </div>
+  </motion.div>
+);
+
+export default function JournalDetailSheet({
+  isOpen,
+  onClose,
+  entry,
+  onUpdate,
+  onDelete,
+}) {
+  const haptic = useWebHaptics();
+  const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Form States
+  const [title, setTitle] = useState("");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [content, setContent] = useState(null); // Now accepts JSON
+  const [mood, setMood] = useState("😊");
+
+  // History State
+  const [history, setHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // UI States
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
+  const [justRefined, setJustRefined] = useState(false); // For Undo button
+
+  // Reset state when entry changes
+  useEffect(() => {
+    if (entry) {
+      setTitle(entry.title || "");
+      // Manila day — toISOString() is the UTC day ("yesterday" before 08:00 PHT)
+      setDate(entry.isoDate || toDateKey());
+      setTime(to24Hour(entry.time) || ""); // Convert 12-hour to 24-hour for input
+      // Content can be JSON object or legacy HTML string
+      setContent(entry.content || null);
+      setMood(entry.mood || "");
+      setHistory(entry.history || []);
+      setJustRefined(false);
+    }
+    setIsEditing(false);
+    setIsRefining(false);
+    setShowHistory(false);
+    setShowEmojiPicker(false);
+    setShowDeleteConfirm(false);
+  }, [entry, isOpen]);
+
+  // if (!entry && !isOpen) return null; // Removed to allow exit animation
+
+  const saveToHistory = (actionName) => {
+    const newVersion = {
+      timestamp: Date.now(),
+      title,
+      content,
+      mood,
+      date,
+      time,
+      action: actionName,
+    };
+    // Don't duplicate if identical to last
+    if (history.length > 0) {
+      const last = history[history.length - 1];
+      if (
+        last.title === title &&
+        last.content === content &&
+        last.mood === mood
+      )
+        return history;
+    }
+    return [...history, newVersion];
+  };
+
+  const handleSave = () => {
+    haptic.trigger("success");
+    // ... (rest of handleSave is fine)
+    const dateObj = new Date(date);
+    const displayDate = dateObj.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    // Helper to extract plain text from Tiptap JSON
+    const getPlainTextFromJson = (json) => {
+      if (!json || !json.content) return "";
+      const extractText = (nodes) => {
+        if (!nodes) return "";
+        return nodes
+          .map((node) => {
+            if (node.type === "text") return node.text || "";
+            if (node.content) return extractText(node.content);
+            return "";
+          })
+          .join(" ");
+      };
+      return extractText(json.content).trim();
+    };
+
+    // Generate preview from JSON or fallback to HTML parsing for legacy content
+    let plainText = "";
+    if (content && typeof content === "object") {
+      plainText = getPlainTextFromJson(content);
+    } else if (typeof content === "string") {
+      plainText = htmlToText(content);
+    }
+    const preview =
+      plainText.substring(0, 100) + (plainText.length > 100 ? "..." : "");
+
+    const newHistory = saveToHistory("Manual Edit");
+
+    const updated = {
+      ...entry,
+      title,
+      date: displayDate,
+      isoDate: date,
+      time: to12Hour(time), // Convert back to 12-hour format for storage
+      content,
+      mood,
+      preview,
+      history: newHistory,
+    };
+
+    onUpdate?.(updated);
+    setIsEditing(false);
+  };
+
+  // ... (handleRefine, handleUndo, handleRestore are fine)
+
+  // ... (inside render)
+
+  const handleRefine = async () => {
+    setIsRefining(true);
+    setJustRefined(false);
+
+    // Save state BEFORE refine
+    const currentHistory = saveToHistory("Before Stoic Rewrite");
+    setHistory(currentHistory); // Update local state immediately
+
+    try {
+      const result = await refineEntryWithGemini(title, content);
+
+      if (result.title) setTitle(result.title);
+      if (result.content) setContent(result.content);
+
+      // Auto-Save the updated entry
+
+      const newDateObj = new Date(date);
+      const newDisplayDate = newDateObj.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
+
+      // Preview gen
+      const refined = result.content || content;
+      const plainText = typeof refined === "string" ? htmlToText(refined) : "";
+      const preview =
+        plainText.replace(/\n/g, " ").substring(0, 100) +
+        (plainText.length > 100 ? "..." : "");
+
+      const updatedEntry = {
+        ...entry,
+        title: result.title || title,
+        content: result.content || content,
+        date: newDisplayDate,
+        isoDate: date,
+        time,
+        mood,
+        preview,
+        history: currentHistory, // Save the 'Before' state
+      };
+
+      onUpdate?.(updatedEntry); // Persist immediately
+      setJustRefined(true); // Show Undo
+    } catch (e) {
+      console.error(e);
+      alert("Failed to refine entry. Please try again.");
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
+  const handleUndo = () => {
+    if (history.length > 0) {
+      const lastVersion = history[history.length - 1];
+      handleRestore(lastVersion); // Restore updates parent too
+      setJustRefined(false);
+    }
+  };
+
+  const handleRestore = (version) => {
+    setTitle(version.title);
+    setContent(version.content);
+    setMood(version.mood);
+    if (version.date) setDate(version.date);
+
+    // We also need to SAVE this restoration logic to parent
+    // But if we are Restoring, we add the "Undone" state to history?
+    // Or do we just revert?
+    // Typically "Restore" is a NEW edit that matches the old one.
+
+    const newHistory = [
+      ...history,
+      {
+        timestamp: Date.now(),
+        title, // Current (bad) title
+        content, // Current (bad) content
+        mood,
+        action: "Reverted Change",
+      },
+    ];
+
+    const updatedEntry = {
+      ...entry,
+      title: version.title,
+      content: version.content,
+      mood: version.mood,
+      history: newHistory,
+    };
+    onUpdate?.(updatedEntry);
+    setHistory(newHistory);
+    setShowHistory(false);
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={FADE}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[400]"
+          />
+
+          {/* Sheet Container */}
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%", transition: SHEET_EXIT }}
+            transition={SHEET_SPRING}
+            className="fixed inset-y-0 right-0 w-full md:max-w-2xl bg-surface shadow-float z-[401] flex flex-col"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-12 pb-4 border-b border-separator bg-surface/80 backdrop-blur-xl sticky top-0 z-10">
+              {isEditing ? (
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="text-body text-negative -ml-2 px-3 py-1 active:opacity-60 disabled:opacity-40 transition-opacity duration-150"
+                  disabled={isRefining}
+                >
+                  Cancel
+                </button>
+              ) : (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={onClose}
+                    className="flex items-center gap-1 text-accent text-body font-medium -ml-2 px-2 py-1 rounded-lg hover:bg-fill active:opacity-60 transition-[background-color,opacity] duration-150"
+                  >
+                    <ChevronLeft size={22} className="-ml-1" />
+                    Back
+                  </button>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                {/* Actions Area */}
+                {!isEditing && (
+                  <>
+                    {/* Delete Button */}
+                    {onDelete && (
+                      <button
+                        onClick={() => {
+                          haptic.trigger("warning");
+                          setShowDeleteConfirm(true);
+                        }}
+                        className="p-2 text-ink-2 hover:text-negative hover:bg-negative/10 rounded-full active:scale-[0.96] transition-[color,background-color,scale] duration-150"
+                        title="Delete Entry"
+                        aria-label="Delete entry"
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                    )}
+
+                    {/* History Button */}
+                    <button
+                      onClick={() => setShowHistory(!showHistory)}
+                      className={clsx(
+                        "p-2 hover:text-ink hover:bg-fill rounded-full active:scale-[0.96] transition-[color,background-color,scale] duration-150",
+                        showHistory ? "text-ink bg-fill" : "text-ink-2",
+                      )}
+                      title="View History"
+                      aria-label="View history"
+                      aria-pressed={showHistory}
+                    >
+                      <HistoryIcon size={20} />
+                    </button>
+
+                    {/* Stoic Rewrite in View Mode */}
+                    {justRefined ? (
+                      <button
+                        onClick={handleUndo}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-fill text-ink hover:bg-fill-strong active:scale-[0.96] transition-[background-color,scale] duration-150 text-subhead font-medium mr-1"
+                      >
+                        <RotateCcw size={14} />
+                        Undo
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleRefine}
+                        disabled={isRefining}
+                        className={clsx(
+                          "flex items-center gap-2 px-3 py-1.5 rounded-full text-footnote font-semibold transition-[box-shadow,scale] duration-150 mr-1",
+                          isRefining
+                            ? "bg-fill text-ink-2"
+                            : "bg-indigo text-white active:scale-[0.96]"
+                        )}
+                      >
+                        {isRefining ? (
+                          <span className="animate-pulse">Rewriting...</span>
+                        ) : (
+                          <>
+                            <Sparkles size={14} />
+                            Stoic Rewrite
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </>
+                )}
+
+                {isEditing ? (
+                  <button
+                    onClick={handleSave}
+                    className="text-body font-semibold text-accent -mr-2 px-3 py-1 active:opacity-60 disabled:opacity-40 transition-opacity duration-150"
+                    disabled={isRefining}
+                  >
+                    Save
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      haptic.trigger("medium");
+                      setIsEditing(true);
+                    }}
+                    className="text-body font-medium text-accent px-2 active:opacity-60 transition-opacity duration-150"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Relative Container for Overlays */}
+            <div className="flex-1 overflow-y-auto bg-surface relative">
+              {/* History Overlay */}
+              <AnimatePresence>
+                {showHistory && (
+                  <HistoryViewer
+                    history={history}
+                    onRestore={handleRestore}
+                    onClose={() => setShowHistory(false)}
+                  />
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence mode="wait" initial={false}>
+                {isEditing ? (
+                  <motion.div
+                    key="edit-mode"
+                    initial={{ opacity: 0, filter: "blur(4px)" }}
+                    animate={{ opacity: 1, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, filter: "blur(4px)" }}
+                    transition={{ duration: 0.15, ease: EASE_OUT }}
+                    className="px-5 py-6 flex flex-col gap-5"
+                  >
+                    <div className="flex items-start gap-4 mb-6">
+                      <div className="relative shrink-0">
+                        <button
+                          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                          aria-label="Choose mood"
+                          aria-expanded={showEmojiPicker}
+                          className="w-16 h-16 rounded-2xl bg-fill flex items-center justify-center text-4xl hover:bg-fill-strong active:scale-[0.96] transition-[background-color,scale] duration-150"
+                        >
+                          {mood}
+                        </button>
+                        <AnimatePresence>
+                        {showEmojiPicker && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.97 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.97, transition: FADE_EXIT }}
+                            transition={FADE}
+                            style={{ transformOrigin: "top left" }}
+                            className="absolute top-full left-0 mt-2 z-50 shadow-float rounded-2xl">
+                            <div
+                              className="fixed inset-0 z-40"
+                              onClick={() => setShowEmojiPicker(false)}
+                            />
+                            <div className="relative z-50">
+                              <EmojiPicker
+                                onEmojiClick={(e) => {
+                                  setMood(e.emoji);
+                                  setShowEmojiPicker(false);
+                                }}
+                                width={300}
+                                height={400}
+                              />
+                            </div>
+                          </motion.div>
+                        )}
+                        </AnimatePresence>
+                      </div>
+
+                      <div className="flex-1 pt-1">
+                        <input
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          className="w-full text-title-2 font-bold bg-transparent outline-none placeholder:text-ink-3"
+                          placeholder="Entry Title"
+                        />
+                        <p className="text-subhead text-ink-2 mt-1 tabular-nums">
+                          {date ? new Date(date).toLocaleDateString() : "Today"}{" "}
+                          • {time || "No time set"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-fill rounded-xl overflow-hidden border border-separator mb-2">
+                      <div className="flex items-center justify-between px-4 py-3 bg-surface border-b border-separator">
+                        <div className="flex items-center gap-2 text-ink">
+                          <Calendar size={18} className="text-accent" />
+                          <span className="text-body">Date</span>
+                        </div>
+                        <input
+                          type="date"
+                          value={date}
+                          onChange={(e) => setDate(e.target.value)}
+                          className="text-body text-ink-2 bg-transparent outline-none text-right font-medium"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between px-4 py-3 bg-surface">
+                        <div className="flex items-center gap-2 text-ink">
+                          <Clock size={18} className="text-caution" />
+                          <span className="text-body">Time</span>
+                        </div>
+                        <input
+                          type="time"
+                          value={time}
+                          onChange={(e) => setTime(e.target.value)}
+                          className="text-body text-ink-2 bg-transparent outline-none text-right font-medium"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1 min-h-[300px]">
+                      <label className="text-footnote font-semibold text-ink-2 ml-1">
+                        Entry
+                      </label>
+                      <div className="relative">
+                        <RichTextEditor
+                          content={content}
+                          onChange={setContent}
+                          placeholder="Write here..."
+                          className="min-h-[300px]"
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="view-mode"
+                    initial={{ opacity: 0, filter: "blur(4px)" }}
+                    animate={{ opacity: 1, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, filter: "blur(4px)" }}
+                    transition={{ duration: 0.15, ease: EASE_OUT }}
+                    className="max-w-none px-6 py-8 cursor-text"
+                    onDoubleClick={() => setIsEditing(true)}
+                  >
+                    <div className="mb-8">
+                      <div className="flex items-start gap-4 mb-4">
+                        <span className="text-4xl mt-1">{mood}</span>
+                        <div>
+                          <h1 className="text-title-1 font-bold text-ink mb-2">
+                            {title || "Untitled Entry"}
+                          </h1>
+                          <div className="flex items-center gap-4 text-footnote text-ink-2 font-medium tabular-nums">
+                            <div className="flex items-center gap-1.5">
+                              <Calendar size={14} />
+                              {getRelativeTime(date)}
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Clock size={14} />
+                              {time}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <motion.div
+                      key={JSON.stringify(content)}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.2, ease: EASE_OUT }}
+                      className="prose prose-lg max-w-none prose-headings:font-bold prose-p:text-body prose-p:leading-relaxed prose-a:text-accent prose-img:rounded-xl prose-img:shadow-card prose-img:outline prose-img:outline-1 prose-img:-outline-offset-1 prose-img:outline-[oklch(0_0_0/0.1)]"
+                      dangerouslySetInnerHTML={{
+                        __html: jsonToHtml(content),
+                      }}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Delete Confirmation Dialog */}
+            <AnimatePresence>
+              {showDeleteConfirm && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={FADE}
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="absolute inset-0 sn-scrim z-[50]"
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.97, transition: FADE }}
+                    transition={DIALOG_SPRING}
+                    className="absolute left-4 right-4 top-1/2 -translate-y-1/2 bg-surface rounded-2xl overflow-hidden z-[51] max-w-sm mx-auto shadow-float"
+                  >
+                    <div className="p-6 text-center">
+                      <h3 className="text-body font-semibold text-ink mb-2">
+                        Delete Entry?
+                      </h3>
+                      <p className="text-subhead text-ink-2">
+                        This action cannot be undone.
+                      </p>
+                    </div>
+                    <div className="border-t border-separator flex">
+                      <motion.button
+                        whileTap={{ backgroundColor: "rgba(0,0,0,0.05)" }}
+                        onClick={() => setShowDeleteConfirm(false)}
+                        className="flex-1 py-4 text-body font-medium text-accent border-r border-separator"
+                      >
+                        Cancel
+                      </motion.button>
+                      <motion.button
+                        whileTap={{ backgroundColor: "rgba(0,0,0,0.05)" }}
+                        onClick={() => {
+                          haptic.trigger("warning");
+                          onDelete(entry.id);
+                          setShowDeleteConfirm(false);
+                          onClose();
+                        }}
+                        className="flex-1 py-4 text-body font-semibold text-negative"
+                      >
+                        Delete
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}

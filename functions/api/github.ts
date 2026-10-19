@@ -59,7 +59,7 @@ const reply = (body: unknown, status = 200, headers: Record<string, string> = {}
     },
   });
 
-export const onRequestGet = async ({ env, request }: PagesContext<Env>) => {
+export const onRequestGet = async ({ request }: PagesContext<Env>) => {
   const reqUrl = new URL(request.url);
   const targetUrl = reqUrl.searchParams.get("url") ?? "";
   const ownerParam = reqUrl.searchParams.get("owner");
@@ -84,26 +84,33 @@ export const onRequestGet = async ({ env, request }: PagesContext<Env>) => {
     };
   }
 
-  if (!embed) {
+  if (!embed || !/^[a-zA-Z0-9-]{1,39}$/.test(embed.owner) ||
+      !/^[a-zA-Z0-9_.-]{1,100}$/.test(embed.repo) || [".", ".."].includes(embed.repo) ||
+      !["repo", "issue", "pull", "discussion"].includes(embed.format) ||
+      (embed.format !== "repo" && !/^[1-9][0-9]{0,9}$/.test(embed.number ?? ""))) {
     return reply({ error: "Invalid GitHub URL or repository parameters." }, 400);
   }
 
   // Cloudflare Cache API lookup
   const cache = caches.default;
-  const cacheKey = new Request(reqUrl.toString(), request);
+  // Never reuse responses populated by the former privileged-token proxy.
+  // The key is built from the validated fields only, so extra query
+  // parameters can't bypass the cache and spend the shared GitHub quota.
+  const publicCacheUrl = new URL("/api/github", reqUrl);
+  publicCacheUrl.searchParams.set("embed", [embed.format, embed.owner, embed.repo, embed.number ?? ""].join("/"));
+  publicCacheUrl.searchParams.set("__public_cache", "2");
+  const cacheKey = new Request(publicCacheUrl.toString());
   const cached = await cache.match(cacheKey);
   if (cached) {
     return cached;
   }
 
-  const token = env.GITHUB_TOKEN || env.GH_TOKEN;
   const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
     "User-Agent": "Portfolio-Embed/2.0",
   };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
+  // This route is public. A publishing token here would expose private repo
+  // metadata and issue titles to unauthenticated callers and public caches.
 
   const { owner, repo, format, number, url } = embed;
 

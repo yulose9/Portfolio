@@ -80,17 +80,10 @@ export async function analyticsReport(
       },
     );
     if (!response.ok) {
-      let detail = "";
-      try {
-        const errJson = (await response.json()) as { detail?: string; error?: string; message?: string };
-        detail = errJson.detail || errJson.error || errJson.message || "";
-      } catch {
-        detail = await response.text().catch(() => "");
-      }
       throw new HttpError(
         response.status === 429
           ? "Analytics is busy. Try again shortly."
-          : `Analytics could not be loaded (PostHog ${response.status}): ${detail || "Check reporting credentials and project access."}`,
+          : `Analytics could not be loaded (PostHog ${response.status}). Check reporting credentials and project access.`,
         503,
       );
     }
@@ -99,7 +92,7 @@ export async function analyticsReport(
       error?: string;
     };
     if (!Array.isArray(data.results) || data.error)
-      throw new HttpError(`Analytics returned an incomplete report: ${data.error ?? "Invalid results format."}`, 503);
+      throw new HttpError("Analytics returned an incomplete report. Try again shortly.", 503);
     return data.results;
   }
   // Fixed queries only: dates and scope are validated above; the browser cannot supply SQL.

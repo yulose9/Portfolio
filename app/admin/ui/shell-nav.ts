@@ -9,14 +9,15 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
  * they always name things the same way.
  */
 
-export type Destination = "overview" | "analytics" | "writing" | "projects" | "website";
-export const DESTINATIONS: readonly Destination[] = ["overview", "analytics", "writing", "projects", "website"];
+export type Destination = "overview" | "analytics" | "writing" | "projects" | "website" | "seneca";
+export const DESTINATIONS: readonly Destination[] = ["overview", "analytics", "writing", "projects", "website", "seneca"];
 export const DESTINATION_LABEL: Record<Destination, string> = {
   overview: "Overview",
   analytics: "Analytics",
   writing: "Writing",
   projects: "Projects",
   website: "Website",
+  seneca: "Seneca",
 };
 
 export const WRITING_VIEWS = [
@@ -32,10 +33,18 @@ export const PROJECT_VIEWS = [
   { id: "published", label: "Published" },
   { id: "trash", label: "Trash" },
 ] as const;
-export type ViewScope = "writing" | "projects";
+export const SENECA_VIEWS = [
+  { id: "home", label: "Home" },
+  { id: "protocol", label: "Protocol" },
+  { id: "growth", label: "Growth" },
+  { id: "wealth", label: "Wealth" },
+  { id: "journal", label: "Journal" },
+] as const;
+export type ViewScope = "writing" | "projects" | "seneca";
 export const VIEWS: Record<ViewScope, readonly { id: string; label: string }[]> = {
   writing: WRITING_VIEWS,
   projects: PROJECT_VIEWS,
+  seneca: SENECA_VIEWS,
 };
 
 /* ── Sub-view bus ────────────────────────────────────────────────────────
@@ -46,7 +55,7 @@ export const VIEWS: Record<ViewScope, readonly { id: string; label: string }[]> 
 const requestEvent = (scope: ViewScope) => `admin:${scope}-filter`;
 const shownEvent = (scope: ViewScope) => `admin:${scope}-filter-shown`;
 const pending: Partial<Record<ViewScope, string>> = {};
-const shown: Record<ViewScope, string> = { writing: "all", projects: "all" };
+const shown: Record<ViewScope, string> = { writing: "all", projects: "all", seneca: "home" };
 
 export function requestView(scope: ViewScope, view: string) {
   pending[scope] = view;
@@ -73,6 +82,35 @@ export function useShellView(scope: ViewScope, current: string, apply: (view: st
     shown[scope] = current;
     window.dispatchEvent(new Event(shownEvent(scope)));
   }, [scope, current]);
+}
+
+/* ── Sub-view history ────────────────────────────────────────────────────
+ * A workspace whose views are real places (Seneca's tabs) records each one
+ * as ?view=… so the browser's Back and Forward walk through them. AdminApp
+ * owns popstate; it tells views the URL changed with ROUTE_POPPED, and hears
+ * about pushes made here through ROUTE_PUSHED so its own route stays current.
+ */
+export const ROUTE_PUSHED = "admin:route-pushed";
+export const ROUTE_POPPED = "admin:route-popped";
+
+/** The ?view=… of the current URL, if it names a view of `scope`. */
+export function viewFromUrl(scope: ViewScope): string | null {
+  if (typeof window === "undefined") return null;
+  const view = new URL(window.location.href).searchParams.get("view");
+  return view && VIEWS[scope].some((v) => v.id === view) ? view : null;
+}
+
+/** Record `view` in the URL: a new history entry, or `replace` the current one. */
+export function writeViewUrl(view: string, { replace = false, drop = [] }: { replace?: boolean; drop?: string[] } = {}) {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get("view") === view) return;
+  url.searchParams.set("view", view);
+  // Params that belong to the view being left (an open journal entry…)
+  for (const key of drop) url.searchParams.delete(key);
+  const next = `${url.pathname}?${url.searchParams.toString()}${url.hash}`;
+  if (replace) window.history.replaceState(window.history.state, "", next);
+  else window.history.pushState(null, "", next);
+  window.dispatchEvent(new Event(ROUTE_PUSHED));
 }
 
 /** For the shell: the view the list currently shows. */

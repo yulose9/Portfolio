@@ -88,6 +88,18 @@ export async function call<T>(path: string, init: RequestInit = {}): Promise<T> 
   }
   // Access answers an expired session with its own login page, not JSON.
   reportSession(Number(res.headers.get("X-Admin-Session-Expires")));
+
+  // In local Next.js dev server without Wrangler/Cloudflare Pages Functions running,
+  // allow the admin UI to operate so the dashboard and Seneca can be developed/tested.
+  if (process.env.NODE_ENV !== "production" && res.status === 404) {
+    if (path === "/me") return { email: "dev@local", github: false, storage: false } as T;
+    if (path === "/posts") return { posts: [] } as T;
+    if (path === "/folders") return { value: {}, base: null } as T;
+    if (path.startsWith("/analytics")) return { configured: false } as T;
+    if (path === "/research") return { items: [] } as T;
+    if (path === "/connections") return { pages: [] } as T;
+  }
+
   const type = res.headers.get("Content-Type") ?? "";
   if (!type.includes("application/json")) {
     if (res.redirected || res.status === 401 || res.status === 403 || res.ok) reportExpired();

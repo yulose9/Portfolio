@@ -14,6 +14,7 @@ export default function AdminSelect({
   disabled = false,
   hideLabel = false,
   className = "",
+  popupZIndex,
 }: {
   label: string;
   value: string;
@@ -22,6 +23,7 @@ export default function AdminSelect({
   disabled?: boolean;
   hideLabel?: boolean;
   className?: string;
+  popupZIndex?: number;
 }) {
   return (
     <div className={`admin-select-field ${className}`}>
@@ -45,6 +47,7 @@ export default function AdminSelect({
         <Select.Portal>
           <Select.Positioner
             className="admin-select-positioner"
+            style={popupZIndex === undefined ? undefined : { zIndex: popupZIndex }}
             align="start"
             sideOffset={6}
             collisionPadding={12}

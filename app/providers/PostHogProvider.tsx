@@ -1,6 +1,7 @@
 'use client'
 import posthog from 'posthog-js'
 import { PostHogProvider } from 'posthog-js/react'
+import { isPrivateTelemetryPath } from '../../lib/telemetryPrivacy'
 
 /*
  * Initialised when this module loads, not in an effect.
@@ -39,8 +40,12 @@ if (key && typeof window !== 'undefined' && !posthog.__loaded) {
     debug: process.env.NODE_ENV === 'development',
     autocapture: false,
     before_send: event => {
-      if (!event || window.location.pathname.startsWith('/admin') || (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true) return null;
+      if (!event || isPrivateTelemetryPath(window.location.href) || (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true) return null;
       if (event.properties) {
+        for (const field of ['$pathname', '$current_url', '$initial_current_url']) {
+          const value = event.properties[field];
+          if (typeof value === 'string' && isPrivateTelemetryPath(value)) return null;
+        }
         const pathname = typeof event.properties.$pathname === 'string' ? event.properties.$pathname.split('?')[0].split('#')[0] : window.location.pathname;
         event.properties.$current_url = window.location.origin + pathname;
         event.properties.$pathname = pathname;

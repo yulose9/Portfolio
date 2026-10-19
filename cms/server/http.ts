@@ -39,11 +39,11 @@ export function isAdminWrite(request: Request): boolean {
     request.headers.get("X-Admin-Request") === "1" && (!site || site === "same-origin");
 }
 
-export async function readJson<T>(request: Request): Promise<T> {
+export async function readJson<T>(request: Request, limit = 2 * 1024 * 1024): Promise<T> {
   if (request.headers.get("Content-Type")?.split(";")[0].trim().toLowerCase() !== "application/json") {
     throw new HttpError("Expected application/json.", 415);
   }
-  const bytes = await readBytes(request, 2 * 1024 * 1024);
+  const bytes = await readBytes(request, limit);
   let value: unknown;
   try {
     value = JSON.parse(new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(bytes));

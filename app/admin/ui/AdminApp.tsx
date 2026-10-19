@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "../../lib/toast";
 import { getThemeSetting, nextSetting, setThemeSetting } from "../../lib/theme";
 import { setSoundMuted, setSoundVolume, useSoundMuted, useSoundVolume } from "../../components/ui/sound";
-import { recordRecent, type RecentItem } from "./shell-nav";
+import { recordRecent, ROUTE_POPPED, ROUTE_PUSHED, type RecentItem } from "./shell-nav";
 import { api, ApiError, setApiWorkspace } from "./api";
 import Editor, { type OpenOptions, type Panel } from "./Editor";
 import { Fluent } from "./extensions/emoji";
@@ -20,6 +20,7 @@ import ControlShell, { destinationFromUrl, type Destination } from "./ControlShe
 import AnalyticsDashboard from "./AnalyticsDashboard";
 import WebsiteEditor from "./WebsiteEditor";
 import ProjectsWorkspace from "./ProjectsWorkspace";
+import SenecaWorkspace from "./SenecaWorkspace";
 import { protectWork } from "./session";
 
 const CI = { size: 16, "aria-hidden": true } as const;
@@ -83,9 +84,14 @@ export default function AdminApp() {
     api
       .me()
       .then((me) => setGate({ state: "ok", email: me.email }))
-      .catch((error: unknown) =>
-        setGate({ state: "blocked", message: error instanceof ApiError ? error.message : "The admin can't be reached." })
-      );
+      .catch((error: unknown) => {
+        if (process.env.NODE_ENV !== "production") {
+          console.warn("[Admin] Local dev fallback active: setting session to dev@local");
+          setGate({ state: "ok", email: "dev@local" });
+          return;
+        }
+        setGate({ state: "blocked", message: error instanceof ApiError ? error.message : "The admin can't be reached." });
+      });
   }, []);
 
   useEffect(() => {
@@ -105,9 +111,19 @@ export default function AdminApp() {
       setSection(destinationFromUrl());
       setPostId(currentPost());
       setOptions(currentOptions());
+      // Views inside a section (Seneca's tabs) follow the URL too.
+      window.dispatchEvent(new Event(ROUTE_POPPED));
+    };
+    // A section recorded its own view in the URL: that is now the route to protect.
+    const onPushed = () => {
+      currentRoute.current = window.location.href;
     };
     window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
+    window.addEventListener(ROUTE_PUSHED, onPushed);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      window.removeEventListener(ROUTE_PUSHED, onPushed);
+    };
   }, []);
 
   const open = useCallback((id: string | null, opts: OpenOptions = {}) => {
@@ -263,7 +279,15 @@ export default function AdminApp() {
     >
       <SessionGuard />
       <TagPages open={tagsOpen} onClose={()=>setTagsOpen(false)}/>
-      {section === "overview" || section === "analytics" ? <AnalyticsDashboard overview={section === "overview"} onWrite={() => void navigate("writing")} onNavigate={destination => void navigate(destination)} /> : section === "website" ? <WebsiteEditor /> : section === "projects" && !postId ? <ProjectsWorkspace onOpen={id => open(id)} /> : postId ? (
+      {section === "overview" || section === "analytics" ? (
+        <AnalyticsDashboard overview={section === "overview"} onWrite={() => void navigate("writing")} onNavigate={destination => void navigate(destination)} />
+      ) : section === "website" ? (
+        <WebsiteEditor />
+      ) : section === "seneca" ? (
+        <SenecaWorkspace />
+      ) : section === "projects" && !postId ? (
+        <ProjectsWorkspace onOpen={id => open(id)} />
+      ) : postId ? (
         <Editor key={`${postId}:${options.q ?? ""}:${options.n ?? 0}:${options.panel ?? ""}`} id={postId} options={options} onBack={() => open(null)} onOpen={id => open(id)} />
       ) : (
         <PostList onTags={()=>setTagsOpen(true)} email={gate.email} onOpen={(id, panel?: Panel) => open(id, { panel })} onSearch={() => setSearching(true)} />

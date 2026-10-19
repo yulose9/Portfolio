@@ -250,6 +250,74 @@ const PATCH = {
       envelope: { attack: 0.004, decay: 0.06 },
       gain: 0.16,
     },
+
+    /* Seneca's voices — warmer and rounder than the admin's clicks. */
+    // Pointer arriving on a control: a breath of air, felt more than heard.
+    hover: {
+      source: { type: "sine", frequency: 2600 },
+      filter: { type: "lowpass", frequency: 3200 },
+      envelope: { attack: 0.002, decay: 0.012, sustain: 0, release: 0.006 },
+      gain: 0.028,
+    },
+    // Primary press: a soft wooden pop.
+    pop: {
+      layers: [
+        {
+          source: { type: "triangle", frequency: { start: 420, end: 640 } },
+          filter: { type: "lowpass", frequency: 2400 },
+          envelope: { attack: 0.001, decay: 0.07 },
+          gain: 0.26,
+        },
+        {
+          source: { type: "noise", color: "pink" },
+          filter: { type: "bandpass", frequency: 1800, resonance: 1.4 },
+          envelope: { decay: 0.018 },
+          gain: 0.05,
+        },
+      ],
+    },
+    // Ticking a task: a plucked fifth.
+    check: {
+      layers: [
+        {
+          source: { type: "sine", frequency: { start: 660, end: 990 } },
+          envelope: { attack: 0.001, decay: 0.09 },
+          gain: 0.24,
+        },
+        {
+          source: { type: "triangle", frequency: 1320 },
+          envelope: { attack: 0.001, decay: 0.12 },
+          gain: 0.08,
+          delay: 0.035,
+        },
+      ],
+    },
+    // Turning a calendar page.
+    flip: {
+      layers: [
+        {
+          source: { type: "noise", color: "pink" },
+          filter: { type: "bandpass", frequency: 900, resonance: 1.2, envelope: { attack: 0.06, peak: 2600, decay: 0.05 } },
+          envelope: { attack: 0.01, decay: 0.09, sustain: 0, release: 0.03 },
+          gain: 0.09,
+        },
+        {
+          source: { type: "sine", frequency: { start: 520, end: 600 } },
+          envelope: { attack: 0.004, decay: 0.05 },
+          gain: 0.06,
+        },
+      ],
+    },
+    // A whole phase finished: C–E–G–C, rising, with a high shimmer.
+    accomplish: {
+      layers: [
+        { source: { type: "triangle", frequency: 523.25 }, envelope: { attack: 0.004, decay: 0.22 }, gain: 0.2 },
+        { source: { type: "triangle", frequency: 659.25 }, envelope: { attack: 0.004, decay: 0.22 }, gain: 0.19, delay: 0.09 },
+        { source: { type: "triangle", frequency: 783.99 }, envelope: { attack: 0.004, decay: 0.26 }, gain: 0.18, delay: 0.18 },
+        { source: { type: "triangle", frequency: 1046.5 }, envelope: { attack: 0.004, decay: 0.5, sustain: 0.04, release: 0.25 }, gain: 0.2, delay: 0.27 },
+        { source: { type: "sine", frequency: 2093 }, envelope: { attack: 0.02, decay: 0.6, sustain: 0, release: 0.2 }, gain: 0.05, delay: 0.3 },
+      ],
+    },
   },
 } as const satisfies SoundPatch;
 
@@ -283,6 +351,12 @@ const JITTER: Record<SoundName, number> = {
   success: 5,
   error: 5,
   warning: 5,
+
+  hover: 40,
+  pop: 18,
+  check: 10,
+  flip: 30,
+  accomplish: 0,
 };
 
 function jitter(cents: number) {
@@ -343,6 +417,7 @@ function classify(el: HTMLElement): Cue | null {
   const slot = el.dataset.slot ?? "";
 
   const named = el.dataset.sound;
+  if (named === "none") return null;
   if (named && named in PATCH.sounds) return { sound: named as SoundName };
 
   // Destructive first: a delete that is also a key still sounds like a delete.

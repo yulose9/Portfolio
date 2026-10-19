@@ -47,12 +47,14 @@
   transition: width var(--shell-dur) var(--shell-ease), box-shadow var(--shell-dur) var(--shell-ease);
 }
 /* Compact: the panel floats over the page, so peeking never moves it. */
-.control-shell [data-sidebar="sidebar"][data-state="collapsed"] [data-sidebar="content-container"] {
+.control-shell [data-sidebar="sidebar"][data-state="collapsed"] [data-sidebar="content-container"],
+.control-shell [data-sidebar="sidebar"][data-state="peeking"] [data-sidebar="content-container"] {
   position: fixed;
   inset-block: 0;
   left: 0;
   z-index: 40;
 }
+.control-shell [data-sidebar="sidebar"][data-state="peeking"] [data-sidebar="content-container"],
 .control-shell [data-sidebar="sidebar"][data-state="collapsed"] [data-sidebar="content-container"]:has([data-sidebar="peek-zone"]:hover),
 .control-shell[data-peeking] [data-sidebar="content-container"] {
   box-shadow: 0 0 0 1px var(--a-line), 0 18px 48px -12px rgb(0 0 0 / 0.28);
@@ -747,6 +749,12 @@
   overflow: hidden;
   font-size: 13.5px;
   white-space: nowrap;
+}
+/* Phones: the crumb trail gets ~80px beside the actions. Show only the
+   current view's switcher; the page title already names the section. */
+@media (max-width: 639px) {
+  .control-crumbs > .contents > a,
+  .control-crumbs > .contents > a + span { display: none; }
 }
 .control-crumbs ol {
   display: flex;

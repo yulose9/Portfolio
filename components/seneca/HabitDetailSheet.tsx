@@ -1,0 +1,824 @@
+// @ts-nocheck
+"use client";
+import { Fluent } from "@/app/admin/ui/extensions/emoji";
+import clsx from "clsx";
+import { motion } from "framer-motion";
+import { Check, Trash2, X } from "lucide-react";
+import React, { useMemo } from "react";
+import { useNavigate } from "@/lib/seneca/context/SenecaNavContext";
+import { useWebHaptics } from "web-haptics/react";
+import { TAP, TAP_CARD } from "@/lib/seneca/constants/motion";
+import { calendarDateKey, getPhDateKey, parseDateKey } from "@/lib/seneca/utils/timeUtils";
+import Sheet from "./Sheet";
+
+// iOS 18 System Colors
+const SystemColors = {
+  blue: "#007AFF",
+  green: "#34C759",
+  orange: "#FF9500",
+  purple: "#AF52DE",
+  red: "#FF3B30",
+  teal: "#00C7BE",
+  indigo: "#5856D6",
+  pink: "#FF2D55",
+  cyan: "#32ADE6",
+};
+
+// Habit Information
+const HABIT_INFO = {
+  Pray: {
+    description:
+      "Start your day with gratitude. Thank the Lord God for the gift of life, for the miracle of waking up to a new morning. Center your heart and surrender your worries before the world rushes in.",
+    color: SystemColors.blue,
+    quote: "This is the day the Lord has made.",
+  },
+  "Fix Bed": {
+    description:
+      "Order begins here. Restore order to your sanctuary—tidy up not just your bed (and Kuya's!), but your parents' bed too. A clean bedroom sets the standard for a disciplined, clutter-free mind.",
+    color: SystemColors.purple,
+    items: [
+      { label: "My Bed", icon: "🛏️" },
+      { label: "Parents Bed", icon: "✨" },
+      { label: "Tidy Room", icon: "🧹" },
+    ],
+  },
+  Coffee: {
+    description:
+      "Ignite your mind. Choose non-sugar caffeine (black coffee or tea) to jumpstart your system without the glucose crash. Pure focus, zero distractions.",
+    color: SystemColors.orange,
+  },
+  Breakfast: {
+    description:
+      "Listen to your body. If you're fasting for weight loss, skip this with pride—it's a victory. If you need fuel, eat mindfully.",
+    color: SystemColors.green,
+    type: "choice",
+    choices: [
+      { label: "I Fasted ⚡", value: "fasted", color: SystemColors.green },
+      { label: "I Ate 🍳", value: "ate", color: SystemColors.teal },
+    ],
+  },
+  "Morning Brush": {
+    description:
+      "Master the basics. Brush with intent—this isn't just a chore, it's respect for yourself and everyone you meet. Dental hygiene is non-negotiable. Don't forget the oral wash.",
+    color: SystemColors.cyan,
+    routine: [
+      { label: "Morning", icon: "☀️" },
+      { label: "Lunch", icon: "🍽️" },
+      { label: "Sleep", icon: "🌙" },
+    ],
+  },
+  Shower: {
+    description:
+      "Do this ASAP. Wash away the sleep and lethargy immediately. Combine this with your skincare routine to step out fresh, sharp, and ready for war.",
+    color: SystemColors.blue,
+    stack: [
+      { label: "Cleanse", icon: "🧼" },
+      { label: "Moisturize", icon: "💧" },
+      { label: "SPF", icon: "☀️" },
+      { label: "Vitamins", icon: "💊" },
+    ],
+  },
+  "Reflect on your day": {
+    description:
+      "Who are you becoming? Journal your wins to celebrate, your losses to learn, and your morality to stay grounded. Build your character daily.",
+    color: SystemColors.indigo,
+    action: "journal",
+    tags: ["Wins", "Losses", "Morality", "Improvement"],
+  },
+  "Read News": {
+    description:
+      "Filter the noise. Stick to high-signal sources. Knowledge is power, but only if it's true and relevant.",
+    color: "#64748B",
+    sources: [
+      { label: "Telegram", icon: "✈️" },
+      { label: "Google News", icon: "🌐" },
+      { label: "YouTube", icon: "▶️" },
+    ],
+  },
+  "Read Book": {
+    description:
+      "Feed your mind. Read 5-10 pages daily. Don't just read—internalize.",
+    color: SystemColors.purple,
+    goals: ["5-10 Pages", "Internalize"],
+    topics: ["Stoicism", "Wealth", "Tech", "AI"],
+  },
+  "Learn Stuff": {
+    description:
+      "Expertise is built hour by hour. Dedicate 2-3 hours to your Workforce Development Plan. Master RHEL, Cloud, and Engineering.",
+    color: SystemColors.pink,
+    time: "2-3 HOURS",
+    certifications: [
+      {
+        label: "Terraform Assoc.",
+        status: "done",
+        date: "Mar 3, 2025",
+        icon: "☁️",
+      },
+      {
+        label: "Red Hat CSA",
+        status: "progress",
+        date: "Oct 24, 2025",
+        icon: "🎩",
+      },
+      {
+        label: "OpenShift Admin",
+        status: "locked",
+        date: "Sep 17, 2025",
+        icon: "🚢",
+      },
+      {
+        label: "AWS DevOps Pro",
+        status: "locked",
+        date: "2026 Q3",
+        icon: "🏗️",
+      },
+      { label: "GitHub Found.", status: "locked", date: "2026 Q3", icon: "🐙" },
+    ],
+  },
+  Workout: {
+    description:
+      "Movement is medicine. Movement is mandatory. Use your tools to track your progress.",
+    color: SystemColors.red,
+    apps: [
+      { label: "Strong", icon: "🏋️" },
+      { label: "Strava", icon: "🏃" },
+      { label: "Watch", icon: "⌚" },
+    ],
+  },
+  "Eat Lunch": {
+    description:
+      "Midday checkpoint. If you're riding the fasting wave, keep surfing. If you need to break fast, prioritize protein and clean fuel. No slump allowed.",
+    color: SystemColors.green,
+    type: "choice",
+    choices: [
+      { label: "Power Fast ⚡", value: "fasted", color: SystemColors.green },
+      { label: "Clean Fuel 🥗", value: "ate", color: SystemColors.teal },
+    ],
+  },
+  "Toothbrush Lunch": {
+    description:
+      "Reset your palate. A mid-day brush prevents the afternoon decline and keeps your standards elite. Hygiene doesn't take a break.",
+    color: SystemColors.teal,
+    routine: [
+      { label: "Morning", icon: "☀️" },
+      { label: "Lunch", icon: "🍽️" },
+      { label: "Sleep", icon: "🌙" },
+    ],
+  },
+  Clean: {
+    description:
+      "Entropy is the enemy. Reset your physical and digital workspace. Clear your desktop files, organize your shoes, sweep the dust. A clear space is a sharp mind.",
+    color: SystemColors.cyan,
+    items: [
+      { label: "Digital Desktop", icon: "💻" },
+      { label: "Office Space", icon: "🪑" },
+      { label: "Shoes/Gear", icon: "👟" },
+      { label: "Dust/Sweep", icon: "🧹" },
+    ],
+  },
+  "Brush Before Sleep": {
+    description:
+      "The final seal. Close the day with discipline. A clean mouth ensures a peaceful sleep and a dignified wake-up.",
+    color: SystemColors.purple,
+    routine: [
+      { label: "Morning", icon: "☀️" },
+      { label: "Lunch", icon: "🍽️" },
+      { label: "Sleep", icon: "🌙" },
+    ],
+  },
+  "Skin Care Evening": {
+    description:
+      "Repair mode activated. Your skin heals while you dream. Don't skip this—this is an investment in your future face. Layer it right.",
+    color: SystemColors.pink,
+    stack: [
+      { label: "Double Cleanse", icon: "🧼" },
+      { label: "Toner", icon: "💧" },
+      { label: "Serum/Active", icon: "✨" },
+      { label: "Moisturizer", icon: "🧴" },
+    ],
+  },
+  Sleep: {
+    description:
+      "System Shutdown. Sleep is not a luxury, it is a biological necessity for elite performance. Lights out. Phone away.",
+    color: SystemColors.indigo,
+    time: "BEFORE 9:00 PM",
+    tags: ["Recovery", "Growth", "Deep Rest"],
+  },
+};
+
+// Calendar grid works on Manila day keys: parseDateKey/calendarDateKey convert
+// between a key and a local-midnight Date (for getDay()/getDate()), and today
+// comes from getPhDateKey() so it matches ProtocolContext.
+
+// Streak Calendar Component - Habit Pixel / GitHub Style Heatmap
+const StreakCalendar = ({ habit, color, history = {}, onToggle, haptic }) => {
+  const calendarData = useMemo(() => {
+    const today = parseDateKey(getPhDateKey());
+    const weeksToShow = 20; // Reduced slighty for mobile width fit, but scrollable is fine
+    const daysToGenerate = weeksToShow * 7;
+
+    // Calculate start date (going back N weeks)
+    // Ensure we end on "Today" or end of current week?
+    // To align grid, easier if we just generate N full weeks ending with *this* week
+    // Find the Monday of the current week (or future Sunday)
+    // Let's settle on: Last column is "Current Week"
+
+    const currentDay = today.getDay(); // 0=Sun, 1=Mon...
+    const daysSinceMonday = currentDay === 0 ? 6 : currentDay - 1; // Mon=0, Sun=6
+
+    // Target End Date = Today + (6 - daysSinceMonday) to fill the week? Or just Today?
+    // GitHub fills the week. Let's fill the week for visual neatness.
+    const endOfWeek = new Date(today);
+    endOfWeek.setDate(today.getDate() + (6 - daysSinceMonday));
+
+    const dates = [];
+    for (let i = daysToGenerate - 1; i >= 0; i--) {
+      const d = new Date(endOfWeek);
+      d.setDate(d.getDate() - i);
+      dates.push(calendarDateKey(d));
+    }
+
+    // Generate Month Labels
+    // We want to place labels roughly where the month changes
+    const monthLabels = [];
+    let lastMonth = -1;
+    dates.forEach((dateStr, index) => {
+      // Only check first day of each week (every 7th day) to place label above column
+      if (index % 7 === 0) {
+        const date = parseDateKey(dateStr);
+        const month = date.getMonth();
+        if (month !== lastMonth) {
+          monthLabels.push({
+            index: Math.floor(index / 7),
+            label: date.toLocaleString("default", { month: "short" }),
+          });
+          lastMonth = month;
+        }
+      }
+    });
+
+    return { dates, monthLabels };
+  }, []);
+
+  const { dates, monthLabels } = calendarData;
+  const todayKey = getPhDateKey();
+  const weekDays = ["M", "T", "W", "T", "F", "S", "S"];
+
+  // Calculate Streak Stats
+  const stats = useMemo(() => {
+    let streak = 0;
+    let d = parseDateKey(getPhDateKey());
+    // If today not done, check if yesterday was done (allow missed entry for today to not break streak yet)
+    if (!history[calendarDateKey(d)]) {
+      d.setDate(d.getDate() - 1);
+    }
+
+    while (true) {
+      const dateStr = calendarDateKey(d);
+      if (history[dateStr]) {
+        streak++;
+        d.setDate(d.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+
+    return {
+      total: Object.values(history).filter(Boolean).length,
+      currentStreak: streak,
+    };
+  }, [history]);
+
+  // Dimensions for the grid
+  const BOX_SIZE = 34; // Large, tappable size
+  const GAP = 6;
+  const COL_WIDTH = BOX_SIZE + GAP;
+
+  // Ref for scrolling to end
+  const scrollContainerRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollLeft =
+        scrollContainerRef.current.scrollWidth;
+    }
+  }, [dates]);
+
+  return (
+    <div className="mb-8">
+      {/* Header / Stats */}
+      <div className="flex items-center justify-between mb-5 px-1">
+        <p className="text-title-3 font-semibold text-ink">
+          History
+        </p>
+        <div className="flex gap-6">
+          <div className="text-right">
+            <p className="text-caption font-medium text-ink-2">
+              Streak
+            </p>
+            <p
+              className="text-title-3 font-bold leading-none tabular-nums"
+              style={{ color }}
+            >
+              {stats.currentStreak}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-caption font-medium text-ink-2">
+              Total
+            </p>
+            <p
+              className="text-title-3 font-bold leading-none tabular-nums"
+              style={{ color }}
+            >
+              {stats.total}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Scrollable Heatmap Container */}
+      <div className="bg-surface rounded-2xl p-5 shadow-card relative overflow-hidden">
+        {/* Month Labels Sticky Header? No, scrolling. */}
+        <div
+          ref={scrollContainerRef}
+          className="flex overflow-x-auto pb-4 pt-1 no-scrollbar scroll-smooth"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
+          <div className="flex-none relative">
+            {/* Month Labels */}
+            <div className="flex h-7 w-full relative mb-2">
+              {monthLabels.map((lbl, i) => (
+                <span
+                  key={i}
+                  className="absolute text-footnote font-semibold text-ink-2"
+                  style={{ left: `${lbl.index * COL_WIDTH + 20}px` }} // +20 for left axis offset
+                >
+                  {lbl.label}
+                </span>
+              ))}
+            </div>
+
+            <div className="flex gap-4">
+              {/* Day Labels (Sticky Left Axis) */}
+              <div className="grid grid-rows-7 gap-[6px] h-fit pt-[1px] sticky left-0 bg-surface z-10 pr-2">
+                {weekDays.map((d, i) => (
+                  <div
+                    key={i}
+                    className="h-[34px] flex items-center justify-center"
+                  >
+                    <span className="text-caption-2 font-semibold text-ink-3">
+                      {d}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* The Grid */}
+              <div
+                className="grid grid-rows-7 grid-flow-col"
+                style={{ gap: `${GAP}px` }}
+              >
+                {dates.map((date) => {
+                  const isDone = !!history[date];
+                  const isToday = date === todayKey;
+                  const isFuture = date > todayKey;
+                  const dayNum = parseDateKey(date).getDate();
+
+                  return (
+                    <motion.div
+                      key={date}
+                      onClick={() => {
+                        if (!isFuture) {
+                          haptic?.trigger("light");
+                          onToggle(date);
+                        }
+                      }}
+                      whileTap={TAP}
+                      className={clsx(
+                        "rounded-[10px] cursor-pointer flex items-center justify-center transition-[background-color] duration-150 relative overflow-hidden",
+                        isFuture ? "opacity-0 pointer-events-none" : "",
+                      )}
+                      style={{
+                        width: BOX_SIZE,
+                        height: BOX_SIZE,
+                        backgroundColor: isDone
+                          ? color
+                          : "var(--color-fill-strong)",
+                        border:
+                          isToday && !isDone ? `2px solid ${color}` : "none",
+                      }}
+                    >
+                      {/* Date Number */}
+                      <span
+                        className={clsx(
+                          "text-footnote font-semibold tabular-nums",
+                          isDone ? "text-white" : "text-ink-2",
+                        )}
+                        style={{
+                          color: isToday && !isDone ? color : undefined,
+                        }}
+                      >
+                        {dayNum}
+                      </span>
+
+                      {/* Optional: 'Check' icon if done? Or just simplify with number. Number is clean. */}
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Fade effect on right to hint scroll, only visible if content overflows? Always nice. */}
+        <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-surface to-transparent pointer-events-none" />
+        <div className="absolute left-[30px] top-0 bottom-0 w-4 bg-gradient-to-r from-surface to-transparent pointer-events-none" />
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center justify-between mt-4 px-2">
+        <p className="text-footnote font-medium text-ink-2">
+          Tap any date to edit history
+        </p>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-fill-strong" />
+            <span className="text-caption text-ink-2 font-medium">
+              Not done
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: color }}
+            />
+            <span className="text-caption text-ink-2 font-medium">
+              Done
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function HabitDetailSheet({
+  visible,
+  onClose,
+  habit,
+  onToggleHistory,
+  getHistory,
+  onDeleteCustomTask,
+}) {
+  const navigate = useNavigate();
+  const haptic = useWebHaptics();
+
+  if (!habit) return null;
+
+  // Check if this is a custom task
+  const isCustomTask = habit.isCustom === true;
+
+  // Get habit info - for custom tasks, use their own data
+  const habitInfo = isCustomTask
+    ? {
+        description: habit.description || "Build this habit consistently.",
+        color: SystemColors.blue,
+        subtitle: habit.subtitle || null,
+      }
+    : HABIT_INFO[habit.title] || {
+        description: "Build this habit consistently.",
+        color: SystemColors.blue,
+      };
+
+  const handleDeleteTask = () => {
+    if (onDeleteCustomTask && isCustomTask) {
+      onDeleteCustomTask(habit.phaseId, habit.id);
+      onClose();
+    }
+  };
+
+  const history = getHistory ? getHistory(habit.phaseId, habit.id) : {};
+  const today = getPhDateKey();
+  const isTodayDone = !!history[today];
+
+  const handleActionButton = () => {
+    if (habit && onToggleHistory) {
+      onToggleHistory(habit.phaseId, habit.id, today);
+    }
+  };
+
+  return (
+    <Sheet
+      open={visible}
+      onClose={onClose}
+      zIndex={200}
+      label={habit?.title}
+      backdropClassName="ios-sheet-backdrop"
+      className="ios-sheet"
+    >
+        {/* Handle */}
+        <div
+          className="flex justify-center pt-3 pb-2 cursor-pointer"
+          onClick={onClose}
+        >
+          <div className="ios-sheet-handle w-12 h-1.5" />
+        </div>
+
+        <div className="ios-sheet-content max-h-[85vh] overflow-y-auto px-6 pb-12 pt-2">
+          {/* Header */}
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex-1">
+              <div className="flex items-start justify-between">
+                <h2 className="text-large-title font-bold text-ink">
+                  {habit.title}
+                </h2>
+                {isCustomTask && (
+                  <motion.button
+                    whileTap={TAP}
+                    onClick={handleDeleteTask}
+                    className="w-10 h-10 rounded-full bg-negative/10 flex items-center justify-center ml-3"
+                  >
+                    <Trash2 size={18} className="text-negative" />
+                  </motion.button>
+                )}
+              </div>
+              {isCustomTask && habitInfo.subtitle && (
+                <p className="text-callout font-medium text-ink-2 mt-1.5">
+                  {habitInfo.subtitle}
+                </p>
+              )}
+              {habitInfo.quote && (
+                <p
+                  className="text-callout italic font-medium mt-1.5"
+                  style={{ color: habitInfo.color }}
+                >
+                  "{habitInfo.quote}"
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Custom Task Badge */}
+          {isCustomTask && (
+            <div className="flex items-center gap-2 mb-4">
+              <span className="px-3 py-1.5 bg-accent/10 text-accent text-caption font-semibold rounded-full">
+                Custom task
+              </span>
+            </div>
+          )}
+
+          {/* Description */}
+          <p className="text-body leading-relaxed text-ink-2 mb-8">
+            {habitInfo.description}
+          </p>
+
+          {/* Items / Pills */}
+          {habitInfo.items && (
+            <div className="flex flex-wrap gap-2.5 mb-8">
+              {habitInfo.items.map((item, i) => (
+                <div
+                  key={i}
+                  className="flex items-center bg-fill px-4 py-2.5 rounded-2xl"
+                >
+                  <span className="mr-2"><Fluent emoji={item.icon} size={24} /></span>
+                  <span className="text-subhead font-semibold text-ink">
+                    {item.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Routine */}
+          {habitInfo.routine && (
+            <div className="mb-8">
+              <p className="text-footnote font-semibold text-ink-2 mb-3">
+                Daily routine
+              </p>
+              <div className="flex justify-around">
+                {habitInfo.routine.map((step, i) => (
+                  <div key={i} className="flex flex-col items-center">
+                    <div
+                      className="w-14 h-14 rounded-full flex items-center justify-center mb-2.5"
+                      style={{ backgroundColor: `${habitInfo.color}15` }}
+                    >
+                      <Fluent emoji={step.icon} size={28} />
+                    </div>
+                    <span className="text-subhead font-medium text-ink-2">
+                      {step.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Stack */}
+          {habitInfo.stack && (
+            <div className="mb-8">
+              <p className="text-footnote font-semibold text-ink-2 mb-3">
+                Essentials stack
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {habitInfo.stack.map((item, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center bg-fill p-3.5 rounded-2xl"
+                  >
+                    <span className="mr-3.5"><Fluent emoji={item.icon} size={28} /></span>
+                    <span className="text-subhead font-semibold text-ink">
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Goals / Tags */}
+          {(habitInfo.goals || habitInfo.tags) && (
+            <div className="flex flex-wrap gap-2.5 mb-8">
+              {(habitInfo.goals || habitInfo.tags).map((tag, i) => (
+                <div
+                  key={i}
+                  className="px-3.5 py-2 rounded-full"
+                  style={{ backgroundColor: `${habitInfo.color}15` }}
+                >
+                  <span
+                    className="text-subhead font-semibold"
+                    style={{ color: habitInfo.color }}
+                  >
+                    #{tag}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* News Sources */}
+          {habitInfo.sources && (
+            <div className="mb-8">
+              <p className="text-footnote font-semibold text-ink-2 mb-3">
+                Sources
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {habitInfo.sources.map((source, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2.5 px-4 py-3 rounded-2xl"
+                    style={{ backgroundColor: `${habitInfo.color}10` }}
+                  >
+                    <Fluent emoji={source.icon} size={26} />
+                    <span
+                      className="text-subhead font-semibold"
+                      style={{ color: habitInfo.color }}
+                    >
+                      {source.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Certifications */}
+          {habitInfo.certifications && (
+            <div className="mb-8">
+              <p className="text-footnote font-semibold text-ink-2 mb-3">
+                Certification roadmap
+              </p>
+              <div className="bg-fill rounded-2xl overflow-hidden">
+                {habitInfo.certifications.map((cert, i) => (
+                  <div
+                    key={i}
+                    className={clsx(
+                      "flex items-center p-4",
+                      i !== habitInfo.certifications.length - 1 &&
+                        "border-b border-separator",
+                    )}
+                  >
+                    <div
+                      className={clsx(
+                        "w-10 h-10 rounded-full flex items-center justify-center mr-4",
+                        cert.status === "done"
+                          ? "bg-positive/15"
+                          : cert.status === "progress"
+                            ? "bg-caution/15"
+                            : "bg-fill",
+                      )}
+                    >
+                      <span className="text-body">
+                        {cert.status === "done"
+                          ? "✅"
+                          : cert.status === "progress"
+                            ? "⏳"
+                            : "🔒"}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-callout font-semibold text-ink">
+                        {cert.label}
+                      </p>
+                      <p className="text-footnote text-ink-2 mt-0.5">
+                        {cert.date}
+                      </p>
+                    </div>
+                    <Fluent emoji={cert.icon} size={28} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Journal Action */}
+          {habitInfo.action === "journal" && (
+            <motion.button
+              whileTap={TAP_CARD}
+              onClick={() => {
+                haptic.trigger("selection");
+                onClose();
+                navigate("/journal");
+              }}
+              className="w-full py-4 rounded-2xl border-2 border-dashed mb-8 font-semibold text-callout flex items-center justify-center"
+              style={{
+                borderColor: habitInfo.color,
+                color: habitInfo.color,
+              }}
+            >
+              Go to Journal 📖
+            </motion.button>
+          )}
+
+          {/* Divider */}
+          <div className="h-px bg-separator mb-8" />
+
+          {/* Streak Calendar */}
+          <StreakCalendar
+            habit={habit}
+            color={habitInfo.color}
+            history={history}
+            haptic={haptic}
+            onToggle={(date) =>
+              onToggleHistory(habit.phaseId, habit.id, date)
+            }
+          />
+
+          {/* Action Button */}
+          <div className="mt-8 pb-8">
+            {!isTodayDone && habitInfo.type === "choice" ? (
+              <div className="flex gap-4">
+                {habitInfo.choices.map((choice, index) => (
+                  <motion.button
+                    key={index}
+                    whileTap={TAP_CARD}
+                    onClick={() => {
+                      haptic.trigger("selection");
+                      handleActionButton();
+                    }}
+                    className="flex-1 h-[56px] rounded-2xl border-2 flex items-center justify-center text-body font-semibold"
+                    style={{
+                      backgroundColor: `${choice.color}12`,
+                      borderColor: choice.color,
+                      color: choice.color,
+                    }}
+                  >
+                    {choice.label}
+                  </motion.button>
+                ))}
+              </div>
+            ) : (
+              <motion.button
+                whileTap={TAP_CARD}
+                onClick={() => {
+                  haptic.trigger("medium");
+                  handleActionButton();
+                }}
+                className={clsx(
+                  "w-full h-[56px] rounded-2xl flex items-center justify-center text-body font-semibold transition-[background-color,color,box-shadow] duration-200",
+                  isTodayDone ? "text-white" : "bg-fill text-ink",
+                )}
+                style={{
+                  backgroundColor: isTodayDone
+                    ? habitInfo.color
+                    : undefined,
+                  boxShadow: isTodayDone
+                    ? `0 6px 20px ${habitInfo.color}50`
+                    : undefined,
+                }}
+              >
+                {isTodayDone ? (
+                  <>
+                    <Check size={22} strokeWidth={3} className="mr-2.5" />
+                    Completed
+                  </>
+                ) : (
+                  "Complete Task"
+                )}
+              </motion.button>
+            )}
+          </div>
+        </div>
+    </Sheet>
+  );
+}

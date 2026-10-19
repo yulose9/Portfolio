@@ -39,6 +39,9 @@ export async function onRequest(context) {
   const pathWithSearch = path + url.search;
 
   if (path.startsWith("/static/") || path.startsWith("/array/")) {
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      return new Response("Method not allowed", { status: 405 });
+    }
     return retrieveAsset(context, pathWithSearch);
   }
   return forward(request, pathWithSearch);
@@ -49,8 +52,8 @@ async function retrieveAsset(context, pathWithSearch) {
   const cache = caches.default;
   let response = await cache.match(context.request);
   if (!response) {
-    response = await fetch(`https://${ASSET_HOST}${pathWithSearch}`);
-    if (response.ok) context.waitUntil(cache.put(context.request, response.clone()));
+    response = await fetch(`https://${ASSET_HOST}${pathWithSearch}`, { method: context.request.method, redirect: "error" });
+    if (response.ok && context.request.method === "GET") context.waitUntil(cache.put(context.request, response.clone()));
   }
   return response;
 }
@@ -61,24 +64,43 @@ async function forward(request, pathWithSearch) {
     return new Response("Payload too large", { status: 413 });
   }
 
-  const headers = new Headers(request.headers);
-  // This site's cookies and credentials are no business of PostHog's.
-  headers.delete("cookie");
-  headers.delete("authorization");
+  // Allowlist: Access assertions, service tokens and future private headers
+  // must never cross the first-party analytics boundary.
+  const headers = new Headers();
+  for (const name of ["content-type", "content-encoding", "accept", "user-agent"]) {
+    const value = request.headers.get(name);
+    if (value) headers.set(name, value);
+  }
   // Without this every visitor would geolocate to a Cloudflare data centre.
   headers.set("X-Forwarded-For", request.headers.get("CF-Connecting-IP") || "");
 
   const hasBody = request.method !== "GET" && request.method !== "HEAD";
-  const body = hasBody ? await request.arrayBuffer() : null;
-  // Content-Length can be absent (chunked), so check the real size too.
-  if (body && body.byteLength > MAX_BODY_BYTES) {
-    return new Response("Payload too large", { status: 413 });
+  let body = null;
+  if (hasBody && request.body) {
+    const reader = request.body.getReader();
+    const chunks = [];
+    let size = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > MAX_BODY_BYTES) {
+          await reader.cancel();
+          return new Response("Payload too large", { status: 413 });
+        }
+        chunks.push(value);
+      }
+    } finally { reader.releaseLock(); }
+    body = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.byteLength; }
   }
 
   return fetch(`https://${API_HOST}${pathWithSearch}`, {
     method: request.method,
     headers,
     body,
-    redirect: request.redirect,
+    redirect: "error",
   });
 }
