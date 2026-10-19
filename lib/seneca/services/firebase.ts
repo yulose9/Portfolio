@@ -42,6 +42,8 @@ export const getEnv = (name: string): string => {
 };
 
 const rawApiKey = getEnv("FIREBASE_API_KEY");
+/** False when the build has no Firebase settings: sign-in can't work, so the UI says so. */
+export const firebaseConfigured = Boolean(rawApiKey && getEnv("FIREBASE_PROJECT_ID"));
 const firebaseConfig = {
   apiKey: rawApiKey || "AIzaSyMockKeyForTestEnvironment0000000000",
   authDomain: getEnv("FIREBASE_AUTH_DOMAIN") || "seneca-system.firebaseapp.com",

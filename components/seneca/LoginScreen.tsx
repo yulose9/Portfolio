@@ -1,119 +1,211 @@
 // @ts-nocheck
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
+import { SiGoogle } from "@icons-pack/react-simple-icons";
+import { BookOpenText, Flame, LockSimple, Wallet, WarningCircle, UserCircle } from "@phosphor-icons/react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { authService } from "@/lib/seneca/services/authService";
-import { AlertCircle, Lock, Google, ShieldCheck, UserCheck } from "lucide-react";
-import { motion } from "framer-motion";
-import { FADE } from "@/lib/seneca/constants/motion";
+import { authProblem, type AuthProblem } from "@/lib/seneca/services/authErrors";
+import { firebaseConfigured } from "@/lib/seneca/services/firebase";
+import { forgetAccount, rememberedAccount, type RememberedAccount } from "@/lib/seneca/services/rememberedAccount";
+
+/*
+ * The door to Seneca, in Home's language: the Seneca mark, a greeting for
+ * the time of day, today drawn as Home's hour strip with "now" on it, and one
+ * apricot button. It remembers the last account on this device and offers to
+ * continue as them; a failed sign-in says why and what to do, in place of
+ * Firebase's raw "auth/…" codes.
+ */
+
+const ZONE = "Asia/Manila";
+const KEEPS = [
+  { icon: BookOpenText, label: "Journal", tone: "sage" },
+  { icon: Flame, label: "Habits", tone: "coral" },
+  { icon: Wallet, label: "Money", tone: "ember" },
+];
+
+/** Manila wall-clock parts for now: hour, minute, and the date line. */
+function manilaNow(now: Date) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-GB", { timeZone: ZONE, hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+      .formatToParts(now)
+      .map((p) => [p.type, p.value]),
+  );
+  const hour = Number(parts.hour);
+  const minute = Number(parts.minute);
+  const date = new Intl.DateTimeFormat("en-PH", { timeZone: ZONE, weekday: "long", day: "numeric", month: "long" }).format(now);
+  const time = new Intl.DateTimeFormat("en-PH", { timeZone: ZONE, hour: "numeric", minute: "2-digit" }).format(now);
+  const greeting = hour < 5 ? "Still up" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const left = 24 * 60 - (hour * 60 + minute);
+  return { hour, minute, date, time, greeting, left: `${Math.floor(left / 60)}h ${String(left % 60).padStart(2, "0")}m` };
+}
+
+function useClock() {
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const id = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+  return now;
+}
+
+const NOT_CONNECTED: AuthProblem = {
+  title: "Sign-in isn't connected on this build",
+  detail: "The site was built without its Firebase settings. Add the NEXT_PUBLIC_FIREBASE_* values and redeploy.",
+};
 
 export default function LoginScreen({ onLoginSuccess }: { onLoginSuccess?: (user?: any) => void }) {
-  const [error, setError] = useState<string | null>(null);
+  const [problem, setProblem] = useState<AuthProblem | null>(firebaseConfigured ? null : NOT_CONNECTED);
   const [loading, setLoading] = useState(false);
+  const [account, setAccount] = useState<RememberedAccount | null>(null);
   const haptic = useWebHaptics();
+  const still = useReducedMotion();
+  const now = useClock();
+  const clock = now ? manilaNow(now) : null;
 
-  const handleGoogleLogin = async () => {
+  useEffect(() => setAccount(rememberedAccount()), []);
+
+  const signIn = async () => {
     haptic?.trigger?.("medium");
     setLoading(true);
-    setError(null);
+    setProblem(null);
     try {
-      const user = await authService.loginWithGoogle();
+      const user = await authService.loginWithGoogle(account?.email);
       haptic?.trigger?.("success");
-      if (onLoginSuccess) {
-        onLoginSuccess(user);
-      } else if (typeof window !== "undefined") {
-        window.location.reload();
-      }
-    } catch (err: any) {
-      console.error(err);
-      haptic?.trigger?.("error");
-      setError(err?.message || "Google authentication failed.");
+      if (onLoginSuccess) onLoginSuccess(user);
+      else window.location.reload();
+    } catch (err) {
+      const next = authProblem(err, window.location.hostname);
+      if (next) haptic?.trigger?.("error");
+      setProblem(next);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLocalMode = () => {
-    haptic?.trigger?.("light");
-    if (typeof window !== "undefined") {
-      localStorage.setItem("seneca_local_session", "true");
-    }
-    const mockUser = {
-      email: "admin@nazarene.dev",
-      displayName: "Admin User",
-      uid: "local-admin",
-    };
-    onLoginSuccess?.(mockUser);
+  const notYou = () => {
+    forgetAccount();
+    setAccount(null);
   };
 
+  const localMode = () => {
+    haptic?.trigger?.("light");
+    localStorage.setItem("seneca_local_session", "true");
+    onLoginSuccess?.({ email: "local@example.com", displayName: "Local", uid: "local-admin" });
+  };
+
+  const enter = (i: number) =>
+    still ? {} : { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.45, delay: 0.06 * i, ease: [0.23, 1, 0.32, 1] } };
+
   return (
-    <div className="relative w-full max-w-md mx-auto my-12 px-4 flex flex-col items-center justify-center text-center">
-      <motion.div
-        initial={{ scale: 0.98, opacity: 0, y: 8 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full bg-surface border border-separator/60 rounded-2xl p-8 shadow-card"
-      >
-        <div className="flex justify-center mb-6">
-          <div className="w-16 h-16 bg-accent/10 border border-accent/20 rounded-2xl flex items-center justify-center">
-            <Lock size={28} className="text-accent" strokeWidth={2.2} />
+    <div className="sn-door">
+      <section className="sn-card sn-door-card" aria-labelledby="sn-door-title">
+        <motion.header className="sn-door-head" {...enter(0)}>
+          <img className="sn-door-mark" src="/seneca/seneca-icon-96.webp" srcSet="/seneca/seneca-icon-96.webp 1x, /seneca/seneca-icon-192.webp 2x" width={44} height={44} alt="" />
+          <div>
+            <p className="sn-door-brand">Seneca</p>
+            <p className="sn-door-sub">Private workspace</p>
           </div>
-        </div>
+          <span className="sn-door-lock">
+            <LockSimple size={13} weight="bold" aria-hidden="true" />
+            Owner only
+          </span>
+        </motion.header>
 
-        <h2 className="text-title-2 font-semibold text-ink tracking-tight mb-2">Seneca Telemetry</h2>
-        <p className="text-subhead text-ink-2 mb-6 leading-relaxed">
-          Stoic habit tracker, protocol logging, wealth telemetry, and reflection journal.
-        </p>
+        <motion.div className="sn-door-greet" {...enter(1)}>
+          <h2 id="sn-door-title" className="sn-door-title">
+            {clock ? clock.greeting : "Welcome"}
+            {account ? `, ${account.name}` : ""}.
+          </h2>
+          <p className="sn-door-date">{clock ? `${clock.date} · ${clock.time} Philippine time` : " "}</p>
+        </motion.div>
 
-        {error && (
-          <motion.div
-            role="alert"
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={FADE}
-            className="mb-6 p-3.5 bg-negative/10 border border-negative/20 rounded-xl text-negative text-subhead font-medium text-left flex items-start gap-2.5"
-          >
-            <AlertCircle size={18} strokeWidth={2} className="shrink-0 mt-0.5" aria-hidden="true" />
-            <span className="text-xs leading-normal">{error}</span>
-          </motion.div>
-        )}
+        {/* Today, as Home draws it: an hour strip with "now" on it. */}
+        <motion.div className="sn-door-day" {...enter(2)} aria-hidden={!clock}>
+          <div className="sn-door-strip" role="img" aria-label={clock ? `${clock.left} left today` : "Today"}>
+            {Array.from({ length: 24 }, (_, h) => (
+              <span key={h} data-past={clock && h < clock.hour ? "" : undefined} data-now={clock && h === clock.hour ? "" : undefined} />
+            ))}
+          </div>
+          <div className="sn-door-strip-legend">
+            <span>12 AM</span>
+            <span className="sn-door-left">{clock ? `${clock.left} left today` : ""}</span>
+            <span>12 AM</span>
+          </div>
+        </motion.div>
 
-        <div className="space-y-3">
+        <motion.ul className="sn-door-keeps" aria-label="What Seneca keeps" {...enter(3)}>
+          {KEEPS.map(({ icon: Icon, label, tone }) => (
+            <li key={label} data-tone={tone}>
+              <Icon size={16} weight="bold" aria-hidden="true" />
+              {label}
+            </li>
+          ))}
+        </motion.ul>
+
+        <AnimatePresence initial={false}>
+          {problem ? (
+            <motion.div
+              key={problem.title}
+              role="alert"
+              className="sn-door-problem-wrap"
+              initial={still ? false : { opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+            >
+              <div className="sn-door-problem">
+                <WarningCircle size={18} weight="bold" aria-hidden="true" />
+                <div>
+                  <p className="sn-door-problem-title">{problem.title}</p>
+                  <p className="sn-door-problem-detail">{problem.detail}</p>
+                  {problem.code ? <p className="sn-door-problem-code">{problem.code}</p> : null}
+                </div>
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
+        <motion.div className="sn-door-actions" {...enter(4)}>
           <button
             type="button"
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            className="w-full py-3 px-4 bg-ink text-white dark:bg-white dark:text-ink font-medium text-callout rounded-xl active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2.5 shadow-sm hover:opacity-90 disabled:opacity-50"
+            onClick={signIn}
+            disabled={loading || !firebaseConfigured}
+            aria-busy={loading || undefined}
+            className="sn-btn sn-btn-primary sn-btn-block sn-door-google"
           >
-            {loading ? (
-              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <ShieldCheck size={18} aria-hidden="true" />
-                <span>Connect with Google (Cloud Sync)</span>
-              </>
-            )}
+            <span className="sn-door-google-face" data-busy={loading || undefined}>
+              {account?.photo ? (
+                <img src={account.photo} alt="" width={22} height={22} referrerPolicy="no-referrer" className="sn-door-avatar" />
+              ) : (
+                <SiGoogle size={16} aria-hidden="true" />
+              )}
+              <span>{account ? `Continue as ${account.name}` : "Continue with Google"}</span>
+            </span>
+            <span className="sn-door-spinner" data-busy={loading || undefined} aria-hidden="true" />
           </button>
+          {account ? (
+            <p className="sn-door-account">
+              {account.email} ·{" "}
+              <button type="button" className="sn-door-link" onClick={notYou}>
+                Not you?
+              </button>
+            </p>
+          ) : null}
 
           {/* Local mode skips sign-in, so it exists only in development. */}
           {process.env.NODE_ENV !== "production" ? (
-          <button
-            type="button"
-            onClick={handleLocalMode}
-            className="w-full py-3 px-4 bg-fill hover:bg-fill-strong text-ink font-medium text-callout rounded-xl active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2.5 border border-separator/40"
-          >
-            <UserCheck size={18} aria-hidden="true" />
-            <span>Continue in Local Mode (Offline Storage)</span>
-          </button>
+            <button type="button" onClick={localMode} className="sn-btn sn-btn-outline sn-btn-block sn-door-local">
+              <UserCircle size={17} weight="bold" aria-hidden="true" />
+              <span>Local mode, this device only</span>
+            </button>
           ) : null}
-        </div>
+        </motion.div>
 
-        <div className="mt-6 pt-5 border-t border-separator/40 flex items-center justify-center gap-3 text-caption text-ink-3">
-          <span>Signed-in owner only</span>
-          <span>•</span>
-          <span>Not sent to analytics</span>
-        </div>
-      </motion.div>
+        <p className="sn-door-note">You stay signed in on this device. Your entries never go to analytics.</p>
+      </section>
     </div>
   );
 }

@@ -7,6 +7,7 @@
 import { auth, getEnv } from "./firebase";
 import { signInWithPopup, GoogleAuthProvider, signOut, type User } from "firebase/auth";
 import { flushPendingWrites } from "./dataLogger";
+import { rememberAccount } from "./rememberedAccount";
 
 const ALLOWED_EMAIL = getEnv("ALLOWED_EMAIL");
 
@@ -15,12 +16,14 @@ export const authService = {
     return auth?.currentUser ?? null;
   },
 
-  async loginWithGoogle(): Promise<User> {
+  /** `hint`: the remembered email, so Google offers that account first. */
+  async loginWithGoogle(hint?: string): Promise<User> {
     if (!auth) {
       throw new Error("Firebase Auth not initialized");
     }
 
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters(hint ? { login_hint: hint, prompt: "select_account" } : { prompt: "select_account" });
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
@@ -31,6 +34,7 @@ export const authService = {
         throw new Error("Access Denied: This email is not authorized.");
       }
 
+      rememberAccount(user);
       return user;
     } catch (error) {
       console.error("Login failed:", error);

@@ -6,6 +6,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth, getEnv } from "@/lib/seneca/services/firebase";
 import { preparePrivateSession } from "@/lib/seneca/services/dataLogger";
+import { rememberAccount } from "@/lib/seneca/services/rememberedAccount";
 import { EASE_OUT, FADE_EXIT } from "@/lib/seneca/constants/motion";
 import { senecaFont } from "./font";
 import { useHoverSounds } from "./useHoverSounds";
@@ -58,6 +59,7 @@ export default function SenecaApp({
         void auth.signOut();
         setUser(null);
       } else if (currentUser) {
+        rememberAccount(currentUser);
         setUser(currentUser);
       } else if (isLocal) {
         setUser({ email: "admin@nazarene.dev", displayName: "Admin" });
@@ -69,22 +71,33 @@ export default function SenecaApp({
     return () => unsubscribe();
   }, []);
 
+  // The screens before sign-in sit in the same root as the app, so they get
+  // Seneca's tokens and type (they live on .seneca-root).
+  const preSession = (children: React.ReactNode) => (
+    <div className={`seneca-root ${senecaFont.variable} font-sans antialiased text-ink relative w-full`}>{children}</div>
+  );
+
   if (loading) {
-    return (
-      <div className="w-full h-full min-h-[500px] flex items-center justify-center bg-canvas">
+    return preSession(
+      <div className="w-full h-full min-h-[500px] flex items-center justify-center" role="status" aria-label="Loading Seneca">
         <div className="w-8 h-8 border-4 border-separator border-t-accent rounded-full animate-spin" />
-      </div>
+      </div>,
     );
   }
 
   if (!user) {
-    if (sessionError) return <div role="alert" className="sn-card p-6">This browser could not separate your saved account data. Free some browser storage and reload before continuing.</div>;
-    return (
+    if (sessionError)
+      return preSession(
+        <div role="alert" className="sn-card p-6 max-w-md mx-auto my-12">
+          This browser could not separate your saved account data. Free some browser storage and reload before continuing.
+        </div>,
+      );
+    return preSession(
       <LoginScreen
         onLoginSuccess={(authed) => {
-          setUser(authed || auth?.currentUser || { email: "admin@nazarene.dev" });
+          setUser(authed || auth?.currentUser || null);
         }}
-      />
+      />,
     );
   }
 
