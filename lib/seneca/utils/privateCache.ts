@@ -1,8 +1,8 @@
 export const CACHE_OWNER = "seneca_private_cache_owner";
 const archiveKey = (owner: string) => `seneca_private_cache_v1:${encodeURIComponent(owner)}`;
 const pendingKey = "seneca_private_cache_switch";
-const privateKey = (key: string) => /^(wealth_|journal_|personal_goals_|study_|protocol_)/.test(key)
-  || ["seneca_daily_logs", "seneca_global_data", "seneca_sync_dirty", "seneca_life_settings", "seneca_custom_certifications", "seneca_certification_statuses", "seneca_domains", "seneca_user_preferences"].includes(key);
+const privateKey = (key: string) => /^(wealth_|journal_|journal-draft|personal_goals_|study_|protocol_)/.test(key)
+  || ["seneca_daily_logs", "seneca_global_data", "seneca_sync_dirty", "seneca_life_settings", "seneca_time_blocks", "seneca_custom_certifications", "seneca_certification_statuses", "seneca_domains", "seneca_user_preferences"].includes(key);
 
 /** Switch the working cache without importing another identity's unsynced data. */
 export function switchPrivateCache(storage: Pick<Storage,"length"|"key"|"getItem"|"setItem"|"removeItem">, uid: string | null) {

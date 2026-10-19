@@ -112,7 +112,7 @@ export default function CalendarViewSheet({
       open={visible}
       onClose={onClose}
       label="Certification Roadmap"
-      className="fixed bottom-0 left-0 right-0 bg-canvas rounded-t-sheet max-h-[92vh] overflow-hidden flex flex-col"
+      className="fixed bottom-0 left-0 right-0 bg-canvas rounded-t-sheet max-h-[92dvh] overflow-hidden flex flex-col"
     >
         {/* Drag Handle */}
         <div

@@ -44,9 +44,22 @@ export const getEnv = (name: string): string => {
 const rawApiKey = getEnv("FIREBASE_API_KEY");
 /** False when the build has no Firebase settings: sign-in can't work, so the UI says so. */
 export const firebaseConfigured = Boolean(rawApiKey && getEnv("FIREBASE_PROJECT_ID"));
+/**
+ * On the live site, Firebase's sign-in helper is served from the site itself
+ * (functions/__/[[path]].ts), so Safari and the iPhone home-screen app keep
+ * the sign-in instead of losing it to storage partitioning. Needs
+ * https://<host>/__/auth/handler in the Google OAuth client's redirect URIs,
+ * hence the switch.
+ */
+const SAME_ORIGIN_HOSTS = new Set(["nazarene.dev", "www.nazarene.dev"]);
+export const sameOriginAuth =
+  process.env.NEXT_PUBLIC_FIREBASE_SAME_ORIGIN_AUTH === "1" &&
+  typeof window !== "undefined" &&
+  SAME_ORIGIN_HOSTS.has(window.location.host);
+
 const firebaseConfig = {
   apiKey: rawApiKey || "AIzaSyMockKeyForTestEnvironment0000000000",
-  authDomain: getEnv("FIREBASE_AUTH_DOMAIN") || "seneca-system.firebaseapp.com",
+  authDomain: sameOriginAuth ? window.location.host : getEnv("FIREBASE_AUTH_DOMAIN") || "seneca-system.firebaseapp.com",
   projectId: getEnv("FIREBASE_PROJECT_ID") || "seneca-system",
   storageBucket: getEnv("FIREBASE_STORAGE_BUCKET") || "seneca-system.appspot.com",
   messagingSenderId: getEnv("FIREBASE_MESSAGING_SENDER_ID") || "000000000000",

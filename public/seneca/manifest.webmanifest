@@ -1,0 +1,18 @@
+{
+  "id": "/admin?section=seneca",
+  "name": "Seneca",
+  "short_name": "Seneca",
+  "description": "Private workspace: journal, habits and money.",
+  "start_url": "/admin?section=seneca",
+  "scope": "/admin",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    { "src": "/seneca/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/seneca/seneca-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/seneca/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "lang": "en"
+}

@@ -41,6 +41,10 @@ export const SENECA_VIEWS = [
   { id: "journal", label: "Journal" },
 ] as const;
 export type ViewScope = "writing" | "projects" | "seneca";
+
+/** The top bar's slot for a page's compact status (Seneca's sync state on phones). */
+export const TOPBAR_SLOT_ID = "control-topbar-slot";
+
 export const VIEWS: Record<ViewScope, readonly { id: string; label: string }[]> = {
   writing: WRITING_VIEWS,
   projects: PROJECT_VIEWS,

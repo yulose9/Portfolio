@@ -112,7 +112,7 @@ export default function AddGoalSheet({
       open={visible}
       onClose={handleClose}
       label="New goal"
-      className="fixed bottom-0 left-0 right-0 bg-canvas rounded-t-sheet max-h-[92vh] overflow-hidden"
+      className="fixed bottom-0 left-0 right-0 bg-canvas rounded-t-sheet max-h-[92dvh] overflow-hidden"
     >
         {/* Drag Handle */}
         <div
@@ -152,7 +152,7 @@ export default function AddGoalSheet({
         </div>
 
         {/* Scrollable Content */}
-        <div className="overflow-y-auto max-h-[calc(92vh-60px)] pb-20">
+        <div className="overflow-y-auto max-h-[calc(92dvh-60px)] pb-20">
           {/* Icon Preview - Centered Hero Style */}
           <div className="flex flex-col items-center py-8">
             <motion.button

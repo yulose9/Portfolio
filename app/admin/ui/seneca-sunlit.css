@@ -761,6 +761,7 @@
   display: flex;
   flex-direction: column;
   max-height: 92vh;
+  max-height: 92dvh;
   border-radius: 28px 28px 0 0;
   background: var(--color-surface);
   color: var(--color-ink);
@@ -777,6 +778,7 @@
     width: min(520px, calc(100vw - 48px));
     height: fit-content;
     max-height: min(760px, calc(100vh - 64px));
+    max-height: min(760px, calc(100dvh - 64px));
     border-radius: 28px;
     box-shadow: 0 0 0 1px rgb(40 32 20 / 0.06), 0 40px 80px -30px rgb(14 11 8 / 0.55);
   }
@@ -1008,8 +1010,8 @@
 
 /* Goal manager rows */
 .sn-goal-order{display:flex;flex-direction:column;gap:8px;list-style:none;padding:0;margin:0}
-.sn-goal-grip{display:grid;place-items:center;flex-shrink:0;width:32px;min-height:44px;touch-action:none;cursor:grab;color:var(--color-ink-2)}
-.sn-goal-grip:active{cursor:grabbing}.sn-goal-grip:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px;border-radius:6px}
+.sn-goal-grip{display:grid;place-items:center;flex-shrink:0;width:32px;min-height:44px;touch-action:none;cursor:var(--cursor-grab);color:var(--color-ink-2)}
+.sn-goal-grip:active{cursor:var(--cursor-grabbing)}.sn-goal-grip:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px;border-radius:6px}
 .sn-goal-icon{width:100%;height:100%;max-width:40px;max-height:40px;object-fit:contain;display:inline-block;vertical-align:middle}
 .sn-goal-icon-picker{min-width:0;border:1px solid var(--sn-line);border-radius:12px;padding:10px}.sn-goal-icon-picker .emoji-picker{width:100%;max-width:100%}
 .sn-goal-date{justify-content:flex-start!important;min-height:44px}.sn-goal-calendar{display:flex;justify-content:center;border:1px solid var(--sn-line);border-radius:12px;padding:10px;max-width:100%;overflow:auto}
@@ -1472,7 +1474,7 @@
 }
 
 /* The document ----------------------------------------------------------- */
-.sn-doc { position: relative; min-height: 70vh; }
+.sn-doc { position: relative; min-height: 70vh; min-height: 70dvh; }
 
 .sn-doc-bar {
   position: sticky;
@@ -1654,6 +1656,7 @@
 .seneca-root .sn-doc-editor .ProseMirror,
 .seneca-root .sn-doc-prose {
   min-height: 40vh;
+  min-height: 40dvh;
   padding: 0;
   font-size: 18px;
   line-height: 1.68;
@@ -1759,6 +1762,24 @@
 .sn-manage-row.is-hidden { background: transparent; box-shadow: inset 0 0 0 1.5px var(--sn-line); }
 .sn-manage-row.is-hidden .sn-tile,
 .sn-manage-row.is-hidden .min-w-0 { opacity: 0.55; }
+
+/*
+ * Reordering: Keep going's goals (GoalsManagerSheet) and Protocol's tasks
+ * (ProtocolView). The row being carried (data-lifted) gets an apricot ring,
+ * an outline so framer's whileDrag shadow stays its own; the rest step back,
+ * so the gap they open as it passes is plainly the slot it will land in.
+ */
+.sn-goal-order > .sn-manage-row,
+.sn-task-order > * { transition: opacity 120ms ease, background-color 120ms ease; }
+.sn-goal-order > [data-lifted],
+.sn-task-order > [data-lifted] { outline: 1.5px solid var(--sn-apricot); outline-offset: -1.5px; }
+.sn-goal-order > [data-lifted] { background: var(--color-surface); }
+.sn-goal-order:has(> [data-lifted]) > :not([data-lifted]),
+.sn-task-order:has(> [data-lifted]) > :not([data-lifted]) { opacity: 0.6; }
+@media (prefers-reduced-motion: reduce) {
+  .sn-goal-order > .sn-manage-row,
+  .sn-task-order > * { transition: none; }
+}
 
 /* Journal sync line: where the entries on screen came from */
 .sn-sync {

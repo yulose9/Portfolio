@@ -653,6 +653,23 @@
 .ki-tags-chips::-webkit-scrollbar {
   display: none;
 }
+/*
+ * While a pill is carried the row it can land in turns into a quiet well,
+ * and the gap the others open is the slot. (@hello-pangea's own placeholder
+ * sits at the end of the list, not in the gap, so it is left unstyled.)
+ */
+.ki-tags-chips {
+  border-radius: 8px;
+  transition: background-color 0.15s var(--ease-out);
+}
+.ki-tags-chips[data-over] {
+  background: rgb(var(--tint) / 0.05);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ki-tags-chips {
+    transition: none;
+  }
+}
 .ki-tag {
   display: inline-flex;
   align-items: center;
@@ -673,11 +690,11 @@
   padding: 0 4px 0 8px;
   line-height: 26px;
   border-radius: 7px;
-  cursor: grab;
+  cursor: var(--cursor-grab);
   white-space: nowrap;
 }
 .ki-tag[data-dragging] .ki-tag-label {
-  cursor: grabbing;
+  cursor: var(--cursor-grabbing);
 }
 .ki-tag-remove {
   display: grid;

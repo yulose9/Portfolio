@@ -429,6 +429,32 @@
 .folder-row:hover {
   background: var(--a-fill-2);
 }
+/*
+ * Dragging a page onto a folder (Folders.tsx). While one is held every row
+ * shows a faint outline, so the places it can go are plain; the row under it
+ * fills blue, the same blue as the editor's drop lines.
+ */
+.folder-row {
+  transition: background-color 120ms ease;
+}
+.folder-rows[data-dragging] .folder-row {
+  box-shadow: inset 0 0 0 1px var(--a-line);
+}
+.folder-rows .folder-row[data-over] {
+  background: color-mix(in srgb, var(--a-blue) 12%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--a-blue);
+}
+.folder-page[draggable="true"] {
+  cursor: var(--cursor-grab);
+}
+.folder-page[data-dragging] {
+  opacity: 0.5;
+}
+@media (prefers-reduced-motion: reduce) {
+  .folder-row {
+    transition: none;
+  }
+}
 .folder-page {
   display: flex;
   align-items: center;

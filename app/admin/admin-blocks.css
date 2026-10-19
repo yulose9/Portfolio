@@ -326,14 +326,14 @@
   border-radius: 6px;
   background: transparent;
   color: var(--a-ink-3);
-  cursor: grab;
+  cursor: var(--cursor-grab);
   touch-action: none;
 }
 .editor-poll-handle svg {
   pointer-events: none;
 }
 .editor-poll-handle:active {
-  cursor: grabbing;
+  cursor: var(--cursor-grabbing);
 }
 .editor-poll-handle:focus-visible {
   outline: 2px solid var(--a-ink);
@@ -658,7 +658,7 @@
   background: #e4e4e7;
   box-shadow: 0 0 0 1.5px var(--paper);
   color: #71717a;
-  cursor: grab;
+  cursor: var(--cursor-grab);
   opacity: 0;
   pointer-events: none;
   translate: -50% -50%;
@@ -698,7 +698,7 @@
   color: #fff;
 }
 .table-handle[data-active] {
-  cursor: grabbing;
+  cursor: var(--cursor-grabbing);
 }
 .table-handle:focus-visible {
   outline: 2px solid var(--focus);
@@ -1117,13 +1117,13 @@
 }
 /* Reposition: the picture follows the pointer; the tools give way to a save. */
 .editor-banner[data-repositioning] {
-  cursor: grab;
+  cursor: var(--cursor-grab);
   touch-action: none;
   outline: 2px solid rgb(37 99 235 / 0.5);
   outline-offset: -2px;
 }
 .editor-banner[data-repositioning]:active {
-  cursor: grabbing;
+  cursor: var(--cursor-grabbing);
 }
 .editor-banner[data-repositioning] .editor-cover-actions {
   opacity: 1;

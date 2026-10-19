@@ -7,6 +7,7 @@ import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } 
 
 import { cn } from "../../../lib/cn";
 import { playSound } from "../../ui/sound";
+import { useGrabbingCursor } from "../../../lib/grabbing";
 
 /*
  * Tags: chips with a combobox to add, create and remove them, in the manner of
@@ -65,6 +66,7 @@ export function TagsInput({
   const field = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const handles = useRef(new Map<string, HTMLElement>());
+  useGrabbingCursor();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const full = value.length >= max;
@@ -173,10 +175,11 @@ export function TagsInput({
           {value.length ? (
             <DragDropContext onDragEnd={onDragEnd}>
               <Droppable droppableId={`${id}-chips`} direction="horizontal">
-                {(drop) => (
+                {(drop, over) => (
                   <ul
                     ref={drop.innerRef}
                     {...drop.droppableProps}
+                    data-over={over.isDraggingOver || undefined}
                     className="ki-tags-chips"
                     aria-label={`${label}, ${value.length} selected`}
                   >

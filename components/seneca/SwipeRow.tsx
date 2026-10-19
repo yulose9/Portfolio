@@ -10,6 +10,7 @@ import {
 import { Trash2 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { LAYOUT_SPRING } from "@/lib/seneca/constants/motion";
+import { holdGrabbing } from "@/app/lib/grabbing";
 
 const REVEAL = 80; // px the row slides left to reveal the delete action
 const OPEN_DISTANCE = 40;
@@ -96,12 +97,22 @@ export default function SwipeRow({
     if (Math.hypot(dx, dy) > LONG_PRESS_SLOP) clearLongPress();
   };
 
-  const handleDragStart = () => {
+  // A mouse dragging the row open holds the closed hand (lib/grabbing) until release.
+  const releaseGrab = useRef(null);
+  const letGo = useCallback(() => {
+    releaseGrab.current?.();
+    releaseGrab.current = null;
+  }, []);
+  useEffect(() => letGo, [letGo]);
+
+  const handleDragStart = (e) => {
     clearLongPress();
     suppressClick.current = true;
+    if (e?.pointerType && e.pointerType !== "touch") releaseGrab.current ??= holdGrabbing();
   };
 
   const handleDragEnd = (_e, info) => {
+    letGo();
     if (open) {
       const closing =
         info.offset.x > OPEN_DISTANCE || info.velocity.x > OPEN_VELOCITY;

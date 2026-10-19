@@ -241,10 +241,11 @@ export default function PeerCursors() {
       peer.targetY = py;
       peer.seen = performance.now();
 
-      // Hand, I-beam or arrow for whatever is under their pointer *here*, on
-      // this page. Nothing about it is sent, so it costs no bandwidth, and it
-      // stays right even if their layout differs. Hit-tested per update
-      // (≤20Hz), not per frame.
+      // Hand, open hand, I-beam or arrow for whatever is under their pointer
+      // *here*, on this page. Nothing about it is sent, so it costs no
+      // bandwidth, and it stays right even if their layout differs. Their
+      // buttons aren't sent either, so a handle's hand stays open. Hit-tested
+      // per update (≤20Hz), not per frame.
       const next = shapeAt(px, py);
       if (next !== peer.shape) {
         peer.shape = next;

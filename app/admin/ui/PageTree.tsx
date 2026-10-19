@@ -27,6 +27,7 @@ import {
 } from "../../../cms/page-order";
 import { MenuSurface, MItem } from "./menu";
 import Folders from "./Folders";
+import { useGrabbingCursor } from "../../lib/grabbing";
 import { Skeleton } from "../../components/kit/skeleton";
 import { Tooltip } from "../../components/kit/tooltip";
 
@@ -146,6 +147,8 @@ export default function PageTree({
     [failed, setFailed] = useState<(() => Promise<void>) | null>(null);
   const [dragged, setDragged] = useState<string | null>(null),
     [over, setOver] = useState<string | null>(null);
+  // The closed hand from the grip's press to the drop, on every admin page.
+  useGrabbingCursor();
   const running = useRef(false),
     createRequests = useRef(new Map<string, string>()),
     nav = useRef<HTMLElement>(null),
@@ -430,6 +433,7 @@ export default function PageTree({
           data-page-id={p.id}
           data-current={p.id === currentId || undefined}
           data-drop={over === p.id || undefined}
+          data-dragging={dragged === p.id || undefined}
           data-context={direct ? undefined : ""}
           onDragOver={(e) => {
             if (canDrop && !busy && !filtered) {

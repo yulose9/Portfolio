@@ -153,7 +153,7 @@ function AppShell({ embedded }: { embedded?: boolean }) {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0, transition: { duration: 0.25, ease: EASE_OUT } }}
             exit={{ opacity: 0, y: -4, transition: FADE_EXIT }}
-            className="absolute top-0 inset-x-0 z-[999] bg-orange-500/90 text-white text-footnote font-medium py-1.5 flex items-center justify-center gap-2 backdrop-blur-md"
+            className="sn-offline-banner text-footnote font-medium flex items-center justify-center gap-2"
           >
             <span>You are offline. Cloud money changes need a connection; other edits stay on this device until sync resumes.</span>
           </motion.div>

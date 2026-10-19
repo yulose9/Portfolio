@@ -394,6 +394,8 @@
 .page-tree-row { gap: 4px; padding: 0 4px 0 calc(8px + var(--depth, 0) * 16px); }
 .page-tree-row:focus-within, .page-tree-row[data-current], .page-tree-shortcut[aria-current="page"], .page-tree-shortcut:focus-visible { --row-bg: var(--a-fill); }
 .page-tree-row[data-drop] { box-shadow: 0 -2px 0 var(--a-ink); }
+/* The row being carried steps back, so the drop line reads as where it goes. */
+.page-tree-row[data-dragging] { opacity: 0.5; }
 .page-tree-row:has(.page-tree-link:focus-visible), .page-tree-shortcut:focus-visible { outline: 2px solid var(--a-ink); outline-offset: -2px; }
 .page-tree-link { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; height: 100%; min-height: 0; padding: 0; border: 0; background: none; color: var(--a-ink-2); font: inherit; font-size: 14px; text-align: left; overflow-wrap: normal; cursor: pointer; }
 .page-tree-row .page-tree-link:focus-visible { outline: none; }
@@ -412,8 +414,8 @@ button.page-tree-toggle::after { content: ""; position: absolute; inset: -8px -4
 .page-tree-toggle:disabled { cursor: default; }
 .page-tree-row-actions { display: flex; align-items: center; flex: none; }
 .page-tree-grip, .page-tree-actions { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: none; color: var(--a-ink-3); cursor: pointer; }
-.page-tree-grip { cursor: grab; }
-.page-tree-grip:active { cursor: grabbing; }
+.page-tree-grip { cursor: var(--cursor-grab); }
+.page-tree-grip:active { cursor: var(--cursor-grabbing); }
 .page-tree-toggle:focus-visible, .page-tree-grip:focus-visible, .page-tree-actions:focus-visible, .page-tree-tool:focus-visible, .page-tree-info:focus-visible, .page-tree-section-toggle:focus-visible { outline: 2px solid var(--a-ink); outline-offset: -2px; }
 .page-tree button:disabled { cursor: default; opacity: 0.45; }
 

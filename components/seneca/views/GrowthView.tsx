@@ -424,6 +424,17 @@ const withStatuses = (map) => {
   return fresh;
 };
 
+/**
+ * The roadmap to show. A stored full roadmap (domains with titles and
+ * modules, as Seneca saves it) is the owner's own and is used as-is: names,
+ * targets, notes and which certifications are on it. Only the old status-only
+ * shape, or nothing at all, falls back to the built-in catalog.
+ */
+const resolveDomains = (stored) => {
+  const full = Array.isArray(stored) && stored.some((d) => d?.title && (d.subcategories || d.modules));
+  return full ? JSON.parse(JSON.stringify(stored)) : withStatuses(statusMap(stored));
+};
+
 
 // Clickable Weekly Streak Grid Component (matches HabitStreakGrid design)
 const ClickableStreakGrid = ({
@@ -769,12 +780,10 @@ export default function Growth() {
   // both fields on every visit).
   const [customCertifications, setCustomCertifications] = useCustomCertifications();
   const [storedDomains, storeDomains] = useCertificationDomains();
-  // Statuses are overlaid on the built-in catalog, so certifications added to
-  // INITIAL_DOMAINS in code appear even when an older list is stored.
-  const domains = useMemo(() => withStatuses(statusMap(storedDomains)), [storedDomains]);
+  const domains = useMemo(() => resolveDomains(storedDomains), [storedDomains]);
   const setDomains = useCallback(
     (update) => storeDomains((prev) => {
-      const current = withStatuses(statusMap(prev));
+      const current = resolveDomains(prev);
       return typeof update === "function" ? update(current) : update;
     }),
     [storeDomains],
@@ -825,8 +834,9 @@ export default function Growth() {
     setShowCertDetailSheet(true);
   };
 
-  // Unified Update Handler
-  const handleUpdateCertification = (updatedCert) => {
+  // Unified Update Handler. `originalName`: the name before this edit, so a
+  // renamed certification is still found (domain certs are keyed by name).
+  const handleUpdateCertification = (updatedCert, originalName = updatedCert.name) => {
     // Check if it's a custom cert
     if (updatedCert.isCustom || customCertifications.some(c => c.id === updatedCert.id)) {
       setCustomCertifications((prev) =>
@@ -840,14 +850,14 @@ export default function Growth() {
         for (const domain of newDomains) {
           if (domain.subcategories) {
             for (const sub of domain.subcategories) {
-              const idx = sub.modules.findIndex(m => m.name === updatedCert.name);
+              const idx = sub.modules.findIndex(m => m.name === originalName);
               if (idx !== -1) {
                 sub.modules[idx] = { ...sub.modules[idx], ...updatedCert };
                 return newDomains;
               }
             }
           } else if (domain.modules) {
-            const idx = domain.modules.findIndex(m => m.name === updatedCert.name);
+            const idx = domain.modules.findIndex(m => m.name === originalName);
             if (idx !== -1) {
               domain.modules[idx] = { ...domain.modules[idx], ...updatedCert };
               return newDomains;
@@ -859,7 +869,7 @@ export default function Growth() {
     }
 
     // Also update selected cert if it's currently open
-    if (selectedCertification?.name === updatedCert.name) {
+    if (selectedCertification?.name === originalName) {
       setSelectedCertification(updatedCert);
     }
   };
@@ -1190,7 +1200,7 @@ export default function Growth() {
         }}
         certification={selectedCertification}
         onUpdateStatus={handleUpdateCertStatus}
-        onUpdateCertification={handleUpdateCertification}
+        onUpdateCertification={(cert) => handleUpdateCertification(cert, selectedCertification?.name)}
         onDelete={handleDeleteCertification}
         onSetStudyGoal={setStudyGoal}
         isCustom={selectedCertification?.isCustom}

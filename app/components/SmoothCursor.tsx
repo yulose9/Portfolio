@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { cursorMarkup, cursorTransform, shapeAt, type CursorShape } from "../lib/cursor";
+import { cursorMarkup, cursorTransform, localShapeAt, type CursorShape } from "../lib/cursor";
 import {
   HEADING_SPRING,
   POINTER_SPRING,
@@ -17,7 +17,8 @@ const POINTER_QUERY = "(any-hover: hover) and (any-pointer: fine)";
 /**
  * A cursor that follows the pointer on a tight, critically damped spring,
  * turns to face its direction of travel, and becomes a hand over anything
- * clickable or an I-beam over prose.
+ * clickable, an I-beam over prose, or an open hand over a drag handle that
+ * closes while it's held.
  *
  * Written against requestAnimationFrame directly rather than pulling in a
  * motion library for four springs. The physics lives in lib/spring, shared
@@ -72,6 +73,8 @@ export default function SmoothCursor() {
     const setPressed = (next: boolean) => {
       if (next === pressed) return;
       pressed = next;
+      // A held handle closes the hand, so the shape is due a re-check.
+      dirty = true;
       const node = nodeRef.current;
       if (!node) return;
       if (next) node.dataset.pressed = "";
@@ -107,6 +110,8 @@ export default function SmoothCursor() {
     const onScroll = () => {
       dirty = true;
     };
+    // So does a drag starting or ending (.is-grabbing) without a move.
+    const classes = new MutationObserver(onScroll);
 
     /*
      * pointerout bubbles and fires on every element-to-element transition, so
@@ -149,7 +154,7 @@ export default function SmoothCursor() {
           dirty = false;
           // Tested at the real pointer, not the lagging cursor, so the shape
           // answers to what you are actually pointing at.
-          const next = shapeAt(pointer.x, pointer.y);
+          const next = localShapeAt(pointer.x, pointer.y, pressed);
           if (next !== shape) {
             shape = next;
             node.dataset.shape = next;
@@ -176,6 +181,7 @@ export default function SmoothCursor() {
       window.addEventListener("pointerdown", onButtons, { passive: true, capture: true });
       window.addEventListener("pointerup", onButtons, { passive: true, capture: true });
       window.addEventListener("blur", onBlur);
+      classes.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
       last = performance.now();
       frame = requestAnimationFrame(tick);
     };
@@ -190,6 +196,7 @@ export default function SmoothCursor() {
       window.removeEventListener("pointerdown", onButtons, { capture: true });
       window.removeEventListener("pointerup", onButtons, { capture: true });
       window.removeEventListener("blur", onBlur);
+      classes.disconnect();
       setPressed(false);
       cancelAnimationFrame(frame);
       pointer.seen = false;

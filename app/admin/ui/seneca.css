@@ -293,6 +293,7 @@
   background: var(--color-surface);
   border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
   max-height: 90vh;
+  max-height: 90dvh;
   overflow-y: auto;
   overscroll-behavior: contain;
   box-shadow: 0 -4px 40px rgba(0, 0, 0, 0.15);
@@ -1027,7 +1028,9 @@
     transform: translateX(-50%);
     border-radius: 16px;
     bottom: 10vh;
+    bottom: 10dvh;
     max-height: 80vh;
+    max-height: 80dvh;
   }
 }
 

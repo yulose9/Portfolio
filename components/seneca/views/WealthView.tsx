@@ -2,7 +2,7 @@
 "use client";
 import WealthWorkbench from "../WealthWorkbench";
 import { mutateWealth } from "@/lib/seneca/services/wealthLedger";
-import { recordMoney, removeMoney } from "@/lib/seneca/utils/wealthLedger";
+import { recordMoney, removeMoney, replaceMoney } from "@/lib/seneca/utils/wealthLedger";
 import CategoryBudgets from "../CategoryBudgets";
 import clsx from "clsx";
 import { useWebHaptics } from "web-haptics/react";
@@ -1344,6 +1344,17 @@ export default function Wealth() {
         onAccountClick={(t) => {
           setViewTransaction(null);
           handleTransactionAccountClick(t);
+        }}
+        onSave={async (next, previous) => {
+          // Rebuild from the stored record, so list-only fields never get saved.
+          const stored = transactions.find((t) => t.id === previous.id) || previous;
+          const updated = { ...stored, note: next.note, amount: next.amount, date: next.date, ...(next.spendingCategory !== undefined ? { spendingCategory: next.spendingCategory } : {}) };
+          await mutateWealth(state => ({...state, ...replaceMoney(state, updated, stored)}));
+          setViewTransaction(updated);
+        }}
+        onDelete={(t) => {
+          setViewTransaction(null);
+          handleDeleteSingle(t.id);
         }}
       />
 

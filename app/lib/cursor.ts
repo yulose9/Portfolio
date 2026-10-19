@@ -5,7 +5,7 @@
  * in ./spring.
  */
 
-export type CursorShape = "arrow" | "text" | "hand" | "zoom";
+export type CursorShape = "arrow" | "text" | "hand" | "zoom" | "grab" | "grabbing";
 
 /** Rendered size of every glyph, in px. Close to a native arrow (~12x19). */
 export const CURSOR_SIZE = { width: 16, height: 19 } as const;
@@ -30,12 +30,13 @@ const INTERACTIVE = [
   "[data-cursor='pointer']",
   ".page-outline-strip",
   ".page-outline-line-btn",
-  // Something to pick up and drag: a hand, as the native cursor's grab.
-  "[data-drag-handle]",
   "summary",
   "label",
   "select",
 ].join(", ");
+
+/** Something to pick up and drag: the open hand, as the native cursor's grab. */
+const HANDLE = "[data-drag-handle]";
 
 /**
  * Where the I-beam is allowed. Opt-in rather than every <p>: the I-beam says
@@ -63,11 +64,24 @@ const LINE_PAD = 4;
 export function shapeAt(x: number, y: number, doc: Document = document): CursorShape {
   const el = doc.elementFromPoint(x, y);
   if (!el) return "arrow";
+  if (el.closest(HANDLE)) return "grab";
   if (el.closest(INTERACTIVE)) return "hand";
   if (el.closest("img[data-zoom]")) return "zoom";
   if (el.closest(FIELD)) return "text";
   if (el.closest(TEXT_REGION) && overText(x, y, doc)) return "text";
   return "arrow";
+}
+
+/**
+ * The local cursor's shape. Over a handle the hand closes while a button is
+ * held, and anywhere at all while something is being dragged (.is-grabbing on
+ * <html>, from lib/grabbing). Peers use shapeAt alone: their buttons aren't
+ * sent, so their hand stays open.
+ */
+export function localShapeAt(x: number, y: number, pressed: boolean, doc: Document = document): CursorShape {
+  if (doc.documentElement.classList.contains("is-grabbing")) return "grabbing";
+  const shape = shapeAt(x, y, doc);
+  return pressed && shape === "grab" ? "grabbing" : shape;
 }
 
 /** True when the point sits on rendered characters, not the block's margin. */
@@ -106,7 +120,7 @@ export function cursorTransform(x: number, y: number): string {
 }
 
 /**
- * The four glyphs, stacked; CSS cross-fades between them on [data-shape].
+ * The six glyphs, stacked; CSS cross-fades between them on [data-shape].
  *
  * Only the arrow sits inside .cursor-spin, the element that turns to face the
  * direction of travel. A rotating I-beam or hand would read as broken.
@@ -140,6 +154,15 @@ export function cursorMarkup(fill: string): string {
     // of the page uses. paint-order puts the keyline behind the fill.
     `<span class="cursor-glyph" data-glyph="hand">` +
     `<svg viewBox="0 0 256 256"><path d="M224,104v50.93c0,46.2-36.85,84.55-83,85.06A83.71,83.71,0,0,1,80.6,215.4C58.79,192.33,34.15,136,34.15,136a16,16,0,0,1,6.53-22.23c7.66-4,17.1-.84,21.4,6.62l21,36.44a6.09,6.09,0,0,0,6,3.09l.12,0A8.19,8.19,0,0,0,96,151.74V32a16,16,0,0,1,16.77-16c8.61.4,15.23,7.82,15.23,16.43V104a8,8,0,0,0,8.53,8,8.17,8.17,0,0,0,7.47-8.25V88a16,16,0,0,1,16.77-16c8.61.4,15.23,7.82,15.23,16.43V112a8,8,0,0,0,8.53,8,8.17,8.17,0,0,0,7.47-8.25v-7.28c0-8.61,6.62-16,15.23-16.43A16,16,0,0,1,224,104Z" class="cursor-keyline" fill="${fill}" stroke="#fff" stroke-width="24" stroke-linejoin="round" paint-order="stroke"/></svg>` +
+    `</span>` +
+    // Open and closed hand: Phosphor's Hand and HandGrabbing (fill weight,
+    // MIT), keylined like the pointing hand. Also drawn as the native
+    // cursors in public/cursors, for the admin and without this cursor.
+    `<span class="cursor-glyph" data-glyph="grab">` +
+    `<svg viewBox="0 0 256 256"><path d="M216,64v90.93c0,46.2-36.85,84.55-83,85.06A83.71,83.71,0,0,1,72.6,215.4C50.79,192.33,26.15,136,26.15,136a16,16,0,0,1,6.53-22.23c7.66-4,17.1-.84,21.4,6.62l21,36.44a6.09,6.09,0,0,0,6,3.09l.12,0A8.19,8.19,0,0,0,88,151.74V48a16,16,0,0,1,16.77-16c8.61.4,15.23,7.82,15.23,16.43V112a8,8,0,0,0,8.53,8,8.17,8.17,0,0,0,7.47-8.25V32a16,16,0,0,1,16.77-16c8.61.4,15.23,7.82,15.23,16.43V120a8,8,0,0,0,8.53,8,8.17,8.17,0,0,0,7.47-8.25V64.45c0-8.61,6.62-16,15.23-16.43A16,16,0,0,1,216,64Z" class="cursor-keyline" fill="${fill}" stroke="#fff" stroke-width="24" stroke-linejoin="round" paint-order="stroke"/></svg>` +
+    `</span>` +
+    `<span class="cursor-glyph" data-glyph="grabbing">` +
+    `<svg viewBox="0 0 256 256"><path d="M216,104v48a88,88,0,0,1-176,0V136a16,16,0,0,1,32,0v8a8,8,0,0,0,16,0V88a16,16,0,0,1,32,0v16a8,8,0,0,0,16,0V88a16,16,0,0,1,32,0v16a8,8,0,0,0,16,0,16,16,0,0,1,32,0Z" class="cursor-keyline" fill="${fill}" stroke="#fff" stroke-width="24" stroke-linejoin="round" paint-order="stroke"/></svg>` +
     `</span>` +
     `<span class="cursor-glyph" data-glyph="zoom"><svg viewBox="0 0 24 24" fill="none" stroke="${fill}" stroke-width="2" stroke-linecap="round"><circle class="cursor-keyline-fill" cx="10" cy="10" r="7" fill="white"/><path d="m15 15 7 7M7 10h6M10 7v6"/></svg></span>` +
     `</span>`

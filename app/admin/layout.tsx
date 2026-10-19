@@ -49,6 +49,11 @@ export const metadata: Metadata = {
   title: "Workspace · Admin",
   robots: { index: false, follow: false, nocache: true },
   referrer: "same-origin",
+  // Added to an iPhone home screen, the workspace opens as Seneca, full screen.
+  // The manifest sits outside /admin so it loads without the Access cookie.
+  manifest: "/seneca/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "Seneca", statusBarStyle: "default" },
+  icons: { apple: "/seneca/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {

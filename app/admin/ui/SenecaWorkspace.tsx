@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/seneca/services/firebase";
 import { House, Flame, Trophy, Coins, BookOpen } from "@phosphor-icons/react";
 import PageHeader from "./PageHeader";
 import { Tabs, TabsList, TabsTrigger } from "../../components/kit/tabs";
-import { ROUTE_POPPED, useShellView, viewFromUrl, writeViewUrl } from "./shell-nav";
+import { ROUTE_POPPED, TOPBAR_SLOT_ID, useShellView, viewFromUrl, writeViewUrl } from "./shell-nav";
 import SenecaApp from "@/components/seneca/SenecaApp";
 import type { SenecaTab } from "@/lib/seneca/context/SenecaNavContext";
 import "./seneca.css";
@@ -24,6 +25,12 @@ const SENECA_TABS: readonly { id: SenecaTab; label: string; icon: React.ElementT
   { id: "wealth", label: "Wealth", icon: Coins },
   { id: "journal", label: "Journal", icon: BookOpen },
 ];
+
+// The top bar renders its slot in the same commit, so a snapshot read after
+// mount finds it; nothing about it changes later, hence no subscription.
+const noSubscribe = () => () => {};
+const findTopbarSlot = () => document.getElementById(TOPBAR_SLOT_ID);
+const noSlot = () => null;
 
 export default function SenecaWorkspace() {
   // The URL is the source of truth (?view=protocol), so Back/Forward and
@@ -57,6 +64,10 @@ export default function SenecaWorkspace() {
   const [synced, setSynced] = useState<boolean | null>(null);
   useEffect(() => onAuthStateChanged(auth, (user) => setSynced(!!user)), []);
 
+  // Below 900px the page header steps aside for one compact top bar; the sync
+  // state rides in the top bar's slot instead (CSS shows exactly one of the two).
+  const topbarSlot = useSyncExternalStore(noSubscribe, findTopbarSlot, noSlot);
+
   const handleTabChange = (next: SenecaTab) => {
     // No playSound here: the global sound layer already voices every tab
     // press (role="tab" + data-sound), and both together played twice.
@@ -77,6 +88,17 @@ export default function SenecaWorkspace() {
           )
         }
       />
+
+      {topbarSlot && synced !== null
+        ? createPortal(
+            <span className={`sn-sync-badge sn-sync-compact ${synced ? "is-on" : "is-local"}`} role="status">
+              <span aria-hidden="true" />
+              <span className="sn-sync-label" aria-hidden="true">{synced ? "Synced" : "This device"}</span>
+              <span className="sr-only">{synced ? "Cloud sync on" : "On this device only"}</span>
+            </span>,
+            topbarSlot,
+          )
+        : null}
 
       <div className="admin-toolbar writing-status-toolbar cc-filters">
         <Tabs value={tab} onValueChange={(next) => handleTabChange(next as SenecaTab)}>

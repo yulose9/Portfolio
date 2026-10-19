@@ -10,11 +10,14 @@ import Sheet from "./Sheet";
 import { Reorder, motion, useDragControls, useReducedMotion } from "framer-motion";
 import { playSound } from "@/app/components/ui/sound";
 import GoalIcon from "./GoalIcon";
+import { useGrabbingCursor } from "@/app/lib/grabbing";
 const MAX_PINS = 3;
 function GoalRow({ goal, children, onDrop, onMove }) {
   const controls = useDragControls();
   const reduce = useReducedMotion();
-  return <Reorder.Item value={goal.id} dragListener={false} dragControls={controls} onDragEnd={onDrop} transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 450, damping: 36 }} className={`sn-manage-row ${goal.hiddenAt ? 'is-hidden' : ''}`} style={{ position: 'relative' }} whileDrag={{ zIndex: 2, boxShadow: '0 6px 18px #0002' }}>
+  // data-lifted rings the row being carried; its neighbours step back (seneca-sunlit.css).
+  const [lifted, setLifted] = useState(false);
+  return <Reorder.Item value={goal.id} dragListener={false} dragControls={controls} onDragStart={() => setLifted(true)} onDragEnd={() => { setLifted(false); onDrop(); }} data-lifted={lifted || undefined} transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 450, damping: 36 }} className={`sn-manage-row ${goal.hiddenAt ? 'is-hidden' : ''}`} style={{ position: 'relative' }} whileDrag={{ zIndex: 2, boxShadow: '0 6px 18px #0002' }}>
     <button type="button" className="sn-goal-grip" aria-label={`Reorder ${goal.title}`} aria-describedby="sn-goal-order-help" onPointerDown={e => controls.start(e)} onKeyDown={e => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); onMove(e.key === 'ArrowUp' ? -1 : 1); } }}><GripVertical size={17} /></button>{children}
   </Reorder.Item>;
 }
@@ -26,6 +29,7 @@ function GoalRow({ goal, children, onDrop, onMove }) {
  */
 export default function GoalsManagerSheet({ open, onClose }) {
   const { getGoalsArray, goalHistory, setGoalPinned, setGoalHidden, reorderGoals } = usePersonalGoals();
+  useGrabbingCursor();
   const [editing, setEditing] = useState(null); // goal | "new" | template
   const source = getGoalsArray();
   const signature = source.map(g => g.id).join('|');

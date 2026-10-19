@@ -37,6 +37,16 @@
    */
   --dur-morph: 340ms;
 
+  /*
+   * The open and closed hand, for anything that can be picked up (the site's
+   * and the admin's alike). Drawn to match the smooth cursor's hand: Phosphor
+   * fill weight, near-black with a white keyline, 28px with the hotspot in the
+   * palm. Each falls back to the native keyword if the image can't load.
+   * Use as `cursor: var(--cursor-grab)`.
+   */
+  --cursor-grab: url("/cursors/grab.svg") 14 14, grab;
+  --cursor-grabbing: url("/cursors/grabbing.svg") 14 14, grabbing;
+
   /* The Sound and theme toggles (components/ui/sound.tsx, theme.tsx). */
   --shell-fg-muted: #333333;
   --shell-fg-faint: #6d6d6d;
@@ -470,18 +480,34 @@ html.has-smooth-cursor [contenteditable] {
 }
 
 /*
- * Dragging. While anything is held (.is-grabbing, set by the admin's
- * useGrabbingCursor from the press on a handle to the drop), every element
- * shows the closed hand, so crossing text or a field never flips it to an
- * I-beam. Handles show the open hand on hover. With the smooth cursor running
- * the native pointer stays hidden; the drawn hand stands in for both.
+ * Dragging. While anything is held (.is-grabbing, set by lib/grabbing from
+ * the press on a handle to the drop), every element shows the closed hand, so
+ * crossing text or a field never flips it to an I-beam, and nothing gets
+ * selected on the way. Handles show the open hand on hover. With the smooth
+ * cursor running the native pointer stays hidden; the drawn hands stand in.
+ *
+ * @hello-pangea/dnd injects its own `cursor: grab` on its handles after this
+ * sheet loads, so that selector carries an extra html to win.
  */
-html:not(.has-smooth-cursor) [data-drag-handle] {
-  cursor: grab;
+html:not(.has-smooth-cursor) [data-drag-handle],
+html:not(.has-smooth-cursor) [data-rfd-drag-handle-context-id] {
+  cursor: var(--cursor-grab);
 }
 html.is-grabbing:not(.has-smooth-cursor),
 html.is-grabbing:not(.has-smooth-cursor) * {
-  cursor: grabbing !important;
+  cursor: var(--cursor-grabbing) !important;
+}
+/* On body, not *, so a contenteditable keeps its own (contain) selection. */
+html.is-grabbing body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* In forced colours the visitor's own pointers stay, as the smooth cursor does. */
+@media (forced-colors: active) {
+  :root {
+    --cursor-grab: grab;
+    --cursor-grabbing: grabbing;
+  }
 }
 
 /* Fallback pointer affordances ONLY when custom cursor is disabled or reduced motion is active */
@@ -537,9 +563,10 @@ html:not(.has-smooth-cursor) [data-clickable] {
 }
 
 /*
- * Cursor shapes: arrow, I-beam, hand — one set of rules for both cursors.
+ * Cursor shapes: arrow, I-beam, hand, open and closed hand — one set of
+ * rules for both cursors.
  *
- * All three glyphs are always in the DOM, stacked; [data-shape] on the cursor
+ * Every glyph is always in the DOM, stacked; [data-shape] on the cursor
  * picks which one is showing. The change is a cross-fade plus a small scale
  * with a slight overshoot, so one shape visibly *becomes* the next instead of
  * swapping in place. Opacity and transform only, so it stays composited.
@@ -559,8 +586,8 @@ html:not(.has-smooth-cursor) [data-clickable] {
  * On .cursor-shape, the one layer nothing else transforms: the outer node's
  * transform is rewritten every frame for position, the arrow turns on
  * .cursor-spin, and the shape cross-fade scales the glyphs. Scaled from the
- * centre, which is the hotspot for all three (the hand is offset so its
- * fingertip sits there), so a click never shifts where it lands.
+ * centre, which is the hotspot for every shape (the hands are offset so a
+ * fingertip or the palm sits there), so a click never shifts where it lands.
  *
  * 0.82 rather than the keycaps' 0.96: at 16px a 4% change is invisible.
  * The keycaps' clock — 70ms down, 200ms back, one curve, no overshoot.
@@ -604,6 +631,17 @@ html:not(.has-smooth-cursor) [data-clickable] {
   transform: translate(6%, 44%);
 }
 
+/*
+ * The open and closed hands are held by the palm, not a fingertip: the palm
+ * sits at (56%, 66%) of the artwork, so it is shifted up and left onto the
+ * hotspot (16% of the square artwork is 13% of the taller box). Both share
+ * the offset, so the hand closes in place.
+ */
+[data-glyph="grab"] svg,
+[data-glyph="grabbing"] svg {
+  transform: translate(-6%, -13%);
+}
+
 .cursor-spin {
   display: block;
   width: 100%;
@@ -614,7 +652,9 @@ html:not(.has-smooth-cursor) [data-clickable] {
 
 [data-shape="arrow"] > .cursor-shape > [data-glyph="arrow"],
 [data-shape="text"] > .cursor-shape > [data-glyph="text"],
-[data-shape="hand"] > .cursor-shape > [data-glyph="hand"] {
+[data-shape="hand"] > .cursor-shape > [data-glyph="hand"],
+[data-shape="grab"] > .cursor-shape > [data-glyph="grab"],
+[data-shape="grabbing"] > .cursor-shape > [data-glyph="grabbing"] {
   opacity: 1;
   transform: scale(1);
 }

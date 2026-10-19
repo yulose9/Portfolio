@@ -14,57 +14,8 @@ import { TextSelection } from "@tiptap/pm/state";
  *    Notion does.
  */
 
-/** What can be picked up: the block grip, tag pills, page tree rows, anything natively draggable. */
-const HANDLES = ".block-grip, [data-drag-handle], [data-rfd-drag-handle-draggable-id], .page-tree-grip, [draggable='true']";
-
-/**
- * Puts .is-grabbing on <html> from the press on a drag handle until the drag
- * ends (globals.css turns that into `cursor: grabbing` on every element).
- * Native HTML drags (the block handle, the page tree) end with dragend or
- * drop and never see a pointerup, so those end it too; the pointer-driven
- * ones (tag pills) end on pointerup.
- */
-export function useGrabbingCursor() {
-  useEffect(() => {
-    const root = document.documentElement;
-    let native = false;
-    const on = () => root.classList.add("is-grabbing");
-    const off = () => {
-      native = false;
-      root.classList.remove("is-grabbing");
-    };
-    const down = (event: PointerEvent) => {
-      if (event.button !== 0 || event.pointerType === "touch") return;
-      const target = event.target as Element | null;
-      if (target?.closest?.(HANDLES) && !target.closest("input, textarea, select")) on();
-    };
-    const start = () => {
-      native = true;
-      on();
-    };
-    // Chrome cancels the pointer when a native drag takes over; that's not the end.
-    const release = () => {
-      if (!native) off();
-    };
-    document.addEventListener("pointerdown", down, true);
-    document.addEventListener("dragstart", start, true);
-    document.addEventListener("dragend", off, true);
-    document.addEventListener("drop", off, true);
-    window.addEventListener("pointerup", release, true);
-    window.addEventListener("pointercancel", release, true);
-    window.addEventListener("blur", off);
-    return () => {
-      document.removeEventListener("pointerdown", down, true);
-      document.removeEventListener("dragstart", start, true);
-      document.removeEventListener("dragend", off, true);
-      document.removeEventListener("drop", off, true);
-      window.removeEventListener("pointerup", release, true);
-      window.removeEventListener("pointercancel", release, true);
-      window.removeEventListener("blur", off);
-      off();
-    };
-  }, []);
-}
+// Shared with Seneca and the page tree, so it lives with the cursor code.
+export { useGrabbingCursor } from "../../lib/grabbing";
 
 /**
  * A click below the last block puts the caret on a fresh line at the end:

@@ -269,7 +269,7 @@ export default function CertificationDetailSheet({
         open={visible}
         onClose={() => { haptic.trigger("medium"); onClose(); }}
         label={certification?.name}
-        className="fixed bottom-0 left-0 right-0 bg-canvas rounded-t-sheet max-h-[92vh] overflow-hidden flex flex-col"
+        className="fixed bottom-0 left-0 right-0 bg-canvas rounded-t-sheet max-h-[92dvh] overflow-hidden flex flex-col"
       >
           {/* Drag Handle */}
           <div

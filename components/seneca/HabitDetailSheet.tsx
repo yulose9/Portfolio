@@ -1,5 +1,6 @@
 // @ts-nocheck
 "use client";
+import { updateTodayLog } from "@/lib/seneca/services/dataLogger";
 import { Fluent } from "@/app/admin/ui/extensions/emoji";
 import clsx from "clsx";
 import { motion } from "framer-motion";
@@ -525,7 +526,7 @@ export default function HabitDetailSheet({
           <div className="ios-sheet-handle w-12 h-1.5" />
         </div>
 
-        <div className="ios-sheet-content max-h-[85vh] overflow-y-auto px-6 pb-12 pt-2">
+        <div className="ios-sheet-content max-h-[85dvh] overflow-y-auto px-6 pb-12 pt-2">
           {/* Header */}
           <div className="flex items-start justify-between mb-6">
             <div className="flex-1">
@@ -774,6 +775,8 @@ export default function HabitDetailSheet({
                     whileTap={TAP_CARD}
                     onClick={() => {
                       haptic.trigger("selection");
+                      // Which way the day went (e.g. "I Fasted"), kept on today's log.
+                      updateTodayLog("protocol", { [`choices.${habit.phaseId}-${habit.id}`]: choice.label });
                       handleActionButton();
                     }}
                     className="flex-1 h-[56px] rounded-2xl border-2 flex items-center justify-center text-body font-semibold"

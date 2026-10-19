@@ -9,6 +9,7 @@ import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 
 import { tagTint } from "../../components/writing/Tag";
 import { playSound } from "../../components/ui/sound";
 import { api } from "./api";
+import { useGrabbingCursor } from "../../lib/grabbing";
 
 /*
  * Tags as Notion shows properties: every tag as a tinted pill under the
@@ -64,6 +65,7 @@ export default function TagsInline({ tags, onChange }: { tags: string[]; onChang
   // Off while a pill is dragged and for the drop's own render: the drag
   // library moves pills with transforms, and a layout animation would fight it.
   const [dragging, setDragging] = useState(false);
+  useGrabbingCursor();
   // Pills already on the page when it opened don't animate in.
   const ready = useRef(false);
   useEffect(() => {
@@ -161,8 +163,8 @@ export default function TagsInline({ tags, onChange }: { tags: string[]; onChang
       {tags.length ? (
         <DragDropContext onDragStart={() => setDragging(true)} onDragEnd={onDragEnd}>
           <Droppable droppableId={`${id}-tags`} direction="horizontal">
-            {(drop) => (
-              <ul ref={drop.innerRef} {...drop.droppableProps} className="ki-tags-chips tags-inline-chips" aria-label={`Tags, ${tags.length} of ${MAX}`}>
+            {(drop, over) => (
+              <ul ref={drop.innerRef} {...drop.droppableProps} data-over={over.isDraggingOver || undefined} className="ki-tags-chips tags-inline-chips" aria-label={`Tags, ${tags.length} of ${MAX}`}>
                 {tags.map((tag, index) => (
                   <Draggable key={tag} draggableId={`${id}-${tag}`} index={index}>
                     {(drag, snapshot) => (

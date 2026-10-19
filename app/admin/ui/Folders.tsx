@@ -11,6 +11,12 @@ import { api, type PostSummary } from "./api";
 import type { Folders as Value, FolderAction } from "../../../cms/folders";
 import AdminSelect from "./AdminSelect";
 import { LongPressButton } from "../../components/kit/inputs/long-press-button";
+import { useGrabbingCursor } from "../../lib/grabbing";
+
+/** What a page row carries when it's dragged onto a folder. */
+const PAGE_TYPE = "application/x-writing-page";
+/** The Unfiled row's key in `over`, since its folder id is null. */
+const UNFILED = "";
 export default function Folders({
   pages,
   currentId,
@@ -29,7 +35,12 @@ export default function Folders({
     [name, setName] = useState(""),
     [editing, setEditing] = useState<string | null>(null),
     [active, setActive] = useState<string | null>(null),
-    [message, setMessage] = useState("");
+    [message, setMessage] = useState(""),
+    // The page being dragged, and the folder row it's over: data-dragging and
+    // data-over in admin-workspace.css.
+    [dragging, setDragging] = useState<string | null>(null),
+    [over, setOver] = useState<string | null>(null);
+  useGrabbingCursor();
   useEffect(() => {
     let live = true;
     api
@@ -66,10 +77,26 @@ export default function Folders({
   };
   const drop = (e: React.DragEvent, id: string | null) => {
     e.preventDefault();
-    const pageId = e.dataTransfer.getData("application/x-writing-page");
+    setOver(null);
+    setDragging(null);
+    const pageId = e.dataTransfer.getData(PAGE_TYPE);
     if (pages.some((p) => p.id === pageId))
       void act({ type: "move", pageId, folderId: id });
   };
+  /** Drop-target props for a folder row; only a dragged page lights it up. */
+  const target = (id: string | null) => ({
+    "data-over": over === (id ?? UNFILED) || undefined,
+    onDragOver: (e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes(PAGE_TYPE)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      setOver(id ?? UNFILED);
+    },
+    onDragLeave: (e: React.DragEvent) => {
+      if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(null);
+    },
+    onDrop: (e: React.DragEvent) => drop(e, id),
+  });
   return (
     <section className="folder-workspace" aria-label="Folders">
       <p className="field-help">
@@ -147,13 +174,12 @@ export default function Folders({
           disabled={busy}
         />
       ) : null}
-      <div className="folder-rows">
+      <div className="folder-rows" data-dragging={dragging ? "" : undefined}>
         <button
           className="folder-row"
           aria-pressed={!active}
           onClick={() => setActive(null)}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => drop(e, null)}
+          {...target(null)}
         >
           <FolderSimple size={16} />
           Unfiled
@@ -162,8 +188,7 @@ export default function Folders({
           <div
             className="folder-row"
             key={f.id}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => drop(e, f.id)}
+            {...target(f.id)}
           >
             <button
               aria-pressed={active === f.id}
@@ -209,9 +234,16 @@ export default function Folders({
                 key={p.id}
                 className="folder-page"
                 draggable={!busy}
-                onDragStart={(e) =>
-                  e.dataTransfer.setData("application/x-writing-page", p.id)
-                }
+                data-dragging={dragging === p.id || undefined}
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = "move";
+                  e.dataTransfer.setData(PAGE_TYPE, p.id);
+                  setDragging(p.id);
+                }}
+                onDragEnd={() => {
+                  setDragging(null);
+                  setOver(null);
+                }}
               >
                 <DotsSixVertical size={15} />
                 <span>{p.title || "Untitled"}</span>

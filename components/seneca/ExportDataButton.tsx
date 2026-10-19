@@ -1,81 +1,116 @@
 // @ts-nocheck
 "use client";
-import { AnimatePresence, motion } from "framer-motion";
-import { Download, FileJson } from "lucide-react";
-import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { Download, FileJson, RotateCcw, Upload, X } from "lucide-react";
+import React, { useRef, useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
-import {
-  exportAsLLMPrompt,
-  exportForLLM,
-  getLastNDaysLogs,
-} from "@/lib/seneca/services/dataLogger";
-import { DIALOG_SPRING, FADE, TAP, TAP_TRANSITION } from "@/lib/seneca/constants/motion";
-import SenecaPortal, { SCRIM_CLASS } from "./SenecaPortal";
+import { exportAsLLMPrompt, exportForLLM } from "@/lib/seneca/services/dataLogger";
+import { listDayLogs } from "@/lib/seneca/services/history";
+import { backupCounts, createBackup, downloadJSON, readBackup, restoreBackup } from "@/lib/seneca/services/backup";
+import { addDays, getPhDateKey } from "@/lib/seneca/utils/timeUtils";
+import { TAP_TRANSITION } from "@/lib/seneca/constants/motion";
+import Sheet from "./Sheet";
 import Num from "./Num";
+import "@/app/admin/ui/seneca-data.css";
+
+const RANGES = [7, 30, 90, 365];
+
+const plural = (n, one, many = `${one}s`) => `${n.toLocaleString("en-US")} ${n === 1 ? one : many}`;
 
 /**
- * Export Data Component
- * Allows you to view and export your data for LLM analysis
+ * Backup and export, read from the cloud (not this device's cache):
+ * - the whole account as one JSON file,
+ * - a range of days shaped for an AI to read,
+ * - and restore, which merges a backup file back into the account.
  */
 export default function ExportDataButton({ inline = true, pill = false }: { inline?: boolean; pill?: boolean }) {
   const haptic = useWebHaptics();
-  const [showModal, setShowModal] = useState(false);
-  const [exportType, setExportType] = useState("json");
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(null); // "backup" | "ai" | "restore"
+  const [status, setStatus] = useState(null); // { tone: "ok" | "error", text }
   const [days, setDays] = useState(30);
+  const [format, setFormat] = useState("json");
+  const [pending, setPending] = useState(null); // a parsed backup waiting for confirmation
+  const fileRef = useRef(null);
 
-  const handleExport = () => {
-    let data;
-    let filename;
-    let content;
-
-    if (exportType === "json") {
-      data = exportForLLM(days);
-      filename = `seneca-data-${days}days.json`;
-      content = JSON.stringify(data, null, 2);
-    } else {
-      data = exportAsLLMPrompt(days);
-      filename = `seneca-prompt-${days}days.txt`;
-      content = data;
+  const run = async (kind, task) => {
+    setBusy(kind);
+    setStatus(null);
+    try {
+      const text = await task();
+      haptic.trigger("success");
+      setStatus({ tone: "ok", text });
+    } catch (error) {
+      haptic.trigger("error");
+      setStatus({ tone: "error", text: error?.message || "Something went wrong. Try again." });
+    } finally {
+      setBusy(null);
     }
-
-    // Create download
-    const blob = new Blob([content], {
-      type: exportType === "json" ? "application/json" : "text/plain",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    // Revoking synchronously can cancel the download in Safari/Firefox
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-
-    haptic.trigger("success");
-    setShowModal(false);
   };
 
-  const logs = getLastNDaysLogs(7);
-  const avgCompletion = logs.length
-    ? Math.round(
-        (logs.reduce(
-          (sum, log) => sum + (log.protocol?.completion_rate || 0),
-          0,
-        ) /
-          logs.length) *
-          100,
-      )
-    : 0;
+  const today = getPhDateKey();
+
+  const downloadBackup = () =>
+    run("backup", async () => {
+      const backup = await createBackup();
+      downloadJSON(`seneca-backup-${today}.json`, backup);
+      const total = Object.values(backup.counts).reduce((a, b) => a + b, 0);
+      return `Saved ${plural(total, "document")}: ${plural(backup.counts.daily_logs, "day")}, ${plural(backup.counts.global_data, "collection")} of records, and settings.`;
+    });
+
+  const downloadForAI = () =>
+    run("ai", async () => {
+      const logs = (await listDayLogs({ from: addDays(today, -(days - 1)), to: today })).map((d) => ({ date: d.date, ...d.raw }));
+      if (format === "json") downloadJSON(`seneca-${days}-days.json`, exportForLLM(days, logs));
+      else {
+        const blob = new Blob([exportAsLLMPrompt(days, logs)], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `seneca-${days}-days-prompt.txt`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+      return `Exported ${plural(logs.length, "logged day")} from the last ${days}.`;
+    });
+
+  const chooseFile = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setStatus(null);
+    try {
+      const backup = readBackup(JSON.parse(await file.text()));
+      setPending({ backup, name: file.name, counts: backupCounts(backup) });
+    } catch (error) {
+      setPending(null);
+      setStatus({ tone: "error", text: error instanceof SyntaxError ? "That file isn't valid JSON." : error.message });
+    }
+  };
+
+  const confirmRestore = () =>
+    run("restore", async () => {
+      const written = await restoreBackup(pending.backup);
+      setPending(null);
+      return `Restored ${plural(written, "document")} from ${pending.name}.`;
+    });
+
+  const close = () => {
+    if (busy) return;
+    setOpen(false);
+    setPending(null);
+    setStatus(null);
+  };
 
   return (
     <>
-      {/* Trigger Button */}
       <motion.button
         whileTap={{ scale: 0.96 }}
         transition={TAP_TRANSITION}
-        aria-label="Export data"
+        aria-label="Backup and export"
         onClick={() => {
           haptic.trigger("medium");
-          setShowModal(true);
+          setOpen(true);
         }}
         className={
           pill
@@ -88,7 +123,7 @@ export default function ExportDataButton({ inline = true, pill = false }: { inli
         {pill ? (
           <>
             <Download size={16} strokeWidth={2} aria-hidden="true" />
-            <span>Export data</span>
+            <span>Backup and export</span>
           </>
         ) : (
           <>
@@ -98,130 +133,92 @@ export default function ExportDataButton({ inline = true, pill = false }: { inli
         )}
       </motion.button>
 
-      {/* Modal */}
-      <SenecaPortal>
-      <AnimatePresence>
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={FADE}
-            onClick={() => setShowModal(false)}
-            className={SCRIM_CLASS}
-          />
-
-          {/* Modal Content */}
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.97, opacity: 0, transition: FADE }}
-            transition={DIALOG_SPRING}
-            role="dialog"
-            aria-modal="true"
-            className="relative bg-surface rounded-[28px] p-6 max-w-md w-full shadow-float"
-          >
-            <h2 className="text-[24px] leading-[30px] font-[700] tracking-[-0.03em] text-ink mb-2">
-              Export your data
-            </h2>
-            <p className="text-subhead text-ink-2 mb-6">
-              Download your habit data in a format optimized for AI analysis.
-            </p>
-
-            {/* Stats Preview */}
-            <div className="sn-card-well p-4 mb-6">
-              <p className="text-footnote text-ink-2 mb-2">
-                Last 7 Days Summary
-              </p>
-              <div className="flex justify-between">
-                <div>
-                  <p className="text-title-2 font-bold text-ink">
-                    <Num value={logs.length} />
-                  </p>
-                  <p className="text-footnote text-ink-2">Days Tracked</p>
-                </div>
-                <div>
-                  <p className="text-title-2 font-bold text-accent">
-                    <Num value={avgCompletion} suffix="%" />
-                  </p>
-                  <p className="text-footnote text-ink-2">Avg Completion</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Options */}
-            <div className="space-y-4 mb-6">
-              {/* Days Selector */}
-              <div>
-                <label className="text-footnote font-semibold text-ink-2 mb-2 block">
-                  Time range
-                </label>
-                <select
-                  value={days}
-                  onChange={(e) => setDays(Number(e.target.value))}
-                  className="w-full px-4 py-3 bg-fill rounded-2xl text-[15px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-[var(--sn-apricot)]"
-                >
-                  <option value={7}>Last 7 days</option>
-                  <option value={14}>Last 14 days</option>
-                  <option value={30}>Last 30 days</option>
-                  <option value={90}>Last 90 days</option>
-                </select>
-              </div>
-
-              {/* Format Selector */}
-              <div>
-                <label className="text-footnote font-semibold text-ink-2 mb-2 block">
-                  Export format
-                </label>
-                <div className="sn-seg w-full" role="group" aria-label="Export format">
-                  <button
-                    type="button"
-                    onClick={() => setExportType("json")}
-                    aria-pressed={exportType === "json"}
-                    className="flex-1"
-                    style={{ minHeight: 38, fontSize: 14 }}
-                  >
-                    JSON
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setExportType("prompt")}
-                    aria-pressed={exportType === "prompt"}
-                    className="flex-1"
-                    style={{ minHeight: 38, fontSize: 14 }}
-                  >
-                    LLM Prompt
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="sn-btn sn-btn-outline flex-1"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleExport}
-                data-sound="pop"
-                className="sn-btn sn-btn-primary flex-1"
-              >
-                <Download size={18} />
-                Export
-              </button>
-            </div>
-          </motion.div>
+      <Sheet open={open} onClose={close} label="Backup and export" className="sn-sheet">
+        <div className="sn-sheet-head">
+          <div>
+            <h2>Backup and export</h2>
+            <p className="mt-1 text-[13.5px] text-ink-2">Read from the cloud, so it&apos;s everything, not just this device.</p>
+          </div>
+          <button type="button" className="sn-icon-btn" aria-label="Close" data-sound="close" onClick={close} disabled={!!busy}>
+            <X size={18} strokeWidth={2} aria-hidden="true" />
+          </button>
         </div>
-      )}
-      </AnimatePresence>
-      </SenecaPortal>
+
+        <div className="sn-sheet-body">
+          <section className="sn-backup-row" aria-labelledby="sn-backup-all">
+            <div>
+              <h3 id="sn-backup-all">Full backup</h3>
+              <p>Every day, journal entry, habit, goal, money record and setting, as one JSON file.</p>
+            </div>
+            <button type="button" className="sn-btn sn-btn-primary" onClick={downloadBackup} disabled={!!busy} aria-busy={busy === "backup" || undefined}>
+              <Download size={17} strokeWidth={2} aria-hidden="true" />
+              {busy === "backup" ? "Reading…" : "Download"}
+            </button>
+          </section>
+
+          <section className="sn-backup-row is-stacked" aria-labelledby="sn-backup-ai">
+            <div>
+              <h3 id="sn-backup-ai">For an AI</h3>
+              <p>Your logged days with a summary, to paste into a chat and ask about patterns.</p>
+            </div>
+            <div className="sn-backup-controls">
+              <div className="sn-seg" role="group" aria-label="Days">
+                {RANGES.map((n) => (
+                  <button key={n} type="button" aria-pressed={days === n} onClick={() => setDays(n)}>
+                    {n === 365 ? "Year" : `${n}d`}
+                  </button>
+                ))}
+              </div>
+              <div className="sn-seg" role="group" aria-label="Format">
+                <button type="button" aria-pressed={format === "json"} onClick={() => setFormat("json")}>JSON</button>
+                <button type="button" aria-pressed={format === "prompt"} onClick={() => setFormat("prompt")}>Prompt</button>
+              </div>
+              <button type="button" className="sn-btn sn-btn-outline" onClick={downloadForAI} disabled={!!busy} aria-busy={busy === "ai" || undefined}>
+                <Download size={17} strokeWidth={2} aria-hidden="true" />
+                {busy === "ai" ? "Reading…" : "Export"}
+              </button>
+            </div>
+          </section>
+
+          <section className="sn-backup-row is-stacked" aria-labelledby="sn-backup-restore">
+            <div>
+              <h3 id="sn-backup-restore">Restore</h3>
+              <p>Merges a backup into your account. Matching records are replaced with the backup&apos;s; nothing is deleted.</p>
+            </div>
+            <input ref={fileRef} type="file" accept="application/json,.json" className="sr-only" onChange={chooseFile} tabIndex={-1} aria-hidden="true" />
+            {pending ? (
+              <div className="sn-backup-confirm" role="group" aria-label="Confirm restore">
+                <p>
+                  <strong>{pending.name}</strong>
+                  <span>
+                    <Num value={pending.counts.daily_logs} /> days, <Num value={pending.counts.global_data} /> record collections,{" "}
+                    <Num value={pending.counts.preferences} /> settings · saved{" "}
+                    {new Date(pending.backup.exportedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </span>
+                </p>
+                <div className="flex gap-2">
+                  <button type="button" className="sn-btn sn-btn-outline" onClick={() => setPending(null)} disabled={!!busy}>
+                    Cancel
+                  </button>
+                  <button type="button" className="sn-btn sn-btn-primary" onClick={confirmRestore} disabled={!!busy} aria-busy={busy === "restore" || undefined}>
+                    <RotateCcw size={17} strokeWidth={2} aria-hidden="true" />
+                    {busy === "restore" ? "Restoring…" : "Restore"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className="sn-btn sn-btn-outline self-start" onClick={() => fileRef.current?.click()} disabled={!!busy}>
+                <Upload size={17} strokeWidth={2} aria-hidden="true" />
+                Choose a backup file
+              </button>
+            )}
+          </section>
+
+          <p className={`sn-backup-status ${status ? `is-${status.tone}` : ""}`} role="status" aria-live="polite">
+            {status?.text || ""}
+          </p>
+        </div>
+      </Sheet>
     </>
   );
 }

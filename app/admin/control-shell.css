@@ -11,11 +11,21 @@
  * inline (expanded, compact, or peeking), so only the transition is ours.
  */
 
+/* iOS inflates text when a phone turns landscape; the layout sets its own
+   sizes. On the body, so portalled sheets and menus follow it too. */
+.admin-body {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 .control-shell {
   --shell-ease: var(--sidebar-easing, cubic-bezier(0.23, 1, 0.32, 1));
   --shell-dur: var(--sidebar-animation-duration, 220ms);
   --sidebar-bg: var(--control-canvas, var(--paper));
   --sidebar-active-bg: var(--a-fill, var(--wash));
+  /* The top bar's full height, status bar included (a home-screen app on a
+     notched phone draws under it). Sticky bars below it offset from this. */
+  --control-topbar-h: calc(56px + env(safe-area-inset-top, 0px));
   position: relative;
   isolation: isolate;
   display: flex;
@@ -691,6 +701,8 @@
   width: min(var(--sidebar-width, 260px), 86vw);
   flex-direction: column;
   overflow: hidden;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
   background: var(--sidebar-bg);
   color: var(--a-ink);
   border-right: 1px solid var(--a-line);
@@ -721,8 +733,9 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  height: 56px;
-  padding: 0 20px 0 24px;
+  height: var(--control-topbar-h);
+  padding: 0 max(20px, env(safe-area-inset-right, 0px)) 0 24px;
+  padding-top: env(safe-area-inset-top, 0px);
   border-bottom: 1px solid var(--a-line);
   background: color-mix(in srgb, var(--paper) 88%, transparent);
   -webkit-backdrop-filter: saturate(160%) blur(10px);
@@ -755,6 +768,23 @@
 @media (max-width: 639px) {
   .control-crumbs > .contents > a,
   .control-crumbs > .contents > a + span { display: none; }
+}
+/* Seneca below 900px has its own bottom tab bar for the five views, so the
+   view switcher here would be a second copy of it. The slot takes its place
+   and carries Seneca's sync state (SenecaWorkspace portals it in). */
+.control-topbar-slot {
+  display: none;
+}
+@media (max-width: 899px) {
+  .control-topbar[data-section="seneca"] .control-crumbs {
+    display: none;
+  }
+  .control-topbar[data-section="seneca"] .control-topbar-slot {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    align-items: center;
+  }
 }
 .control-crumbs ol {
   display: flex;

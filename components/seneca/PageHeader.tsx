@@ -10,7 +10,7 @@ import { formatTodayLabel } from "@/lib/seneca/utils/timeUtils";
  */
 export default function PageHeader({ title, subtitle, action, trailing, className }) {
   return (
-    <header className={clsx("flex flex-wrap items-end justify-between gap-x-4 gap-y-3 px-1 mb-7", className)}>
+    <header className={clsx("sn-page-header flex flex-wrap items-end justify-between gap-x-4 gap-y-3 px-1 mb-7", className)}>
       <div className="flex min-w-0 flex-col">
         <p className="text-[13px] font-[500] text-ink-2 tabular-nums">{formatTodayLabel()}</p>
         <h2 className="mt-0.5 text-[32px] leading-[36px] font-[700] tracking-[-0.035em] text-ink">{title}</h2>

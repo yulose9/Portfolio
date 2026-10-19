@@ -1,6 +1,6 @@
 // @ts-nocheck
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
 import { SiGoogle } from "@icons-pack/react-simple-icons";
 import { BookOpenText, Flame, LockSimple, Wallet, WarningCircle, UserCircle } from "@phosphor-icons/react";
@@ -67,12 +67,26 @@ export default function LoginScreen({ onLoginSuccess }: { onLoginSuccess?: (user
 
   useEffect(() => setAccount(rememberedAccount()), []);
 
+  // Back from Google after a redirect sign-in (the home-screen app): admit or explain.
+  const onLoginSuccessRef = useRef(onLoginSuccess);
+  useEffect(() => {
+    onLoginSuccessRef.current = onLoginSuccess;
+  }, [onLoginSuccess]);
+  useEffect(() => {
+    authService
+      .finishRedirect()
+      .then((user) => user && onLoginSuccessRef.current?.(user))
+      .catch((err) => setProblem(authProblem(err, window.location.hostname)));
+  }, []);
+
   const signIn = async () => {
     haptic?.trigger?.("medium");
     setLoading(true);
     setProblem(null);
     try {
       const user = await authService.loginWithGoogle(account?.email);
+      // Null: the page is on its way to Google and comes back signed in.
+      if (!user) return;
       haptic?.trigger?.("success");
       if (onLoginSuccess) onLoginSuccess(user);
       else window.location.reload();

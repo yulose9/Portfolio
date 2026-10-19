@@ -101,7 +101,7 @@ const SelectorSheet = ({
     zIndex={60}
     label={title}
     backdropClassName="fixed inset-0 sn-scrim"
-    className="fixed bottom-0 left-0 right-0 bg-canvas rounded-t-sheet max-h-[60vh]"
+    className="fixed bottom-0 left-0 right-0 bg-canvas rounded-t-sheet max-h-[60dvh]"
   >
       <div className="flex justify-center pt-2 pb-1">
         <div className="w-9 h-[5px] bg-separator rounded-full" />
@@ -115,7 +115,7 @@ const SelectorSheet = ({
           Done
         </button>
       </div>
-      <div className="overflow-y-auto max-h-[calc(60vh-60px)] pb-8">
+      <div className="overflow-y-auto max-h-[calc(60dvh-60px)] pb-8">
         <div className="mx-4 mt-4 bg-surface rounded-xl overflow-hidden">
           {options.map((option, index) => (
             <motion.button
@@ -213,7 +213,7 @@ export default function AddCertificationSheet({
         open={visible}
         onClose={handleClose}
         label="Add certification"
-        className="fixed bottom-0 left-0 right-0 bg-canvas rounded-t-sheet max-h-[92vh] overflow-hidden"
+        className="fixed bottom-0 left-0 right-0 bg-canvas rounded-t-sheet max-h-[92dvh] overflow-hidden"
       >
           {/* Drag Handle */}
           <div
@@ -248,7 +248,7 @@ export default function AddCertificationSheet({
           </div>
 
           {/* Scrollable Content */}
-          <div className="overflow-y-auto max-h-[calc(92vh-60px)] pb-10">
+          <div className="overflow-y-auto max-h-[calc(92dvh-60px)] pb-10">
             {/* Hero Icon */}
             <div className="flex flex-col items-center py-6">
               <div

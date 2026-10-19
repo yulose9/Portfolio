@@ -2,8 +2,11 @@
    Seneca on phones and tablets — a layout of its own, not desktop squeezed.
 
    States, by where the content breaks (not a device list):
-     < 900px viewport  phone + tablet portrait: bottom tab bar (the five top
-                       tabs stop fitting here), compact header, full-bleed board
+     < 900px viewport  tablet portrait: bottom tab bar (the five top tabs stop
+                       fitting here), one header (the shell's top bar), the
+                       board a card beside the sidebar rail
+     < 768px viewport  phone: no sidebar; the board is the screen, edge to
+                       edge, and the tab bar is fixed (flush when installed)
      < 640px container one column, reordered so what you act on comes first
      640–960px         two columns (seneca-home.css), 960+ three, 1260+ four
    Touch: every control reaches 44×44px under a coarse pointer, using an
@@ -25,69 +28,84 @@
   white-space: nowrap;
 }
 
-.sn-sync-badge > span { width: 7px; height: 7px; border-radius: 999px; }
+.sn-sync-badge > span:first-child { width: 7px; height: 7px; flex-shrink: 0; border-radius: 999px; }
 .sn-sync-badge.is-on { background: rgb(16 185 129 / 0.1); color: #047857; box-shadow: inset 0 0 0 1px rgb(16 185 129 / 0.22); }
-.sn-sync-badge.is-on > span { background: #10b981; }
+.sn-sync-badge.is-on > span:first-child { background: #10b981; }
 .sn-sync-badge.is-local { background: rgb(184 106 18 / 0.1); color: #8a4f0d; box-shadow: inset 0 0 0 1px rgb(184 106 18 / 0.22); }
-.sn-sync-badge.is-local > span { background: #b86a12; }
+.sn-sync-badge.is-local > span:first-child { background: #b86a12; }
 [data-theme="dark"] .sn-sync-badge.is-on { color: #6ee7b7; }
 [data-theme="dark"] .sn-sync-badge.is-local { color: #f3b664; }
 
+/* Compact sync state in the shell's top bar (portalled there on < 900px) */
+.sn-sync-badge.sn-sync-compact { gap: 5px; padding: 3px 9px; font-size: 11.5px; }
+
+/* Offline: a calm note pinned under the top bar, never over the content */
+.sn-offline-banner {
+  position: sticky;
+  top: calc(var(--control-topbar-h, 0px) + 8px);
+  z-index: 30;
+  margin: 0 0 16px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: var(--sn-butter);
+  color: var(--sn-butter-ink);
+  box-shadow: var(--sn-shadow-card);
+  text-align: center;
+  text-wrap: pretty;
+}
+
 @media (max-width: 899px) {
-  /* Compact header: the title and the sync state on one line; the long
-     description and the rule go (the tab bar says where you are) */
-  .seneca-workspace-page .cc-page-header {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: nowrap;
-    margin-bottom: 12px;
-    padding-bottom: 0;
-    border-bottom: 0;
+  /* What fixed things near the bottom edge must clear while the tab bar
+     shows: the bar (66px), where it floats (10px), and 12px of air. The
+     flush home-screen bar redefines it below. */
+  :root:has(.sn-tabbar) {
+    --sn-tabbar-clear: calc(88px + env(safe-area-inset-bottom, 0px));
+    /* focus and find-in-page land between the bars, not under them */
+    scroll-padding-top: calc(64px + env(safe-area-inset-top, 0px));
+    scroll-padding-bottom: var(--sn-tabbar-clear);
   }
 
-  .seneca-workspace-page .cc-page-heading { flex: 1 1 auto; min-width: 0; width: auto; }
-  .seneca-workspace-page .cc-page-actions { flex: 0 0 auto; width: auto; }
+  /* One header, the shell's top bar: the page's own header goes (its title
+     stays for screen readers, its sync badge moves into the top bar), and
+     each view's large title says where you are */
+  .seneca-workspace-page > .cc-page-header {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .seneca-workspace-page > .cc-page-header .cc-page-actions { display: none; }
 
-  .seneca-workspace-page .cc-page-subtitle { display: none; }
-  .seneca-workspace-page .cc-page-title-row h1 { font-size: 24px; line-height: 30px; }
+  .seneca-root .sn-page-header { margin-bottom: 20px; }
 
   /* The five destinations move to the bottom bar */
   .seneca-workspace-page > .admin-toolbar { display: none; }
 
   /* Room under the content for the bar and the home indicator */
-  .seneca-workspace-page { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important; }
+  .cc-page.seneca-workspace-page { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
 
-  /* Phones (no sidebar below 768px): fixed to the screen, and the page
-     reserves its height so the last card is never hidden behind it */
-  @media (max-width: 767px) {
-    .seneca-workspace-page { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important; }
-    .sn-tabbar {
-      position: fixed !important;
-      left: max(10px, env(safe-area-inset-left, 0px));
-      right: max(10px, env(safe-area-inset-right, 0px));
-      margin: 0 auto !important;
-    }
-  }
-
-  /* Full-bleed board: one inset, not the page's plus the board's */
   .seneca-workspace-canvas { margin-top: 0 !important; min-height: 0 !important; }
 
+  /* Tablet portrait (sidebar rail beside it): the board stays a card in the
+     content column, with a tighter inset than desktop */
   .seneca-workspace-canvas .seneca-root {
-    width: auto;
-    margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
-    padding: 20px max(16px, env(safe-area-inset-left, 0px)) 28px;
-    border-radius: 26px 26px 0 0;
+    padding: 20px;
+    border-radius: 24px;
   }
 
   /* Sticky at the end of the page, not fixed to the viewport: it pins to
      the bottom while scrolling, but takes its width from the content
-     column, so on tablets it sits beside the sidebar, not under it. */
+     column, so on tablets it sits beside the sidebar, not under it.
+     Under the drawer's backdrop (40), over the top bar (20). */
   .sn-tabbar {
     position: sticky;
     bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-    z-index: 40;
+    z-index: 35;
     margin: 12px auto 0;
     max-width: 560px;
     display: flex;
@@ -135,17 +153,94 @@
   [data-theme="dark"] .sn-tabbar-item { color: #a8a49c; }
   [data-theme="dark"] .sn-tabbar-item[aria-current="page"] { background: #3a2a1c; color: #f0a055; }
 
-  /* Fixed overlays sit above the bar, not behind it */
-  .sn-celebrate-toast { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
-  .sn-journal-bulk { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
+  /* Fixed overlays sit above the bar, not behind it: Seneca's own, the
+     app-wide toasts, and the session reminder */
+  .sn-celebrate-toast,
+  .sn-journal-bulk,
+  :root:has(.sn-tabbar) .kt-viewport,
+  :root:has(.sn-tabbar) .session-reminder { bottom: var(--sn-tabbar-clear, calc(88px + env(safe-area-inset-bottom, 0px))); }
 
   /* Keyboard hints mean nothing to a thumb */
   .sn-doc-hints { display: none; }
 }
 
+/* Phones (no sidebar below 768px): a native screen, not a page with a card
+   on it. The board is the screen, edge to edge under the top bar, with 16px
+   gutters; the tab bar is fixed to the screen and the board reserves its
+   height, so the last card is never hidden behind it. */
+@media (max-width: 767px) {
+  .cc-page.seneca-workspace-page { padding-top: 0; padding-bottom: 0; }
+
+  .seneca-workspace-canvas .seneca-root {
+    width: auto;
+    min-height: calc(100vh - var(--control-topbar-h, 56px));
+    min-height: calc(100dvh - var(--control-topbar-h, 56px));
+    margin-left: calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+    margin-right: calc(-1 * max(16px, env(safe-area-inset-right, 0px)));
+    padding: 16px max(16px, env(safe-area-inset-right, 0px)) var(--sn-tabbar-clear, 104px) max(16px, env(safe-area-inset-left, 0px));
+    border-radius: 0;
+  }
+
+  .sn-tabbar {
+    position: fixed;
+    left: max(10px, env(safe-area-inset-left, 0px));
+    right: max(10px, env(safe-area-inset-right, 0px));
+    margin: 0 auto;
+  }
+
+  .seneca-root .sn-page-header { margin-bottom: 16px; }
+  .seneca-root .sn-page-header h2 { font-size: 28px; line-height: 32px; }
+}
+
 @media (max-width: 374px) {
-  .seneca-workspace-canvas .seneca-root { margin-inline: -12px; padding-inline: 12px; }
+  .seneca-workspace-canvas .seneca-root {
+    margin-left: calc(-1 * max(12px, env(safe-area-inset-left, 0px)));
+    margin-right: calc(-1 * max(12px, env(safe-area-inset-right, 0px)));
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
+  }
   .sn-tabbar-item { font-size: 10.5px; }
+  /* The dot alone says it; the words stay for screen readers */
+  .sn-sync-badge.sn-sync-compact { padding: 9px; }
+  .sn-sync-compact .sn-sync-label { display: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Installed on the home screen (standalone): no browser chrome, so the app
+   behaves like one. The tab bar sits flush on the bottom edge with the home
+   indicator's inset inside it, as an iOS tab bar does; the page doesn't
+   rubber-band past its ends; taps show the app's own :active states rather
+   than the grey WebKit flash.
+   --------------------------------------------------------------------------- */
+@media (display-mode: standalone) {
+  :root:has(.seneca-workspace-page) { overscroll-behavior-y: none; }
+  .control-shell:has(.seneca-workspace-page) { -webkit-tap-highlight-color: transparent; }
+
+  @media (max-width: 767px) {
+    :root:has(.sn-tabbar) { --sn-tabbar-clear: calc(66px + max(4px, env(safe-area-inset-bottom, 0px))); }
+
+    .sn-tabbar {
+      left: 0;
+      right: 0;
+      bottom: 0;
+      max-width: none;
+      margin: 0;
+      padding: 4px max(8px, env(safe-area-inset-right, 0px)) max(4px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px));
+      border-radius: 0;
+      box-shadow: 0 -1px 0 rgb(40 32 20 / 0.08);
+    }
+    [data-theme="dark"] .sn-tabbar { box-shadow: 0 -1px 0 rgb(255 255 255 / 0.08); }
+    .sn-tabbar-item { min-height: 50px; border-radius: 14px; }
+  }
+}
+
+/* iOS zooms the page into any field under 16px when it takes focus; Seneca's
+   fields render at 16px there instead (-webkit-touch-callout: iOS only) */
+@supports (-webkit-touch-callout: none) {
+  .seneca-root .sn-field :is(input:not([type="checkbox"]):not([type="file"]), textarea, select):not(.sn-stepper input),
+  .seneca-root :is(input, textarea).text-subhead,
+  .seneca-root .hz-editor .hz-name input,
+  .seneca-root .sn-journal :is(.cc-search, .admin-search) input { font-size: 16px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -188,11 +283,15 @@
   /* Calendar days: the full 44px where the column allows */
   .seneca-root .sn-day { max-width: 44px; }
 
-  /* Segmented controls and the route's week chips */
-  .seneca-root .sn-seg button { min-height: 36px; position: relative; }
-  .seneca-root .sn-seg button::before { content: ""; position: absolute; inset: -4px -1px; }
-  .seneca-root .sn-map-weeks button { position: relative; min-height: 32px; min-width: 36px; }
-  .seneca-root .sn-map-weeks button::before { content: ""; position: absolute; inset: -6px -1px; }
+  /* Segmented controls and the route's week chips: a real 44px reach
+     (visible height plus the track's own padding), at least 44px wide,
+     and a 4px gap so neighbouring reaches never touch */
+  .seneca-root .sn-seg { gap: 4px; }
+  .seneca-root .sn-seg button { min-height: 38px; min-width: 44px; padding-inline: 14px; position: relative; }
+  .seneca-root .sn-seg button::before { content: ""; position: absolute; inset: -3px 0; }
+  .seneca-root .sn-map-weeks { gap: 4px; }
+  .seneca-root .sn-map-weeks button { position: relative; min-height: 36px; min-width: 44px; }
+  .seneca-root .sn-map-weeks button::before { content: ""; position: absolute; inset: -4px 0; }
 
   /* Legacy icon buttons (32px squares) get a 44px reach */
   .seneca-root :is(button, a[href], [role="button"]):is(.w-7, .w-8, .h-8):not(.ios-checkbox):not(.sn-icon-btn) { position: relative; }
@@ -285,7 +384,7 @@
 .sn-journal-insights-body{display:flex;flex-direction:column;gap:16px;min-width:0}
 .sn-journal .cc-rail-col{min-width:0}
 .sn-doc-tools{display:flex;align-items:center;gap:6px}
-.sn-doc-bar{top:64px}
+.sn-doc-bar{top:calc(var(--control-topbar-h,56px) + 8px)}
 .sn-doc-back:active,.sn-doc-icon:active{transform:scale(.96)}
 @container(max-width:760px){
   .sn-journal .cc-layout-two-col{flex-direction:column;gap:20px}
@@ -330,7 +429,7 @@
   .sn-journal-bulk button{min-height:44px}
 }
 @media(max-width:640px){
-  .sn-doc-bar{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:4px 8px;padding:8px;margin:-8px -8px 0;top:60px;background:var(--sn-paper);border-bottom:1px solid var(--sn-line);border-radius:12px;backdrop-filter:none;-webkit-backdrop-filter:none}
+  .sn-doc-bar{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:4px 8px;padding:8px;margin:-8px -8px 0;top:calc(var(--control-topbar-h,56px) + 4px);background:var(--sn-paper);border-bottom:1px solid var(--sn-line);border-radius:12px;backdrop-filter:none;-webkit-backdrop-filter:none}
   .sn-doc-back{grid-row:1;grid-column:1;width:44px;height:44px}
   .sn-doc-bar .sn-doc-status{display:flex;grid-row:1;grid-column:2;font-size:12px;min-width:0}
   .sn-doc-bar .sn-doc-saved{display:block;grid-row:2;grid-column:1/-1;font-size:11px;padding:0 6px 4px;white-space:normal}
@@ -340,7 +439,7 @@
   .sn-doc-tools .sn-doc-icon{width:44px;height:44px;flex-shrink:0}
   .sn-doc-tools>button:nth-child(2){flex:1;justify-content:center;min-height:44px}
   .sn-doc-tools .sn-doc-label{position:static;width:auto;height:auto;clip:auto;white-space:normal}
-  .sn-doc-confirm{position:fixed;top:auto;bottom:calc(108px + env(safe-area-inset-bottom,0px));left:16px;right:16px;width:auto}
+  .sn-doc-confirm{position:fixed;top:auto;bottom:calc(var(--sn-tabbar-clear,calc(92px + env(safe-area-inset-bottom,0px))) + 16px);left:16px;right:16px;width:auto}
   .sn-doc-page{padding:24px 0 100px}
   .sn-doc-mood{width:60px;height:60px;margin-left:-4px}
   .sn-doc-mood img,.sn-doc-mood svg{width:48px;height:48px}
@@ -352,7 +451,7 @@
   .seneca-root .sn-doc-editor .ProseMirror{font-size:16px;line-height:1.75;min-height:45dvh;overflow-wrap:anywhere;scroll-margin-top:220px}
   .sn-doc-editor .ProseMirror :is(img,video,iframe){max-width:100%}
   .sn-doc-editor .ProseMirror pre{white-space:pre-wrap;overflow-wrap:anywhere}
-  .sn-doc-history{inset:auto 12px calc(104px + env(safe-area-inset-bottom,0px)) 12px;width:auto;max-height:65dvh;overscroll-behavior:contain}
+  .sn-doc-history{inset:auto 12px calc(var(--sn-tabbar-clear,calc(92px + env(safe-area-inset-bottom,0px))) + 12px) 12px;width:auto;max-height:65dvh;overscroll-behavior:contain}
   .sn-doc-history button{min-height:44px}
   .sn-doc-picker{max-width:calc(100vw - 64px)}
 }

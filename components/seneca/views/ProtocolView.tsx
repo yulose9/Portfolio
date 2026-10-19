@@ -30,6 +30,7 @@ import {
 } from "@/lib/seneca/constants/motion";
 import { useProtocol } from "@/lib/seneca/context/ProtocolContext";
 import { getPhDateKey } from "@/lib/seneca/utils/timeUtils";
+import { holdGrabbing } from "@/app/lib/grabbing";
 
 // iOS 18 Style Checkbox
 const Checkbox = ({ done, onClick }) => {
@@ -80,6 +81,8 @@ const LongPressReorderItem = ({ children, value, className }) => {
   const timerRef = useRef(null);
   const startPosRef = useRef(null);
   const isDragActiveRef = useRef(false);
+  // Releases the closed hand (lib/grabbing) once the row is put down.
+  const releaseGrabRef = useRef(null);
   const [isHolding, setIsHolding] = useState(false);
 
   const clearLongPress = useCallback(() => {
@@ -87,6 +90,8 @@ const LongPressReorderItem = ({ children, value, className }) => {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
+    releaseGrabRef.current?.();
+    releaseGrabRef.current = null;
     setIsHolding(false);
     isDragActiveRef.current = false;
     startPosRef.current = null;
@@ -102,10 +107,13 @@ const LongPressReorderItem = ({ children, value, className }) => {
 
       startPosRef.current = { x: e.clientX, y: e.clientY };
       isDragActiveRef.current = false;
+      const touch = e.pointerType === "touch";
 
       timerRef.current = setTimeout(() => {
         isDragActiveRef.current = true;
         setIsHolding(true);
+        // The row is lifted: a mouse or pen shows the closed hand until it's put down.
+        if (!touch) releaseGrabRef.current ??= holdGrabbing();
 
         // Haptic feedback on supported devices
         if (navigator.vibrate) navigator.vibrate(30);
@@ -153,6 +161,8 @@ const LongPressReorderItem = ({ children, value, className }) => {
       window.removeEventListener("pointerup", handleUp);
       window.removeEventListener("pointercancel", handleUp);
       if (timerRef.current) clearTimeout(timerRef.current);
+      releaseGrabRef.current?.();
+      releaseGrabRef.current = null;
     };
   }, [clearLongPress]);
 
@@ -162,6 +172,8 @@ const LongPressReorderItem = ({ children, value, className }) => {
       as="div"
       dragListener={false}
       dragControls={controls}
+      // Rings the lifted row and steps its neighbours back (seneca-sunlit.css).
+      data-lifted={isHolding || undefined}
       whileDrag={{
         scale: 1.02,
         boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
@@ -400,6 +412,7 @@ const PhaseSection = ({
                 values={tasks}
                 onReorder={(newOrder) => onReorder(phaseId, newOrder)}
                 as="div"
+                className="sn-task-order"
               >
                 {tasks.map((task, index) => (
                   <LongPressReorderItem

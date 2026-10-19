@@ -54,6 +54,7 @@ import {
   DESTINATIONS,
   recentContext,
   requestView,
+  TOPBAR_SLOT_ID,
   useRecents,
   useShownView,
   VIEWS,
@@ -705,14 +706,16 @@ function ViewGroup({ scope }: { scope: ViewScope }) {
 /* ── Top bar ─────────────────────────────────────────────────────────── */
 
 function TopBar({ email }: { email: string }) {
-  const { onSearch } = useNav();
+  const { section, onSearch } = useNav();
   const { openMobile, setOpenMobile } = useSidebar();
   return (
-    <header className="control-topbar">
+    <header className="control-topbar" data-section={section}>
       <button type="button" className="control-topbar-icon control-topbar-menu" aria-label="Toggle navigation" aria-expanded={openMobile} onClick={() => setOpenMobile(!openMobile)}>
         <List size={18} aria-hidden="true" />
       </button>
       <Crumbs />
+      {/* A page's own compact status, shown where the crumbs step aside (Seneca on phones). */}
+      <div className="control-topbar-slot" id={TOPBAR_SLOT_ID} />
       <div className="control-topbar-actions">
         <button type="button" className="control-topbar-icon control-topbar-search" aria-label="Quick search" onClick={onSearch}>
           <MagnifyingGlass size={17} aria-hidden="true" />

@@ -14,7 +14,6 @@ import {
   CreditCard,
   History,
   Landmark,
-  MoreHorizontal,
   Pen,
   Share2,
   TrendingUp,
@@ -38,21 +37,10 @@ import {
   YAxis,
 } from "recharts";
 import Sheet from "./Sheet";
+import { balanceHistory } from "@/lib/seneca/utils/accountHistory";
+import { getPhDateKey } from "@/lib/seneca/utils/timeUtils";
 
-// Mock data for charts
-const generateChartData = (baseValue, type) => {
-  const data = [];
-  let currentValue = baseValue;
-  for (let i = 0; i < 7; i++) {
-    const change =
-      type === "Liabilities"
-        ? -Math.random() * 1000
-        : (Math.random() - 0.4) * 2000;
-    currentValue += change;
-    data.push({ day: i, value: Math.abs(currentValue) });
-  }
-  return data.reverse();
-};
+const CHART_DAYS = 30;
 
 const formatAmount = (n) =>
   n.toLocaleString(undefined, {
@@ -165,12 +153,12 @@ export default function AccountDetailSheet({
     }
   }, [isOpen, highlightTransactionId, reduceMotion]);
 
+  // The balance at the end of each of the last 30 days, rebuilt from the records.
   const chartData = useMemo(() => {
     if (!account) return [];
-    return generateChartData(account.amount, account.category);
-  }, [account]);
+    return balanceHistory(account, transactions, account.category === "Liabilities", getPhDateKey(), CHART_DAYS);
+  }, [account, transactions]);
 
-  // Derived from the chart so it doesn't re-roll on every render
   const monthChange = useMemo(() => {
     if (chartData.length < 2 || !chartData[0].value) return 0;
     const first = chartData[0].value;
@@ -213,7 +201,7 @@ export default function AccountDetailSheet({
       onClose={() => { haptic.trigger("medium"); onClose(); }}
       zIndex={450}
       label={account.name}
-      className="fixed inset-x-0 bottom-0 h-[92vh] bg-canvas rounded-t-sheet overflow-hidden flex flex-col"
+      className="fixed inset-x-0 bottom-0 h-[92dvh] bg-canvas rounded-t-sheet overflow-hidden flex flex-col"
     >
         {/* Header */}
         <div className="bg-surface px-6 pt-5 pb-4 border-b border-black/[0.04] flex items-center justify-between sticky top-0 z-10">
@@ -237,13 +225,7 @@ export default function AccountDetailSheet({
             </h3>
           </div>
 
-          <motion.button
-            whileTap={TAP}
-            transition={TAP_TRANSITION}
-            className="w-8 h-8 rounded-full bg-black/[0.05] flex items-center justify-center -mr-2"
-          >
-            <MoreHorizontal size={18} className="text-ink-2" />
-          </motion.button>
+          <span className="w-8 h-8 -mr-2" aria-hidden="true" />
         </div>
 
         {/* Scrollable Content */}
@@ -347,6 +329,9 @@ export default function AccountDetailSheet({
                 <motion.button
                   whileTap={TAP}
                   transition={TAP_TRANSITION}
+                  onClick={() =>
+                    onAddTransaction(isLiability ? "borrow" : "withdrawal")
+                  }
                   className="bg-canvas text-ink py-3.5 rounded-xl font-semibold text-subhead flex items-center justify-center gap-2"
                 >
                   {isLiability ? (
@@ -412,15 +397,15 @@ export default function AccountDetailSheet({
                     </div>
                     <div>
                       <p className="text-footnote text-ink-2">
-                        This Month
+                        Last {CHART_DAYS} days
                       </p>
-                      <p className="text-subhead font-bold text-positive">
+                      <p className={clsx("text-subhead font-bold", monthChange >= 0 ? "text-positive" : "text-negative")}>
                         {monthChange >= 0 ? "+" : ""}{monthChange}%
                       </p>
                     </div>
                   </div>
                   <div className="bg-canvas px-3 py-1 rounded-full text-caption font-medium text-ink-2">
-                    7 Days
+                    {chartData.length && chartData[0].value === chartData[chartData.length - 1].value ? "No change" : `${CHART_DAYS} days`}
                   </div>
                 </div>
 
@@ -447,7 +432,17 @@ export default function AccountDetailSheet({
                           />
                         </linearGradient>
                       </defs>
-                      <Tooltip cursor={false} content={<></>} />
+                      <YAxis hide domain={["dataMin", "dataMax"]} />
+                      <Tooltip
+                        cursor={false}
+                        content={({ active, payload }) =>
+                          active && payload?.length ? (
+                            <div className="rounded-lg bg-surface px-2 py-1 text-caption shadow-card tabular-nums">
+                              {new Date(`${payload[0].payload.date}T12:00:00+08:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })}: ₱{formatAmount(payload[0].value)}
+                            </div>
+                          ) : null
+                        }
+                      />
                       <Area
                         type="monotone"
                         dataKey="value"

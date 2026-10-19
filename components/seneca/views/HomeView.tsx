@@ -7,6 +7,7 @@ import AddTaskSheet from "@/components/seneca/AddTaskSheet";
 import Analytics from "@/components/seneca/home/Analytics";
 import { StudyRoute, Streaks } from "@/components/seneca/home/GoalCards";
 import { ExportCard, Greeting, MonthRings } from "@/components/seneca/home/GreetingColumn";
+import { HistoryCard } from "@/components/seneca/home/History";
 import { JournalPrompt, PriorityPayment } from "@/components/seneca/home/SideCards";
 import LifeCalendar from "@/components/seneca/home/LifeCalendar";
 import TodayTodos from "@/components/seneca/home/TodayTodos";
@@ -233,8 +234,8 @@ export default function Home() {
         </div>
 
         <div className="sn-area sn-area-h">
+          <HistoryCard />
           <ExportCard />
-
         </div>
       </div>
 

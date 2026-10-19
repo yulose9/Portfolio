@@ -444,7 +444,7 @@ export default function AddTransactionSheet({
       onClose={() => { haptic.trigger("medium"); onClose(); }}
       zIndex={400}
       label="New transaction"
-      className="fixed inset-x-0 bottom-0 bg-surface rounded-t-sheet overflow-hidden max-h-[90vh]"
+      className="fixed inset-x-0 bottom-0 bg-surface rounded-t-sheet overflow-hidden max-h-[90dvh]"
     >
         {/* Handle */}
         <div

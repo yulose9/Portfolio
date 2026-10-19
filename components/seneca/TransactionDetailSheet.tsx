@@ -1,15 +1,25 @@
 // @ts-nocheck
 "use client";
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
-import { ArrowDownLeft, ArrowUpRight, Copy, Share, Tag, Calendar, MapPin, CreditCard } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Copy, Share, Tag, Calendar, MapPin, CreditCard, Pen, Trash2 } from 'lucide-react';
 import { useWebHaptics } from "web-haptics/react";
 import { TAP, TAP_TRANSITION } from "@/lib/seneca/constants/motion";
 import Sheet from "./Sheet";
 
-export default function TransactionDetailSheet({ visible, onClose, transaction, onAccountClick }) {
+/**
+ * One money record: what it was, when, and from which account. Edit changes
+ * its note, category, amount or date through the ledger (so balances follow);
+ * Delete hands back to the list's confirm dialog.
+ */
+export default function TransactionDetailSheet({ visible, onClose, transaction, onAccountClick, onSave, onDelete }) {
     const [cachedTransaction, setCachedTransaction] = useState(transaction);
+    const [editing, setEditing] = useState(false);
+    const [draft, setDraft] = useState(null);
+    const [saving, setSaving] = useState(false);
+    const [problem, setProblem] = useState('');
+    const [shared, setShared] = useState('');
     const haptic = useWebHaptics();
 
     // Keep the last transaction so the sheet can finish its exit after the parent clears it
@@ -17,15 +27,69 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
 
     const activeTransaction = transaction || cachedTransaction;
 
-    // Stable per transaction — Math.random() here re-rolled the reference on every render
-    const reference = useMemo(() => {
-        const seed = String(activeTransaction?.id ?? activeTransaction?.date ?? '');
-        let hash = 0;
-        for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
-        return `#TRX-${String(hash % 1000000).padStart(6, '0')}`;
-    }, [activeTransaction?.id, activeTransaction?.date]);
+    // The record's own id, so it can be found in a backup or the CSV.
+    const reference = String(activeTransaction?.id ?? '—');
+
+    useEffect(() => {
+        if (!visible) { setEditing(false); setProblem(''); setShared(''); }
+    }, [visible]);
 
     if (!activeTransaction) return null;
+
+    const startEdit = () => {
+        const d = new Date(activeTransaction.date);
+        setDraft({
+            note: activeTransaction.note || '',
+            spendingCategory: activeTransaction.spendingCategory || '',
+            amount: String(activeTransaction.amount),
+            date: Number.isFinite(d.getTime()) ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(d) : '',
+        });
+        setProblem('');
+        setEditing(true);
+    };
+
+    const save = async () => {
+        if (!onSave || saving) return;
+        const original = new Date(activeTransaction.date);
+        // Keep the time of day; only the calendar day changes.
+        const time = Number.isFinite(original.getTime())
+            ? new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(original)
+            : '12:00:00';
+        const next = {
+            ...activeTransaction,
+            note: draft.note.trim() || null,
+            amount: Number(draft.amount),
+            date: draft.date ? new Date(`${draft.date}T${time}+08:00`).toISOString() : activeTransaction.date,
+            ...(activeTransaction.type === 'withdrawal' ? { spendingCategory: draft.spendingCategory.trim() || 'Other' } : {}),
+        };
+        setSaving(true);
+        setProblem('');
+        try {
+            await onSave(next, activeTransaction);
+            haptic.trigger('success');
+            setCachedTransaction(next);
+            setEditing(false);
+        } catch (error) {
+            haptic.trigger('error');
+            setProblem(error?.message || "Couldn't save this record.");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const share = async () => {
+        const text = [
+            `${activeTransaction.type === 'deposit' ? '+' : '-'}₱${activeTransaction.amount.toLocaleString()}`,
+            activeTransaction.note,
+            activeTransaction.bank,
+            new Date(activeTransaction.date).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }),
+        ].filter(Boolean).join(' · ');
+        try {
+            if (navigator.share) await navigator.share({ title: 'Money record', text });
+            else { await navigator.clipboard.writeText(text); setShared('Copied to the clipboard.'); }
+            haptic.trigger('success');
+        } catch { /* closing the share sheet isn't an error */ }
+    };
 
     const isDeposit = activeTransaction.type === 'deposit';
     // Income reads positive, spending negative (HIG semantic tints)
@@ -37,7 +101,7 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
     // Metadata describes the saved record, not a bank settlement.
     const details = [
         { label: 'Status', value: 'Recorded', icon: <div className="w-2 h-2 rounded-full bg-positive" /> },
-        { label: 'Reference', value: reference, icon: <Copy size={14} className="text-ink-3" /> },
+        { label: 'Record ID', value: reference, icon: <Copy size={14} className="text-ink-3" /> },
         { label: 'Category', value: activeTransaction.spendingCategory || activeTransaction.type, icon: <Tag size={16} className="text-ink-2" /> },
     ];
 
@@ -100,7 +164,7 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
                             </div>
                             <div className="flex-1">
                                 <p className="text-footnote text-ink-2">Location</p>
-                                <p className="text-subhead font-semibold text-ink">{activeTransaction.location}</p>
+                                <p className="text-subhead font-semibold text-ink">{activeTransaction.location || 'Not recorded'}</p>
                             </div>
                         </div>
                         <div
@@ -132,15 +196,63 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
                         ))}
                     </div>
 
+                    {editing && (
+                        <div className="bg-fill rounded-2xl p-4 mb-4 flex flex-col gap-3" role="group" aria-label="Edit record">
+                            <label className="flex flex-col gap-1 text-footnote text-ink-2">
+                                Note
+                                <input className="h-11 px-3 rounded-xl bg-surface text-[16px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-[var(--sn-apricot)]" value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} maxLength={120} />
+                            </label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <label className="flex flex-col gap-1 text-footnote text-ink-2">
+                                    Amount (₱)
+                                    <input type="number" inputMode="decimal" step="0.01" min="0.01" className="h-11 px-3 rounded-xl bg-surface text-[16px] text-ink tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-[var(--sn-apricot)]" value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} />
+                                </label>
+                                <label className="flex flex-col gap-1 text-footnote text-ink-2">
+                                    Date
+                                    <input type="date" className="h-11 px-3 rounded-xl bg-surface text-[16px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-[var(--sn-apricot)]" value={draft.date} onChange={(e) => setDraft({ ...draft, date: e.target.value })} />
+                                </label>
+                            </div>
+                            {activeTransaction.type === 'withdrawal' && (
+                                <label className="flex flex-col gap-1 text-footnote text-ink-2">
+                                    Category
+                                    <input className="h-11 px-3 rounded-xl bg-surface text-[16px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-[var(--sn-apricot)]" value={draft.spendingCategory} onChange={(e) => setDraft({ ...draft, spendingCategory: e.target.value })} maxLength={40} />
+                                </label>
+                            )}
+                            {problem && <p className="text-footnote text-negative" role="alert">{problem}</p>}
+                            <div className="grid grid-cols-2 gap-3">
+                                <button type="button" className="h-11 rounded-xl bg-surface text-ink font-semibold" onClick={() => setEditing(false)} disabled={saving}>Cancel</button>
+                                <button type="button" className="h-11 rounded-xl bg-black text-white font-semibold disabled:opacity-50" onClick={save} disabled={saving || !(Number(draft.amount) > 0)} aria-busy={saving || undefined}>{saving ? 'Saving…' : 'Save'}</button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Actions */}
+                    {!editing && (onSave || onDelete) && (
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                            {onSave && (
+                                <motion.button whileTap={TAP} transition={TAP_TRANSITION} onClick={startEdit} className="h-[52px] bg-fill text-ink rounded-xl font-semibold text-body flex items-center justify-center gap-2">
+                                    <Pen size={17} aria-hidden="true" />
+                                    Edit
+                                </motion.button>
+                            )}
+                            {onDelete && (
+                                <motion.button whileTap={TAP} transition={TAP_TRANSITION} onClick={() => onDelete(activeTransaction)} data-variant="destructive" className="h-[52px] bg-negative/10 text-negative rounded-xl font-semibold text-body flex items-center justify-center gap-2">
+                                    <Trash2 size={17} aria-hidden="true" />
+                                    Delete
+                                </motion.button>
+                            )}
+                        </div>
+                    )}
                     <motion.button
                         whileTap={TAP}
                         transition={TAP_TRANSITION}
+                        onClick={share}
                         className="w-full h-[52px] bg-black text-white rounded-xl font-bold text-body flex items-center justify-center mb-3 shadow-float"
                     >
                         <Share size={18} className="mr-2" />
-                        Share Receipt
+                        Share
                     </motion.button>
+                    <p className="text-center text-footnote text-ink-2 min-h-[1.2em]" role="status">{shared}</p>
 
                     <motion.button
                         whileTap={TAP}

@@ -1,0 +1,2 @@
+<!-- Closed hand (grabbing). Phosphor "HandGrabbing", fill weight (MIT), on the same box as grab.svg so the palm stays put when the hand closes. 28px; hotspot 14 14. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="-12 4 312 312"><path d="M216,104v48a88,88,0,0,1-176,0V136a16,16,0,0,1,32,0v8a8,8,0,0,0,16,0V88a16,16,0,0,1,32,0v16a8,8,0,0,0,16,0V88a16,16,0,0,1,32,0v16a8,8,0,0,0,16,0,16,16,0,0,1,32,0Z" fill="#111" stroke="#fff" stroke-width="24" stroke-linejoin="round" paint-order="stroke"/></svg>

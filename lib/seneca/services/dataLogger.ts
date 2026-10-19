@@ -498,8 +498,8 @@ export const getLastNDaysLogs = (days = 30) => {
     .map(([, log]) => log);
 };
 
-export const exportForLLM = (days = 30) => {
-  const logs = getLastNDaysLogs(days);
+/** `logs`: newest first. Defaults to this device's cache; Home passes the days read from Firestore. */
+export const exportForLLM = (days = 30, logs = getLastNDaysLogs(days)) => {
 
   return {
     user_profile: {
@@ -522,8 +522,8 @@ export const exportForLLM = (days = 30) => {
   };
 };
 
-export const exportAsLLMPrompt = (days = 30) => {
-  const data = exportForLLM(days);
+export const exportAsLLMPrompt = (days = 30, logs = getLastNDaysLogs(days)) => {
+  const data = exportForLLM(days, logs);
 
   return `
 # User Habit Data (Last ${days} Days)

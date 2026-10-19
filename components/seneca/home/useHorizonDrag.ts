@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import { adjustBlock, snapMinute, type TimeBlock } from '@/lib/seneca/utils/horizon';
 import { playSound } from '@/app/components/ui/sound';
+import { useGrabbingCursor } from '@/app/lib/grabbing';
 
 type Mode = 'move' | 'start' | 'end' | 'new' | 'place';
 type Session = { block: TimeBlock; mode: Mode; x: number; y: number; pointer: number };
@@ -18,6 +19,8 @@ export function useHorizonDrag(
   const [ghost, setGhost] = useState<{ x: number; y: number; title: string } | null>(null);
   const suppressClick = useRef(false);
   const commit = useRef(onCommit);
+  // The closed hand from the press on a grip or block to the drop; the resize edges keep their own cursor.
+  useGrabbingCursor();
   useEffect(() => { commit.current = onCommit; }, [onCommit]);
 
   useEffect(() => {
