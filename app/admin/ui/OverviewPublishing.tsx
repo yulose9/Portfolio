@@ -31,7 +31,7 @@ export default function OverviewPublishing({
     const controller = new AbortController();
     const options = { signal: controller.signal };
     void Promise.all([
-      call<{ posts: PostSummary[] }>("/posts", options),
+      call<{ posts: PostSummary[] }>("/posts", options, "writing"),
       call<{ posts: PostSummary[] }>("/projects/posts", options),
       call<WebsiteDraft>("/website", options),
     ])

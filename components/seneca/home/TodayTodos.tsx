@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, CalendarCheck, Flame } from "lucide-react";
 import { useWebHaptics } from "web-haptics/react";
+import { useProtocolDay } from "@/lib/seneca/hooks/useProtocolDay";
+import { useProtocolAttention } from "@/lib/seneca/hooks/useProtocolAttention";
 import Num from "@/components/seneca/Num";
 import { PHASE_COMPLETE } from "@/lib/seneca/celebrate";
 import { useProtocol } from "@/lib/seneca/context/ProtocolContext";
@@ -29,7 +31,9 @@ const swap = {
 export default function TodayTodos({ onOpen, date = getPhDateKey() }) {
   const reduce = useReducedMotion();
   const haptic = useWebHaptics();
-  const { phases, phaseOrder, phaseTasks, taskHistory, toggleTask, toggleTaskHistory, isComplete } = useProtocol();
+  const { phases, phaseOrder, phaseTasks, taskHistory, toggleTask, toggleTaskHistory, isComplete, protocolCategory } = useProtocol();
+  const selected = useProtocolDay(date);
+  const attention = useProtocolAttention(protocolCategory, date);
   const [cheer, setCheer] = useState(null);
 
   useEffect(() => {
@@ -46,7 +50,9 @@ export default function TodayTodos({ onOpen, date = getPhDateKey() }) {
     };
   }, []);
 
-  const phaseId = phaseOrder.find((id) => (phaseTasks[id] || []).some((t) => !t.done)) ?? phaseOrder.find((id) => phaseTasks[id]?.length);
+  const focusPhase = attention.shutdown && phaseTasks.shutdown?.some(t => !t.done) ? "shutdown"
+    : attention.lunch && phaseTasks.maintenance?.some(t => t.id === 1 && !t.done) ? "maintenance" : null;
+  const phaseId = focusPhase ?? phaseOrder.find((id) => (phaseTasks[id] || []).some((t) => !t.done)) ?? phaseOrder.find((id) => phaseTasks[id]?.length);
   const phase = phaseId ? phases[phaseId] : null;
   const tasks = phaseId ? phaseTasks[phaseId] || [] : [];
   const done = tasks.filter((t) => t.done).length;
@@ -61,15 +67,18 @@ export default function TodayTodos({ onOpen, date = getPhDateKey() }) {
 
   if (date !== today) {
     const label = new Date(`${date}T12:00:00+08:00`).toLocaleDateString("en-US", { timeZone: "Asia/Manila", month: "short", day: "numeric" });
-    const remaining = phaseOrder.flatMap(id => (phaseTasks[id] || []).filter(t => taskHistory[`${id}-${t.id}`]?.[date] !== true).map(t => ({ ...t, phaseId: id })));
+    const remaining = phaseOrder.flatMap(id => (selected.phaseTasks[id] || []).filter(t => !t.done).map(t => ({ ...t, phaseId: id })));
     return <section aria-labelledby="sn-todos" className="flex h-full flex-col">
       <SectionHead id="sn-todos" title={`${label} protocol`} onMore={onOpen} />
       <div className="sn-todos"><div className="sn-card sn-day-protocol p-2.5">
+        {selected.loading && <p role="status" className="p-3">Loading this day…</p>}
+        {selected.error && <p role="alert" className="p-3">{selected.error}</p>}
+        {!selected.loading && !selected.error && <>
         <p className="px-3 py-3 text-[13px] text-ink-2">{remaining.length ? `${remaining.length} tasks not checked off` : "Every recorded task is complete."}</p>
         <ul>{remaining.map(task => <li className="sn-todo" key={`${task.phaseId}-${task.id}`}>
           <Tile>{task.emoji}</Tile><div className="min-w-0 flex-1"><p className="text-[16px] font-semibold text-ink">{task.title}</p><p className="text-[13px] text-ink-2">{phases[task.phaseId]?.title}</p></div>
-          <Check checked={false} label={`${task.title}, ${label}`} onToggle={() => toggleTaskHistory(task.phaseId, task.id, date)} />
-        </li>)}</ul>
+          <Check checked={false} label={`${task.title}, ${label}`} onToggle={() => selected.toggle(task.phaseId, task.id)} />
+        </li>)}</ul></>}
       </div></div>
     </section>;
   }
@@ -79,7 +88,7 @@ export default function TodayTodos({ onOpen, date = getPhDateKey() }) {
       <SectionHead id="sn-todos" title="Today's protocol" onMore={onOpen} />
 
       <div className="sn-todos flex-1">
-        <div className="sn-card relative flex h-full flex-col overflow-hidden p-2.5" data-celebrate-origin="today">
+        <div className={`sn-card relative flex h-full flex-col p-2.5 ${attention.shutdown && phaseId === "shutdown" && done < tasks.length ? "sn-time-attention" : ""}`} data-celebrate-origin="today">
           <AnimatePresence mode="wait" initial={false}>
             {cheer ? (
               <motion.div key={view} {...(reduce ? {} : swap)} className="sn-cheer" role="status">
@@ -175,7 +184,7 @@ export default function TodayTodos({ onOpen, date = getPhDateKey() }) {
                     return (
                       <motion.li
                         key={task.id}
-                        className={`sn-todo ${task.done ? "is-done" : ""}`}
+                        className={`sn-todo ${task.done ? "is-done" : ""} ${attention.lunch && phaseId === "maintenance" && task.id === 1 && !task.done ? "sn-time-attention" : ""}`}
                         initial={reduce ? false : { opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0, transition: { duration: 0.3, ease: EASE_OUT, delay: 0.05 + i * 0.04 } }}
                       >

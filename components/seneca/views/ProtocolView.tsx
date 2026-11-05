@@ -7,6 +7,8 @@ import {
   motion,
   Reorder,
   useDragControls,
+  useReducedMotion,
+  useIsPresent,
 } from "framer-motion";
 import { Bell, Briefcase, Check, CheckCircle, ChevronRight, Plus, RotateCcw, User } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -30,7 +32,16 @@ import {
 } from "@/lib/seneca/constants/motion";
 import { useProtocol } from "@/lib/seneca/context/ProtocolContext";
 import { getPhDateKey } from "@/lib/seneca/utils/timeUtils";
+import { useProtocolDay } from "@/lib/seneca/hooks/useProtocolDay";
+import { useProtocolAttention } from "@/lib/seneca/hooks/useProtocolAttention";
 import { holdGrabbing } from "@/app/lib/grabbing";
+import { Fluent } from "@/app/admin/ui/extensions/emoji";
+
+function CategoryPanel({ children }) {
+  const present = useIsPresent();
+  const reduce = useReducedMotion();
+  return <motion.div inert={!present} initial={{ opacity: 0, y: reduce ? 0 : 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reduce ? 0 : -3 }} transition={{ duration: reduce ? 0 : 0.16, ease: "easeOut" }}>{children}</motion.div>;
+}
 
 // iOS 18 Style Checkbox
 const Checkbox = ({ done, onClick }) => {
@@ -101,6 +112,7 @@ const LongPressReorderItem = ({ children, value, className }) => {
     (e) => {
       // Only handle primary button / first touch
       if (e.button !== 0 && e.button !== undefined) return;
+      if (e.target.closest("button, input, textarea, a")) return;
 
       // Prevent text/image selection during long press
       e.preventDefault();
@@ -214,17 +226,19 @@ const TaskRow = ({ task, onToggle, onClick, isLast }) => {
       <div className="overflow-visible flex-shrink-0">
         <Checkbox done={task.done} onClick={onToggle} />
       </div>
-      <span className="text-title-2 mx-3 select-none">{task.emoji}</span>
-      <span
+      <span className="text-title-2 mx-3 select-none"><Fluent emoji={task.emoji || "📝"} size={24} /></span>
+      <button
+        type="button"
+        onClick={event => { event.stopPropagation(); onClick(); }}
         className={clsx(
-          "flex-1 text-body transition-colors duration-150",
+          "flex-1 min-w-0 min-h-[44px] text-left text-body transition-colors duration-150",
           task.done
             ? "text-ink-3 line-through decoration-separator"
             : "text-ink",
         )}
       >
         {task.title}
-      </span>
+      </button>
       <ChevronRight size={18} className="text-ink-3 ml-2" />
     </div>
   );
@@ -338,12 +352,13 @@ const PhaseSection = ({
   onTaskPress,
   onReorder,
   progress,
+  attention,
 }) => {
-  const allTasksDone = tasks.every((t) => t.done);
+  const allTasksDone = tasks.length > 0 && tasks.every((t) => t.done);
   const isPhaseComplete = allTasksDone;
 
   return (
-    <section className="ios-list-section" data-celebrate-origin={phaseId}>
+    <section className={clsx("ios-list-section", attention.shutdown && phaseId === "shutdown" && !allTasksDone && "sn-time-attention")} data-celebrate-origin={phaseId}>
       {/* Section Header */}
       <div
         role="button"
@@ -418,7 +433,7 @@ const PhaseSection = ({
                   <LongPressReorderItem
                     key={task.id}
                     value={task}
-                    className="relative"
+                    className={clsx("relative", attention.lunch && phaseId === "maintenance" && task.id === 1 && !task.done && "sn-time-attention")}
                   >
                     <TaskRow
                       task={task}
@@ -480,7 +495,7 @@ export default function Protocol() {
     allPhasesComplete,
     toggleTask,
     completePhase,
-    phaseTasks,
+    phaseTasks: todayPhaseTasks,
     isPhaseUnlocked,
     getPhaseProgress,
     toggleTaskHistory,
@@ -496,12 +511,30 @@ export default function Protocol() {
   } = useProtocol();
 
   const haptic = useWebHaptics();
+  const [selectedDay, setSelectedDay] = useState(null);
+  const day = selectedDay || getPhDateKey();
+  const dayLabel = new Date(`${day}T12:00:00+08:00`).toLocaleDateString("en-US", { timeZone: "Asia/Manila", month: "short", day: "numeric", year: "numeric" });
+  const selected = useProtocolDay(day);
+  const phaseTasks = selected.phaseTasks;
+  const attention = useProtocolAttention(protocolCategory, day);
+  const [editingTask, setEditingTask] = useState(null);
   const [expandedPhases, setExpandedPhases] = useState(["morningIgnition"]);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [addTaskSheetVisible, setAddTaskSheetVisible] = useState(false);
   const [tasksReminderSettings, setTasksReminderSettings] = useState(false);
   const [selectedHabit, setSelectedHabit] = useState(null);
   const [showOverview, setShowOverview] = useState(true);
+  useEffect(() => {
+    setAddTaskSheetVisible(false);
+    setSheetVisible(false);
+    setEditingTask(null);
+  }, [day, protocolCategory]);
+  const lunchDue = attention.lunch && phaseTasks.maintenance?.some(t => t.id === 1 && !t.done);
+  const shutdownDue = attention.shutdown && phaseTasks.shutdown?.some(t => !t.done);
+  useEffect(() => {
+    const due = shutdownDue ? "shutdown" : lunchDue ? "maintenance" : null;
+    if (due) setExpandedPhases(previous => previous.includes(due) ? previous : [...previous, due]);
+  }, [lunchDue, shutdownDue]);
   useEffect(() => { try { setShowOverview(localStorage.getItem("seneca_protocol_overview") !== "hidden"); } catch { /* Storage may be disabled. */ } }, []);
   const toggleOverview = () => {
     const next = !showOverview;
@@ -523,8 +556,15 @@ export default function Protocol() {
 
   // Track previous completion state to trigger auto-advance
   const prevCompletedRef = useRef({});
+  const previousScope = useRef("");
 
   useEffect(() => {
+    const scope = `${day}/${protocolCategory}`;
+    if (selected.historical || previousScope.current !== scope) {
+      previousScope.current = scope;
+      prevCompletedRef.current = Object.fromEntries(phaseOrder.map(id => [id, phaseTasks[id]?.length > 0 && phaseTasks[id].every(t => t.done)]));
+      return;
+    }
     phaseOrder.forEach((phaseId, index) => {
       const currentPhaseTasks = phaseTasks[phaseId];
       // Skip undefined or empty phases - they shouldn't trigger auto-advance
@@ -534,7 +574,7 @@ export default function Protocol() {
       const wasComplete = prevCompletedRef.current[phaseId];
 
       // If phase JUST became complete (transition from incomplete -> complete)
-      if (isComplete && !wasComplete) {
+      if (isComplete && wasComplete === false) {
         haptic.trigger("success");
         const nextPhaseId = phaseOrder[index + 1];
 
@@ -551,12 +591,13 @@ export default function Protocol() {
       // Update ref
       prevCompletedRef.current[phaseId] = isComplete;
     });
-  }, [phaseTasks, phaseOrder, haptic]);
+  }, [phaseTasks, phaseOrder, haptic, day, protocolCategory, selected.historical]);
 
   // Finishing a phase is celebrated by <PhaseCelebration /> in the app shell
   // (sound, confetti from this phase's card, the once-a-day "all done" burst).
 
   const handleTaskPress = (phaseId, task) => {
+    if (selected.historical) { setEditingTask({ ...task, phaseId }); setAddTaskSheetVisible(true); return; }
     setSelectedHabit({ ...task, phaseId });
     setSheetVisible(true);
   };
@@ -608,9 +649,10 @@ export default function Protocol() {
             </motion.button>
             <motion.button
               whileTap={{ scale: 0.96 }}
-              onClick={() => { haptic.trigger("medium"); setAddTaskSheetVisible(true); }}
+              onClick={() => { haptic.trigger("medium"); setEditingTask(null); setAddTaskSheetVisible(true); }}
               className="h-8 px-3 rounded-lg bg-accent text-white flex items-center gap-1.5 text-xs font-semibold shadow-xs hover:bg-accent/90 transition-colors"
               aria-label="Add Task"
+              disabled={selected.loading || !!selected.error}
             >
               <Plus size={15} strokeWidth={2.5} />
               <span>Add Task</span>
@@ -622,11 +664,11 @@ export default function Protocol() {
       <div className="sn-protocol-layout"><div className="sn-protocol-main">
       <button type="button" className="sn-btn mb-3" aria-expanded={showOverview} aria-controls="protocol-overview" data-sound="select" onClick={toggleOverview}>{showOverview ? "Hide overview" : "Show overview"}</button>
       {showOverview && <section id="protocol-overview" className="sn-protocol-welcome" aria-label="Today's focus">
-        <div className="sn-protocol-intro"><span className="sn-eyebrow">{activeCategoryLabel} · today</span><h2>{dailyTasks.length && completedCount === dailyTasks.length ? 'A day well spent.' : 'One good habit at a time.'}</h2><p><Num value={dailyTasks.length - completedCount} /> habits left. Give the next one your attention.</p></div>
+        <div className="sn-protocol-intro"><span className="sn-eyebrow">{activeCategoryLabel} · {selected.historical ? dayLabel : "today"}</span><h2>{dailyTasks.length && completedCount === dailyTasks.length ? 'A day well spent.' : 'One good habit at a time.'}</h2><p><Num value={dailyTasks.length - completedCount} /> habits left. Give the next one your attention.</p></div>
         <div className="sn-protocol-upnext"><h3>Up next</h3>{nextTasks.length ? nextTasks.map(task => <button key={task.key} onClick={() => handleTaskPress(task.phaseId, task)}><span aria-hidden="true">{task.emoji || '○'}</span><span>{task.title}<small>{phases[task.phaseId]?.title}</small></span><ChevronRight size={16} /></button>) : <p>{dailyTasks.length ? 'Your rituals are complete. Enjoy your space.' : 'Add a habit to give your day a starting point.'}</p>}</div>
         <div className="sn-protocol-art" aria-hidden="true"><i /><i /><i /><i /></div>
       </section>}
-      <div className="sn-protocol-list-head"><h2>Today's list</h2><button className="sn-btn" onClick={() => setAddTaskSheetVisible(true)}><Plus size={16} />Add a habit</button></div>
+      <div className="sn-protocol-list-head"><h2>{selected.historical ? dayLabel : "Today’s list"}</h2><button className="sn-btn" disabled={selected.loading || !!selected.error} onClick={() => { setEditingTask(null); setAddTaskSheetVisible(true); }}><Plus size={16} />Add a habit</button></div>
       {/* Category Pill Selector */}
       <CategoryPillSelector
         categories={protocolCategories}
@@ -634,15 +676,13 @@ export default function Protocol() {
         onCategoryChange={(id) => { haptic.trigger("selection"); switchCategory(id); }}
       />
 
-      {/* Phase Sections */}
-      <AnimatePresence initial={false}>
-        <motion.div
-          key={protocolCategory}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0, transition: { duration: 0 } }}
-          transition={FADE}
-        >
+      {selected.loading && <p role="status" className="sn-day-status">Loading {dayLabel}…</p>}
+      {selected.error && <p role="alert" className="sn-day-status">{selected.error}</p>}
+      {/* Category and date changes share a short, interruptible transition. */}
+      <fieldset className="sn-protocol-day" disabled={selected.loading || !!selected.error} aria-busy={selected.loading}>
+      <legend className="sr-only">Tasks for {dayLabel}</legend>
+      <AnimatePresence initial={false} mode="wait">
+        <CategoryPanel key={`${protocolCategory}/${day}`}>
          <AnimatePresence initial={false}>
           <motion.div
             key={hasTasks ? "tasks" : "empty"}
@@ -667,13 +707,14 @@ export default function Protocol() {
                   phase={phases[phaseId]}
                   tasks={phaseTasks[phaseId] || []}
                   isExpanded={phaseId === "general" ? true : expandedPhases.includes(phaseId)}
-                  isUnlocked={phaseId === "general" ? true : isPhaseUnlocked(phaseId)}
-                  onToggleTask={(phaseId, taskId) => { haptic.trigger("light"); toggleTask(phaseId, taskId); }}
+                  isUnlocked={selected.historical || phaseId === "general" ? true : isPhaseUnlocked(phaseId)}
+                  attention={attention}
+                  onToggleTask={(phaseId, taskId) => { haptic.trigger("light"); selected.toggle(phaseId, taskId); }}
                   onToggleExpand={handleToggleExpand}
                   onCompletePhase={handleCompletePhase}
                   onTaskPress={handleTaskPress}
-                  onReorder={reorderTasks}
-                  progress={getPhaseProgress(phaseId)}
+                  onReorder={selected.historical ? selected.reorder : reorderTasks}
+                  progress={{ completed: (phaseTasks[phaseId] || []).filter(t => t.done).length, total: (phaseTasks[phaseId] || []).length }}
                 />
               ))
           ) : (
@@ -681,11 +722,12 @@ export default function Protocol() {
           )}
           </motion.div>
          </AnimatePresence>
-        </motion.div>
+        </CategoryPanel>
       </AnimatePresence>
 
+      </fieldset>
       </div><aside className="sn-protocol-aside" aria-label="Habit progress">
-        <MonthRings history={taskHistory} taskKeys={dailyTasks.map(task => task.key)} tasks={dailyTasks} />
+        <MonthRings history={taskHistory} taskKeys={phaseOrder.flatMap(id => (todayPhaseTasks[id] || []).map(task => `${id}-${task.id}`))} selected={day} onSelect={setSelectedDay} />
         <section className="sn-protocol-progress sn-card"><span className="sn-eyebrow">Small steps, every day</span><h2><Num value={completedCount} /><small> / {dailyTasks.length} complete</small></h2><div className="sn-protocol-meter" role="progressbar" aria-label="Today's habits completed" aria-valuenow={completedCount} aria-valuemin={0} aria-valuemax={dailyTasks.length || 1}><i style={{ width: `${dailyTasks.length ? completedCount / dailyTasks.length * 100 : 0}%` }} /></div>{phaseOrder.filter(id => phaseTasks[id]?.length).map(id => <button key={id} onClick={() => { setExpandedPhases(prev => prev.includes(id) ? prev : [...prev, id]); document.querySelector(`[data-celebrate-origin="${id}"]`)?.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' }); }}><span>{phases[id]?.emoji} {phases[id]?.title}</span><small>{phaseTasks[id].filter(task => task.done).length}/{phaseTasks[id].length}</small></button>)}</section>
       </aside></div>
       {/* Habit Detail Sheet */}
@@ -701,8 +743,11 @@ export default function Protocol() {
       {/* Add Task Sheet */}
       <AddTaskSheet
         visible={addTaskSheetVisible}
-        onClose={() => setAddTaskSheetVisible(false)}
-        onAddTask={addCustomTask}
+        onClose={() => { setAddTaskSheetVisible(false); setEditingTask(null); }}
+        onAddTask={selected.historical ? (phase, task) => selected.editTask(phase, task, editingTask?.phaseId || phase) : addCustomTask}
+        initialTask={editingTask}
+        dateLabel={selected.historical ? dayLabel : undefined}
+        onDelete={selected.historical && editingTask ? () => selected.removeTask(editingTask.phaseId, editingTask.id) : undefined}
         protocolCategory={protocolCategory}
       />
 

@@ -1,6 +1,7 @@
 // @ts-nocheck
 "use client";
 
+import { availableSenecaTab } from "../features";
 import React, { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 
 export type SenecaTab = "home" | "protocol" | "growth" | "wealth" | "journal";
@@ -55,14 +56,14 @@ export function SenecaNavProvider({
     }
   }, [activeTab, internalTab]);
 
-  const tab = activeTab ?? internalTab;
+  const tab = availableSenecaTab(activeTab ?? internalTab);
 
   const normalizeTab = (pathOrTab: string): SenecaTab => {
     const cleaned = pathOrTab.replace(/^\/seneca\/?/, "").replace(/^\//, "");
     if (!cleaned || cleaned === "home") return "home";
     if (cleaned === "protocol") return "protocol";
     if (cleaned === "growth") return "growth";
-    if (cleaned === "wealth") return "wealth";
+    if (cleaned === "wealth") return availableSenecaTab("wealth");
     if (cleaned === "journal") return "journal";
     return "home";
   };
@@ -82,8 +83,8 @@ export function SenecaNavProvider({
   };
 
   const setTab = (newTab: SenecaTab) => {
-    setInternalTab(newTab);
-    onTabChange?.(newTab);
+    setInternalTab(availableSenecaTab(newTab));
+    onTabChange?.(availableSenecaTab(newTab));
   };
 
   const pathname = tab === "home" ? "/" : `/${tab}`;

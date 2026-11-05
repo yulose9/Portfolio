@@ -1,5 +1,6 @@
 // @ts-nocheck
 "use client";
+import { SENECA_FEATURES } from "@/lib/seneca/features";
 import React, { useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
@@ -180,7 +181,7 @@ export default function Analytics({ history, taskKeys, tasks, netWorth, onOpenPr
       <div className="sn-analytics sn-fill">
         <div className="sn-analytics-side">
           <Consistency history={history} taskKeys={taskKeys} />
-          <NetWorth netWorth={netWorth} onOpen={onOpenWealth} />
+          {SENECA_FEATURES.wealth && <NetWorth netWorth={netWorth} onOpen={onOpenWealth} />}
         </div>
         <HabitBars history={history} tasks={tasks} />
       </div>

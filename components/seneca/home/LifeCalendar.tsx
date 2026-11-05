@@ -49,7 +49,7 @@ function YearStrip({ today }) {
                 ? `${MONTH_NAMES[m]}: done`
                 : MONTH_NAMES[m];
           return (
-            <span key={m} role="listitem" tabIndex={0} className={`sn-life-month is-${state}`} data-tip={tip} aria-label={tip}>
+            <span key={m} role="listitem" tabIndex={0} className={`sn-life-month is-${state}`} data-life-tip={tip} aria-label={tip}>
               {state === "now" && <i style={{ transform: `scaleX(${day / n})` }} />}
             </span>
           );
@@ -67,7 +67,7 @@ function LifeGrid({ life, birthDate, today }) {
     {Array.from({ length: life.targetAge }, (_, i) => {
       const year = birthYear + i;
       const tip = year === current.year ? `${year} · ${current.pct}% complete` : String(year);
-      return <span key={i} role="listitem" tabIndex={0} aria-label={tip} data-tip={tip} className={year < current.year ? "is-lived" : year === current.year ? "is-now" : ""} />;
+      return <span key={i} role="listitem" tabIndex={0} aria-label={tip} data-life-tip={tip} className={year < current.year ? "is-lived" : year === current.year ? "is-now" : ""} />;
     })}
   </div>;
 }

@@ -16,7 +16,7 @@
 
 .cc-page {
   width: 100%;
-  max-width: 1680px;
+  max-width: none;
   margin: 0;
   padding: 24px 32px 48px;
   box-sizing: border-box;
@@ -522,6 +522,7 @@ html[data-theme="dark"] .control-notice {
   gap: 28px;
   width: 100%;
 }
+.cc-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 12px; margin-bottom: 16px; }
 .cc-main-col {
   flex: 1 1 0%;
   min-width: 0;
@@ -542,6 +543,7 @@ html[data-theme="dark"] .control-notice {
   }
   .cc-rail-col {
     width: 100%;
+    flex: 0 0 auto;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 16px;

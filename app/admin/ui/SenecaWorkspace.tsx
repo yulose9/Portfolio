@@ -8,6 +8,7 @@ import { House, Flame, Trophy, Coins, BookOpen } from "@phosphor-icons/react";
 import PageHeader from "./PageHeader";
 import { Tabs, TabsList, TabsTrigger } from "../../components/kit/tabs";
 import { ROUTE_POPPED, TOPBAR_SLOT_ID, useShellView, viewFromUrl, writeViewUrl } from "./shell-nav";
+import { SENECA_FEATURES, availableSenecaTab } from "@/lib/seneca/features";
 import SenecaApp from "@/components/seneca/SenecaApp";
 import type { SenecaTab } from "@/lib/seneca/context/SenecaNavContext";
 import "./seneca.css";
@@ -24,7 +25,7 @@ const SENECA_TABS: readonly { id: SenecaTab; label: string; icon: React.ElementT
   { id: "growth", label: "Growth", icon: Trophy },
   { id: "wealth", label: "Wealth", icon: Coins },
   { id: "journal", label: "Journal", icon: BookOpen },
-];
+].filter(item => item.id !== "wealth" || SENECA_FEATURES.wealth) as { id: SenecaTab; label: string; icon: React.ElementType }[];
 
 // The top bar renders its slot in the same commit, so a snapshot read after
 // mount finds it; nothing about it changes later, hence no subscription.
@@ -35,21 +36,21 @@ const noSlot = () => null;
 export default function SenecaWorkspace() {
   // The URL is the source of truth (?view=protocol), so Back/Forward and
   // reloads land on the tab you were on.
-  const [tab, setTab] = useState<SenecaTab>(() => (viewFromUrl("seneca") as SenecaTab | null) ?? "home");
+  const [tab, setTab] = useState<SenecaTab>(() => availableSenecaTab((viewFromUrl("seneca") as SenecaTab | null) ?? "home"));
 
   // Every tab change — tabs, sidebar, "View details" links — becomes a history
   // entry. Arriving without ?view= (a plain section link) fills it in place.
   useEffect(() => {
     const inUrl = viewFromUrl("seneca");
     if (inUrl === tab) return;
-    writeViewUrl(tab, { replace: inUrl === null, drop: tab === "journal" ? [] : ["entry"] });
+    writeViewUrl(tab, { replace: inUrl === null || inUrl === "wealth" && !SENECA_FEATURES.wealth, drop: tab === "journal" ? [] : ["entry"] });
   }, [tab]);
 
   // Back/Forward: AdminApp has applied the URL; follow it.
   useEffect(() => {
     const follow = () => {
       const view = viewFromUrl("seneca") as SenecaTab | null;
-      setTab(view ?? "home");
+      setTab(availableSenecaTab(view ?? "home"));
     };
     window.addEventListener(ROUTE_POPPED, follow);
     return () => window.removeEventListener(ROUTE_POPPED, follow);
@@ -57,7 +58,7 @@ export default function SenecaWorkspace() {
 
   // Sync with sidebar sub-items (Home, Protocol, Growth, Wealth, Journal)
   useShellView("seneca", tab, (view) => {
-    setTab(view as SenecaTab);
+    setTab(availableSenecaTab(view as SenecaTab));
   });
 
   // The header's sync badge says what is true: synced only with a Firebase user
@@ -71,14 +72,14 @@ export default function SenecaWorkspace() {
   const handleTabChange = (next: SenecaTab) => {
     // No playSound here: the global sound layer already voices every tab
     // press (role="tab" + data-sound), and both together played twice.
-    setTab(next);
+    setTab(availableSenecaTab(next));
   };
 
   return (
     <div className="control-page cc-page seneca-workspace-page">
       <PageHeader
         title="Seneca"
-        subtitle="Your daily habits, goals, money, and reflections."
+        subtitle="Your daily habits, goals, and reflections."
         actions={
           synced === null ? null : (
             <span className={`sn-sync-badge ${synced ? "is-on" : "is-local"}`} role="status">
@@ -121,7 +122,7 @@ export default function SenecaWorkspace() {
       </div>
 
       <div className="seneca-workspace-canvas w-full min-h-[700px] mt-2">
-        <SenecaApp activeTab={tab} onTabChange={setTab} embedded={false} />
+        <SenecaApp activeTab={tab} onTabChange={handleTabChange} embedded={false} />
       </div>
 
       {/*

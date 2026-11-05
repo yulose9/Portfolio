@@ -142,7 +142,9 @@ function fragmentUrl(url: string, text: string) {
   return `${url}#:~:text=${frag}`;
 }
 
-export default function ArticleMenu({ children, title, url, markdownUrl }: { children: ReactNode; title: string; url: string; markdownUrl: string }) {
+export default function ArticleMenu({ children, title, url, markdownUrl, markdown }: { children: ReactNode; title: string; url: string; markdownUrl?: string; markdown?: string }) {
+  const area = useRef<HTMLDivElement>(null);
+  const [portal, setPortal] = useState<HTMLElement | null>(null);
   const [target, setTarget] = useState<Target>({ kind: "none" });
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
   const popup = useRef<HTMLDivElement>(null);
@@ -158,6 +160,7 @@ export default function ArticleMenu({ children, title, url, markdownUrl }: { chi
   useLayoutEffect(() => {
     const el = popup.current;
     if (!at || !el) return;
+    const window = el.ownerDocument.defaultView!;
     const r = el.getBoundingClientRect();
     const x = Math.min(at.x, window.innerWidth - r.width - 8);
     const y = at.y + r.height > window.innerHeight - 8 ? Math.max(8, at.y - r.height) : at.y;
@@ -168,7 +171,9 @@ export default function ArticleMenu({ children, title, url, markdownUrl }: { chi
   }, [at]);
 
   useEffect(() => {
-    if (!at) return;
+    if (!at || !area.current) return;
+    const document = area.current.ownerDocument;
+    const window = document.defaultView!;
     const away = (e: Event) => {
       if (popup.current && !popup.current.contains(e.target as Node)) close();
     };
@@ -215,10 +220,13 @@ export default function ArticleMenu({ children, title, url, markdownUrl }: { chi
   }, [at]);
 
   const read = (e: React.MouseEvent) => {
+    const document = e.currentTarget.ownerDocument;
+    const window = document.defaultView!;
     // Touch keeps the system's own long-press behaviour.
     if (!window.matchMedia("(any-hover: hover) and (any-pointer: fine)").matches) return;
     e.preventDefault();
-    returnTo.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setPortal(document.body);
+    returnTo.current = document.activeElement as HTMLElement | null;
     setAt({ x: e.clientX, y: e.clientY });
     const el = e.target as Element;
     const text = window.getSelection()?.toString().trim() ?? "";
@@ -416,7 +424,10 @@ export default function ArticleMenu({ children, title, url, markdownUrl }: { chi
             <MenuItem icon={<LinkSimple size={I} />} onClick={() => void copy(url, "Link copied")}>
               Copy link to this article
             </MenuItem>
-            <MenuItem icon={<MarkdownLogo size={I} />} onClick={() => void fetch(markdownUrl).then((r) => r.text()).then((md) => copy(md, "Article copied as Markdown"))}>
+            <MenuItem icon={<MarkdownLogo size={I} />} onClick={() => {
+              if (markdown !== undefined) { void copy(markdown, "Article copied as Markdown"); return; }
+              if (markdownUrl) void fetch(markdownUrl).then(r => { if (!r.ok) throw new Error("Unavailable"); return r.text(); }).then(md => copy(md, "Article copied as Markdown")).catch(() => toast.add({ type: "error", title: "Could not load Markdown. Try again." }));
+            }}>
               Copy as Markdown
             </MenuItem>
             <MenuItem icon={<XLogo size={I} />} onClick={() => openUrl(share(title).x, "X")}>
@@ -432,11 +443,11 @@ export default function ArticleMenu({ children, title, url, markdownUrl }: { chi
               Share on Facebook
             </MenuItem>
             <MenuSeparator />
-            <MenuItem icon={<Printer size={I} />} onClick={() => window.print()}>
+            <MenuItem icon={<Printer size={I} />} onClick={() => area.current?.ownerDocument.defaultView?.print()}>
               Print or save as PDF
             </MenuItem>
             <MenuItem icon={<ArrowUp size={I} />} onClick={() =>
-              window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })
+              area.current?.ownerDocument.defaultView?.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })
             }>
               Back to top
             </MenuItem>
@@ -444,9 +455,9 @@ export default function ArticleMenu({ children, title, url, markdownUrl }: { chi
   );
 
   return (
-    <div className="article-menu-area" onContextMenu={read}>
+    <div ref={area} className="article-menu-area" onContextMenu={read}>
       {children}
-      {at ? createPortal(menu, document.body) : null}
+      {at && portal ? createPortal(menu, portal) : null}
     </div>
   );
 }

@@ -15,7 +15,7 @@ publishedAt: "2026-10-27T05:42:54.604Z"
 updatedAt: "2026-10-27T05:59:36.013Z"
 redirectFrom: []
 kind: "project"
-project: {"role":"Design & Engineering","timeframe":"2026","tools":["Next.js","Tailwind CSS","Cloudflare Pages"],"outcomes":["Sub-second page loads","Full accessibility compliance","High-craft responsive UI"],"links":[{"label":"Website","href":"https://nazarene.dev"}],"order":1,"featured":true}
+project: {"role":"Design & Engineering","timeframe":"2026","tools":["Next.js","Tailwind CSS","Cloudflare Pages"],"outcomes":[],"links":[{"label":"Website","href":"https://nazarene.dev"}],"order":1,"featured":true}
 ---
 
 I started building my portfolio around six years ago. Back then, I had no clear idea of what I wanted it to become. I just knew I wanted to create something of my own, something different, something I could be proud of.

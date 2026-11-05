@@ -1,5 +1,7 @@
 // @ts-nocheck
 "use client";
+import { useProtocolCalendarDays } from "@/lib/seneca/data/syncedData";
+import { useProtocol } from "@/lib/seneca/context/ProtocolContext";
 import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
@@ -104,6 +106,9 @@ const page = {
 };
 
 export function MonthRings({ history, taskKeys, selected, onSelect }) {
+  const [calendarDays] = useProtocolCalendarDays();
+  const { protocolCategory } = useProtocol();
+  const dayKeys = calendarDays[protocolCategory];
   const setSelected = (value) => onSelect(typeof value === "function" ? value(selected) : value);
   const reduce = useReducedMotion();
   const today = getPhDateKey();
@@ -112,8 +117,8 @@ export function MonthRings({ history, taskKeys, selected, onSelect }) {
   const atCurrent = cursor.y === ty && cursor.m === tm;
 
   const ratios = useMemo(
-    () => monthRatios(history, taskKeys, cursor.y, cursor.m),
-    [history, taskKeys, cursor.y, cursor.m],
+    () => monthRatios(history, taskKeys, cursor.y, cursor.m, dayKeys),
+    [history, taskKeys, cursor.y, cursor.m, dayKeys],
   );
   const delta = useMemo(() => periodDelta(history, taskKeys, today, 30), [history, taskKeys, today]);
 

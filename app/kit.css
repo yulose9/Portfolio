@@ -89,7 +89,7 @@
 @media (prefers-reduced-motion:reduce){.t-check,.t-check svg path{transition:none!important}}
 .t-avatar{transform-origin:50%;transform:translateY(var(--shift,0px)) scale(var(--scale-active,1));transition:transform var(--avatar-dur) var(--avatar-ease-in);will-change:transform}
 @media (prefers-reduced-motion:reduce){.t-avatar{transition:none!important;transform:none!important}}
-.t-check-blur-wrap{filter:blur();transition:filter var(--check-revert-dur) var(--check-revert-ease);will-change:filter;display:inline-flex}
+.t-check-blur-wrap{filter:none;transition:filter var(--check-revert-dur) var(--check-revert-ease);will-change:filter;display:inline-flex;flex:none;overflow:visible}
 .t-check-blur-wrap.is-crossing{filter:blur(var(--check-blur));transition:filter calc(var(--check-fill-dur) * .45) var(--check-fill-ease)}
 .t-check-badge{width:var(--check-size);height:var(--check-size);flex:0 0 var(--check-size);transition:scale var(--check-revert-dur) var(--check-revert-ease);will-change:scale;position:relative;scale:1}
 .t-check-badge[data-state=done]{scale:var(--check-pop-scale);transition:scale var(--check-pop-dur) var(--check-pop-ease)}

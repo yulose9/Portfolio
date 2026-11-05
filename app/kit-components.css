@@ -861,6 +861,9 @@
   width: 1rem;
   height: 1rem;
 }
+.kit-menu-item .t-check-disc svg { width: 100%; height: 100%; }
+.menu-item-icon, .kit-menu-indicator, .admin-select-check { overflow: visible; flex-shrink: 0; }
+.menu-item-icon > svg, .kit-menu-item > svg { overflow: visible; }
 .kit-menu-item > svg:not([class*="text-"]) {
   color: var(--muted-foreground);
 }
@@ -1327,13 +1330,14 @@
   height: 1.25rem;
   justify-content: flex-end;
   flex-shrink: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 .kt-toast-glyph-inner {
   display: flex;
   width: max-content;
   align-items: center;
   padding-inline-end: 0.5rem;
+  padding-inline-start: 3px;
 }
 .kt-toast-mark {
   display: flex;

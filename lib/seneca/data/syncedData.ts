@@ -32,6 +32,11 @@ const mergeNestedMap = <T extends Record<string, Record<string, any>>>(
 };
 
 // ─── Study goal ──────────────────────────────────────────────────────────────
+// Historical day edits retain their own calendar denominator after routines change.
+export const useProtocolCalendarDays = defineSyncedField<Record<string, Record<string, string[]>>>("protocol", "calendarDays", {
+  initial: {}, storageKey: "seneca_protocol_calendar_days", mergeDirty: mergeNestedMap,
+});
+
 export const useStudyPortfolio = defineSyncedField<import("../utils/studyPortfolio").StudyPortfolio | null>("studyGoal", "portfolio", {
   initial: null,
   storageKey: "study_portfolio_v1",

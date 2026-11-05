@@ -1,4 +1,5 @@
 "use client";
+import { withCivilService } from "../utils/civilService";
 
 import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
 import { updateTodayLog } from "../services/dataLogger";
@@ -28,7 +29,7 @@ export function StudyGoalProvider({ children }: { children: ReactNode }) {
     if (!id || !p.subjects[id] || !p.subjects[id].active) return p;
     return { ...p, subjects: { ...p.subjects, [id]: { ...p.subjects[id], history: fn(p.subjects[id].history) } } };
   });
-  const candidates = [...domains.flatMap(domain => [...(domain.modules ?? []), ...(domain.subcategories ?? []).flatMap((sub: any) => sub.modules ?? [])]), ...custom, ...Object.values(portfolio.subjects).map(s => s.goal)];
+  const candidates = [...withCivilService(domains).flatMap(domain => [...(domain.modules ?? []), ...(domain.subcategories ?? []).flatMap((sub: any) => sub.modules ?? [])]), ...custom, ...Object.values(portfolio.subjects).map(s => s.goal)];
   const availableSubjects = Array.from(new Map(candidates.filter(c => c?.name).map(c => [studyKey(c), c])).values());
   useEffect(() => {
     updateTodayLog("growth", { active_study_goal: activeStudyGoal, study_streak: studyStreak(studyHistory) });

@@ -42,12 +42,13 @@ export const monthRatios = (
   keys: readonly string[],
   year: number,
   month: number,
+  dayKeys: Record<string, readonly string[]> = {},
 ): Record<string, number> => {
   const out: Record<string, number> = {};
   const length = new Date(Date.UTC(year, month, 0)).getUTCDate();
   for (let d = 1; d <= length; d++) {
     const key = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    out[key] = dayRatio(history, keys, key);
+    out[key] = dayRatio(history, dayKeys[key] ?? keys, key);
   }
   return out;
 };

@@ -70,8 +70,7 @@ export function getApiWorkspace(): "writing" | "projects" {
 export function adminPageHref(id: string, extra: Record<string, string> = {}) {
   return `/admin?${new URLSearchParams({ ...extra, section: getApiWorkspace(), post: id })}`;
 }
-export async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const scope = getApiWorkspace();
+export async function call<T>(path: string, init: RequestInit = {}, scope = getApiWorkspace()): Promise<T> {
   const projectScope = scope === "projects" && /^\/(posts|bulk|search|research|connections|folders|page-order|pulse)(\/|\?|$)/.test(path);
   const timeout = path.startsWith("/uploads") ? 120_000 : path.startsWith("/analytics") ? 110_000 : 45_000;
   let res: Response;

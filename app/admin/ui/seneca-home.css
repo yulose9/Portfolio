@@ -1132,7 +1132,7 @@
 
 /* Month name tooltip, on hover or keyboard focus */
 .sn-life-month::after {
-  content: attr(data-tip);
+  content: attr(data-life-tip);
   position: absolute;
   bottom: calc(100% + 8px);
   left: 50%;
@@ -1278,7 +1278,7 @@
 .sn-study-card .sn-studied { margin-top: 0; }
 .sn-life-grid > span { position: relative; cursor: help; }
 .sn-life-grid > span::after {
-  content: attr(data-tip); position: absolute; z-index: 10; bottom: calc(100% + 8px); left: 50%;
+  content: attr(data-life-tip); position: absolute; z-index: 10; bottom: calc(100% + 8px); left: 50%;
   transform: translate(-50%, 3px); opacity: 0; pointer-events: none; white-space: nowrap;
   padding: 7px 10px; border-radius: 8px; background: var(--color-ink); color: var(--color-surface);
   font-size: 12px; font-weight: 600; line-height: 1.4; transition: opacity 140ms ease, transform 140ms ease;
@@ -1345,3 +1345,12 @@
   .sn-home .sn-map-stop, .sn-home .sn-map-pin, .sn-home .sn-map-pin-halo { transition:none; }
 }
 [data-theme="dark"] .sn-weather[data-scene] .sn-wstat { -webkit-backdrop-filter:none; }
+.sn-resource-grid > .sn-resource-slot:only-child { grid-column: 1 / -1; }
+.sn-analytics-side > :only-child { height: 100%; }
+.sn-protocol-day { min-width: 0; border: 0; padding: 0; margin: 0; }
+.sn-protocol-day[disabled] { opacity: .55; pointer-events: none; }
+.sn-day-status { padding-block: 12px; color: var(--sn-muted); font-size: 14px; }
+.sn-time-attention { position: relative; border-radius: 16px; isolation: isolate; }
+.sn-time-attention::after { content: ""; position: absolute; inset: -3px; border: 2px solid var(--sn-orange, #c46b23); border-radius: inherit; box-shadow: 0 0 14px color-mix(in srgb, var(--sn-orange, #c46b23) 20%, transparent); pointer-events: none; animation: sn-time-reminder 2.8s ease-in-out infinite; }
+@keyframes sn-time-reminder { 0%,100% { opacity: .35; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .sn-time-attention::after { animation: none; opacity: .8; } }

@@ -21,6 +21,7 @@ import { useProtocol } from "@/lib/seneca/context/ProtocolContext";
 import { useStudyGoal } from "@/lib/seneca/context/StudyGoalContext";
 import { useCertificationDomains, useCustomCertifications } from "@/lib/seneca/data/syncedData";
 import { calendarDateKey, getPhDateKey, parseDateKey } from "@/lib/seneca/utils/timeUtils";
+import { withCivilService } from "@/lib/seneca/utils/civilService";
 
 
 const INITIAL_DOMAINS = [
@@ -360,6 +361,9 @@ const CourseRow = ({
   return (
     <motion.div
       onClick={() => onClick?.(item)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onClick?.(item); } }}
       whileTap={TAP_CARD}
       className={clsx(
         "flex items-center py-4 px-4 cursor-pointer transition-colors duration-150",
@@ -375,7 +379,7 @@ const CourseRow = ({
             status === "locked" ? "text-ink-3" : "text-ink"
           )}
         >
-          {item.name}
+          {item.name === "Civil Service Professional" ? "Civil Service Professional Exam" : item.name}
         </p>
         <div className="flex items-center gap-2">
           <span
@@ -432,7 +436,7 @@ const withStatuses = (map) => {
  */
 const resolveDomains = (stored) => {
   const full = Array.isArray(stored) && stored.some((d) => d?.title && (d.subcategories || d.modules));
-  return full ? JSON.parse(JSON.stringify(stored)) : withStatuses(statusMap(stored));
+  return withCivilService(full ? JSON.parse(JSON.stringify(stored)) : withStatuses(statusMap(stored)));
 };
 
 

@@ -360,7 +360,7 @@ export default function AnalyticsDashboard({
         <div className="cc-layout-two-col">
           <div className="cc-main-col">
             {/* Tremor KPI Metric Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+            <div className="cc-kpi-grid">
             {(
               [
                 ["Measured visits", "visits"],

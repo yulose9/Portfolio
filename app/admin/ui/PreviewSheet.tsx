@@ -26,6 +26,9 @@ import { api, type Draft } from "./api";
 import { cursorMarkup, cursorTransform, shapeAt } from "../../lib/cursor";
 import type { Meta } from "./Editor";
 import { Tabs, TabsList, TabsTrigger } from "../../components/kit/tabs";
+import ProjectProperties from "../../components/projects/ProjectProperties";
+import ArticleEnhance from "../../components/writing/ArticleEnhance";
+import ArticleMenu from "../../components/writing/ArticleMenu";
 import ArticleBody from "../../components/writing/ArticleBody";
 
 /*
@@ -146,21 +149,22 @@ function AudioPreview(props: Record<string, unknown>) {
 
 function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
   const toc = outline(tree);
-  const url = `${SITE}/writing/${meta.slug || "…"}`;
+  const project = doc.kind === "project";
+  const url = `${SITE}/${project ? "projects" : "writing"}/${meta.slug || "untitled"}`;
   // The same blocks the published page draws (code, tabs, charts, polls,
   // citations, data tables, the video player), with the preview's own embed
   // and audio stand-ins.
   const body = <ArticleBody tree={tree} components={{ "x-embed": EmbedPreview, "x-audio": AudioPreview }} />;
   // The banner cover, as the page draws it: across the top, the icon over its edge.
-  const banner = meta.cover && coverStyle(meta.cover) === "banner" ? meta.cover : null;
+  const banner = !project && meta.cover && coverStyle(meta.cover) === "banner" ? meta.cover : null;
   const breadcrumbs = (
     <nav className="article-nav" aria-label="Breadcrumb">
       <ol className="breadcrumbs">
         <li>
-          <a href="#">Home</a>
+          <a href="/" target="_blank" rel="noreferrer">Home</a>
         </li>
         <li>
-          <a href="#">Writing</a>
+          <a href={project ? "/projects" : "/writing"} target="_blank" rel="noreferrer">{project ? "Projects" : "Writing"}</a>
         </li>
         <li aria-current="page">{meta.title || "Untitled"}</li>
       </ol>
@@ -177,7 +181,7 @@ function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
           <img src={banner.src} alt={banner.alt} width={banner.width} height={banner.height} style={coverImageStyle(banner)} />
         </figure>
       ) : null}
-      <main className="page-shell article-shell article-page preview-page w-full max-w-[672px] py-16" data-cover={banner ? "banner" : undefined} style={fontVars(meta.fonts) as React.CSSProperties}>
+      <main className={project ? "project-article page-shell article-shell article-page preview-page" : "page-shell article-shell article-page preview-page w-full max-w-[672px] py-16"} data-cover={banner ? "banner" : undefined} style={fontVars(meta.fonts) as React.CSSProperties}>
         {banner ? (
           <div className="article-banner-row">
             {meta.icon ? (
@@ -189,16 +193,17 @@ function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
         ) : (
           breadcrumbs
         )}
-        <article className="article" data-has-toc={toc.length >= 3 || undefined}>
-          <header className="article-header">
-            {meta.icon && !banner ? (
+        <ArticleMenu title={meta.title} url={url} markdown={doc.body}>
+        <article className="article" data-has-toc={toc.length > 1 || undefined}>
+          <header className={project ? "article-header project-header" : "article-header"}>
+            {meta.icon && !banner && !project ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img className="article-icon" src={fluentUrl(meta.icon)} alt="" width={72} height={72} />
             ) : null}
-            <p className="article-eyebrow">
+            {!project && <p className="article-eyebrow">
               <time>{longDate.format(meta.publishedAt ? new Date(meta.publishedAt) : doc.publishedAt ? new Date(doc.publishedAt) : new Date())}</time>
-            </p>
-            {meta.tags.length ? (
+            </p>}
+            {!project && meta.tags.length ? (
               <div className="article-header-tags">
                 {meta.tags.map((t) => (
                   <Tag key={t} name={t} href={`#tag-${tagSlug(t)}`} />
@@ -215,23 +220,26 @@ function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
             ) : null}
             <Byline authors={meta.authors} minutes={readingMinutes(doc.body)} updated={doc.updatedAt} />
           </header>
+          {project && <ProjectProperties project={doc.project} />}
           {meta.cover && !banner ? (
             <figure className="article-cover">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={meta.cover.src} alt={meta.cover.alt} width={meta.cover.width} height={meta.cover.height} />
+              <img src={meta.cover.src} alt={meta.cover.alt} width={meta.cover.width} height={meta.cover.height} style={coverImageStyle(meta.cover)} data-zoom="" />
               {meta.cover.caption ? <figcaption>{meta.cover.caption}</figcaption> : null}
             </figure>
           ) : null}
-          <div className="article-main">
-            {toc.length >= 3 ? <Toc items={toc} /> : null}
-            <div className="article-body">{body}</div>
+          <div className={project ? "article-main project-reading" : "article-main"}>
+            {toc.length > 1 ? <Toc items={toc} /> : null}
+            <div className="article-body" data-reading-body>{body}</div>
           </div>
           <footer className="article-footer">
 
             <ShareRow url={url} title={meta.title} />
           </footer>
-          <AuthorCard authors={meta.authors} />
+          {!project && <AuthorCard authors={meta.authors} />}
         </article>
+        </ArticleMenu>
+        <ArticleEnhance contentKey={tree} canonicalUrl={url} />
       </main>
     </div>
   );
@@ -240,14 +248,14 @@ function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
 /* ── Share cards ─────────────────────────────────────────────────────── */
 
 /** The generated share card, drawn in HTML to the same layout as opengraph-image.tsx. */
-function CardMock({ meta }: { meta: Meta }) {
+function CardMock({ meta, project = false }: { meta: Meta; project?: boolean }) {
   return (
     <div className="og-mock" aria-label="Generated share card">
       <div className="og-mock-inner">
         <div className="og-mock-top">
           <span className="og-mock-site">
             <i />
-            nazarene.dev/writing
+            nazarene.dev/{project ? "projects" : "writing"}
           </span>
           {meta.icon ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -266,23 +274,23 @@ function CardMock({ meta }: { meta: Meta }) {
   );
 }
 
-function ShareImage({ meta }: { meta: Meta }) {
+function ShareImage({ meta, project = false }: { meta: Meta; project?: boolean }) {
   const src = meta.ogImage && meta.ogImage !== "cover" ? meta.ogImage : meta.ogImage === "cover" && meta.cover ? meta.cover.src : null;
   // eslint-disable-next-line @next/next/no-img-element
-  return src ? <img className="share-img" src={src} alt="" /> : <CardMock meta={meta} />;
+  return src ? <img className="share-img" src={src} alt="" /> : <CardMock meta={meta} project={project} />;
 }
 
-function Shares({ meta }: { meta: Meta }) {
+function Shares({ meta, project = false }: { meta: Meta; project?: boolean }) {
   const title = meta.title || "Untitled";
   const desc = meta.dek || `${title}, by John Nazarene Dela Pisa.`;
-  const url = `nazarene.dev/writing/${meta.slug || "…"}`;
+  const url = `nazarene.dev/${project ? "projects" : "writing"}/${meta.slug || "…"}`;
   return (
     <div className="share-grid">
       <section className="share-app">
         <h3>X</h3>
         <div className="mock-x">
           <div className="mock-x-card">
-            <ShareImage meta={meta} />
+            <ShareImage meta={meta} project={project} />
             <span className="mock-x-domain">nazarene.dev</span>
           </div>
           <p className="mock-x-from">From nazarene.dev</p>
@@ -291,7 +299,7 @@ function Shares({ meta }: { meta: Meta }) {
       <section className="share-app">
         <h3>Threads</h3>
         <div className="mock-card mock-threads">
-          <ShareImage meta={meta} />
+          <ShareImage meta={meta} project={project} />
           <div className="mock-meta">
             <b>{title}</b>
             <span>nazarene.dev</span>
@@ -301,7 +309,7 @@ function Shares({ meta }: { meta: Meta }) {
       <section className="share-app">
         <h3>LinkedIn</h3>
         <div className="mock-card mock-linkedin">
-          <ShareImage meta={meta} />
+          <ShareImage meta={meta} project={project} />
           <div className="mock-meta">
             <b>{title}</b>
             <span>nazarene.dev</span>
@@ -311,7 +319,7 @@ function Shares({ meta }: { meta: Meta }) {
       <section className="share-app">
         <h3>Facebook</h3>
         <div className="mock-card mock-facebook">
-          <ShareImage meta={meta} />
+          <ShareImage meta={meta} project={project} />
           <div className="mock-meta">
             <span className="mock-caps">NAZARENE.DEV</span>
             <b>{title}</b>
@@ -322,7 +330,7 @@ function Shares({ meta }: { meta: Meta }) {
       <section className="share-app">
         <h3>Messenger</h3>
         <div className="mock-bubble mock-messenger">
-          <ShareImage meta={meta} />
+          <ShareImage meta={meta} project={project} />
           <div className="mock-meta">
             <b>{title}</b>
             <span>nazarene.dev</span>
@@ -333,7 +341,7 @@ function Shares({ meta }: { meta: Meta }) {
         <h3>WhatsApp</h3>
         <div className="mock-wa">
           <div className="mock-wa-preview">
-            <ShareImage meta={meta} />
+            <ShareImage meta={meta} project={project} />
             <div className="mock-meta">
               <b>{title}</b>
               <span className="mock-clamp">{desc}</span>
@@ -351,14 +359,14 @@ function Shares({ meta }: { meta: Meta }) {
             <b className="mock-tg-site">John Nazarene Dela Pisa</b>
             <b>{title}</b>
             <span className="mock-clamp">{desc}</span>
-            <ShareImage meta={meta} />
+            <ShareImage meta={meta} project={project} />
           </div>
         </div>
       </section>
       <section className="share-app">
         <h3>iMessage</h3>
         <div className="mock-imsg">
-          <ShareImage meta={meta} />
+          <ShareImage meta={meta} project={project} />
           <div className="mock-meta">
             <b>{title}</b>
             <span>nazarene.dev</span>
@@ -396,7 +404,7 @@ function Lists({ meta, doc }: { meta: Meta; doc: Draft }) {
   return (
     <div className="preview-lists article-shell">
       <section>
-        <h3>Home page, Writing tab</h3>
+        <h3>{doc.kind === "project" ? "Home page, Projects tab" : "Home page, Writing tab"}</h3>
         <div className="mock-home-row">
           <span>{meta.title || "Untitled"}</span>
           <time>{dm}</time>
@@ -404,7 +412,7 @@ function Lists({ meta, doc }: { meta: Meta; doc: Draft }) {
         {!meta.page ? <p className="field-help">Listed only: shown, but not a link.</p> : null}
       </section>
       <section>
-        <h3>/writing</h3>
+        <h3>{doc.kind === "project" ? "/projects" : "/writing"}</h3>
         <div className="article-more-row">
           <span className="article-more-name">
             {meta.title || "Untitled"}
@@ -417,7 +425,7 @@ function Lists({ meta, doc }: { meta: Meta; doc: Draft }) {
         <section>
           <h3>Google</h3>
           <div className="preview-search">
-            <span className="preview-url">nazarene.dev › writing › {meta.slug || "…"}</span>
+            <span className="preview-url">nazarene.dev › {doc.kind === "project" ? "projects" : "writing"} › {meta.slug || "…"}</span>
             <span className="preview-title">{meta.title || "Untitled"} | John Nazarene Dela Pisa</span>
             <span className="preview-desc">
               {longDate.format(date)} — {meta.dek || "Add a standfirst; it's what search shows here."}
@@ -542,7 +550,7 @@ export default function PreviewSheet({
             ) : tab === "lists" ? (
               <Lists meta={meta} doc={doc} />
             ) : (
-              <Shares meta={meta} />
+              <Shares meta={meta} project={doc.kind === "project"} />
             )}
           </div>
         </Dialog.Popup>

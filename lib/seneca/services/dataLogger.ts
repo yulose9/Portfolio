@@ -16,6 +16,7 @@
  * - Pending writes are flushed on pagehide / tab hide and before logout.
  */
 
+import { validDayKey } from "../utils/protocolDay";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { doc, FieldPath, onSnapshot, setDoc, runTransaction, type DocumentReference } from "firebase/firestore";
 import { auth, db } from "./firebase";
@@ -407,8 +408,10 @@ export const getLogForDate = async (dateKey = getPhDateKey()) => {
   return entry.hydrated ? createEmptyLog(dateKey) : getLocalLog(dateKey);
 };
 
-export const updateTodayLog = (section: string, data: Record<string, any>) => {
-  const dateKey = getPhDateKey();
+export const updateTodayLog = (section: string, data: Record<string, any>) => updateLogForDate(getPhDateKey(), section, data);
+
+export const updateLogForDate = (dateKey: string, section: string, data: Record<string, any>) => {
+  if (!validDayKey(dateKey) || !/^[a-zA-Z_]+$/.test(section)) throw new Error("Invalid daily log destination");
   const localLog = updateLocalLog(dateKey, section, data);
 
   const fields: Record<string, any> = {};

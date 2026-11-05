@@ -13,6 +13,7 @@ import LifeCalendar from "@/components/seneca/home/LifeCalendar";
 import TodayTodos from "@/components/seneca/home/TodayTodos";
 import WeatherCard from "@/components/seneca/home/WeatherCard";
 import DayHorizon from "@/components/seneca/home/DayHorizon";
+import { SENECA_FEATURES } from "@/lib/seneca/features";
 import MoneyHorizon from "@/components/seneca/home/MoneyHorizon";
 import { useProtocol } from "@/lib/seneca/context/ProtocolContext";
 import { useJournalEntries, useWealthAssets, useWealthLiabilities } from "@/lib/seneca/data/syncedData";
@@ -174,7 +175,7 @@ export default function Home() {
     <div className="sn-home">
       <div className="sn-resource-grid">
         <div className="sn-resource-slot"><DayHorizon /></div>
-        <div className="sn-resource-slot"><MoneyHorizon onOpenWealth={go("/wealth")} onOpenSummary={(view) => {
+        {SENECA_FEATURES.wealth && <div className="sn-resource-slot"><MoneyHorizon onOpenWealth={go("/wealth")} onOpenSummary={(view) => {
           const url = new URL(window.location.href);
           url.searchParams.set('view', 'wealth');
           url.searchParams.set('money', view);
@@ -183,7 +184,7 @@ export default function Home() {
           window.dispatchEvent(new Event(ROUTE_PUSHED));
           haptic.trigger('light');
           navigate(`/wealth#money-${view === 'held' ? 'accounts' : 'records'}`);
-        }} /></div>
+        }} /></div>}
       </div>
       {/*
         Three bands on one equal-column grid, one 24px gap both ways:
@@ -211,7 +212,7 @@ export default function Home() {
 
         <div className="sn-area sn-area-d sn-enter" style={{ "--i": 2 }}>
           <JournalPrompt greeting={journalGreeting} hasJournalToday={!!selectedEntry} onWrite={() => openJournalDay(day)} onOpenJournal={go("/journal")} />
-          <PriorityPayment liability={wealth.priority} onOpen={go("/wealth")} />
+          {SENECA_FEATURES.priorityPayment && SENECA_FEATURES.wealth && <PriorityPayment liability={wealth.priority} onOpen={go("/wealth")} />}
         </div>
 
         <div className="sn-area sn-area-e sn-enter" style={{ "--i": 2 }}>

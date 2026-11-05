@@ -1,5 +1,6 @@
 "use client";
 
+import { SENECA_FEATURES } from "@/lib/seneca/features";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
 /*
@@ -33,13 +34,13 @@ export const PROJECT_VIEWS = [
   { id: "published", label: "Published" },
   { id: "trash", label: "Trash" },
 ] as const;
-export const SENECA_VIEWS = [
+export const SENECA_VIEWS = ([
   { id: "home", label: "Home" },
   { id: "protocol", label: "Protocol" },
   { id: "growth", label: "Growth" },
   { id: "wealth", label: "Wealth" },
   { id: "journal", label: "Journal" },
-] as const;
+] as const).filter(item => item.id !== "wealth" || SENECA_FEATURES.wealth);
 export type ViewScope = "writing" | "projects" | "seneca";
 
 /** The top bar's slot for a page's compact status (Seneca's sync state on phones). */

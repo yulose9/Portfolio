@@ -1,5 +1,7 @@
 // @ts-nocheck
 "use client";
+import { useJournalEntries, usePersonalGoalHistory, useStudyHistory, useStudyPortfolio } from "../data/syncedData";
+import { activityCompletions, validDayKey } from "../utils/protocolDay";
 import React, {
   createContext,
   useCallback,
@@ -415,7 +417,7 @@ export function ProtocolProvider({ children }) {
   const [dayKey, setDayKey] = useState(() => getPhDateKey());
   const currentDateRef = useRef(dayKey);
   // Guard for auto-marking "Reflect on your day" (reset every new day)
-  const reflectMarkedForDate = useRef(null);
+  const [readyScope, setReadyScope] = useState("");
 
   const resetForNewDay = useCallback(() => {
     const newDay = getPhDateKey();
@@ -437,7 +439,7 @@ export function ProtocolProvider({ children }) {
     setActivePhase(getPhaseOrderForCategory(protocolCategory)[0] || "morningIgnition");
     setCompletedPhases([]);
 
-    reflectMarkedForDate.current = null;
+    setReadyScope("");
     lastLocalInteraction.current = 0;
     currentDateRef.current = newDay;
     // Re-attaches the today-log listener to the NEW day's document
@@ -475,13 +477,16 @@ export function ProtocolProvider({ children }) {
     };
   }, [resetForNewDay, protocolCategory]);
 
-  // 🔄 INITIAL CLOUD FETCH on mount - Get global Protocol data AND today's tasks
+  // Initial reads are scoped: a late response from Personal cannot replace Work.
   useEffect(() => {
+    let cancelled = false;
+    setReadyScope("");
     const fetchGlobalProtocol = async () => {
       try {
         // 1. Fetch global data (history, custom tasks, order)
         const globalKey = protocolCategory === "personal" ? "protocol" : `protocol_${protocolCategory}`;
         const cloudProtocol = await getGlobalData(globalKey);
+        if (cancelled) return;
         if (cloudProtocol) {
           console.log(`[Protocol:${protocolCategory}] ✓ Loaded global data from Firestore`);
 
@@ -544,6 +549,7 @@ export function ProtocolProvider({ children }) {
 
         // 2. Fetch today's daily log to get current task completion states
         const todayLog = await getLogForDate();
+        if (cancelled) return;
         const protocolLogKey = protocolCategory === "personal" ? "protocol" : `protocol_${protocolCategory}`;
         if (todayLog && todayLog[protocolLogKey] && todayLog[protocolLogKey].phases) {
           const remoteProtocol = todayLog[protocolLogKey];
@@ -632,11 +638,14 @@ export function ProtocolProvider({ children }) {
 
       } catch (error) {
         console.error("[Protocol] Failed to fetch global data:", error);
+      } finally {
+        if (!cancelled) setReadyScope(`${protocolCategory}/${dayKey}`);
       }
     };
 
     fetchGlobalProtocol();
-  }, [protocolCategory]); // Run when category changes
+    return () => { cancelled = true; };
+  }, [protocolCategory, dayKey]);
 
   // 🌐 Sync PROTOCOL DATA to GLOBAL storage (persists across days, for streaks)
   useEffect(() => {
@@ -889,8 +898,22 @@ export function ProtocolProvider({ children }) {
     window.setTimeout(() => window.dispatchEvent(new CustomEvent(PHASE_COMPLETE, { detail })), 0);
   };
 
+  const setTaskDate = (phaseId, taskId, dateStr, done) => {
+    if (!validDayKey(dateStr) || dateStr > getPhDateKey()) return;
+    lastLocalInteraction.current = Date.now();
+    const key = getTaskKey(phaseId, taskId);
+    setTaskHistory(previous => previous[key]?.[dateStr] === done ? previous : {
+      ...previous, [key]: { ...previous[key], [dateStr]: done },
+    });
+    if (dateStr === getPhDateKey()) setPhaseTasks(previous => ({ ...previous,
+      [phaseId]: (previous[phaseId] || []).map(task => task.id === taskId ? { ...task, done } : task),
+    }));
+  };
+
   // Toggle history for a specific date (Grid Interaction)
   const toggleTaskHistory = (phaseId, taskId, dateStr) => {
+    if (!validDayKey(dateStr) || dateStr > getPhDateKey()) return;
+    lastLocalInteraction.current = Date.now();
     const key = getTaskKey(phaseId, taskId);
     const today = getPhDateKey();
 
@@ -930,6 +953,8 @@ export function ProtocolProvider({ children }) {
   // Mark "Learn Stuff" as done (called from StudyGoalContext when studying)
   // This does NOT toggle - it only marks as done
   const markLearnStuffDone = () => {
+    if (protocolCategory !== "personal") return;
+    lastLocalInteraction.current = Date.now();
     const phaseId = "arena";
     const taskId = 4; // "Learn Stuff" task
 
@@ -956,6 +981,8 @@ export function ProtocolProvider({ children }) {
   // Mark Workout as complete on the UI task list (to clear it out),
   // but logically record true/false based on actual workout success for streaks.
   const markWorkoutDone = (isSuccess) => {
+    if (protocolCategory !== "personal" || !isSuccess) return;
+    lastLocalInteraction.current = Date.now();
     const phaseId = "arena";
     const taskId = 5; // "Workout" task
 
@@ -988,61 +1015,32 @@ export function ProtocolProvider({ children }) {
     return task?.done || false;
   };
 
-  // Mark "Reflect on your day" as done (called when journal entry exists for today)
-  const markReflectDone = () => {
-    const phaseId = "arena";
-    const taskId = 1; // "Reflect on your day" task
-
-    setPhaseTasks((prev) => ({
-      ...prev,
-      [phaseId]: prev[phaseId].map((task) =>
-        task.id === taskId ? { ...task, done: true } : task,
-      ),
-    }));
-
-    const today = getPhDateKey();
-    const key = getTaskKey(phaseId, taskId);
-    setTaskHistory((prev) => ({
-      ...prev,
-      [key]: {
-        ...(prev[key] || {}),
-        [today]: true,
-      },
-    }));
-  };
-
-  // Auto-check "Reflect on your day" when a journal entry exists for today.
-  // Uses a ref to avoid re-running on every arena task change (which caused a state loop
-  // where markReflectDone triggered a sync, which retriggered this effect).
+  const [journalEntries] = useJournalEntries();
+  const [goalHistory] = usePersonalGoalHistory();
+  const [studyHistory] = useStudyHistory();
+  const [studyPortfolio] = useStudyPortfolio();
   useEffect(() => {
-    const unsubscribe = subscribeToGlobalData("journal", (journalData) => {
-      if (!journalData || !journalData.entries) return;
-
-      const today = getPhDateKey();
-
-      // Guard: only mark once per calendar day to prevent loops
-      if (reflectMarkedForDate.current === today) return;
-
-      const hasTodayEntry = journalData.entries.some(
-        (entry) => entry.isoDate === today
-      );
-
-      if (hasTodayEntry) {
-        const reflectTask = phaseTasks.arena?.find((t) => t.id === 1);
-        if (reflectTask && !reflectTask.done) {
-          reflectMarkedForDate.current = today; // mark before calling to prevent double-fire
-          markReflectDone();
-        } else if (reflectTask?.done) {
-          // Already done — record that we've handled today
-          reflectMarkedForDate.current = today;
-        }
+    if (protocolCategory !== "personal" || readyScope !== `${protocolCategory}/${dayKey}`) return;
+    const evidence = activityCompletions(journalEntries, goalHistory.exercise || {}, studyHistory, studyPortfolio?.subjects || {}, dayKey);
+    const changedHistory = Object.entries(evidence).some(([key, dates]) => dates.some(date => taskHistory[key]?.[date] !== true));
+    const changedToday = (phaseTasks.arena || []).some(task => evidence[`arena-${task.id}`]?.includes(dayKey) && !task.done);
+    if (!changedHistory && !changedToday) return;
+    lastLocalInteraction.current = Date.now();
+    setTaskHistory(previous => {
+      let next = previous;
+      for (const [key, dates] of Object.entries(evidence)) {
+        const missing = dates.filter(date => previous[key]?.[date] !== true);
+        if (!missing.length) continue;
+        next = { ...next, [key]: { ...next[key], ...Object.fromEntries(missing.map(date => [date, true])) } };
       }
+      return next;
     });
-
-    return () => unsubscribe();
-  // Only re-subscribe when the category changes — NOT on every arena task change
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [protocolCategory]);
+    setPhaseTasks(previous => {
+      const arena = previous.arena || [];
+      const next = arena.map(task => evidence[`arena-${task.id}`]?.includes(dayKey) && !task.done ? { ...task, done: true } : task);
+      return next.some((task, index) => task !== arena[index]) ? { ...previous, arena: next } : previous;
+    });
+  }, [journalEntries, goalHistory, studyHistory, studyPortfolio, protocolCategory, dayKey, readyScope, taskHistory, phaseTasks]);
 
   // Add a custom task to a phase
   const addCustomTask = (phaseId, task) => {
@@ -1399,6 +1397,7 @@ export function ProtocolProvider({ children }) {
 
     // History
     taskHistory,
+    setTaskDate,
     toggleTaskHistory,
     getTaskHistory,
 
@@ -1472,6 +1471,7 @@ export function ProtocolProvider({ children }) {
     customTasks,
 
     // Functions (stable references are important)
+    setTaskDate,
     toggleTaskHistory,
     getTaskHistory,
     toggleTask,
