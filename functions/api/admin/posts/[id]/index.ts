@@ -1,5 +1,6 @@
 import { normalizeAuthors, type Cover, type Draft, type FontChoice, type Fonts } from "../../../../../cms/format";
 import { cleanProject } from "../../../../../cms/projects";
+import { cleanPageIcon } from "../../../../../cms/page-icon";
 import { fontsOrNull, type PageFonts } from "../../../../../cms/subtitle";
 import { cleanEditorDocument } from "../../../../../cms/editor-document";
 import { cleanEditorial } from "../../../../../cms/editorial";
@@ -41,7 +42,7 @@ export const onRequestPut: AdminFunction<"id"> = async ({ env, params, request }
     try { next.editorDocument = cleanEditorDocument(edit.editorDocument,next.body); }
     catch(e) { throw new HttpError(e instanceof Error?e.message:"Invalid editor document."); }
   } else if (next.body !== draft.body) next.editorDocument = null;
-  if (edit.icon !== undefined) next.icon = typeof edit.icon === "string" && edit.icon.trim() ? [...edit.icon.trim()].slice(0, 80).join("") : null;
+  if (edit.icon !== undefined) next.icon = cleanPageIcon(edit.icon);
   if (edit.authors !== undefined) next.authors = normalizeAuthors(edit.authors);
   if (edit.fonts !== undefined) next.fonts = cleanFonts(edit.fonts);
   if (edit.page !== undefined) next.page = edit.page !== false;

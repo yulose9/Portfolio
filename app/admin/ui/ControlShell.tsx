@@ -36,6 +36,7 @@ import {
   type Icon,
 } from "@phosphor-icons/react";
 import { Fluent } from "./extensions/emoji";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Sidebar, useSidebar } from "@cloudflare/kumo/components/sidebar";
 import { Breadcrumbs } from "@cloudflare/kumo/components/breadcrumbs";
 import { DropdownMenu } from "@cloudflare/kumo/components/dropdown";
@@ -89,7 +90,6 @@ export const DESTINATION_ICON: Record<Destination, Icon> = {
  * them.
  */
 
-const OPEN_KEY = "admin-sidebar";
 const RECENTS_OPEN_KEY = "admin-sidebar-recents";
 const WIDTH_KEY = "admin-sidebar-width";
 
@@ -206,10 +206,7 @@ export default function ControlShell({
         <LinkProvider component={ShellLink}>
           <Sidebar.Provider
             className="control-shell control-kumo-shell"
-            defaultOpen={readFlag(OPEN_KEY, true)}
-            onOpenChange={(next) => {
-              writeFlag(OPEN_KEY, next);
-            }}
+            defaultOpen
             collapsible="icon"
             peekable
             mobileBreakpoint={768}
@@ -564,23 +561,14 @@ function RecentGlyph({ item }: { item: RecentItem }) {
   return <FileText size={14} className="control-recent-icon" aria-hidden="true" />;
 }
 
+const RecentListItem = motion.create(Sidebar.MenuSubItem);
+
 function Recents() {
   const { onOpenRecent } = useNav();
   const { isMobile, setOpenMobile } = useSidebar();
   const recents = useRecents();
   const [open, setOpen] = useState(() => readFlag(RECENTS_OPEN_KEY, true));
-  const prevCount = useRef(recents.length);
-  const [newlyAddedId, setNewlyAddedId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (recents.length > prevCount.current && recents[0]) {
-      const id = `${recents[0].kind}:${recents[0].id}`;
-      setNewlyAddedId(id);
-      const timer = setTimeout(() => setNewlyAddedId(null), 1200);
-      return () => clearTimeout(timer);
-    }
-    prevCount.current = recents.length;
-  }, [recents]);
+  const reduceMotion = useReducedMotion();
 
   return (
     <Sidebar.MenuItem>
@@ -600,15 +588,22 @@ function Recents() {
           }
         />
         <Sidebar.CollapsibleContent>
-          <Sidebar.MenuSub className="control-sub">
+          <Sidebar.MenuSub className="control-sub control-recents-list">
+            <AnimatePresence initial={false} mode="popLayout">
             {recents.length ? (
               recents.map((item) => {
                 const itemKey = `${item.kind}:${item.id}`;
-                const isEntering = newlyAddedId === itemKey;
                 return (
-                  <Sidebar.MenuSubButton
+                  <RecentListItem
                     key={itemKey}
-                    className={cn("control-recent", isEntering && "control-recent-entering")}
+                    layout={reduceMotion ? false : "position"}
+                    initial={{ opacity: 0, y: reduceMotion ? 0 : -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: reduceMotion ? 0 : 4 }}
+                    transition={reduceMotion ? { duration: 0 } : { type: "spring", duration: 0.3, bounce: 0 }}
+                  >
+                  <Sidebar.MenuSubButton
+                    className="control-recent"
                     onClick={() => {
                       onOpenRecent(item);
                       if (isMobile) setOpenMobile(false);
@@ -622,11 +617,13 @@ function Recents() {
                       <span className="control-recent-context">{recentContext(item)}</span>
                     </span>
                   </Sidebar.MenuSubButton>
+                  </RecentListItem>
                 );
               })
             ) : (
-              <li className="control-recent-empty">Posts and pages you open appear here.</li>
+              <li key="empty" className="control-recent-empty">Posts and pages you open appear here.</li>
             )}
+            </AnimatePresence>
           </Sidebar.MenuSub>
         </Sidebar.CollapsibleContent>
       </Sidebar.Collapsible>

@@ -7,7 +7,10 @@
 .project-reading .article-body :is(h2,h3,h4,strong) { color: var(--fg); }
 .project-cards { display: grid; gap: 24px; }
 .project-card { display: block; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; text-decoration: none; color: inherit; transition: background-color 150ms ease; }
-.project-card img { width: 100%; aspect-ratio: 16/10; object-fit: cover; }
+.project-card .project-card-cover { width: 100%; aspect-ratio: 16/10; object-fit: cover; }
+.project-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.project-card-heading h2 { min-width: 0; }
+.project-card .project-card-icon { flex: none; width: 48px; height: 48px; aspect-ratio: 1; object-fit: contain; border-radius: 8px; }
 .project-card > div { padding: 24px; }
 .project-card h2 { font-size: 20px; line-height: 1.35; font-weight: 550; margin: 0; text-wrap: balance; }
 .project-card p { font-size: 15px; margin-block: 12px 16px; }
@@ -28,10 +31,6 @@
 .project-breadcrumbs li + li::before { content: "/"; color: var(--fg-4); }
 .project-breadcrumbs a, .project-footer > a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--fg-2); text-decoration: none; }
 .project-header { gap: 18px; }
-/* Keep the document still on arrival; shared image/outline interactions remain. */
-.project-article.article-page .article-header > *,
-.project-article.article-page .article-cover,
-.project-article.article-page .article-body { animation: none; }
 .project-header .article-title { font-size: clamp(30px, 1.5rem + 2vw, 44px); line-height: 1.13; }
 .project-header .article-dek { font-size: clamp(17px, 1rem + .3vw, 20px); line-height: 1.55; }
 .project-properties { margin-block: 28px 0; }
@@ -77,6 +76,7 @@
   .project-card > div { padding: 20px; }
 }
 @media (prefers-reduced-motion: reduce) {
+  .project-article .article-header { animation: none; }
   .project-external, .project-card { transition: none; }
   .project-external:active { transform: none; }
 }

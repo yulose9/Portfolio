@@ -13,6 +13,13 @@
 /optimized/*
   Cache-Control: public, max-age=31536000, immutable
 
+# Public, build-generated PNGs. New published content gets a new versioned URL.
+# The short cache also lets legacy stable aliases refresh.
+/og/*
+  Content-Type: image/png
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
+  X-Robots-Tag: noindex
+
 # The admin. Content-Security-Policy stays loose because the static export's
 # inline scripts and the editor's embeds, fonts and HEIC decoder have not been
 # exercised under a strict policy; the Report-Only one is that strict policy,

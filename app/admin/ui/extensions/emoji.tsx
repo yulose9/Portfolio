@@ -6,7 +6,7 @@ import { ReactRenderer } from "@tiptap/react";
 import Suggestion, { type SuggestionKeyDownProps, type SuggestionProps } from "@tiptap/suggestion";
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 
-import { fluentUrl } from "../../../../cms/emoji";
+import { pageIconSrc } from "../../../../cms/page-icon";
 import { onRadioKeys } from "../bits";
 
 /*
@@ -67,7 +67,7 @@ export function searchEmoji(rows: EmojiRow[], query: string, limit = 60): EmojiR
 
 export function Fluent({ emoji, size = 22 }: { emoji: string; size?: number }) {
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={fluentUrl(emoji)} alt={emoji} width={size} height={size} loading="lazy" draggable={false} className="fluent-img" />;
+  return <img src={pageIconSrc(emoji)} alt={emoji.startsWith("/media/") ? "" : emoji} width={size} height={size} loading="lazy" draggable={false} className="fluent-img" style={{ objectFit: "contain" }} />;
 }
 
 /** The full picker: search, recents, categories. */

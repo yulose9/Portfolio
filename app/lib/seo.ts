@@ -1,5 +1,6 @@
 import { SITE_INFO } from "../constants/seo";
 import type { Listed } from "./writing";
+import { contentSocialCard, socialImage } from "../../cms/social";
 
 /*
  * The per-post SEO facts that several outputs need (the page's tags, its
@@ -57,11 +58,7 @@ export const cardPath = (slug: string) => `/og/writing/${slug}.png`;
  * X, LinkedIn, Facebook and Slack all refuse SVG previews.
  */
 export function shareImage(post: Listed): { url: string; width?: number; height?: number; alt: string; type?: string } {
-  const abs = (src: string) => new URL(src, SITE_INFO.url).toString();
-  if (post.ogImage && post.ogImage !== "cover" && isRaster(post.ogImage)) return { url: abs(post.ogImage), width: 1200, height: 630, alt: post.title };
-  if (post.ogImage === "cover" && post.cover && isRaster(post.cover.src))
-    return { url: abs(post.cover.src), width: post.cover.width || undefined, height: post.cover.height || undefined, alt: post.cover.alt || post.title };
-  return { url: abs(cardPath(post.slug)), width: 1200, height: 630, alt: post.title, type: "image/png" };
+  return socialImage(contentSocialCard(post, "writing"));
 }
 
 /** Every image that represents the post, best first, for JSON-LD and the image sitemap. */

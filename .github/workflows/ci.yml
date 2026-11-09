@@ -39,6 +39,9 @@ jobs:
       - name: Security regression tests
         run: node --loader ./tests/typescript-loader.mjs --test tests/security-boundaries.test.mjs tests/admin-security.test.mjs tests/seneca-private-cache.test.mjs
 
+      - name: Publishing and sharing regression tests
+        run: node --loader ./tests/typescript-loader.mjs --test tests/document-import.test.mjs tests/document-conversion.test.mjs tests/project-reading.test.mjs tests/project-seo.test.mjs tests/social-cards.test.mjs
+
       - name: Optional Sentry regression tests
         if: hashFiles('tests/sentry.test.mjs') != ''
         run: node --loader ./tests/typescript-loader.mjs --test tests/sentry.test.mjs tests/sentry-cleanup.test.mjs
@@ -63,3 +66,6 @@ jobs:
       - name: Build Project
         # This ensures the project builds successfully (catches Next.js build errors)
         run: npm run build
+
+      - name: Validate public share previews
+        run: npm run check:social

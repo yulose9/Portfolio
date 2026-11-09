@@ -1,6 +1,9 @@
 "use client";
 
 import { SoundToggle } from "../../components/ui/sound";
+import ProjectFields from "./ProjectFields";
+import ConvertDocument from "./ConvertDocument";
+import { protectWork } from "./session";
 import { ThemeToggle } from "../../components/ui/theme";
 import {
   ArrowLeft,
@@ -24,6 +27,7 @@ import {
   Eye,
   EyeSlash,
   FloppyDisk,
+  FileArrowUp,
   ImageSquare,
   LinkSimple,
   MagnifyingGlass,
@@ -107,7 +111,9 @@ import { TablePlus } from "./extensions/table-plus";
 import { selectedLine } from "./extensions/table-lines";
 import { TableCellColors, TableStyleMarkdown } from "./extensions/blocks-schema";
 import { kindOf, uploadAudio, uploadMedia, type Uploaded, ACCEPT } from "./media";
-import { cleanPastedHtml, htmlIsWrappedMarkdown, looksLikeMarkdown, proseToParagraphs } from "./paste";
+import { cleanPastedHtml, htmlIsWrappedMarkdown, proseToParagraphs } from "./paste";
+import DocumentImport from "./DocumentImport";
+import { checkImportSize, pasteDocumentText } from "./document-import";
 import VoiceRecorder from "./VoiceRecorder";
 import { forgetLinkTargets, PostLinks } from "./extensions/links";
 import { AuthorsEditor, IconPicker, loadFont } from "./MetaEditors";
@@ -160,9 +166,10 @@ import { needsAltText } from "../../../cms/alt-text";
  * touches git until Publish.
  */
 
-export type Meta = Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover" | "icon" | "authors" | "fonts" | "page" | "ogImage" | "publishedAt" | "editorial">;
+export type Meta = Pick<Draft, "title" | "slug" | "dek" | "tags" | "cover" | "icon" | "authors" | "fonts" | "page" | "ogImage" | "publishedAt" | "editorial" | "project">;
 
 const metaOf = (d: Draft): Meta => ({
+  ...(d.kind === "project" ? { project: d.project } : {}),
   editorial:d.editorial??{stage:"drafting",reviewAt:null,timezone:"UTC"},
   title: d.title,
   slug: d.slug,
@@ -396,6 +403,8 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
   const [view, setView] = useState<View>("edit");
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [documentImportOpen, setDocumentImportOpen] = useState(false);
+  const [conversionOpen, setConversionOpen] = useState(false);
   useEffect(() => { if (recording) return beginPendingWork(); }, [recording]);
   const plainPaste = useRef(false);
   const [pendingGithub, setPendingGithub] = useState<GithubPasteChoice | null>(null);
@@ -558,6 +567,10 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
         }
         const text = data?.getData("text/plain") ?? "";
         const html = data?.getData("text/html") ?? "";
+        try { checkImportSize(text); } catch (error) {
+          toast.add({ type: "error", title: "Couldn’t paste this document", description: error instanceof Error ? error.message : undefined });
+          return true;
+        }
         const inCode = view.state.selection.$from.parent.type.name === "codeBlock";
         if (!text || inCode) return false;
         const e = (view.dom as HTMLElement & { editor?: import("@tiptap/core").Editor }).editor;
@@ -582,14 +595,12 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
             return true;
           }
         }
-        // Markdown source, bare or wrapped in <p>s: parse it as Markdown.
-        if ((!html || htmlIsWrappedMarkdown(html, text)) && looksLikeMarkdown(text)) {
-          e.chain().focus().insertContent(text, { contentType: "markdown" } as never).run();
-          return true;
-        }
-        // Plain prose with paragraphs: paragraphs, not one long line.
-        if (!html && /\n\s*\n/.test(text)) {
-          e.chain().focus().insertContent(proseToParagraphs(text).map((p) => ({ type: "paragraph", content: [{ type: "text", text: p }] }))).run();
+        // Structured/ordinary JSON and Markdown share the file import validator.
+        let json = false;
+        if (/^[\[{]/.test(trimmed)) { try { JSON.parse(trimmed); json = true; } catch { /* Ordinary text. */ } }
+        if (!html || json || htmlIsWrappedMarkdown(html, text)) {
+          try { pasteDocumentText(e, text); }
+          catch (error) { toast.add({ type: "error", title: "Couldn’t paste this document", description: error instanceof Error ? error.message : undefined }); }
           return true;
         }
         return false; // rich HTML: Tiptap parses it, after cleanPastedHtml
@@ -1056,6 +1067,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
       { id: "history", group: "Post", title: "History", icon: <ClockCounterClockwise {...CI} />, keywords: ["revisions", "versions", "restore", "undo"], run: () => setPanel("revisions") },
       { id: "details", group: "Post", title: "Details", keys: "⌘.", icon: <SlidersHorizontal {...CI} />, keywords: ["slug", "url", "cover", "fonts", "seo", "settings"], run: () => setPanel("details") },
       { id: "media-library", group: "Post", title: "Media library", icon: <ImageSquare {...CI} />, keywords: ["assets", "images", "uploads"], run: () => setPanel("media") },
+      { id: "import-document", group: "Post", title: "Import document…", icon: <FileArrowUp {...CI} />, keywords: ["markdown", "md", "json", "text", "file", "append"], run: () => { setView("edit"); setDocumentImportOpen(true); } },
       {
         id: "page",
         group: "Post",
@@ -1279,6 +1291,8 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
               <MLabel>View</MLabel>
               <MItem icon={<BookOpenText size={15} />} onSelect={() => setNavigatorOpen(true)}>Browse pages</MItem>
               <MItem onSelect={()=>setPanel("media")}>Media library</MItem>
+              <MItem icon={<FileArrowUp size={15} />} onSelect={() => { setView("edit"); setDocumentImportOpen(true); }}>Import document…</MItem>
+              <MItem icon={<ArrowSquareOut size={15} />} onSelect={() => setConversionOpen(true)}>Copy to {doc.kind === "project" ? "Writing" : "Projects"}…</MItem>
               <MItem icon={modes.focus ? <Check size={15} weight="bold" /> : <span className="menu-check-space" />} onSelect={() => toggleMode("focus")} closeOnClick={false}>
                 Focus mode
               </MItem>
@@ -1415,6 +1429,7 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
             <AuthorsEditor authors={meta.authors} minutes={minutes} onChange={(authors) => setMeta((m) => ({ ...m, authors }))} />
           </header>
 
+          {doc.kind === "project" && <ProjectFields value={meta.project} onChange={project => setMeta(m => ({ ...m, project }))} />}
           {meta.cover && coverStyle(meta.cover) === "classic" ? (
             <figure className="article-cover editor-cover">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1540,6 +1555,10 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
       <CalloutIconPicker />
       <MediaJobs documentId={initial.id} editor={editor} beforeSave={()=>flush()} enabled={recoveryReady&&!recovery}/>
       <ImportReview editor={editor}/>
+      <ConvertDocument open={conversionOpen} onClose={() => setConversionOpen(false)} doc={doc} sourceWorkspace={doc.kind === "project" ? "projects" : "writing"}
+        beforeConvert={async () => { const protectedWork = await protectWork(); if (!protectedWork.saved || protectedWork.pending) throw new Error("Finish uploads and save your edits before copying."); return server.current; }}
+        onConverted={() => toast.add({ type: "success", title: "Converted draft saved", description: "Your original page is unchanged." })} />
+      <DocumentImport editor={editor} open={documentImportOpen} onClose={() => setDocumentImportOpen(false)} metadata={meta} onMetadata={patch => setMeta(current => ({ ...current, ...patch }))} />
       {editor ? (
         <MediaPicker
           accept="any"

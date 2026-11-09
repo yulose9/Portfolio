@@ -739,5 +739,18 @@ export function outline(tree: Root): OutlineItem[] {
     }
   };
   walk(tree);
+  // Long, unsectioned essays still need a way to move around. Use excerpts
+  // from real paragraphs, without inventing headings or changing the prose.
+  if (!out.length) {
+    const paragraphs = tree.children.filter((n): n is Element => isEl(n) && n.tagName === "p" && textOf(n).trim().length > 100);
+    if (paragraphs.length >= 4) {
+      const step = Math.max(1, Math.ceil(paragraphs.length / 6));
+      paragraphs.filter((_, index) => index % step === 0).forEach((paragraph, index) => {
+        const text = textOf(paragraph).trim();
+        paragraph.properties.id ||= `reading-passage-${index + 1}`;
+        out.push({ id: String(paragraph.properties.id), text: text.length > 72 ? `${text.slice(0, 69).replace(/\s+\S*$/, "")}…` : text, depth: 2 });
+      });
+    }
+  }
   return out;
 }

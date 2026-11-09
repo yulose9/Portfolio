@@ -39,7 +39,9 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
   // /#writing opens on that tab: how an article's "← Writing" gets back here.
   useEffect(() => {
     const fromHash = () => {
-      const id = decodeURIComponent(window.location.hash.slice(1));
+      let id: string;
+      try { id = decodeURIComponent(window.location.hash.slice(1)); } catch { return; }
+      if (id === "project") id = "projects";
       if (tabs.some((tab) => tab.id === id)) setActiveId(id);
     };
     fromHash();

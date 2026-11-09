@@ -1,3 +1,5 @@
+import { tagSocialCard } from "../../../../lib/social-registry";
+import { pageSocialMetadata } from "../../../../lib/site-social";
 import { readTagPage } from "../../../../lib/tag-pages";
 import UpdatedAt from "../../../../components/UpdatedAt";
 import type { Metadata } from "next";
@@ -7,7 +9,7 @@ import { notFound } from "next/navigation";
 import { tagSlug } from "../../../../../cms/format";
 import FluentText from "../../../../components/writing/FluentText";
 import Tag from "../../../../components/writing/Tag";
-import { FEED, ID, jsonLd, OG_IMAGE, OG_METADATA, PERSON, SITE_INFO, TWITTER_METADATA } from "../../../../constants/seo";
+import { FEED, ID, jsonLd, PERSON, SITE_INFO } from "../../../../constants/seo";
 import { clip } from "../../../../lib/seo";
 import { formatLongDate, publishedPosts } from "../../../../lib/writing";
 
@@ -57,8 +59,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${title} · Writing`,
     description,
     alternates: { canonical: `/writing/tag/${slug}`, types: FEED },
-    openGraph: { ...OG_METADATA, title: `${title} · Writing by ${SITE_INFO.name}`, description, url: `${SITE_INFO.url}/writing/tag/${slug}` },
-    twitter: { ...TWITTER_METADATA, title: `${title} · Writing by ${SITE_INFO.name}`, description, images: [OG_IMAGE] },
+    ...pageSocialMetadata(tagSocialCard(slug, name), `/writing/tag/${slug}`),
   };
 }
 

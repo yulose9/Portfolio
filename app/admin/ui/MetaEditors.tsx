@@ -15,7 +15,7 @@ import { mediaName, newMediaId } from "../../../cms/media";
 import { fontsOrNull } from "../../../cms/subtitle";
 import { api, ApiError } from "./api";
 import { onRadioKeys } from "./bits";
-import { shareImage, squareImage } from "./media";
+import { shareImage, squareImage, uploadInlineLogo } from "./media";
 import { EmojiPicker, Fluent } from "./extensions/emoji";
 
 /* ── Page icon ───────────────────────────────────────────────────────── */
@@ -23,6 +23,18 @@ import { EmojiPicker, Fluent } from "./extensions/emoji";
 /** Notion's page icon: a big emoji above the title, picked from Fluent 3D. */
 export function IconPicker({ icon, onChange }: { icon: string | null; onChange: (icon: string | null) => void }) {
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const upload = async (file: File) => {
+    const finish = beginPendingWork();
+    setBusy(true);
+    try {
+      onChange(await uploadInlineLogo(file));
+      setOpen(false);
+    } catch (error) {
+      toast.add({ type: "error", title: "Couldn’t add the icon", description: error instanceof Error ? error.message : undefined });
+    } finally { finish(); setBusy(false); }
+  };
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger className={icon ? "page-icon" : "admin-chip page-icon-add"} aria-label={icon ? "Change icon" : "Add icon"}>
@@ -37,6 +49,11 @@ export function IconPicker({ icon, onChange }: { icon: string | null; onChange: 
       <Popover.Portal>
         <Popover.Positioner sideOffset={8} align="start" collisionPadding={8} className="menu-positioner">
           <Popover.Popup className="menu-popup admin-popover">
+            <div className="page-icon-upload">
+              <button type="button" className="admin-chip" disabled={busy} onClick={() => fileInput.current?.click()}><Camera size={16} />{busy ? "Uploading…" : "Upload an icon"}</button>
+              <small>SVG, PNG or WebP · fits a square</small>
+              <input ref={fileInput} type="file" hidden accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void upload(file); }} />
+            </div>
             <EmojiPicker
               onPick={(e) => {
                 onChange(e);
@@ -213,8 +230,8 @@ export function FontsEditor({ fonts, onChange }: { fonts: Fonts | null; onChange
 /* ── Share image ─────────────────────────────────────────────────────── */
 
 /**
- * What a link to the post shows when shared: the card drawn for it (my face,
- * the title, the icon; the default), the cover, or an image of your own,
+ * What a link to the page shows when shared: its title, icon and available cover,
+ * the cover by itself, or an image of your own,
  * cropped to 1200×630 in the browser.
  */
 export function ShareImageField({ ogImage, hasCover, onChange }: { ogImage: string | null; hasCover: boolean; onChange: (v: string | null) => void }) {
@@ -239,11 +256,11 @@ export function ShareImageField({ ogImage, hasCover, onChange }: { ogImage: stri
     <div className="share-choice" role="radiogroup" aria-label="Share image">
       <button type="button" role="radio" aria-checked={mode === "card"} className="share-option" onClick={() => onChange(null)}>
         <span className="share-option-title">Generated card</span>
-        <span className="field-help">Title, icon and my face, drawn for this post.</span>
+        <span className="field-help">Title, icon and available cover, drawn for this page.</span>
       </button>
       <button type="button" role="radio" aria-checked={mode === "cover"} className="share-option" onClick={() => onChange("cover")} disabled={!hasCover}>
         <span className="share-option-title">Cover image</span>
-        <span className="field-help">{hasCover ? "The cover, as it is." : "Add a cover first."}</span>
+        <span className="field-help">{hasCover ? "The full cover, fitted to 1200×630." : "Add a cover first."}</span>
       </button>
       <button type="button" role="radio" aria-checked={mode === "custom"} className="share-option" onClick={() => pick.current?.click()} disabled={busy}>
         <span className="share-option-title">{busy ? "Uploading…" : mode === "custom" ? "Custom image, click to replace" : "Upload an image"}</span>

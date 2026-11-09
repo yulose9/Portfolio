@@ -122,7 +122,8 @@
   display: block;
   width: 100%;
   aspect-ratio: 1.91 / 1;
-  object-fit: cover;
+  object-fit: contain;
+  background: #fff;
 }
 .og-mock {
   container-type: inline-size;
@@ -134,9 +135,14 @@
   flex-direction: column;
   justify-content: space-between;
   height: 100%;
-  padding: 5.3cqw 6.7cqw;
-  color: #0a0a0a;
+  padding: 4.67cqw 5.33cqw 3.5cqw;
+  color: #171717;
 }
+.og-mock-main { display: flex; flex: 1; align-items: center; gap: 3.67cqw; min-height: 0; }
+.og-mock-copy { display: flex; flex-direction: column; gap: 2cqw; flex: 1; min-width: 0; }
+.og-mock-icon { width: 5.33cqw; height: 5.33cqw; object-fit: contain; }
+.og-mock-art { width: 34.67cqw; height: 36cqw; object-fit: contain; flex: none; }
+.og-mock-with-art .og-mock-title { font-size: 4.67cqw; }
 .og-mock-top {
   display: flex;
   align-items: center;
@@ -170,10 +176,9 @@
   overflow: hidden;
 }
 .og-mock-dek {
-  margin-top: -2cqw;
-  font-size: 2.5cqw;
+  font-size: 2.17cqw;
   line-height: 1.35;
-  color: #52525b;
+  color: #525252;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -182,9 +187,12 @@
 .og-mock-foot {
   display: flex;
   align-items: center;
-  gap: 1.3cqw;
-  font-size: 2.2cqw;
-  font-weight: 600;
+  justify-content: space-between;
+  gap: 2cqw;
+  margin-top: 2.33cqw;
+  color: #525252;
+  font-size: 1.83cqw;
+  font-weight: 400;
 }
 .og-mock-foot img {
   width: 4.7cqw;

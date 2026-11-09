@@ -1,3 +1,4 @@
+import { SITE_SOCIAL_CARDS, pageSocialMetadata } from "../../lib/site-social";
 import UpdatedAt from "../../components/UpdatedAt";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -5,7 +6,7 @@ import Link from "next/link";
 import FluentText from "../../components/writing/FluentText";
 import WritingMenu from "../../components/writing/WritingMenu";
 import { NotePencil } from "@phosphor-icons/react/dist/ssr";
-import { FEED, ID, jsonLd, OG_IMAGE, OG_METADATA, PERSON, SITE_INFO, TWITTER_METADATA } from "../../constants/seo";
+import { FEED, ID, jsonLd, PERSON, SITE_INFO } from "../../constants/seo";
 import { formatLongDate, publishedPosts } from "../../lib/writing";
 
 /*
@@ -15,14 +16,13 @@ import { formatLongDate, publishedPosts } from "../../lib/writing";
  * not a link.
  */
 
-const description = `Writing by ${SITE_INFO.name}: technical notes on building AI systems and the infrastructure under them, and personal ones on whatever else I'm working out.`;
+const description = SITE_SOCIAL_CARDS.writing.description;
 
 export const metadata: Metadata = {
   title: "Writing",
   description,
   alternates: { canonical: "/writing", types: { ...FEED, "text/markdown": [{ url: "/writing/index.md", title: "Markdown" }] } },
-  openGraph: { ...OG_METADATA, title: `Writing · ${SITE_INFO.name}`, description, url: `${SITE_INFO.url}/writing` },
-  twitter: { ...TWITTER_METADATA, title: `Writing · ${SITE_INFO.name}`, description, images: [OG_IMAGE] },
+  ...pageSocialMetadata(SITE_SOCIAL_CARDS.writing, "/writing"),
 };
 
 const monthDay = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Manila", day: "2-digit", month: "2-digit" });

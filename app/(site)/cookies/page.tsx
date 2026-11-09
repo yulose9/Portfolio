@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { OG_METADATA, SITE_INFO, TWITTER_METADATA } from "../../constants/seo";
+import { SITE_INFO } from "../../constants/seo";
+import { SITE_SOCIAL_CARDS, pageSocialMetadata } from "../../lib/site-social";
 import DocumentMenu from "../../components/menu/DocumentMenu";
 import BrowserGuide from "../../components/compliance/BrowserGuide";
 import Callout from "../../components/writing/Callout";
@@ -11,23 +12,10 @@ import "../../article-blocks.css";
 import "../../article-blocks-2.css";
 
 export const metadata: Metadata = {
-  title: "Cookie Policy",
-  description:
-    "Cookie policy for nazarene.dev: why we run cookieless analytics, full inventory of functional state, and consent determinations.",
+  title: SITE_SOCIAL_CARDS.cookies.title,
+  description: SITE_SOCIAL_CARDS.cookies.description,
   alternates: { canonical: "/cookies" },
-  openGraph: {
-    ...OG_METADATA,
-    title: `Cookie Policy · ${SITE_INFO.name}`,
-    description:
-      "Why we run cookieless analytics, full inventory of functional state, and consent determinations.",
-    url: `${SITE_INFO.url}/cookies`,
-  },
-  twitter: {
-    ...TWITTER_METADATA,
-    title: `Cookie Policy · ${SITE_INFO.name}`,
-    description:
-      "Why we run cookieless analytics, full inventory of functional state, and consent determinations.",
-  },
+  ...pageSocialMetadata(SITE_SOCIAL_CARDS.cookies, "/cookies"),
 };
 
 const TOC_ITEMS: OutlineItem[] = [

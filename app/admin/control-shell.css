@@ -482,6 +482,8 @@
 .control-recent-icon {
   flex-shrink: 0;
 }
+.control-recents-list { position: relative; }
+.control-recents-list > li { min-width: 0; }
 .control-recent-emoji {
   display: inline-flex;
   align-items: center;

@@ -8,7 +8,9 @@ import { createPortal } from "react-dom";
 
 import { parseEmbed, youtubeFrame, type Embed } from "../../../cms/embeds";
 import { coverImageStyle, coverStyle } from "../../../cms/cover";
-import { fluentUrl } from "../../../cms/emoji";
+import { pageIconSrc as fluentUrl } from "../../../cms/page-icon";
+import { imageInfo } from "../../../cms/media";
+import { projectImageSizes, sizeProjectImages } from "../../../cms/project-images";
 import { fontLinks, inlineFontLinks, fontVars } from "../../../cms/fonts";
 import { readingMinutes, tagSlug } from "../../../cms/format";
 import { showsSubtitle } from "../../../cms/subtitle";
@@ -150,6 +152,7 @@ function AudioPreview(props: Record<string, unknown>) {
 function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
   const toc = outline(tree);
   const project = doc.kind === "project";
+  if (project) sizeProjectImages(tree);
   const url = `${SITE}/${project ? "projects" : "writing"}/${meta.slug || "untitled"}`;
   // The same blocks the published page draws (code, tabs, charts, polls,
   // citations, data tables, the video player), with the preview's own embed
@@ -210,9 +213,12 @@ function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
                 ))}
               </div>
             ) : null}
-            <h1 className="article-title">
+            <div className={project ? "flex items-start justify-between gap-5" : undefined}>
+            <h1 className="article-title min-w-0">
               <FluentText>{meta.title || "Untitled"}</FluentText>
             </h1>
+            {project && meta.icon && <img className="article-icon" src={fluentUrl(meta.icon)} alt="" width={56} height={56} style={{ width: 56, height: 56, flexShrink: 0, margin: 0, objectFit: "contain" }} decoding="async" />}
+            </div>
             {meta.dek && showsSubtitle(meta.fonts) ? (
               <p className="article-dek">
                 <FluentText>{meta.dek}</FluentText>
@@ -220,11 +226,11 @@ function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
             ) : null}
             <Byline authors={meta.authors} minutes={readingMinutes(doc.body)} updated={doc.updatedAt} />
           </header>
-          {project && <ProjectProperties project={doc.project} />}
+          {project && <ProjectProperties project={meta.project} />}
           {meta.cover && !banner ? (
             <figure className="article-cover">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={meta.cover.src} alt={meta.cover.alt} width={meta.cover.width} height={meta.cover.height} style={coverImageStyle(meta.cover)} data-zoom="" />
+              <img src={meta.cover.src} srcSet={imageInfo(meta.cover.src)?.srcSet} sizes={project ? projectImageSizes() : imageInfo(meta.cover.src)?.sizes} decoding="async" alt={meta.cover.alt} width={meta.cover.width} height={meta.cover.height} style={coverImageStyle(meta.cover)} data-zoom="" />
               {meta.cover.caption ? <figcaption>{meta.cover.caption}</figcaption> : null}
             </figure>
           ) : null}
@@ -247,27 +253,28 @@ function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
 
 /* ── Share cards ─────────────────────────────────────────────────────── */
 
-/** The generated share card, drawn in HTML to the same layout as opengraph-image.tsx. */
+/** A draft approximation of the build-generated artwork in app/lib/og-card.tsx. */
 function CardMock({ meta, project = false }: { meta: Meta; project?: boolean }) {
   return (
-    <div className="og-mock" aria-label="Generated share card">
+    <div className={`og-mock${meta.cover ? " og-mock-with-art" : ""}`} aria-label="Generated share card preview">
       <div className="og-mock-inner">
-        <div className="og-mock-top">
-          <span className="og-mock-site">
-            <i />
-            nazarene.dev/{project ? "projects" : "writing"}
-          </span>
-          {meta.icon ? (
+        <div className="og-mock-main">
+          <div className="og-mock-copy">
+            {meta.icon ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="og-mock-icon" src={fluentUrl(meta.icon)} width={64} height={64} alt="" />
+            ) : null}
+            <div className="og-mock-title">{meta.title || "Untitled"}</div>
+            {meta.dek ? <div className="og-mock-dek">{meta.dek}</div> : null}
+          </div>
+          {meta.cover && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={fluentUrl(meta.icon)} alt="" />
-          ) : null}
+            <img className="og-mock-art" src={meta.cover.src} width={416} height={432} alt="" />
+          )}
         </div>
-        <div className="og-mock-title">{meta.title || "Untitled"}</div>
-        {meta.dek ? <div className="og-mock-dek">{meta.dek}</div> : null}
         <div className="og-mock-foot">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/og/avatar.png" alt="" />
-          {meta.authors.map((a) => a.name).filter(Boolean).join(", ") || "John Nazarene Dela Pisa"}
+          <span>nazarene.dev/{project ? "projects" : "writing"}</span>
+          <span>{meta.authors.map((a) => a.name).filter(Boolean).join(", ")}</span>
         </div>
       </div>
     </div>
@@ -286,6 +293,7 @@ function Shares({ meta, project = false }: { meta: Meta; project?: boolean }) {
   const url = `nazarene.dev/${project ? "projects" : "writing"}/${meta.slug || "…"}`;
   return (
     <div className="share-grid">
+      <p className="field-help share-app-wide">Illustrative previews. The final image is generated when you publish; messaging apps may crop it or cache an older preview.</p>
       <section className="share-app">
         <h3>X</h3>
         <div className="mock-x">

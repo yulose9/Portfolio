@@ -392,8 +392,12 @@
   border: 0;
   height: 1px;
   background: var(--rule);
-  margin-block: 3em;
+  margin-block: clamp(28px, 5vw, 44px);
+  width: 100%;
+  overflow: visible;
 }
+.article-body hr + :is(h2, h3, p) { margin-top: 0; }
+.article-body [id^="reading-passage-"] { scroll-margin-top: 100px; }
 .article-body code {
   font-family: "Paper Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   letter-spacing: 0;
@@ -541,34 +545,16 @@
 .article-shell.page-enter {
   animation: none;
 }
-.article-page .article-nav,
+/* One short arrival for the title group. Reading and images stay available immediately. */
+.article-page .article-header { animation: reading-arrival 360ms cubic-bezier(.22,1,.36,1) both; }
+.article-page .article-nav { animation: article-fade 180ms ease both; }
 .article-page .article-header > *,
 .article-page .article-cover,
 .article-page .article-body,
 .article-page .article-footer,
-.article-page .article-more {
-  animation: page-in 640ms var(--ease-soft) both;
-}
-.article-page .article-header > :nth-child(1) { animation-delay: 70ms; }
-.article-page .article-header > :nth-child(2) { animation-delay: 140ms; }
-.article-page .article-header > :nth-child(3) { animation-delay: 210ms; }
-.article-page .article-header > :nth-child(4) { animation-delay: 280ms; }
-/* Small metadata stays crisp, including during the mobile entrance. */
-.article-page .article-header > .article-eyebrow,
-.article-page .article-header > .article-byline {
-  animation-name: article-fade;
-  animation-duration: 240ms;
-  animation-delay: 0ms;
-}
-.article-page .article-cover {
-  animation-name: cover-in;
-  animation-duration: 900ms;
-  animation-timing-function: var(--ease);
-  animation-delay: 320ms;
-}
-.article-page .article-body { animation-delay: 400ms; }
-.article-page .article-footer,
-.article-page .article-more { animation-delay: 460ms; }
+.article-page .article-more { animation: none; }
+@keyframes reading-arrival { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media(prefers-reduced-motion:reduce) { .article-page .article-header { animation: none; } }
 
 @keyframes cover-in {
   from {

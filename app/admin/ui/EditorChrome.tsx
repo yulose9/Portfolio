@@ -72,6 +72,7 @@ import { openLineMenu } from "./extensions/table-lines";
 import { TABLE_STYLES, TABLE_WIDTHS } from "../../../cms/blocks";
 import { keys, MenuSurface, MItem, MLabel, MSep, MSub } from "./menu";
 import { shortcutLabel } from "./shortcuts";
+import { pasteDocumentText } from "./document-import";
 
 const I = { size: 15 } as const;
 const MARK_ICON: Record<string, React.ReactNode> = {
@@ -144,7 +145,10 @@ export function EditorContextMenu({ editor, children, ...pick }: { editor: Edito
           onSelect={run(() =>
             void navigator.clipboard
               .readText()
-              .then((t) => editor.chain().focus().insertContent(t).run())
+              .then((t) => {
+                try { pasteDocumentText(editor, t); }
+                catch (error) { toast.add({ type: "error", title: "Couldn’t paste this document", description: error instanceof Error ? error.message : undefined }); }
+              })
               .catch(() => toast.add({ type: "info", title: `Use ${keys("⌘V")} to paste`, description: "The browser won’t let a menu read the clipboard." }))
           )}
         >
@@ -155,7 +159,10 @@ export function EditorContextMenu({ editor, children, ...pick }: { editor: Edito
           onSelect={run(() =>
             void navigator.clipboard
               .readText()
-              .then((t) => editor.chain().focus().insertContent(t, { contentType: "markdown" } as never).run())
+              .then((t) => {
+                try { pasteDocumentText(editor, t, "markdown"); }
+                catch (error) { toast.add({ type: "error", title: "Couldn’t paste this document", description: error instanceof Error ? error.message : undefined }); }
+              })
               .catch(() => toast.add({ type: "info", title: "Couldn’t read the clipboard", description: `Paste with ${keys("⌘V")} instead.` }))
           )}
         >

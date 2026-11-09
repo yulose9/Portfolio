@@ -5,6 +5,7 @@ import { Button } from "@cloudflare/kumo/components/button";
 import { Table } from "@cloudflare/kumo/components/table";
 import { Plus, Briefcase, MagnifyingGlass, Trash, ArrowSquareOut } from "@phosphor-icons/react";
 import { api, type Draft, type PostSummary } from "./api";
+import ProjectFields from "./ProjectFields";
 import { cleanProject } from "../../../cms/projects";
 import { registerProtection } from "./session";
 import { StatusBadge } from "./bits";
@@ -156,7 +157,7 @@ export default function ProjectsWorkspace({
     else {
       counts.all++;
       if (p.status === "draft" || p.status === "published") counts[p.status]++;
-      if (p.project?.featured) counts.featured++;
+      if (!p.parentId && p.page && p.liveSlug) counts.featured++;
     }
   }
   const filtered = pages
@@ -366,10 +367,10 @@ export default function ProjectsWorkspace({
         <div className="cc-rail-col">
           <RailCard title="Showcase usage">
             <RailProgressRow
-              label="Featured projects"
+              label="On the homepage"
               current={counts.featured}
               total={counts.all}
-              unit="featured"
+              unit="published"
             />
             <RailRow label="Published projects" value={counts.published} />
             <RailRow label="Draft case studies" value={counts.draft} />
@@ -412,160 +413,8 @@ export default function ProjectsWorkspace({
       {details && (
         <section className="control-panel" aria-label="Project details">
           <h2>{details.title} · Project details</h2>
-          {(
-            [
-              ["role", "Your role"],
-              ["timeframe", "Timeframe"],
-            ] as const
-          ).map(([key, label]) => (
-            <label className="website-field" key={key}>
-              {label}
-              <Input
-                aria-label={label}
-                value={details.project![key]}
-                onChange={(e) =>
-                  setDetails({
-                    ...details,
-                    project: { ...details.project!, [key]: e.target.value },
-                  })
-                }
-              />
-            </label>
-          ))}
-          <label className="website-field">
-            Tools (comma separated)
-            <Input
-              aria-label="Tools (comma separated)"
-              value={details.project!.tools.join(", ")}
-              onChange={(e) =>
-                setDetails({
-                  ...details,
-                  project: {
-                    ...details.project!,
-                    tools: e.target.value.split(",").map((s) => s.trim()),
-                  },
-                })
-              }
-            />
-          </label>
-          <label className="website-field">
-            Outcomes (one per line)
-            <textarea
-              value={details.project!.outcomes.join("\n")}
-              onChange={(e) =>
-                setDetails({
-                  ...details,
-                  project: {
-                    ...details.project!,
-                    outcomes: e.target.value.split("\n"),
-                  },
-                })
-              }
-            />
-          </label>
-          <label className="website-field">
-            Display order
-            <input
-              type="number"
-              min={0}
-              value={details.project!.order}
-              onChange={(e) =>
-                setDetails({
-                  ...details,
-                  project: {
-                    ...details.project!,
-                    order: Number(e.target.value),
-                  },
-                })
-              }
-            />
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={details.project!.featured}
-              onChange={(e) =>
-                setDetails({
-                  ...details,
-                  project: { ...details.project!, featured: e.target.checked },
-                })
-              }
-            />{" "}
-            Feature on homepage
-          </label>
-          {details.project!.links.map((link, index) => (
-            <div className="website-entry" key={index}>
-              <label className="website-field">
-                Link label
-                <Input
-                  aria-label={`Link ${index + 1} label`}
-                  value={link.label}
-                  onChange={(e) =>
-                    setDetails({
-                      ...details,
-                      project: {
-                        ...details.project!,
-                        links: details.project!.links.map((l, i) =>
-                          i === index ? { ...l, label: e.target.value } : l,
-                        ),
-                      },
-                    })
-                  }
-                />
-              </label>
-              <label className="website-field">
-                Destination
-                <Input
-                  aria-label={`Link ${index + 1} destination`}
-                  value={link.href}
-                  onChange={(e) =>
-                    setDetails({
-                      ...details,
-                      project: {
-                        ...details.project!,
-                        links: details.project!.links.map((l, i) =>
-                          i === index ? { ...l, href: e.target.value } : l,
-                        ),
-                      },
-                    })
-                  }
-                />
-              </label>
-              <Button
-                variant="ghost"
-                onClick={() =>
-                  setDetails({
-                    ...details,
-                    project: {
-                      ...details.project!,
-                      links: details.project!.links.filter(
-                        (_, i) => i !== index,
-                      ),
-                    },
-                  })
-                }
-              >
-                Remove link
-              </Button>
-            </div>
-          ))}
+          <ProjectFields value={details.project} onChange={project => setDetails({ ...details, project })} />
           <div className="website-actions">
-            <Button
-              onClick={() =>
-                setDetails({
-                  ...details,
-                  project: {
-                    ...details.project!,
-                    links: [
-                      ...details.project!.links,
-                      { label: "Website", href: "" },
-                    ],
-                  },
-                })
-              }
-            >
-              Add link
-            </Button>
             <Button
               variant="primary"
               disabled={busy}

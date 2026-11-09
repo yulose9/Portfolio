@@ -12,6 +12,7 @@ import type { Metadata } from "next";
 
 import { PROFILE, TABS } from "../site-content";
 import { publishedWebsite } from "../../cms/website";
+import { socialImage, type SocialCard } from "../../cms/social";
 
 export const SITE_INFO = {
   name: PROFILE.name,
@@ -54,13 +55,14 @@ export const SOCIAL_LINKS = {
 };
 
 /** The default share image, for pages without their own. */
-export const OG_IMAGE = {
-  url: new URL(publishedWebsite.seo.image || "/images/other/heyyo.png", SITE_INFO.url).toString(),
-  width: 1200,
-  height: 630,
-  alt: `${SITE_INFO.name}, ${PROFILE.rolePrefix} ${PROFILE.employer}`,
-  type: "image/png",
+// Retire the old bundled card: its baked-in job title predates the current profile.
+const customSiteImage = publishedWebsite.seo.image && publishedWebsite.seo.image !== "/images/other/heyyo.png" ? publishedWebsite.seo.image : null;
+export const HOME_SOCIAL_CARD: SocialCard = {
+  kind: "site", slug: "home", title: SITE_INFO.title, description: SITE_INFO.description,
+  image: customSiteImage || publishedWebsite.profile.photo, visual: customSiteImage ? "artwork" : "editorial",
+  revision: publishedWebsite.revision,
 };
+export const OG_IMAGE = socialImage(HOME_SOCIAL_CARD);
 
 export const OG_METADATA = {
   type: "website" as const,

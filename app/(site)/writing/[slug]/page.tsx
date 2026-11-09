@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { coverImageStyle, coverStyle } from "../../../../cms/cover";
 import { imageInfo } from "../../../../cms/media";
 import { prioritizeLeadImage } from "../../../../cms/render";
-import { fluentUrl } from "../../../../cms/emoji";
+import { pageIconSrc as fluentUrl } from "../../../../cms/page-icon";
 import { tagSlug } from "../../../../cms/format";
 import { fontLinks, inlineFontLinks, fontVars } from "../../../../cms/fonts";
 import { showsSubtitle } from "../../../../cms/subtitle";

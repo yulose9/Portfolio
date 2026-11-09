@@ -1,103 +1,115 @@
-/* eslint-disable @next/next/no-img-element -- the card renderer takes <img>, not next/image */
-import fs from "node:fs";
+/* eslint-disable @next/next/no-img-element -- ImageResponse renders images, not browser components. */
+import fs from "node:fs/promises";
 import path from "node:path";
+import sharp from "sharp";
+import { ImageResponse } from "next/og.js";
+import { emojiPattern } from "../../cms/emoji";
+import { pageIconSrc } from "../../cms/page-icon";
+import { publicArtworkPath, SOCIAL_ORIGIN, SOCIAL_SIZE, socialVersion, type SocialCard } from "../../cms/social";
+import { clip, plainText } from "./seo";
 
-import { ImageResponse } from "next/og";
+const MAX_BYTES = 8 * 1024 * 1024;
+const artworkCache = new Map<string, Promise<Buffer | null>>();
+const cardCache = new Map<string, Promise<Buffer>>();
+let fontCache: Promise<{ name: string; data: ArrayBuffer; weight: 400 | 600; style: "normal" }[]> | undefined;
+const dataUrl = (bytes: Buffer) => `data:image/png;base64,${bytes.toString("base64")}`;
+const text = (value: string, max: number) => clip(plainText(value).replace(emojiPattern(), " "), max);
 
-import { fluentUrl } from "../../cms/emoji";
-import { formatLongDate, type Listed } from "./writing";
-
-/*
- * The share card for a post, drawn at build time (1200×630): what shows when
- * the link is pasted into X, Threads, LinkedIn, WhatsApp, iMessage, Slack.
- * The site's type and greys; the page icon, the headline large, the
- * standfirst, the tags; my face and name at the foot.
- *
- * Served by app/og/writing/[file]/route.ts at /og/writing/<slug>.png: a
- * stable URL with a real .png extension, so the host sends image/png and the
- * JSON-LD, the meta tags and the image sitemap can all name the same file.
- */
-
-export const size = { width: 1200, height: 630 };
-
-/** Inter from Google Fonts as TTF (what the renderer reads); the built-in face if offline. */
-async function inter(weight: number): Promise<ArrayBuffer | null> {
-  try {
-    const css = await (await fetch(`https://fonts.googleapis.com/css2?family=Inter:wght@${weight}&display=swap`)).text();
-    const url = /src: url\((.+?)\) format\('(?:truetype|opentype)'\)/.exec(css)?.[1];
-    return url ? await (await fetch(url)).arrayBuffer() : null;
-  } catch {
-    return null;
+async function boundedImage(url: string): Promise<Buffer | null> {
+  const response = await fetch(url, { redirect: "error", signal: AbortSignal.timeout(8000) });
+  if (!response.ok || !/^image\/(png|jpeg|webp|gif|avif)(?:;|$)/i.test(response.headers.get("content-type") || "") || Number(response.headers.get("content-length")) > MAX_BYTES) return null;
+  const reader = response.body?.getReader();
+  if (!reader) return null;
+  const chunks: Uint8Array[] = []; let total = 0;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_BYTES) { await reader.cancel(); return null; }
+    chunks.push(value);
   }
+  return Buffer.concat(chunks);
 }
 
-const dataUrl = (buf: Buffer | Uint8Array, type = "image/png") => `data:${type};base64,${Buffer.from(buf).toString("base64")}`;
-
-/** The page icon as a PNG (the card renderer can't read WebP); none if that fails. */
-async function iconPng(emoji: string | null): Promise<string | null> {
-  if (!emoji) return null;
-  try {
-    const webp = Buffer.from(await (await fetch(fluentUrl(emoji))).arrayBuffer());
-    const sharp = (await import("sharp")).default;
-    return dataUrl(await sharp(webp).resize(112, 112).png().toBuffer());
-  } catch {
-    return null;
-  }
+async function loadArtwork(source: string | null | undefined, fluent = false): Promise<Buffer | null> {
+  if (!source) return null;
+  // The only external request allowed is our pinned Fluent asset package.
+  const isFluent = fluent && /^https:\/\/cdn\.jsdelivr\.net\/npm\/@lobehub\/fluent-emoji-3d@1\.1\.0\/assets\/[a-f0-9-]+\.webp$/.test(source);
+  const publicPath = publicArtworkPath(source);
+  if (!isFluent && !publicPath) return null;
+  if (!artworkCache.has(source)) artworkCache.set(source, (async () => {
+    try {
+      if (publicPath) {
+        const root = path.resolve(process.cwd(), "public");
+        const file = path.resolve(root, `.${publicPath}`);
+        if (!file.startsWith(`${root}${path.sep}`)) return null;
+        try {
+          const actual = await fs.realpath(file);
+          if (!actual.startsWith(`${root}${path.sep}`)) return null;
+          const stat = await fs.stat(actual);
+          return stat.size <= MAX_BYTES ? await fs.readFile(actual) : null;
+        } catch {
+          // Uploaded media lives in R2. Fetch only this public same-origin namespace.
+          if (!/^\/media\/\d{4}\/[a-z0-9.-]+$/i.test(publicPath)) return null;
+          return await boundedImage(`${SOCIAL_ORIGIN}${publicPath}`);
+        }
+      }
+      return await boundedImage(source);
+    } catch { return null; }
+  })());
+  return artworkCache.get(source)!;
 }
 
-function face(): string | null {
-  try {
-    return dataUrl(fs.readFileSync(path.join(process.cwd(), "public", "og", "avatar.png")));
-  } catch {
-    return null;
-  }
+async function fonts() {
+  fontCache ??= Promise.all(([400, 600] as const).map(async weight => {
+    const bytes = await fs.readFile(path.join(process.cwd(), "assets/og", `Inter-${weight}.ttf`));
+    return { name: "Inter", data: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer, weight, style: "normal" as const };
+  }));
+  return fontCache;
 }
 
-export async function drawPostCard(post: Listed | undefined): Promise<Response> {
-  const [regular, semibold, icon] = await Promise.all([inter(400), inter(600), iconPng(post?.icon ?? null)]);
-  const fonts = [
-    ...(regular ? [{ name: "Inter", data: regular, weight: 400 as const, style: "normal" as const }] : []),
-    ...(semibold ? [{ name: "Inter", data: semibold, weight: 600 as const, style: "normal" as const }] : []),
-  ];
-  const title = post?.title ?? "Writing";
-  const long = title.length > 56;
-  const me = face();
-  const authors = (post?.authors ?? []).filter((a) => a.name.trim());
+async function raster(bytes: Buffer, width: number, height: number) {
+  return sharp(bytes, { limitInputPixels: 40_000_000, animated: false }).rotate()
+    .resize(width, height, { fit: "contain", background: "#ffffff" }).flatten({ background: "#ffffff" }).png({ compressionLevel: 9 }).toBuffer();
+}
 
-  return new ImageResponse(
-    (
-      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "64px 80px", background: "#ffffff", fontFamily: "Inter", color: "#0a0a0a" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 26, color: "#a1a1aa" }}>
-            <div style={{ width: 14, height: 14, borderRadius: 999, background: "#0a0a0a" }} />
-            nazarene.dev/writing
-          </div>
-          {icon ? <img src={icon} width={96} height={96} alt="" /> : null}
-        </div>
+/** One PNG contract for every public route. Rendered on publication, never per visitor. */
+export function drawSocialCard(card: SocialCard): Promise<Buffer> {
+  const key = socialVersion(card);
+  if (!cardCache.has(key)) cardCache.set(key, render(card));
+  return cardCache.get(key)!;
+}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-          <div style={{ fontSize: long ? 62 : 78, fontWeight: 600, lineHeight: 1.05, letterSpacing: "-0.03em", maxWidth: 1040 }}>{title}</div>
-          {post?.dek ? <div style={{ fontSize: 30, lineHeight: 1.35, color: "#52525b", maxWidth: 980 }}>{post.dek.length > 140 ? `${post.dek.slice(0, 137)}…` : post.dek}</div> : null}
-          {post?.tags.length ? (
-            <div style={{ display: "flex", gap: 10 }}>
-              {post.tags.slice(0, 4).map((t) => (
-                <div key={t} style={{ display: "flex", padding: "6px 16px", borderRadius: 999, background: "#f4f4f5", color: "#52525b", fontSize: 22 }}>
-                  {t}
-                </div>
-              ))}
-            </div>
-          ) : null}
+async function render(card: SocialCard): Promise<Buffer> {
+  const [art, iconBytes, fontData] = await Promise.all([
+    loadArtwork(card.image), loadArtwork(card.icon ? pageIconSrc(card.icon) : null, true), fonts(),
+  ]);
+  if (art && card.visual === "artwork") {
+    try { return await raster(art, SOCIAL_SIZE.width, SOCIAL_SIZE.height); }
+    catch { /* Invalid artwork falls back to a useful title card. */ }
+  }
+  let image: string | null = null, icon: string | null = null;
+  try { if (art && card.visual === "editorial") image = dataUrl(await raster(art, 416, 432)); } catch { /* Text remains usable. */ }
+  try { if (iconBytes) icon = dataUrl(await sharp(iconBytes, { limitInputPixels: 40_000_000 }).resize(88, 88, { fit: "inside" }).png().toBuffer()); } catch { /* Optional icon. */ }
+  const title = text(card.title, image ? 110 : 155);
+  const description = text(card.description, image ? 120 : 180);
+  const titleSize = image ? (title.length > 65 ? 46 : 56) : (title.length > 100 ? 54 : title.length > 60 ? 64 : 78);
+  const response = new ImageResponse(
+    <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", padding: "56px 64px 42px", background: "#ffffff", color: "#171717", fontFamily: "Inter", justifyContent: "space-between" }}>
+      <div style={{ display: "flex", flex: 1, alignItems: "center", gap: 44 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24, width: image ? 612 : 1072 }}>
+          {icon && <img src={icon} alt="" width={64} height={64} style={{ objectFit: "contain" }} />}
+          <div style={{ display: "flex", fontSize: titleSize, fontWeight: 600, lineHeight: 1.1, letterSpacing: "-0.03em", overflow: "hidden", maxHeight: image ? 220 : 252 }}>{title}</div>
+          {description && <div style={{ fontSize: 26, lineHeight: 1.4, color: "#525252", maxHeight: 110, overflow: "hidden" }}>{description}</div>}
         </div>
-
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 26, color: "#52525b" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            {me ? <img src={me} width={56} height={56} style={{ borderRadius: 999 }} alt="" /> : null}
-            <span style={{ color: "#0a0a0a", fontWeight: 600 }}>{authors.map((a) => a.name).join(", ") || "John Nazarene Dela Pisa"}</span>
-          </div>
-          <span>{post ? `${formatLongDate(post.publishedAt)} · ${post.minutes} min read` : ""}</span>
-        </div>
+        {image && <div style={{ display: "flex", width: 416, height: 432, flexShrink: 0 }}><img src={image} alt="" width={416} height={432} /></div>}
       </div>
-    ),
-    { ...size, fonts: fonts.length ? fonts : undefined }
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 22, color: "#525252", marginTop: 28 }}>
+        <span>nazarene.dev{card.kind === "projects" ? "/projects" : card.kind === "writing" || card.kind === "tags" ? "/writing" : ""}</span>
+        <span>{text((card.authors || []).join(", "), 65)}</span>
+      </div>
+    </div>,
+    { ...SOCIAL_SIZE, fonts: fontData },
   );
+  return sharp(Buffer.from(await response.arrayBuffer())).png({ compressionLevel: 9, palette: true, colours: 256 }).toBuffer();
 }

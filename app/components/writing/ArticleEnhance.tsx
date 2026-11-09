@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
+import "./image-viewer.css";
 import { copy } from "../menu/actions";
 import { scrollEdges } from "./scroll-edges";
 
@@ -20,7 +21,6 @@ import { scrollEdges } from "./scroll-edges";
  *    tables also fade at an edge that has more beyond it (scroll-edges.ts).
  */
 
-const EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
 const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const COPY_ICON =
@@ -78,122 +78,48 @@ function codeCopy(root: HTMLElement) {
 }
 
 function imageZoom(root: HTMLElement) {
-  const document = root.ownerDocument;
-  const window = document.defaultView!;
-  let open: (() => void) | null = null;
-
-  const zoom = (img: HTMLImageElement) => {
-    if (open) return;
-    const from = img.getBoundingClientRect();
-    const ratio = (img.naturalWidth || from.width) / (img.naturalHeight || from.height);
-    const maxW = Math.min(window.innerWidth * 0.94, img.naturalWidth || Infinity);
-    const maxH = window.innerHeight * 0.9;
-    const w = Math.min(maxW, maxH * ratio);
-    const h = w / ratio;
-    const to = { left: (window.innerWidth - w) / 2, top: (window.innerHeight - h) / 2, width: w, height: h };
-
-    const overlay = document.createElement("div");
-    overlay.className = "zoom-overlay";
-    // A modal moment: named, focused, and the only thing the keyboard reaches.
-    overlay.setAttribute("role", "dialog");
-    overlay.setAttribute("aria-modal", "true");
-    overlay.setAttribute("aria-label", img.alt ? `${img.alt}, enlarged. Press Escape to close.` : "Image, enlarged. Press Escape to close.");
-    overlay.tabIndex = -1;
-    const clone = img.cloneNode() as HTMLImageElement;
-    clone.removeAttribute("loading");
-    clone.removeAttribute("role");
-    clone.removeAttribute("aria-label");
-    clone.removeAttribute("tabindex");
-    clone.removeAttribute("srcset");
-    clone.removeAttribute("sizes");
-    clone.className = "zoom-image";
-    Object.assign(clone.style, { left: `${to.left}px`, top: `${to.top}px`, width: `${to.width}px`, height: `${to.height}px` });
-    clone.alt = "";
-    overlay.appendChild(clone);
-    const closeButton = document.createElement("button");
-    closeButton.type = "button";
-    closeButton.className = "zoom-close";
-    closeButton.textContent = "Close";
-    closeButton.setAttribute("aria-label", "Close enlarged image");
-    overlay.appendChild(closeButton);
-    document.body.appendChild(overlay);
-    closeButton.focus({ preventScroll: true });
-    img.style.visibility = "hidden";
-
-    const invert = `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${from.width / to.width}, ${from.height / to.height})`;
-    const duration = reduced() ? 0 : 420;
-    clone.animate([{ transform: invert, borderRadius: "14px" }, { transform: "none", borderRadius: "6px" }], { duration, easing: EASE, fill: "both" });
-    // The veil is the page colour, so in the dark theme the picture lifts out
-    // of the dark rather than out of a white flash.
-    const veil = document.documentElement.dataset.theme === "dark" ? "25 25 25" : "255 255 255";
-    overlay.animate([{ backgroundColor: `rgb(${veil} / 0)` }, { backgroundColor: `rgb(${veil} / 0.94)` }], { duration: duration * 0.7, easing: "ease", fill: "both" });
-
-    const close = () => {
-      if (!open) return;
-      open = null;
-      window.removeEventListener("scroll", close);
-      window.removeEventListener("resize", close);
-      window.removeEventListener("keydown", onKey, true);
-      const back = img.getBoundingClientRect();
-      const home = `translate(${back.left - to.left}px, ${back.top - to.top}px) scale(${back.width / to.width}, ${back.height / to.height})`;
-      const out = reduced() ? 0 : 280;
-      overlay.animate([{ backgroundColor: `rgb(${veil} / 0.94)` }, { backgroundColor: `rgb(${veil} / 0)` }], { duration: out, easing: "ease", fill: "both" });
-      clone.animate([{ transform: "none" }, { transform: home, borderRadius: "14px" }], { duration: out, easing: EASE, fill: "both" }).finished.catch(() => {}).then(() => {
-        img.style.visibility = "";
-        overlay.remove();
-        if (img.isConnected && img.tabIndex >= 0) img.focus({ preventScroll: true });
-      });
-    };
-    // Escape, Enter or Space puts it back; Tab stays put (there is nothing
-    // else to reach); every other key is left alone, a screen reader's too.
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        close();
-      } else if (e.key === "Tab") {
-        e.preventDefault();
-        closeButton.focus();
-      }
-    };
-    open = close;
-    overlay.addEventListener("click", close);
-    window.addEventListener("scroll", close, { passive: true, once: true });
-    window.addEventListener("resize", close, { passive: true, once: true });
-    window.addEventListener("keydown", onKey, true);
-  };
-
-  // Zoomable images join the tab order as buttons; one inside a link stays
-  // the link's.
-  const zoomable = [...root.querySelectorAll<HTMLImageElement>("img[data-zoom]")].filter((img) => !img.closest("a"));
-  for (const img of zoomable) {
-    img.tabIndex = 0;
-    img.setAttribute("role", "button");
-    img.setAttribute("aria-label", img.alt ? `View larger: ${img.alt}` : "View image larger");
+  const images = [...root.querySelectorAll<HTMLImageElement>("img[data-zoom]")].filter(image => !image.closest("a"));
+  let close: (() => void) | undefined;
+  let loading = false;
+  let disposed = false;
+  const attributes = images.map(image => [image, image.getAttribute("tabindex"), image.getAttribute("role"), image.getAttribute("aria-label")] as const);
+  for (const image of images) {
+    image.tabIndex = 0;
+    image.setAttribute("role", "button");
+    image.setAttribute("aria-label", image.alt ? `View larger: ${image.alt}` : "View image larger");
   }
-
-  const onClick = (e: MouseEvent) => {
-    const img = (e.target as Element).closest<HTMLImageElement>("img[data-zoom]");
-    if (!img || img.closest("a")) return;
-    zoom(img);
+  const zoom = async (image: HTMLImageElement) => {
+    if (loading || close) return;
+    loading = true;
+    image.setAttribute("aria-busy", "true");
+    try {
+      const viewer = await import("./ImageViewer");
+      if (!disposed) close = viewer.openImageViewer(image, images, () => { close = undefined; });
+    } catch {
+      // Keep the source reachable if the optional enhancement can't load.
+      root.ownerDocument.defaultView?.open(image.src, "_blank", "noopener,noreferrer");
+    } finally { loading = false; image.removeAttribute("aria-busy"); }
   };
-  const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key !== "Enter" && e.key !== " ") return;
-    const img = (e.target as Element).closest<HTMLImageElement>("img[data-zoom]");
-    if (!img || img.closest("a")) return;
-    e.preventDefault();
-    zoom(img);
+  const click = (event: MouseEvent) => {
+    const image = (event.target as Element).closest<HTMLImageElement>("img[data-zoom]");
+    if (image && images.includes(image)) void zoom(image);
   };
-  root.addEventListener("click", onClick);
-  root.addEventListener("keydown", onKeyDown);
-  return () => {
-    root.removeEventListener("click", onClick);
-    root.removeEventListener("keydown", onKeyDown);
-    for (const img of zoomable) {
-      img.removeAttribute("tabindex");
-      img.removeAttribute("role");
-      img.removeAttribute("aria-label");
+  const key = (event: KeyboardEvent) => {
+    if ((event.key === "Enter" || event.key === " ") && images.includes(event.target as HTMLImageElement)) {
+      event.preventDefault(); void zoom(event.target as HTMLImageElement);
     }
-    open?.();
+  };
+  root.addEventListener("click", click);
+  root.addEventListener("keydown", key);
+  return () => {
+    disposed = true; close?.();
+    root.removeEventListener("click", click);
+    root.removeEventListener("keydown", key);
+    for (const [image, tab, role, label] of attributes) {
+      for (const [name, value] of [["tabindex",tab],["role",role],["aria-label",label]] as const) {
+        if (value === null) image.removeAttribute(name); else image.setAttribute(name, value);
+      }
+    }
   };
 }
 

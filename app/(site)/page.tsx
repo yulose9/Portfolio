@@ -25,6 +25,7 @@ const manilaDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" });
  */
 function withWriting(tabs: Tab[]): Tab[] {
   const posts = publishedPosts();
+  const projects = publishedProjects().filter(p => !p.parentId);
   return tabs.map((tab) =>
     tab.id === "writing"
       ? {
@@ -35,8 +36,8 @@ function withWriting(tabs: Tab[]): Tab[] {
             href: p.page ? `/writing/${p.slug}` : undefined,
           })),
         }
-      : tab.id === "projects" && publishedProjects().some(p => !p.parentId)
-        ? { ...tab, items: publishedProjects().filter(p => !p.parentId && p.project?.featured).map(p => ({ title: p.title, year: p.project?.timeframe ?? "", href: `/projects/${p.slug}`, image: p.cover?.src })), links: [{ label: "All projects", href: "/projects" }] }
+      : tab.id === "projects"
+        ? { ...tab, items: projects.map(p => ({ title: p.title, year: p.project?.timeframe ?? "", href: `/projects/${p.slug}`, image: p.cover?.src })), links: [{ label: "All projects", href: "/projects" }] }
         : tab
   );
 }

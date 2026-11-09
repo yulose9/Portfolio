@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { OG_METADATA, SITE_INFO, TWITTER_METADATA } from "../../constants/seo";
+import { SITE_INFO } from "../../constants/seo";
+import { SITE_SOCIAL_CARDS, pageSocialMetadata } from "../../lib/site-social";
 import DocumentMenu from "../../components/menu/DocumentMenu";
 import Callout from "../../components/writing/Callout";
 import Toc from "../../components/writing/Toc";
@@ -10,23 +11,10 @@ import "../../article-blocks.css";
 import "../../article-blocks-2.css";
 
 export const metadata: Metadata = {
-  title: "Terms and Conditions",
-  description:
-    "Terms of service and use for nazarene.dev: intellectual property, permissible use, code licensing, and disclaimers.",
+  title: SITE_SOCIAL_CARDS.terms.title,
+  description: SITE_SOCIAL_CARDS.terms.description,
   alternates: { canonical: "/terms" },
-  openGraph: {
-    ...OG_METADATA,
-    title: `Terms and Conditions · ${SITE_INFO.name}`,
-    description:
-      "Terms of service and use for nazarene.dev: intellectual property, permissible use, code licensing, and disclaimers.",
-    url: `${SITE_INFO.url}/terms`,
-  },
-  twitter: {
-    ...TWITTER_METADATA,
-    title: `Terms and Conditions · ${SITE_INFO.name}`,
-    description:
-      "Terms of service and use for nazarene.dev: intellectual property, permissible use, code licensing, and disclaimers.",
-  },
+  ...pageSocialMetadata(SITE_SOCIAL_CARDS.terms, "/terms"),
 };
 
 const TOC_ITEMS: OutlineItem[] = [

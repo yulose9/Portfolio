@@ -30,7 +30,8 @@ export function looksLikeMarkdown(text: string): boolean {
   if (/\[[^\]\n]+\]\((https?:|\/)[^)\s]+\)/.test(t)) score += 2;
   if (/^\|.+\|\s*$/m.test(t) && /^\|?\s*:?-{3,}/m.test(t)) score += 3;
   if (/`[^`\n]+`/.test(t)) score += 1;
-  if (/^(-{3,}|\*{3,})\s*$/m.test(t)) score += 1;
+  // A thematic break is a complete Markdown block even when pasted alone.
+  if (/^ {0,3}(?:(?:-[ \t]*){3,}|(?:\*[ \t]*){3,}|(?:_[ \t]*){3,})$/m.test(t)) score += 2;
   return score >= 2;
 }
 

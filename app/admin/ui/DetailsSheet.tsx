@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Trash } from "@phosphor-icons/react";
 
 import { isValidSlug, slugify } from "../../../cms/format";
 import { suggestSlug } from "../../../cms/slug";
@@ -97,7 +98,7 @@ export default function DetailsSheet({
           URL
         </label>
         <div className="slug-field" data-invalid={!slugOk || undefined}>
-          <span className="slug-prefix">{SITE}/writing/</span>
+          <span className="slug-prefix">{SITE}/{doc.kind === "project" ? "projects" : "writing"}/</span>
           <input
             id="slug"
             value={meta.slug}
@@ -204,7 +205,7 @@ export default function DetailsSheet({
       <section className="field">
         <span className="field-label">In search</span>
         <div className="preview-search">
-          <span className="preview-url">{SITE} › writing › {meta.slug || "…"}</span>
+          <span className="preview-url">{SITE} › {doc.kind === "project" ? "projects" : "writing"} › {meta.slug || "…"}</span>
           <span className="preview-title">{title}</span>
           <span className="preview-desc">{description}</span>
         </div>
@@ -231,24 +232,22 @@ export default function DetailsSheet({
         </div>
       </section>
 
-      <section className="field field-danger">
+      <section className="field field-danger editor-trash">
+        <div><span className="field-label">Trash</span><p className="field-help">{live ? "Unpublishes this page. You can restore it with its history from Trash." : "You can restore this draft and its history from Trash."}</p></div>
         <Button
           type="button"
-          variant="destructive"
+          variant={confirming ? "destructive" : "ghost"}
           size="sm"
           data-confirming={confirming || undefined}
           onClick={remove}
           loading={deleting}
           disabled={deleting}
         >
-          {deleting ? "Moving to Trash…" : confirming ? (live ? "Click again to unpublish and move to Trash" : "Click again to move to Trash") : "Move to Trash"}
+          <Trash size={16} aria-hidden="true" />{deleting ? "Moving…" : confirming ? "Confirm move" : "Move to Trash"}
         </Button>
         <span className="sr-only" role="status">
           {confirming ? "Press again to confirm. The button resets after a few seconds." : ""}
         </span>
-        <p className="field-help">
-          {live ? "Takes it off the site. It stays in Trash with its history until you delete it permanently." : "It stays in Trash with its history until you delete it permanently."}
-        </p>
       </section>
     </Sheet>
   );

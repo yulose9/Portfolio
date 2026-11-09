@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { OG_METADATA, SITE_INFO, TWITTER_METADATA } from "../../constants/seo";
+import { SITE_INFO } from "../../constants/seo";
+import { SITE_SOCIAL_CARDS, pageSocialMetadata } from "../../lib/site-social";
 import DocumentMenu from "../../components/menu/DocumentMenu";
 import Callout from "../../components/writing/Callout";
 import Toc from "../../components/writing/Toc";
@@ -10,23 +11,10 @@ import "../../article-blocks.css";
 import "../../article-blocks-2.css";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy",
-  description:
-    "Privacy policy for nazarene.dev: data minimization, cookieless analytics, reader privacy, and zero data selling.",
+  title: SITE_SOCIAL_CARDS.privacy.title,
+  description: SITE_SOCIAL_CARDS.privacy.description,
   alternates: { canonical: "/privacy" },
-  openGraph: {
-    ...OG_METADATA,
-    title: `Privacy Policy · ${SITE_INFO.name}`,
-    description:
-      "Data minimization, cookieless analytics, reader privacy, and zero data selling.",
-    url: `${SITE_INFO.url}/privacy`,
-  },
-  twitter: {
-    ...TWITTER_METADATA,
-    title: `Privacy Policy · ${SITE_INFO.name}`,
-    description:
-      "Data minimization, cookieless analytics, reader privacy, and zero data selling.",
-  },
+  ...pageSocialMetadata(SITE_SOCIAL_CARDS.privacy, "/privacy"),
 };
 
 const TOC_ITEMS: OutlineItem[] = [
