@@ -12,15 +12,11 @@ ogImage: null
 tags: ["#BuildInPublic","#AIAgents","#FilipinoDeveloper"]
 cover: {"src":"/media/2026/4bak45tu5pgjb8hq-2048x1280.webp","alt":"PinaSweldo website and mobile app screenshots showing take-home pay calculator with ₱26,542.60 monthly income and ₱30,000 net","caption":"","width":2048,"height":1280}
 publishedAt: "2026-11-06T01:54:37.487Z"
-updatedAt: "2026-11-06T01:54:37.487Z"
+updatedAt: "2026-11-09T08:39:02.246Z"
 redirectFrom: []
 kind: "project"
-project: null
+project: {"role":"Designer and Developer","timeframe":"Idea in 2024 · Coding started Oct 19, 2026 · Launched Oct 21, 2026","tools":["Next.js","Tailwind CSS","Cloudflare · Claude Code (Opus 5.5) and other AI"],"links":[{"label":"Project Website","href":"https://pinasweldo.com/"},{"label":"Project Website Changelog","href":"https://pinasweldo.com/changelog"}],"outcomes":[],"featured":false,"order":0}
 ---
-
-> **Project at a glance** **Role:** Designer and developer (solo, working with AI agents)
->
-> **Timeline:** Idea in 2024 · Coding started Oct 19, 2026 · Launched Oct 21, 2026 **Built with:** Next.js, Tailwind CSS, Cloudflare · Claude Code (Opus 5.5) and other AI agents **Links:** [pinasweldo.com](http://pinasweldo.com) · [Changelog](https://pinasweldo.com/changelog)
 
 ## It started with a payslip
 
