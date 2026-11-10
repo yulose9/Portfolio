@@ -32,6 +32,7 @@ import ProjectProperties from "../../components/projects/ProjectProperties";
 import ArticleEnhance from "../../components/writing/ArticleEnhance";
 import ArticleMenu from "../../components/writing/ArticleMenu";
 import ArticleBody from "../../components/writing/ArticleBody";
+import ShareArtwork from "./ShareArtwork";
 
 /*
  * Before it goes out: the post as readers will get it.
@@ -253,40 +254,6 @@ function Article({ meta, tree, doc }: { meta: Meta; tree: Root; doc: Draft }) {
 
 /* ── Share cards ─────────────────────────────────────────────────────── */
 
-/** A draft approximation of the build-generated artwork in app/lib/og-card.tsx. */
-function CardMock({ meta, project = false }: { meta: Meta; project?: boolean }) {
-  return (
-    <div className={`og-mock${meta.cover ? " og-mock-with-art" : ""}`} aria-label="Generated share card preview">
-      <div className="og-mock-inner">
-        <div className="og-mock-main">
-          <div className="og-mock-copy">
-            {meta.icon ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img className="og-mock-icon" src={fluentUrl(meta.icon)} width={64} height={64} alt="" />
-            ) : null}
-            <div className="og-mock-title">{meta.title || "Untitled"}</div>
-            {meta.dek ? <div className="og-mock-dek">{meta.dek}</div> : null}
-          </div>
-          {meta.cover && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img className="og-mock-art" src={meta.cover.src} width={416} height={432} alt="" />
-          )}
-        </div>
-        <div className="og-mock-foot">
-          <span>nazarene.dev/{project ? "projects" : "writing"}</span>
-          <span>{meta.authors.map((a) => a.name).filter(Boolean).join(", ")}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ShareImage({ meta, project = false }: { meta: Meta; project?: boolean }) {
-  const src = meta.ogImage && meta.ogImage !== "cover" ? meta.ogImage : meta.ogImage === "cover" && meta.cover ? meta.cover.src : null;
-  // eslint-disable-next-line @next/next/no-img-element
-  return src ? <img className="share-img" src={src} alt="" /> : <CardMock meta={meta} project={project} />;
-}
-
 function Shares({ meta, project = false }: { meta: Meta; project?: boolean }) {
   const title = meta.title || "Untitled";
   const desc = meta.dek || `${title}, by John Nazarene Dela Pisa.`;
@@ -298,7 +265,7 @@ function Shares({ meta, project = false }: { meta: Meta; project?: boolean }) {
         <h3>X</h3>
         <div className="mock-x">
           <div className="mock-x-card">
-            <ShareImage meta={meta} project={project} />
+            <ShareArtwork meta={meta} project={project} />
             <span className="mock-x-domain">nazarene.dev</span>
           </div>
           <p className="mock-x-from">From nazarene.dev</p>
@@ -307,7 +274,7 @@ function Shares({ meta, project = false }: { meta: Meta; project?: boolean }) {
       <section className="share-app">
         <h3>Threads</h3>
         <div className="mock-card mock-threads">
-          <ShareImage meta={meta} project={project} />
+          <ShareArtwork meta={meta} project={project} />
           <div className="mock-meta">
             <b>{title}</b>
             <span>nazarene.dev</span>
@@ -317,7 +284,7 @@ function Shares({ meta, project = false }: { meta: Meta; project?: boolean }) {
       <section className="share-app">
         <h3>LinkedIn</h3>
         <div className="mock-card mock-linkedin">
-          <ShareImage meta={meta} project={project} />
+          <ShareArtwork meta={meta} project={project} />
           <div className="mock-meta">
             <b>{title}</b>
             <span>nazarene.dev</span>
@@ -327,7 +294,7 @@ function Shares({ meta, project = false }: { meta: Meta; project?: boolean }) {
       <section className="share-app">
         <h3>Facebook</h3>
         <div className="mock-card mock-facebook">
-          <ShareImage meta={meta} project={project} />
+          <ShareArtwork meta={meta} project={project} />
           <div className="mock-meta">
             <span className="mock-caps">NAZARENE.DEV</span>
             <b>{title}</b>
@@ -338,7 +305,7 @@ function Shares({ meta, project = false }: { meta: Meta; project?: boolean }) {
       <section className="share-app">
         <h3>Messenger</h3>
         <div className="mock-bubble mock-messenger">
-          <ShareImage meta={meta} project={project} />
+          <ShareArtwork meta={meta} project={project} />
           <div className="mock-meta">
             <b>{title}</b>
             <span>nazarene.dev</span>
@@ -349,7 +316,7 @@ function Shares({ meta, project = false }: { meta: Meta; project?: boolean }) {
         <h3>WhatsApp</h3>
         <div className="mock-wa">
           <div className="mock-wa-preview">
-            <ShareImage meta={meta} project={project} />
+            <ShareArtwork meta={meta} project={project} />
             <div className="mock-meta">
               <b>{title}</b>
               <span className="mock-clamp">{desc}</span>
@@ -367,14 +334,14 @@ function Shares({ meta, project = false }: { meta: Meta; project?: boolean }) {
             <b className="mock-tg-site">John Nazarene Dela Pisa</b>
             <b>{title}</b>
             <span className="mock-clamp">{desc}</span>
-            <ShareImage meta={meta} project={project} />
+            <ShareArtwork meta={meta} project={project} />
           </div>
         </div>
       </section>
       <section className="share-app">
         <h3>iMessage</h3>
         <div className="mock-imsg">
-          <ShareImage meta={meta} project={project} />
+          <ShareArtwork meta={meta} project={project} />
           <div className="mock-meta">
             <b>{title}</b>
             <span>nazarene.dev</span>

@@ -20,6 +20,7 @@ import { Switch } from "../../components/kit/switch";
 import { showsSubtitle } from "../../../cms/subtitle";
 import { DayTimeButton } from "./DayTimeFields";
 import { addDays } from "./clock";
+import ShareArtwork from "./ShareArtwork";
 
 /*
  * Everything about a post that isn't its words: the URL, tags, the cover's
@@ -84,6 +85,7 @@ export default function DetailsSheet({
 
   const title = meta.title.trim() || "Untitled";
   const description = meta.dek.trim() || "Add a standfirst; search results and link previews show it here.";
+  const liveUrl = live ? `https://${SITE}/${doc.kind === "project" ? "projects" : "writing"}/${encodeURIComponent(doc.liveSlug!)}` : null;
 
   return (
     <Sheet open={open} onClose={onClose} title="Details" description="URL, tags, fonts, cover and previews.">
@@ -217,19 +219,21 @@ export default function DetailsSheet({
       </section>
 
       <section className="field">
-        <span className="field-label">When shared</span>
+        <span className="field-label">Share preview</span>
         <div className="preview-card">
-          {meta.cover ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={meta.cover.src} alt="" />
-          ) : (
-            <span className="preview-card-empty">No cover: shares as a small card</span>
-          )}
+          <ShareArtwork meta={meta} project={doc.kind === "project"} />
           <span className="preview-card-text">
             <span className="preview-card-site">{SITE}</span>
             <span className="preview-card-title">{title}</span>
           </span>
         </div>
+        <p className="field-help">Draft illustration. New artwork goes live after publishing and deployment. Apps may keep an older preview.</p>
+        {liveUrl && (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" render={<a href={liveUrl} target="_blank" rel="noreferrer" />}>Open live page</Button>
+            <Button variant="ghost" size="sm" render={<a href={`https://developers.facebook.com/tools/debug/?q=${encodeURIComponent(liveUrl)}`} target="_blank" rel="noreferrer" />}>Facebook sharing debugger</Button>
+          </div>
+        )}
       </section>
 
       <section className="field field-danger editor-trash">

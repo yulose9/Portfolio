@@ -51,3 +51,21 @@ Apps cache previews independently. Versioned image URLs help on the next scrape;
 The Impeccable detector found one existing accent border in the Telegram mock. It is retained because it represents Telegram’s preview treatment. This is an illustrative platform mock, not a new site-wide decoration. No other findings were returned for the social renderer and preview targets. Interactive accessibility inspection remains not exercised; generated images and source metadata were reviewed, not claimed as a full WCAG audit.
 
 Final local validation on 2026-11-09: production build successful; 320 tests passing; API types passing; all 17 public pages have distinct valid PNG previews under 1 MB. A legacy `temp_gallery.html` asset contact sheet is marked `noindex, nofollow` and excluded from public-page checks. This directive does not make its URL private.
+
+## Live follow-up, 2026-11-09
+
+Commit `f461961` passed GitHub CI and deployed successfully to Cloudflare. A later CMS publication (`c1494b1`) updated PinaSweldo and correctly changed its image version. Compare deployed metadata against the current published content, not a local export from before that publication.
+
+All 17 public URLs returned their current expected image, and those images returned valid 1200 × 630 PNGs. Four additional page requests with Facebook, Telegram, Applebot and Slack user-agent strings also returned the expected metadata (21 checks passed). These simulate request headers; they do not prove access from the services' actual crawler IPs or refresh their caches. Downloaded live cards for both projects were visually inspected. One Python urllib request returned 403; Node requests passed. No security rules were weakened and no real messaging-app send was performed.
+
+The Details panel still had a separate cover-only mockup and incorrectly claimed pages without covers shared as small cards. It now shares the same draft artwork component as the platform previews, honors the selected image mode, and explains publication/deployment and app caching. Published pages have a link to their live URL and Meta's Sharing Debugger. No draft text is sent to that service.
+
+An expanded check fetched both project pages and their PNGs under eight crawler user-agent strings (Facebook, Meta external agent/fetcher, Telegram, WhatsApp, Twitter, Applebot and Slack): all 16 page/image pairs passed with no `cf-mitigated` challenge header. This remains a request-header simulation, not verification of those services' networks or cached message attachments.
+
+| Before | After | Why |
+| --- | --- | --- |
+| Details showed only the cover, ignoring generated/custom artwork | One shared draft artwork component | The two editor surfaces represent the same share-image choice |
+| No cover was labelled as a small card | Generated title artwork is shown | Published pages always have a large PNG preview |
+| No distinction between draft preview and deployed artwork | Clear draft label, live-page link and debugger link | A draft illustration cannot confirm what an app has cached |
+
+For a stale Facebook/Messenger result, inspect the exact published URL in [Meta's Sharing Debugger](https://developers.facebook.com/tools/debug/) and request a new scrape there if offered. Existing message attachments may remain unchanged. The debugger was not accessible from the automated research environment (HTTP 429), so no refresh is claimed. Telegram/iMessage cache behavior was not tested in a real client.
