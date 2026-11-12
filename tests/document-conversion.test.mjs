@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { convertDocument, parseConversionInput } from "../cms/server/convert.ts";
 import { onRequestPost } from "../functions/api/admin/convert.ts";
+import { onRequestGet as listResearch } from "../functions/api/admin/research/index.ts";
+import { projectEnvironment } from "../cms/server/project-environment.ts";
 
 class Bucket {
   records = new Map(); serial = 0; beforePut;
@@ -115,4 +117,72 @@ test("conversion API requires authenticated same-origin admin writes", async t =
   const request = new Request("https://site.test/api/admin/convert", { method: "POST", body: JSON.stringify(input()), headers: { "Content-Type": "application/json" } });
   assert.equal((await onRequestPost({ env, request, data: {} })).status, 401);
   assert.equal((await onRequestPost({ env, request, data: { email: "test@example.test" } })).status, 403);
+});
+
+const note = (extra = {}) => ({ id: 'review-note-1', kind: 'review', title: 'Check the explanation',
+  body: '[This page](#page=abcdefghijkl)', pageId: 'abcdefghijkl', blockId: 'block-12345',
+  sourceUpdatedAt: at, resolved: false, createdAt: at, updatedAt: at, ...extra });
+
+test('linked notes, excerpts and captures keep their content and block references in either direction', async t => {
+  for (const workspace of ['writing', 'projects']) {
+    const { env, bucket, prefix } = await setup(t, draft(), workspace);
+    const originals = ['review', 'excerpt', 'capture'].map(kind => note({ id: `${kind}-note-123`, kind }));
+    for (const item of originals) await bucket.put(`${prefix}research/${item.id}.json`, JSON.stringify(item));
+    const result = await convertDocument(env, input({ sourceWorkspace: workspace }));
+    assert.equal(result.researchCount, 3);
+    const target = workspace === 'writing' ? projectEnvironment(env) : env;
+    const copied = (await (await listResearch({ env: target })).json()).items;
+    assert.equal(copied.length, 3);
+    for (const original of originals) {
+      const copy = copied.find(item => item.kind === original.kind);
+      assert.notEqual(copy.id, original.id);
+      for (const key of ['title', 'blockId', 'resolved', 'createdAt', 'updatedAt']) assert.equal(copy[key], original[key]);
+      assert.equal(copy.pageId, result.post.id);
+      assert.equal(copy.body, `[This page](#page=${result.post.id})`);
+      assert.equal(copy.sourceUpdatedAt, result.post.updatedAt);
+      assert.deepEqual(await (await bucket.get(`${prefix}research/${original.id}.json`)).json(), original);
+    }
+    assert.equal((await convertDocument(env, input({ sourceWorkspace: workspace }))).replayed, true);
+    assert.equal((await (await listResearch({ env: target })).json()).items.length, 3);
+  }
+});
+
+test('interrupted copies keep staged research invisible; retry reveals one complete copy', async t => {
+  const { env, bucket } = await setup(t);
+  await bucket.put('research/review-note-1.json', JSON.stringify(note()));
+  bucket.beforePut = key => { if (/^workspaces\/projects\/drafts\/.+\/current.json$/.test(key)) throw new Error('Disconnected'); };
+  await assert.rejects(convertDocument(env, input()), error => error.code === 'copy_incomplete');
+  const target = projectEnvironment(env);
+  assert.equal((await (await listResearch({ env: target })).json()).items.length, 0);
+  assert.equal([...bucket.records.keys()].filter(k => k.startsWith('workspaces/projects/research/')).length, 1);
+  bucket.beforePut = undefined;
+  const completed = await convertDocument(env, input());
+  assert.equal(completed.researchCount, 1);
+  const copied = (await (await listResearch({ env: target })).json()).items[0];
+  await target.WRITING.put(`research/${copied.id}.json`, JSON.stringify({ ...copied, body: 'Edited after conversion' }));
+  await convertDocument(env, input());
+  assert.equal((await (await target.WRITING.get(`research/${copied.id}.json`)).json()).body, 'Edited after conversion');
+});
+
+test('research changed during staging prevents visibility without deleting source or staged recovery data', async t => {
+  const { env, bucket } = await setup(t);
+  await bucket.put('research/review-note-1.json', JSON.stringify(note()));
+  bucket.beforePut = key => {
+    if (key.startsWith('workspaces/projects/research/')) {
+      const original = bucket.records.get('research/review-note-1.json');
+      bucket.records.set('research/review-note-1.json', { ...original, text: JSON.stringify(note({ body: 'New review' })), etag: 'changed' });
+    }
+  };
+  await assert.rejects(convertDocument(env, input()), error => error.code === 'source_changed');
+  assert.equal((await (await listResearch({ env: projectEnvironment(env) })).json()).items.length, 0);
+  assert.equal((await (await bucket.get('research/review-note-1.json')).json()).body, 'New review');
+});
+
+test('cross-page research and collection membership still fail before destination writes', async t => {
+  for (const item of [note({ body: '[Other](#page=mnopqrstuvwx)' }), note({ kind: 'collection', rules: { include: ['abcdefghijkl', 'mnopqrstuvwx'] } })]) {
+    const { env, bucket } = await setup(t);
+    await bucket.put(`research/${item.id}.json`, JSON.stringify(item));
+    await assert.rejects(convertDocument(env, input()), error => ['unsafe_reference', 'linked_collection'].includes(error.code));
+    assert.equal([...bucket.records.keys()].some(key => key.startsWith('workspaces/projects/')), false);
+  }
 });

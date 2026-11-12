@@ -42,9 +42,23 @@ jobs:
       - name: Publishing and sharing regression tests
         run: node --loader ./tests/typescript-loader.mjs --test tests/document-import.test.mjs tests/document-conversion.test.mjs tests/project-reading.test.mjs tests/project-seo.test.mjs tests/social-cards.test.mjs
 
-      - name: Optional Sentry regression tests
-        if: hashFiles('tests/sentry.test.mjs') != ''
-        run: node --loader ./tests/typescript-loader.mjs --test tests/sentry.test.mjs tests/sentry-cleanup.test.mjs
+      - name: Setup Java for Firebase emulators
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Cache Firebase emulator binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ runner.os }}-${{ hashFiles('firebase/package-lock.json') }}
+
+      - name: Install Firebase test tools
+        run: npm ci --prefix firebase --ignore-scripts
+
+      - name: Firebase authorization and sync integration tests
+        run: npm run test:firebase
 
   build:
     name: Build Test

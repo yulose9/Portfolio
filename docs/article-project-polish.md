@@ -35,7 +35,7 @@ Import supports `.md`, `.markdown`, `.txt`, and `.json` with a preview before fi
 
 Copy to Writing / Projects creates an unpublished draft in the other workspace. It preserves content, editor data, media addresses, metadata, and saved revisions. Originals and live URLs stay unchanged. Project properties remain stored when copying to Writing. Retries resume the same deterministic copy, never overwrite an edited destination, and stage history before making the current draft visible.
 
-Conversion currently refuses pages with child pages, linked research, cross-page private references, polls, or pending media. Those require a coordinated tree/state migration. Folder placement and the live editor undo stack are not copied. These limits are stated in the dialog; this is not a claim of unrestricted migration parity.
+Linked notes, excerpts, and captures now copy with new identities and remapped page references. They remain hidden until the destination draft exists, so interrupted copies never expose detached annotations. Retries preserve later destination edits. Conversion still refuses pages with child pages, saved collection membership, cross-page private references, polls, or pending media. Those require a coordinated tree/state migration. Folder placement and the live editor undo stack are not copied. These limits are stated in the dialog; this is not a claim of unrestricted migration parity.
 
 ## Verification
 

@@ -5,6 +5,7 @@ import { listDir, readFile } from "./github";
 import { applyParent, readHierarchy } from "./hierarchy";
 import { HttpError, ID, type AdminEnv } from "./http";
 import { projectEnvironment } from "./project-environment";
+import { cleanResearchItem, type ResearchItem } from "../research";
 
 export type ConversionWorkspace = "writing" | "projects";
 export type ConversionInput = { version: 1; sourceWorkspace: ConversionWorkspace; id: string; base: string };
@@ -13,6 +14,7 @@ export type ConversionResult = {
   targetWorkspace: ConversionWorkspace;
   source: ConversionInput;
   revisionCount: number;
+  researchCount: number;
   replayed: boolean;
   notices: string[];
 };
@@ -28,7 +30,7 @@ const MAX_PAGES = 500;
 const MAX_REVISIONS = 120;
 const notices = [
   "The source, its live URL, schedule, and incoming links remain unchanged.",
-  "The copy is an unpublished top-level draft with no URL or schedule. Folder and collection placement stay with the source.",
+  "The copy is an unpublished top-level draft with no URL or schedule. Folder and collection placement stay with the source. Linked notes and excerpts are copied with new identities.",
   "Uploaded media URLs are shared, not duplicated. Saved revisions are copied; the editor undo stack is not. Normal revision retention still applies.",
 ];
 const currentKey = (id: string) => `drafts/${id}/current.json`;
@@ -119,15 +121,22 @@ async function sourceState(env: AdminEnv, input: ConversionInput) {
   }
   if (applyParent(source.value, hierarchy.value).parentId === input.id) throw new ConversionError("invalid_hierarchy", "This page is its own parent. Repair its location before converting.");
   const research = await listObjects(env.WRITING, "research/", MAX_PAGES);
+  const linkedResearch: ResearchItem[] = [];
   for (const item of research.objects) {
-    const record = await readObject<{ pageId?: string; rules?: { include?: string[] } }>(env.WRITING, item.key);
+    const record = await readObject<ResearchItem>(env.WRITING, item.key);
     if (!record || record.etag !== item.etag) throw changed();
-    if (record.value.pageId === input.id || record.value.rules?.include?.includes(input.id)) {
-      throw new ConversionError("linked_research", "This page has linked research, review notes, excerpts, or explicit collection membership. Copy those records with a coordinated migration before conversion; they cannot be silently left behind.");
+    if (record.value.rules?.include?.includes(input.id) || (record.value.pageId === input.id && record.value.kind === "collection")) {
+      throw new ConversionError("linked_collection", "This page belongs to a saved collection. Collections can include other pages and workspace filters, so they need a coordinated copy. The source and its collection remain unchanged.");
+    }
+    if (record.value.pageId === input.id) {
+      if (!/^[\w-]{8,80}$/.test(record.value.id) || item.key !== `research/${record.value.id}.json`) throw new ConversionError("invalid_research", "A linked research record has an invalid identity. Repair it before copying.");
+      try { cleanResearchItem(record.value, record.value.id, record.value.updatedAt, record.value); }
+      catch { throw new ConversionError("invalid_research", "A linked research record cannot be safely copied. Repair it before copying."); }
+      linkedResearch.push(record.value);
     }
   }
   const history = await listObjects(env.WRITING, revisionPrefix(input.id), MAX_REVISIONS);
-  return { source, history, guard: await fingerprint({
+  return { source, history, linkedResearch, guard: await fingerprint({
     hierarchy: hierarchy.etag ?? null,
     drafts: drafts.map(d => [d.value.id, d.etag]),
     live: live.map(p => [p.post.id, p.fingerprint]), research: research.objects, history: history.objects,
@@ -145,7 +154,7 @@ function validateDraft(value: Draft, id: string) {
 }
 
 /** Remap only self references. Other private references must never resolve to an unrelated target ID. */
-function remapDocument(source: Draft, id: string, context: string): Draft {
+function remapDocument<T>(source: T, id: string, context: string, sourceId: string): T {
   const blocked = () => new ConversionError("unsafe_reference", `${context} contains a page reference outside this copy. Replace it with an explicit public URL in a separate draft, or use a migration that includes the referenced pages and history.`);
   const walk = (value: unknown, depth = 0): unknown => {
     if (depth > 60) throw new ConversionError("invalid_document", "Document metadata is nested too deeply to convert safely.");
@@ -153,7 +162,7 @@ function remapDocument(source: Draft, id: string, context: string): Draft {
       if (/data-poll\s*=|\[Pending media:|blob:/i.test(value)) throw new ConversionError("unsafe_media", `${context} contains a poll or pending local media. Finish uploads, or use a separate draft without polls; poll votes cannot be safely copied.`);
       if (/%23page|#page%3d/i.test(value)) throw blocked();
       return value.replace(/#page=([^\s"'<>()[\]\\&]+)/g, (_match, target: string) => {
-        if (target !== source.id) throw blocked();
+        if (target !== sourceId) throw blocked();
         return `#page=${id}`;
       });
     }
@@ -161,12 +170,12 @@ function remapDocument(source: Draft, id: string, context: string): Draft {
     if (!value || typeof value !== "object") return value;
     const object = value as Record<string, unknown>;
     if (object.type === "poll") throw new ConversionError("unsafe_media", `${context} contains a poll. Use a separate draft without polls; copied polls would share live vote state.`);
-    if (object.kind === "page" && object.id !== source.id) throw blocked();
+    if (object.kind === "page" && object.id !== sourceId) throw blocked();
     return Object.fromEntries(Object.entries(object).map(([key, v]) => [key,
       object.kind === "page" && key === "id" ? id : walk(v, depth + 1),
     ]));
   };
-  return walk(source) as Draft;
+  return walk(source) as T;
 }
 
 type Plan = {
@@ -178,10 +187,11 @@ type Plan = {
   guard: string;
   source: Draft;
   revisions: { at: string; value: Draft; metadata: Record<string, string> }[];
+  research?: { source: ResearchItem; targetId: string }[];
 };
 
 function draftCopy(plan: Plan, source: Draft, target: ConversionWorkspace, historical = false): Draft {
-  const copy = remapDocument(source, plan.targetId, historical ? "A saved revision" : "The source");
+  const copy = remapDocument(source, plan.targetId, historical ? "A saved revision" : "The source", plan.input.id);
   // Keep project metadata even in Writing. Existing saves spread the stored draft,
   // so a Project -> Writing -> Project roundtrip retains all project fields.
   if (target === "projects") copy.kind = "project";
@@ -191,6 +201,13 @@ function draftCopy(plan: Plan, source: Draft, target: ConversionWorkspace, histo
     slug: "", status: "draft", publishAt: null, publishedAt: null, liveSlug: null,
     redirectFrom: [], publishedFingerprint: null, trashedAt: null, dirty: true,
     createdAt: historical ? source.createdAt : plan.at, updatedAt: historical ? source.updatedAt : plan.at };
+}
+
+function researchCopy(plan: Plan, item: NonNullable<Plan["research"]>[number]): ResearchItem {
+  const copy = remapDocument(item.source, plan.targetId, "Linked research", plan.input.id);
+  return { ...copy, id: item.targetId, pageId: plan.targetId,
+    // Keep an existing stale-source warning; only remap a previously current link.
+    sourceUpdatedAt: copy.sourceUpdatedAt === plan.source.updatedAt ? plan.at : copy.sourceUpdatedAt };
 }
 
 async function writeOnce(bucket: R2Bucket, key: string, value: unknown, metadata: Record<string, string>) {
@@ -205,7 +222,8 @@ async function writeOnce(bucket: R2Bucket, key: string, value: unknown, metadata
 /**
  * Source-preserving COPY. R2 has no multi-object transaction and shared readers
  * do not understand staging, so v1 refuses subtrees. Revisions are staged first;
- * current.json is the only visibility point. No source write, publish, or delete.
+ * current.json is the only visibility point. Linked research is hidden by its
+ * conversionPage metadata until that point. No source write, publish, or delete.
  * The immutable plan archives the exact original data, including lifecycle fields.
  * Same source workspace/id/base always yields the same operation and destination.
  */
@@ -235,7 +253,7 @@ export async function convertDocument(env: AdminEnv, value: unknown): Promise<Co
       const at = new Date().toISOString();
       await bucket.put("meta/pulse", JSON.stringify({ at, id: targetId }), { customMetadata: { at, id: targetId } });
     } catch { warnings.push("The copy was saved, but workspace refresh failed. Refresh the destination list manually."); }
-    return { post: existing.value, source: input, targetWorkspace, revisionCount: plan.revisions.length, replayed, notices: warnings };
+    return { post: existing.value, source: input, targetWorkspace, revisionCount: plan.revisions.length, researchCount: plan.research?.length ?? 0, replayed, notices: warnings };
   };
 
   try {
@@ -248,7 +266,8 @@ export async function convertDocument(env: AdminEnv, value: unknown): Promise<Co
     if (stored && state.guard !== stored.value.guard) throw changed();
     if (!stored) {
       const revisions: Plan["revisions"] = [];
-      let size = byteLength(JSON.stringify(state.source.value));
+      let size = byteLength(JSON.stringify(state.source.value)) + byteLength(JSON.stringify(state.linkedResearch));
+      if (size > MAX_PLAN_BYTES - 100000) throw new ConversionError("size_limit", "This document and linked research exceed the 12 MiB conversion limit.", 413);
       for (const item of state.history.objects) {
         const at = item.key.slice(revisionPrefix(input.id).length, -5);
         if (!item.key.endsWith(".json") || !ISO.test(at) || !Number.isFinite(Date.parse(at))) throw new ConversionError("invalid_history", "A revision has an unsupported timestamp. Repair the history before converting.");
@@ -259,9 +278,12 @@ export async function convertDocument(env: AdminEnv, value: unknown): Promise<Co
         if (size > MAX_PLAN_BYTES - 100000) throw new ConversionError("size_limit", "This history exceeds the 12 MiB conversion limit. Use an export/import workflow.", 413);
         revisions.push({ at, value: revision.value, metadata: revision.metadata });
       }
-      const plan: Plan = { version: 1, input, token, targetId, at: new Date().toISOString(), guard: state.guard, source: state.source.value, revisions };
+      const research: NonNullable<Plan["research"]> = [];
+      for (const source of state.linkedResearch) research.push({ source, targetId: `copy-${(await fingerprint([token, source.id])).slice(0, 32)}` });
+      const plan: Plan = { version: 1, input, token, targetId, at: new Date().toISOString(), guard: state.guard, source: state.source.value, revisions, research };
       draftCopy(plan, plan.source, targetWorkspace);
       for (const rev of revisions) draftCopy(plan, rev.value, targetWorkspace, true);
+      for (const item of research) researchCopy(plan, item);
       // Reserve no destination data until every source revision has passed validation.
       // Another request may already be staging this same deterministic copy.
       // Reserve/read the immutable plan first; destination checks below verify
@@ -286,6 +308,11 @@ export async function convertDocument(env: AdminEnv, value: unknown): Promise<Co
     }
     for (const rev of plan.revisions) {
       await writeOnce(bucket, `${revisionPrefix(targetId)}${rev.at}.json`, draftCopy(plan, rev.value, targetWorkspace, true), { ...rev.metadata, conversion: token });
+    }
+    for (const item of plan.research ?? []) {
+      const copy = researchCopy(plan, item);
+      copy.sourceFingerprint = await publishedFingerprint(copy.body) ?? undefined;
+      await writeOnce(bucket, `research/${item.targetId}.json`, copy, { conversion: token, conversionPage: targetId });
     }
     // Detect source saves (including same-timestamp overwrites), history pruning,
     // hierarchy/research changes and Git-only descendants before exposing the copy.

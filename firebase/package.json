@@ -1,0 +1,13 @@
+{
+  "name": "seneca-rules-verification",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "firebase emulators:exec --project demo-seneca-verification --only firestore,storage \"node --test --test-concurrency=1 integration.test.mjs\""
+  },
+  "devDependencies": {
+    "firebase-tools": "15.35.0",
+    "@firebase/rules-unit-testing": "5.0.2",
+    "firebase": "12.19.0"
+  }
+}

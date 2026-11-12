@@ -29,6 +29,8 @@ dist/
 
 # debug
 npm-debug.log*
+*-debug.log
+firebase/.firebase/
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*

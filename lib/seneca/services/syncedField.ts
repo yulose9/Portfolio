@@ -110,6 +110,13 @@ const createSyncedField = <T>(
     emit();
   };
 
+  const applyServerEmpty = () => {
+    // A clean cache is only a preview. An authoritative deletion must clear it.
+    // Keep queued/recoverable local work; atomic money has its own recovery path.
+    if (hasPendingGlobalWrite(docName) || (docName !== "wealth" && isGlobalDirty(docName))) return;
+    if (!isEqual(value, fallback)) apply(fallback);
+  };
+
   // Once someone is watching: learn whether Firebase can answer at all
   const checkStatus = () => {
     if (statusChecked || typeof window === "undefined") return;
@@ -125,7 +132,7 @@ const createSyncedField = <T>(
   const onCloud = (data: Record<string, any>, meta: SnapshotMeta) => {
     if (meta.authoritative) setStatus("live");
     if (!(field in data)) {
-      if (docName === "wealth" && meta.authoritative && !hasPendingGlobalWrite(docName)) apply(fallback);
+      if (meta.authoritative) applyServerEmpty();
       return;
     }
     const cloud = data[field];
@@ -163,7 +170,7 @@ const createSyncedField = <T>(
       checkStatus();
       if (!unsubscribeCloud) unsubscribeCloud = subscribeToGlobalData(docName, onCloud, (meta) => {
         if (meta.authoritative) setStatus("live");
-        if (docName === "wealth" && meta.authoritative && !meta.exists && !hasPendingGlobalWrite(docName)) apply(fallback);
+        if (meta.authoritative && !meta.exists) applyServerEmpty();
       });
       return () => {
         listeners.delete(fn);

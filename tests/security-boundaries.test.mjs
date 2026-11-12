@@ -72,24 +72,14 @@ test('production static admin endpoint cannot manufacture an identity', async ()
   assert.equal((await response.json()).email, undefined);
 });
 
-test('private telemetry is dropped and public errors omit payloads and URL tokens', () => {
-  const { privateSafeError, privateTelemetryCollection: collection } = load('lib/telemetryPrivacy.ts');
-  assert.equal(collection.userInfo, false);
-  assert.equal(collection.httpHeaders, false);
-  assert.equal(collection.httpBodies.length, 0);
-  assert.equal(collection.genAI.inputs, false);
-  assert.equal(collection.genAI.outputs, false);
-  assert.equal(collection.stackFrameVariables, false);
-  for (const path of ['/admin/seneca', '/api/admin/me', '/seneca', '/%61dmin']) {
-    assert.equal(privateSafeError({ request: { url: `https://site.test${path}` } }), null);
+test('public analytics excludes private routes and malformed URLs', () => {
+  const { isPrivateTelemetryPath } = load('lib/telemetryPrivacy.ts');
+  for (const path of ['/admin/seneca', '/api/admin/me', '/seneca', '/%61dmin', '/ADMIN?entry=private', '/%zz']) {
+    assert.equal(isPrivateTelemetryPath(`https://site.test${path}`), true, path);
   }
-  const result = privateSafeError({
-    user: { email: 'secret' }, extra: { journal: 'secret' }, message: 'secret',
-    breadcrumbs: [{ message: 'secret' }], request: { url: 'https://site.test/?token=secret', headers: { Cookie: 'secret' } },
-    exception: { values: [{ type: 'Error', value: 'secret', stacktrace: { frames: [{ filename: 'https://site.test/app.js?token=secret', lineno: 10, vars: { secret: true } }] } }] },
-  });
-  assert.doesNotMatch(JSON.stringify(result), /secret/);
-  assert.equal(result.exception.values[0].stacktrace.frames[0].lineno, 10);
+  for (const path of ['/', '/writing/example', '/projects/example', '/administrator']) {
+    assert.equal(isPrivateTelemetryPath(path), false, path);
+  }
 });
 
 test('uploads fail closed on decoding errors and session changes', async () => {

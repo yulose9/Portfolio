@@ -11,6 +11,7 @@ export type ConvertedDocument = {
   targetWorkspace: Workspace;
   source: { version: 1; sourceWorkspace: Workspace; id: string; base: string };
   revisionCount: number;
+  researchCount: number;
   replayed: boolean;
   notices: string[];
 };
@@ -84,11 +85,11 @@ function ConversionDialog({ open, onClose, doc, sourceWorkspace, beforeConvert, 
   return <Sheet open={open} onClose={onClose} title={`Copy to ${target}`} variant="center" dismissible={!busy}
     description="Create an unpublished copy in the other workspace.">
     <p><strong>The source and its live URL remain unchanged.</strong> Its publishing schedule and incoming links also stay with the source.</p>
-    <p>The copy keeps supported content, editor data, metadata, and saved revisions. Project details are retained even in Writing. Uploaded media keeps its existing URLs.</p>
-    <p className="field-help">The copy starts at the top level, without a URL or schedule. Folder placement and editor undo history are not copied. Pages with children, unsafe references, linked research, or polls are blocked with an explanation.</p>
+    <p>The copy keeps supported content, editor data, metadata, saved revisions, and linked research notes and excerpts. Project details are retained even in Writing. Uploaded media keeps its existing URLs.</p>
+    <p className="field-help">The copy starts at the top level, without a URL or schedule. Folder placement and editor undo history are not copied. Pages with children, unsafe references, saved collection membership, or polls are blocked with an explanation.</p>
     {error ? <p role="alert">{error}</p> : null}
     {result ? <>
-      <p role="status">Copy saved in {target}. {result.revisionCount} saved revisions copied.</p>
+      <p role="status">Copy saved in {target}. {result.revisionCount} saved revisions and {result.researchCount ?? 0} research items copied.</p>
       <ul>{result.notices.map(notice => <li key={notice}>{notice}</li>)}</ul>
       <a className="admin-button admin-button-primary" href={`/admin?${new URLSearchParams({ section: result.targetWorkspace, post: result.post.id })}`}>Open copied draft</a>
       {doc.updatedAt !== result.source.base && <button type="button" className="admin-button" onClick={() => { attempt.current = null; setHasAttempt(false); setResult(null); }}>Copy latest edits</button>}

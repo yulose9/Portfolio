@@ -9,6 +9,15 @@ export const onRequestGet: AdminFunction = async ({ env }) => {
       const batch = await Promise.all(
         page.objects.slice(i, i + 12).map(async (o) => {
           const obj = await env.WRITING.get(o.key);
+          // A conversion stages annotations before exposing its destination page.
+          // Hide partial copies, including after an interrupted request.
+          const destination = obj?.customMetadata?.conversionPage;
+          if (destination) {
+            if (!/^[a-z0-9]{12}$/.test(destination)) return;
+            const owner = await env.WRITING.get(`drafts/${destination}/current.json`);
+            const draft = owner ? await owner.json<{ creationRequestId?: string }>() : null;
+            if (!draft || draft.creationRequestId !== obj?.customMetadata?.conversion) return;
+          }
           return obj?.json<ResearchItem>();
         }),
       );
