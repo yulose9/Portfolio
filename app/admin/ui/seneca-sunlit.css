@@ -621,13 +621,13 @@
 .seneca-root .ios-inset-grouped { border-radius: 22px; box-shadow: var(--sn-shadow-card); }
 .seneca-root .ios-list-header { font-size: 13px; color: var(--color-ink-2); }
 
-.seneca-root .rich-text-editor {
+.seneca-root .rich-text-editor:not(.sn-doc-editor) {
   background: var(--color-surface);
   border-radius: 16px;
   border-color: var(--sn-line);
 }
 
-.seneca-root .rich-text-editor:focus-within {
+.seneca-root .rich-text-editor:not(.sn-doc-editor):focus-within {
   border-color: var(--sn-apricot);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--sn-apricot) 22%, transparent);
 }
@@ -1633,7 +1633,7 @@
   display: block;
   width: 100%;
   margin: 8px 0 18px;
-  padding: 0;
+  padding: 2px 0;
   border: 0;
   outline: none;
   resize: none;
@@ -1641,7 +1641,7 @@
   background: transparent;
   font: inherit;
   font-size: clamp(32px, 5vw, 44px);
-  line-height: 1.12;
+  line-height: 1.2;
   font-weight: 700;
   letter-spacing: -0.035em;
   color: var(--color-ink);
@@ -1650,7 +1650,12 @@
 .sn-doc-title::placeholder { color: var(--color-ink-3); }
 
 /* The body reads like a Writing post: larger type, generous leading, no frame */
-.seneca-root .sn-doc-editor { background: transparent; border: 0; }
+.seneca-root .sn-doc-editor {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+}
 .seneca-root .sn-doc-editor:focus-within { box-shadow: none; }
 .seneca-root .sn-doc-editor .rte-toolbar { display: none; }
 .seneca-root .sn-doc-editor .ProseMirror,
@@ -1736,7 +1741,7 @@
 }
 
 /* The caret is the cue in a document title, as in Writing — no box around it */
-.seneca-root .sn-doc-title:focus-visible { outline: none; }
+.seneca-root :is(.sn-doc-title, .sn-doc-prose):focus-visible { outline: none; box-shadow: none; }
 
 /* Completion fills the disk; today's pulse is separate from its progress. */
 .seneca-root button.sn-day { font-weight: 750; }

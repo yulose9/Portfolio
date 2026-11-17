@@ -110,12 +110,29 @@ export default function JournalDocument({ entry, initialDate, history = [], onCr
     }
   }, [isNew, title, mood]);
 
-  // Title grows with its text, like Writing's
+  // Keep wrapped titles visible after viewport changes and font loading, too.
   useEffect(() => {
     const el = titleRef.current;
     if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
+    const fit = () => {
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    };
+    fit();
+    let alive = true;
+    let width = el.getBoundingClientRect().width;
+    void document.fonts?.ready.then(() => alive && fit());
+    const observer = new ResizeObserver(() => {
+      const nextWidth = el.getBoundingClientRect().width;
+      if (nextWidth === width) return;
+      width = nextWidth;
+      fit();
+    });
+    observer.observe(el);
+    return () => {
+      alive = false;
+      observer.disconnect();
+    };
   }, [title]);
 
   const build = (over = {}) => {
@@ -376,7 +393,7 @@ export default function JournalDocument({ entry, initialDate, history = [], onCr
 
         <textarea
           ref={titleRef}
-          className="sn-doc-title"
+          className="sn-doc-title editor-field"
           value={title}
           rows={1}
           placeholder="Title your entry"

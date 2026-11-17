@@ -1436,14 +1436,14 @@ function Composer({ initial, onBack, onOpen, options }: { initial: Draft; onBack
               <img src={meta.cover.src} alt={meta.cover.alt} width={meta.cover.width} height={meta.cover.height} />
               <CoverActions cover={meta.cover} onChange={(cover) => setMeta((m) => ({ ...m, cover }))} onPick={pickCover} onBrowseAll={browseForCover} />
               <input
-                className="editor-caption"
+                className="editor-caption editor-field"
                 value={meta.cover.caption ?? ""}
                 onChange={(e) => patchCover({ caption: e.target.value })}
                 placeholder="Caption (optional)"
                 aria-label="Cover caption"
               />
               <input
-                className="editor-alt"
+                className="editor-alt editor-field"
                 value={meta.cover.alt}
                 onChange={(e) => patchCover({ alt: e.target.value })}
                 placeholder="Alt text: what the image shows"

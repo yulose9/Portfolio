@@ -668,6 +668,7 @@ html:not(.has-smooth-cursor) [data-clickable] {
  */
 .tool-row {
   display: flex;
+  isolation: isolate;
   flex-wrap: wrap; /* a narrow phone takes a second line, never a scrollbar */
   /* 10 x 52px + 9 x 6px = 574px: one line inside the 576px text column
      (672px wide, less 48px padding each side). */
@@ -679,6 +680,7 @@ html:not(.has-smooth-cursor) [data-clickable] {
 
 .tool-badge {
   position: relative;
+  z-index: 0;
   /* Native hand, matching the smooth cursor's hand over the badges. */
   cursor: pointer;
   display: grid;
@@ -694,6 +696,18 @@ html:not(.has-smooth-cursor) [data-clickable] {
     opacity 180ms var(--ease);
 }
 
+.tool-badge > a {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+
+/* Lift the whole badge: its transformed parent traps the label's layer.
+   A z-index on the label alone cannot clear the next row of badges. */
+.tool-badge:focus-within { z-index: 1; }
+
 .tool-badge img {
   display: block;
   width: 32px;
@@ -704,8 +718,7 @@ html:not(.has-smooth-cursor) [data-clickable] {
   user-select: none;
 }
 
-/* The name, on hover. Mouse and trackpad only: a touch tap should not leave a
-   label stranded on screen. */
+/* Name on hover, keyboard focus, or while pressing on a touch screen. */
 .tool-badge::after {
   content: attr(data-label);
   position: absolute;
@@ -728,6 +741,12 @@ html:not(.has-smooth-cursor) [data-clickable] {
     transform 180ms var(--ease);
 }
 
+.tool-badge:has(:focus-visible)::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  transition: none;
+}
+
 /* At phone width ten won't fit on one line, so cap each line at five:
    5 x 52px + 4 x 6px = 284px. Two even rows, rather than a long one with a
    straggler. */
@@ -739,6 +758,7 @@ html:not(.has-smooth-cursor) [data-clickable] {
 
 @media (any-hover: hover) and (any-pointer: fine) {
   .tool-badge:hover {
+    z-index: 2;
     transform: translateY(-2px);
   }
 
@@ -748,7 +768,7 @@ html:not(.has-smooth-cursor) [data-clickable] {
   }
 
   /* The lists' sibling dim: point at one and the rest step back. */
-  .tool-row:hover .tool-badge:not(:hover) {
+  .tool-row:hover .tool-badge:not(:hover, :focus-within, :active) {
     opacity: 0.55;
   }
 }
@@ -1554,6 +1574,7 @@ html:not(.has-smooth-cursor) [data-clickable] {
  * transition-duration above is a single value for every property.
  */
 .tool-badge:active {
+  z-index: 3;
   transition-duration: 70ms, 180ms;
 }
 

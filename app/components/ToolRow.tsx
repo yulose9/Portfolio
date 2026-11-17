@@ -11,8 +11,8 @@ import type { Tool } from "../site-content";
  * HTML nothing.
  *
  * Presentational only, so it stays a server component. The name shows on
- * hover through CSS (see .tool-row in globals.css) and is the alt text for
- * everyone else.
+ * hover, touch press, or keyboard focus through CSS (see globals.css), and
+ * is the alt text for everyone else.
  */
 export default function ToolRow({ tools }: { tools: Tool[] }) {
   return (
@@ -22,10 +22,9 @@ export default function ToolRow({ tools }: { tools: Tool[] }) {
         const picked = responsiveImage(tool.src);
         return (
         <li key={tool.src} className="tool-badge" data-label={tool.label} data-keycap="">
-          <a href={tool.href || undefined} target={tool.href ? "_blank" : undefined} rel={tool.href ? "noreferrer" : undefined}>
+          <a href={tool.href || undefined} target={tool.href ? "_blank" : undefined} rel={tool.href ? "noreferrer" : undefined} tabIndex={tool.href ? undefined : 0}>
           <picture>
           {picked?.avifSrcSet ? <source type="image/avif" srcSet={picked.avifSrcSet} sizes="32px" /> : null}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={picked?.src ?? tool.src}
             srcSet={picked?.srcSet}

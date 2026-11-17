@@ -55,7 +55,7 @@ function View({ node, updateAttributes, deleteNode, selected, editor }: ReactNod
       <figure className="article-figure article-video" contentEditable={false}>
         {tools}
         <VideoPlayer src={src} poster={poster ?? undefined} loop={loop} autoPlay={loop} muted={loop} controls={!loop} preload="metadata" captions={captions || undefined} />
-        <input className="editor-caption" value={caption ?? ""} onChange={(e) => updateAttributes({ caption: e.target.value })} placeholder="Caption (optional)" aria-label="Caption" />
+        <input className="editor-caption editor-field" value={caption ?? ""} onChange={(e) => updateAttributes({ caption: e.target.value })} placeholder="Caption (optional)" aria-label="Caption" />
         {kind === "video" && !loop && editor.isEditable ? (
           <label className="editor-captions-field" data-invalid={bad || undefined}>
             <ClosedCaptioning size={15} aria-hidden />

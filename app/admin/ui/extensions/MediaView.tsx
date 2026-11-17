@@ -52,7 +52,7 @@ function View({ node, updateAttributes, deleteNode, selected }: ReactNodeViewPro
           <video src={src} poster={poster ?? undefined} controls playsInline preload="metadata" />
         )}
         <input
-          className="editor-caption"
+          className="editor-caption editor-field"
           value={caption ?? ""}
           onChange={(e) => updateAttributes({ caption: e.target.value })}
           placeholder="Caption (optional)"

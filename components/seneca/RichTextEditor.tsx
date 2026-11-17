@@ -435,7 +435,10 @@ const RichTextEditor = forwardRef(function RichTextEditor(
       </div>
 
       {/* Editor Content */}
-      <EditorContent editor={editor} className="flex-1 overflow-y-auto" />
+      <EditorContent
+        editor={editor}
+        className={variant === "document" ? "overflow-visible" : "flex-1 overflow-y-auto"}
+      />
 
       {/* Bubble Menu - appears on text selection */}
       <EditorBubbleMenu editor={editor} />

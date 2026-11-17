@@ -367,7 +367,7 @@
 /* ============================================
    TipTap Rich Text Editor Styles
    ============================================ */
-.rich-text-editor {
+.rich-text-editor:not(.sn-doc-editor) {
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--color-separator);
@@ -377,7 +377,7 @@
     box-shadow 0.2s ease;
 }
 
-.rich-text-editor:focus-within {
+.rich-text-editor:not(.sn-doc-editor):focus-within {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
 }
