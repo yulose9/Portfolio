@@ -108,7 +108,12 @@
           "icon": "hardhat",
           "href": "https://www.trends.com.ph/",
           "image": "/images/company-logos/trends-and-technologies.png",
-          "fit": "contain"
+          "fit": "contain",
+          "lanyard": {
+            "front": "/images/lanyard/trends-front.png",
+            "back": "/images/lanyard/trends-back.png",
+            "strap": "/images/lanyard/trends-strap.png"
+          }
         },
         {
           "title": "Design Intern (UI/UX)",

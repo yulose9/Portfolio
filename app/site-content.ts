@@ -23,6 +23,11 @@ export type Entry = {
   image?: string;
   /** How the preview frames the image: logos need padding, screenshots fill. */
   fit?: "cover" | "contain";
+  /**
+   * A 3D ID badge that drops in on hover instead of the preview frame.
+   * front/back are 1024×1440 PNGs, strap is a 1536×192 seamless tile.
+   */
+  lanyard?: { front: string; back: string; strap: string };
 };
 
 export type Link = {

@@ -1242,6 +1242,58 @@ html:not(.has-smooth-cursor) [data-clickable] {
   transform: scale(1);
 }
 
+/*
+ * The hanging ID badge (LanyardStage). Two motions, deliberately asymmetric:
+ *  - in: lowered from above the viewport on an overshooting curve, so it
+ *    dips past its rest point as the strap takes its weight and settles back,
+ *    while it dissolves out of a blur;
+ *  - out: the dissolve alone, in place. Only once it is fully invisible does
+ *    the transform jump back up (transition-delay), ready for the next drop.
+ *    Flying back up on leave would pull the eye exactly when it is done.
+ */
+/*
+ * Only the dissolve lives here. The drop itself is real physics (dropFromAbove
+ * in Lanyard.tsx): the card falls from above the frame, the strap catches it.
+ */
+.lanyard-stage {
+  /*
+   * The strip right of the content column. The widest thing in the column,
+   * the tool row, ends 17rem right of centre; 2rem clear of that. Holding the
+   * card means taking the pointer, so the stage must never overlap content.
+   */
+  left: calc(50% + 19rem);
+  pointer-events: none;
+  /* A card thrown toward the column fades out instead of being sliced off. */
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 5rem);
+  mask-image: linear-gradient(to right, transparent, #000 5rem);
+  opacity: 0;
+  filter: blur(6px);
+  visibility: hidden;
+  transition:
+    opacity 380ms var(--ease-soft),
+    filter 380ms var(--ease-soft),
+    visibility 0s linear 380ms;
+}
+
+.lanyard-stage.is-shown {
+  pointer-events: auto;
+  opacity: 1;
+  filter: blur(0);
+  visibility: visible;
+  /* Quick in, so the fall is watched rather than faded through. */
+  transition:
+    opacity 260ms var(--ease-soft),
+    filter 260ms var(--ease-soft),
+    visibility 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lanyard-stage,
+  .lanyard-stage.is-shown {
+    filter: none;
+  }
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;

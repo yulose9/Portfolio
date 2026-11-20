@@ -93,6 +93,19 @@ export function validateWebsite(value: unknown): WebsiteContent {
                 )
                   ? { logo: item.logo }
                   : {}),
+                ...(item.lanyard &&
+                typeof item.lanyard === "object" &&
+                websiteUrl(item.lanyard.front, true) &&
+                websiteUrl(item.lanyard.back, true) &&
+                websiteUrl(item.lanyard.strap, true)
+                  ? {
+                      lanyard: {
+                        front: websiteUrl(item.lanyard.front, true),
+                        back: websiteUrl(item.lanyard.back, true),
+                        strap: websiteUrl(item.lanyard.strap, true),
+                      },
+                    }
+                  : {}),
               })),
           }
         : {}),

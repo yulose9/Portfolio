@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { SiGithub, SiGoogle, SiHashicorp, SiX } from "@icons-pack/react-simple-icons";
 import {
@@ -14,6 +14,7 @@ import {
 } from "@phosphor-icons/react";
 import { haptic } from "../lib/haptics";
 import { responsiveImage } from "../lib/images";
+import { LanyardProvider, useLanyard } from "./lanyard/LanyardStage";
 import AboutMenu from "./menu/AboutMenu";
 import RowMenu from "./menu/RowMenu";
 import { playSound } from "./ui/sound";
@@ -150,7 +151,18 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
     }
   }, [active.id, tabs]);
 
+  // Every ID badge on the page, mounted once here so it is warm before the
+  // tab that lists it is even opened.
+  const badges = useMemo(
+    () =>
+      tabs.flatMap((tab) =>
+        (tab.items ?? []).flatMap((item) => (item.lanyard ? [item.lanyard] : []))
+      ),
+    [tabs]
+  );
+
   return (
+    <LanyardProvider badges={badges}>
     <div className="rhythm-12 flex w-full flex-col items-start gap-12">
       {/* tab-scroller: on phones five tabs outrun the column, so the rail
           scrolls sideways there (see globals.css). Desktop is unaffected. */}
@@ -329,6 +341,7 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
 
       <TabArchive tabs={tabs} activeId={active.id} />
     </div>
+    </LanyardProvider>
   );
 }
 
@@ -594,7 +607,7 @@ function useDecodedSrc(
 }
 
 function EntryList({ items, kind }: { items: Entry[]; kind: string }) {
-  const { hovered, rowRefs, highlightRef, enter, wrapperProps } =
+  const { hovered, rowRefs, highlightRef, enter, leave, wrapperProps } =
     useTravellingHighlight();
 
   const frameRef = useRef<HTMLDivElement>(null);
@@ -604,16 +617,49 @@ function EntryList({ items, kind }: { items: Entry[]; kind: string }) {
   // A row being pointed at or focused is a deliberate choice, so it outranks
   // whichever row happens to be scrolled level with the frame.
   const target = hovered ?? beside;
-  const wantedSrc = target === null ? undefined : items[target]?.image;
+  // A row with an ID badge shows the hanging lanyard instead of the frame, and
+  // only on a deliberate hover or focus, never just for being scrolled level.
+  const targetItem = target === null ? undefined : items[target];
+  const wantedSrc = targetItem?.lanyard ? undefined : targetItem?.image;
   const previewSrc = useDecodedSrc(wantedSrc, imgRefs);
 
   // The stack of preview images, in list order. Narrowed so image is a string.
   const withImages = items.filter(
-    (item): item is Entry & { image: string } => Boolean(item.image)
+    (item): item is Entry & { image: string } =>
+      Boolean(item.image) && !item.lanyard
   );
 
+  // The badge (mounted page-wide by LanyardProvider) follows the row hover.
+  // Leaving the list from a badge row does not drop the highlight yet: the
+  // pointer may be on its way to the card, and the row stays selected for as
+  // long as the badge is up. The controller hands it back via `leave`.
+  const lanyard = useLanyard();
+  // Switching tabs unmounts the list; the badge must not outlive it.
+  const hoverRow = lanyard?.hoverRow;
+  useEffect(() => () => hoverRow?.(null), [hoverRow]);
+  const pointRow = (index: number) => {
+    enter(index);
+    lanyard?.hoverRow(items[index]?.lanyard?.front ?? null);
+  };
+
   return (
-    <div className="relative w-full" {...wrapperProps}>
+    <div
+      className="relative w-full"
+      {...wrapperProps}
+      onPointerLeave={(event) => {
+        const badge = hovered === null ? undefined : items[hovered]?.lanyard;
+        if (badge && lanyard) lanyard.leaveList(badge.front, leave);
+        else {
+          lanyard?.hoverRow(null);
+          wrapperProps.onPointerLeave(event);
+        }
+      }}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+          lanyard?.hoverRow(null);
+        wrapperProps.onBlur(event);
+      }}
+    >
       {/*
         This wrapper is the single coordinate space for the hover surface.
 
@@ -647,8 +693,8 @@ function EntryList({ items, kind }: { items: Entry[]; kind: string }) {
               // relative keeps it painting above the highlight.
               className="panel-chunk relative w-fit"
               style={{ "--i": index } as React.CSSProperties}
-              onPointerEnter={() => enter(index)}
-              onFocus={() => enter(index)}
+              onPointerEnter={() => pointRow(index)}
+              onFocus={() => pointRow(index)}
             >
               <RowMenu entry={item} kind={kind}>
                 <Row {...item} />
