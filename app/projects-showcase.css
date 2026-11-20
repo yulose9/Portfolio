@@ -1,0 +1,1220 @@
+/*
+ * The projects index (ProjectShowcase): a panel of words beside a ring of
+ * phone screens. Desktop is one screen, split on a hairline; phones stack the
+ * ring above the words and scroll. Everything is the site's own material:
+ * --paper, --line hairlines, the --fg greys, the surface fill and ring,
+ * --focus rings, Inter.
+ *
+ * Radii: surfaces 16px (the preview frame's), interactive rows 14px (the
+ * list highlight's), inline links 10px, icons 22%, device cards follow the
+ * phone. Hover lives only where a fine pointer can hover; press is 0.98, as
+ * the kit's buttons press.
+ */
+
+.project-showcase {
+  --showcase-out: cubic-bezier(0.23, 1, 0.32, 1);
+  background: var(--paper);
+}
+
+/* The site-wide legal footer moves into the panel here (.showcase-legal). */
+html:has(.project-showcase) .site-compliance-footer {
+  display: none;
+}
+html:has(.project-showcase) .showcase-legal .site-compliance-footer {
+  display: flex;
+}
+
+.showcase {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+/* Everything pressable here draws its own pressed state. */
+.showcase a,
+.showcase button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* One focus ring for the page, on the site's --focus token. */
+.showcase-crumbs a:focus-visible,
+.showcase-row:focus-visible,
+.showcase-links a:focus-visible,
+.showcase-id-mail:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* ── Panel ─────────────────────────────────────────────────────────────── */
+
+.showcase-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-top: 1px solid var(--line);
+}
+
+/* The bar: breadcrumb on the left; the ticket badge and theme switch right. */
+.showcase-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 3.5rem;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+.showcase-crumbs {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.875rem;
+  line-height: 1.429;
+}
+/*
+ * One line, always: the shared breadcrumb wraps, which on this bar dropped a
+ * long project name below "Home / Projects". Here the trail stays put and
+ * only the current title gives way, ending in an ellipsis (its full name is
+ * in the tooltip and in the panel's heading).
+ */
+.showcase-crumbs .breadcrumbs {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.showcase-crumbs .breadcrumbs li {
+  flex: none;
+}
+.showcase-crumbs .breadcrumbs li[aria-current] {
+  display: block;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: none;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.showcase-crumbs .breadcrumbs li[aria-current]::before {
+  /* The "/" separator stays visible ahead of the truncated name. */
+  margin-right: 0.35rem;
+}
+.showcase-bar-tools {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/*
+ * The ticket, folded down into a stub: a small ticket of its own (main part,
+ * a dashed tear line with a notch top and bottom, and a stub holding the
+ * arrow), tipped -3deg, as on the reference. Flat ink on paper (paper on ink
+ * in dark), like the ticket. It shares view-transition-name
+ * "showcase-ticket" with the ticket, so leaving home morphs one into the
+ * other, tilt included.
+ */
+.showcase-badge {
+  --stub: 28px;
+  display: inline-flex;
+  align-items: stretch;
+  overflow: hidden;
+  /* Real holes on the tear line, top and bottom (see the ticket above). */
+  -webkit-mask-image:
+    radial-gradient(circle at calc(100% - var(--stub)) 0, transparent 4px, #000 4.5px),
+    radial-gradient(circle at calc(100% - var(--stub)) 100%, transparent 4px, #000 4.5px);
+  mask-image:
+    radial-gradient(circle at calc(100% - var(--stub)) 0, transparent 4px, #000 4.5px),
+    radial-gradient(circle at calc(100% - var(--stub)) 100%, transparent 4px, #000 4.5px);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  border-radius: 6px;
+  background: var(--fg);
+  color: var(--paper);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+  rotate: -3deg;
+  transition:
+    opacity 150ms var(--ease),
+    scale 150ms var(--showcase-out),
+    rotate 220ms var(--showcase-out);
+}
+.showcase-badge-main {
+  padding: 6px 10px;
+}
+.showcase-badge-stub {
+  display: grid;
+  place-items: center;
+  width: var(--stub);
+  border-left: 1px dashed color-mix(in srgb, var(--paper) 30%, transparent);
+}
+/* The hit area: 6px of invisible margin round the ticket, at least 40px tall. */
+.showcase-badge-hit {
+  display: inline-flex;
+  margin: -6px;
+  padding: 6px;
+  border-radius: 12px;
+}
+.showcase-badge-hit:active .showcase-badge {
+  scale: 0.96;
+}
+.showcase-badge-hit:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+/* The current crumb changes with the ring; let it dissolve in, not snap. */
+.showcase-crumbs li[aria-current] {
+  animation: showcase-in 260ms var(--showcase-out) both;
+}
+
+/* At least 24px tall, as WCAG 2.2's target-size minimum asks. */
+.showcase-crumbs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+}
+
+.showcase-scroll {
+  min-height: 0;
+}
+
+.showcase-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.5rem 1.25rem 0;
+  /*
+   * The panel swaps every time the ring comes to rest on another project, so
+   * the swap is quick: a short dissolve out of a slight blur, starting fast.
+   */
+  animation: showcase-in 220ms var(--showcase-out) both;
+}
+
+/* A project's title and role, read together. */
+.showcase-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  margin: 0.25rem 0 0;
+}
+
+.showcase-title {
+  margin: 0;
+  color: var(--fg);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.showcase-role {
+  margin: 0;
+  color: var(--fg-2);
+  font-size: 0.9375rem;
+  line-height: 1.467;
+}
+
+.showcase-body {
+  margin: 0;
+  color: var(--fg-2);
+  font-size: 1rem;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+/* A project's icon: its favicon on a quiet tile, or a case-study glyph. */
+.showcase-icon {
+  display: block;
+  flex: none;
+  /* Transparent, so forced-colours mode (which drops shadows) keeps an edge. */
+  border: 1px solid transparent;
+  border-radius: 22%;
+  box-shadow: var(--surface-ring);
+  background: var(--surface-fill);
+  object-fit: cover;
+}
+.showcase-icon-glyph {
+  display: grid;
+  place-items: center;
+  color: var(--fg-2);
+}
+
+.showcase-facts,
+.showcase-links,
+.showcase-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.showcase-facts {
+  gap: 0.375rem;
+  margin-top: 0.25rem;
+  color: var(--fg-3);
+  font-size: 0.875rem;
+  line-height: 1.429;
+}
+.showcase-facts li {
+  display: flex;
+  gap: 0.5rem;
+}
+.showcase-facts svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.showcase-links {
+  gap: 0.125rem;
+  margin-top: 0.75rem;
+}
+
+/* Links are rows: glyph and label, with ↗ on the ones that leave the site. */
+.showcase-links a {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  width: fit-content;
+  min-height: 36px;
+  margin-left: -0.625rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: 10px;
+  color: var(--fg);
+  font-size: 1rem;
+  line-height: 1.5;
+  text-decoration: none;
+  transition:
+    background-color 150ms var(--ease),
+    scale 150ms var(--showcase-out);
+}
+.showcase-links a > span:not(.sr-only) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.showcase-links a svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--fg-2);
+}
+/* ↗ rides at the end of the label's last line, however it wraps. */
+.showcase-links a .showcase-link-trail {
+  display: inline;
+  margin: 0 0 0 0.375rem;
+  vertical-align: -1px;
+}
+.showcase-link-trail {
+  color: var(--fg-3) !important;
+  transition: transform 200ms var(--showcase-out);
+}
+
+/* ── Home: the identity card ───────────────────────────────────────────── */
+
+.showcase-id {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /*
+   * Flat and inverted: ink card on paper (paper card on ink in dark). No
+   * border: the card's fill would show through a border strip around the
+   * notches. A transparent outline gives forced-colours mode its edge.
+   */
+  border: 0;
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+  border-radius: 16px;
+  color: var(--paper);
+}
+/*
+ * The two halves of the ticket carry the fill, and the notches are real holes
+ * cut by masks (a quarter circle at each end of the tear line, on both
+ * halves), so the page shows through them: no painted circle to match the
+ * background, and no edge ring around it in either theme.
+ */
+.showcase-id-top,
+.showcase-id-foot {
+  --notch: 9px;
+  background: var(--fg);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+.showcase-id-top {
+  -webkit-mask-image:
+    radial-gradient(circle at 0 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at 100% 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
+  mask-image:
+    radial-gradient(circle at 0 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at 100% 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
+}
+.showcase-id .showcase-id-lede,
+.showcase-id .showcase-id-who strong,
+.showcase-id .showcase-id-mail-label,
+.showcase-id .showcase-id-copy[data-copied] .showcase-id-copy-text {
+  color: var(--paper);
+}
+.showcase-id .showcase-id-role,
+.showcase-id .showcase-id-clock,
+.showcase-id .showcase-id-mail-address,
+.showcase-id .showcase-id-copy.ki-button {
+  color: color-mix(in srgb, var(--paper) 68%, transparent);
+}
+.showcase-id .showcase-id-foot,
+.showcase-id .showcase-id-copy.ki-button {
+  border-color: color-mix(in srgb, var(--paper) 28%, transparent);
+}
+.showcase-id .showcase-id-copy.ki-button:hover {
+  background: color-mix(in srgb, var(--paper) 10%, transparent);
+  color: var(--paper);
+}
+
+.showcase-id-lede {
+  margin: 0;
+  padding: 1.5rem 1.25rem 0;
+  color: var(--fg);
+  font-size: 1.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.showcase-id-who {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 1.5rem 1.25rem 1.25rem;
+  font-size: 0.875rem;
+  line-height: 1.429;
+}
+.showcase-id-who strong {
+  color: var(--fg);
+  font-weight: 500;
+}
+.showcase-id-role {
+  color: var(--fg-2);
+}
+.showcase-id-clock {
+  margin-top: 0.5rem;
+  color: var(--fg-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The tear-off strip: a dashed rule with a notch either side, like a ticket,
+ * holding the email and a copy button.
+ */
+.showcase-id-foot {
+  -webkit-mask-image:
+    radial-gradient(circle at 0 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at 100% 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
+  mask-image:
+    radial-gradient(circle at 0 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at 100% 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  border-top: 1px dashed var(--line-strong);
+}
+.showcase-id-mail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+  padding: 0.875rem 1.25rem 1rem;
+  border-radius: 0 0 0 15px;
+  text-decoration: none;
+}
+.showcase-id-mail-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--fg);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.429;
+}
+/* Wraps rather than truncating, so no part of the address is ever hidden. */
+.showcase-id-mail-address {
+  color: var(--fg-3);
+  font-size: 0.8125rem;
+  line-height: 1.385;
+  overflow-wrap: anywhere;
+}
+
+.showcase-id-copy.ki-button {
+  flex-direction: column;
+  gap: 0.25rem;
+  height: auto;
+  min-width: 72px;
+  margin: 0;
+  padding: 0.75rem 1.25rem;
+  border-left: 1px dashed var(--line-strong);
+  border-radius: 0 0 15px 0;
+  color: var(--fg-2);
+}
+.showcase-id-copy-text {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+.showcase-id-copy[data-copied] .showcase-id-copy-text {
+  color: var(--fg);
+}
+
+/* ── Home: every project ───────────────────────────────────────────────── */
+
+.showcase-list {
+  gap: 0.125rem;
+  margin: 1rem -0.625rem 0;
+}
+
+/*
+ * Top-aligned: a long title wraps to several lines, and an icon centred
+ * against the whole block would float adrift. The icon and the arrow sit on
+ * the first line instead.
+ */
+.showcase-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  width: 100%;
+  padding: 0.625rem;
+  border-radius: 14px;
+  text-align: left;
+  transition:
+    background-color 150ms var(--ease),
+    scale 150ms var(--showcase-out);
+}
+
+.showcase-row-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.showcase-row-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.5rem;
+}
+
+.showcase-row-name {
+  color: var(--fg);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.5;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--line-strong);
+}
+
+.showcase-row-years {
+  color: var(--fg-3);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.showcase-row-role {
+  color: var(--fg-2);
+  font-size: 0.875rem;
+  line-height: 1.429;
+}
+
+.showcase-row .showcase-icon {
+  margin-top: -2px;
+}
+.showcase-row-trail {
+  flex: none;
+  margin-top: 5px;
+  color: var(--fg-3);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    opacity 150ms var(--ease),
+    transform 200ms var(--showcase-out);
+}
+.showcase-row:focus-visible .showcase-row-trail {
+  opacity: 1;
+  transform: none;
+}
+
+.showcase-empty {
+  margin: 1rem 0 0;
+  color: var(--fg-3);
+  font-size: 0.875rem;
+  line-height: 1.429;
+}
+
+/* Press: the kit's 0.98, everywhere a row or link is pressed. */
+.showcase-row:active,
+.showcase-links a:active {
+  scale: 0.98;
+}
+
+/* Hover only where a pointer can hover; on touch it would latch after a tap. */
+@media (hover: hover) and (pointer: fine) {
+  .showcase-badge-hit:hover .showcase-badge {
+    rotate: 0deg;
+  }
+  .showcase-crumbs a:hover {
+    color: var(--fg);
+  }
+  .showcase-row:hover,
+  .showcase-links a:hover {
+    background: var(--nav-hover, rgb(0 0 0 / 0.045));
+  }
+  .showcase-row:hover .showcase-row-trail {
+    opacity: 1;
+    transform: none;
+  }
+  .showcase-links a:hover .showcase-link-trail {
+    transform: translate(2px, -1px);
+  }
+}
+
+/* Touch: 44px targets, as the platforms ask. */
+@media (pointer: coarse) {
+  .showcase-crumbs a,
+  .showcase-links a {
+    min-height: 44px;
+  }
+}
+
+/* ── Foot: hint and the legal links ────────────────────────────────────── */
+
+.showcase-foot {
+  padding: 2rem 1.25rem max(1rem, env(safe-area-inset-bottom));
+}
+
+/* With the ring: centred under the cards, quiet, out of the way. */
+.showcase-hint {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  margin: 0;
+  translate: -50% 0;
+  color: var(--fg-3);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.showcase-hint-touch {
+  display: none;
+}
+@media (hover: none) and (pointer: coarse) {
+  .showcase-hint-fine {
+    display: none;
+  }
+  .showcase-hint-touch {
+    display: inline;
+  }
+}
+
+.showcase-legal .site-compliance-footer {
+  justify-content: flex-start;
+  column-gap: 0.75rem;
+  margin: 0 0 0 -0.25rem;
+  padding: 0;
+}
+
+/* ── The ring ──────────────────────────────────────────────────────────── */
+
+.showcase-stage {
+  --card-h: min(48svh, 400px);
+  position: relative;
+  order: -1;
+  height: min(66svh, 560px);
+  /*
+   * clip, not hidden: a hidden overflow can still be scrolled by the browser,
+   * and focusing a control inside a live screen would scroll the whole ring
+   * out of place to reveal it.
+   */
+  overflow: clip;
+  perspective: 1400px;
+  perspective-origin: 50% 50%;
+  touch-action: pan-y;
+  cursor: grab;
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.showcase-stage:active {
+  cursor: grabbing;
+}
+.showcase-stage:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--focus);
+}
+
+.showcase-ring {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.showcase-card {
+  --shade: 0;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: block;
+  height: var(--card-h);
+  aspect-ratio: 393 / 852;
+  padding: 0;
+  overflow: hidden;
+  /* A plain iPhone screenshot: no bezel, the display's own corner radius. */
+  border: 0;
+  border-radius: 14% / 6.46%;
+  background: var(--surface-fill);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.08),
+    0 18px 40px -18px rgb(0 0 0 / 0.28),
+    0 40px 80px -40px rgb(0 0 0 / 0.22);
+  /* A hairline in pure black (white in dark) so light screens keep an edge. */
+  outline: 1px solid rgb(0 0 0 / 0.1);
+  outline-offset: -1px;
+  /* Until the first placement, so nothing flashes stacked in the middle. */
+  opacity: 0;
+  cursor: inherit;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-user-drag: none;
+}
+
+/*
+ * Turned away from the light: a shade that deepens with the angle. Set every
+ * frame by the ring, so no transition of its own.
+ */
+.showcase-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #000;
+  opacity: var(--shade);
+  pointer-events: none;
+}
+
+:root[data-theme="dark"] .showcase-card {
+  outline-color: rgb(255 255 255 / 0.1);
+}
+
+.showcase-card[data-centre] {
+  cursor: pointer;
+}
+
+/* Only the screenshot itself: never the images inside a live demo. */
+.showcase-card > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  pointer-events: none;
+  /* The press lives on the screen: the card's own transform is the ring's. */
+  transition: scale 150ms var(--showcase-out);
+}
+.showcase-card[data-centre]:active > img {
+  scale: 0.98;
+}
+
+@keyframes showcase-in {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+@keyframes showcase-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ── Desktop: one screen, split on a hairline ──────────────────────────── */
+
+@media (min-width: 1024px) {
+  /* Exactly one viewport: nothing below to scroll to. */
+  html:has(.project-showcase),
+  html:has(.project-showcase) body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .showcase {
+    display: grid;
+    grid-template-columns: minmax(22rem, 28rem) 1fr;
+    height: 100dvh;
+    min-height: 0;
+  }
+
+  .showcase-panel {
+    border-top: 0;
+    border-right: 1px solid var(--line);
+  }
+
+  .showcase-bar {
+    padding: 0 1.5rem 0 2rem;
+  }
+
+  /* The words scroll on their own if a window is too short for them. */
+  .showcase-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+
+  .showcase-copy {
+    padding: 2rem 2rem 1rem;
+  }
+
+  .showcase-foot {
+    padding: 1rem 2rem 1.5rem;
+  }
+
+  .showcase-stage {
+    order: 0;
+    height: auto;
+  }
+
+  .showcase-stage {
+    --card-h: min(70dvh, 620px);
+  }
+}
+
+/* Reduced motion: no blur or movement, only a short fade; the ring snaps. */
+@media (prefers-reduced-motion: reduce) {
+  .showcase-copy {
+    animation-name: showcase-fade;
+  }
+  .showcase-card > img,
+  .showcase-row,
+  .showcase-links a,
+  .showcase-row-trail,
+  .showcase-link-trail {
+    transition-property: opacity, background-color;
+  }
+  .showcase-row:active,
+  .showcase-links a:active,
+  .showcase-card[data-centre]:active img {
+    scale: none;
+  }
+}
+
+/* ── The ticket ⇄ badge morph (View Transitions) ───────────────────────── */
+
+/*
+ * Only the ticket moves; the rest of the page swaps without the default
+ * crossfade, so the ring under it stays live. The box travels on a light
+ * spring (overshoots about 1.5%, settles by ~520ms), as measured on the
+ * reference; the old and new pictures of it cross-fade a little faster.
+ */
+html.showcase-vt::view-transition-old(root),
+html.showcase-vt::view-transition-new(root) {
+  animation: none;
+}
+::view-transition-group(showcase-ticket) {
+  animation-duration: 520ms;
+  animation-timing-function: linear(
+    0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 15.9%, 0.938 22.8%, 1.017 29.4%,
+    1.034 34.4%, 1.026 41%, 1.005 52.3%, 0.998 63.4%, 1
+  );
+}
+::view-transition-old(showcase-ticket),
+::view-transition-new(showcase-ticket) {
+  height: 100%;
+  animation-duration: 260ms;
+  animation-timing-function: var(--showcase-out);
+}
+
+/* ── Live screens ──────────────────────────────────────────────────────── */
+
+/* "Try it on the screen": a row like the links beside it. */
+.showcase-try {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 36px;
+  margin-left: -0.625rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: 10px;
+  color: var(--fg);
+  font-size: 1rem;
+  line-height: 1.5;
+  transition:
+    background-color 150ms var(--ease),
+    scale 150ms var(--showcase-out);
+}
+.showcase-try svg {
+  flex: none;
+  color: var(--fg-2);
+}
+.showcase-try[aria-pressed="true"] {
+  color: var(--fg-2);
+}
+.showcase-try:active {
+  scale: 0.98;
+}
+.showcase-try:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .showcase-try:hover {
+    background: var(--nav-hover, rgb(0 0 0 / 0.045));
+  }
+}
+
+/*
+ * A live card holds a demo laid out at a real 393 × 852 phone size and scaled
+ * to the card (PhoneDemo). Inside it the pointer is the demo's, not the ring's.
+ */
+:root .showcase-card[data-live] {
+  cursor: default;
+  /* The demo paints its own edge; a hairline over a dark demo reads as a rim. */
+  outline-color: transparent;
+}
+/*
+ * The screenshot under the demo is only there for the cross-fade. Once the
+ * demo has faded in it goes, or its light pixels would fringe the demo's
+ * anti-aliased rounded edge (most visible on a dark screen).
+ */
+.showcase-card[data-live] > img {
+  animation: showcase-gone 1ms linear 280ms forwards;
+}
+@keyframes showcase-gone {
+  to {
+    visibility: hidden;
+  }
+}
+.phone-demo {
+  cursor: default;
+}
+.phone-demo :is(button, a, input, [role="tab"], li[class*="row"]) {
+  cursor: pointer;
+}
+
+/* "Preview": a small chip in the status-bar area of a live screen. */
+.showcase-preview {
+  position: absolute;
+  /* Just above the centred card's top edge. */
+  top: calc(50% - var(--card-h) / 2 - 2.25rem);
+  left: 50%;
+  z-index: 1;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 3px 8px 3px 3px;
+  translate: -50% 0;
+  border-radius: 999px;
+  background: var(--fg);
+  color: var(--paper);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  text-decoration: none;
+  animation: showcase-in 260ms var(--showcase-out) 120ms both;
+  transition: background-color 150ms var(--ease);
+}
+
+.showcase-preview-tag {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--paper) 18%, transparent);
+}
+a.showcase-preview:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  a.showcase-preview:hover {
+    background: color-mix(in srgb, var(--fg) 88%, var(--paper));
+  }
+}
+.showcase-icon-link {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 10px;
+  transition: scale 150ms var(--showcase-out);
+}
+.showcase-icon-link:active {
+  scale: 0.96;
+}
+.showcase-icon-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.phone-demo {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  touch-action: pan-y;
+  animation: showcase-in 260ms var(--showcase-out) both;
+}
+.phone-demo-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+
+/*
+ * The demos are fixed 393-point phone canvases scaled as a picture, so their
+ * type is in px: a reader's larger root font would overflow a fixed screen.
+ */
+/* PinaSweldo, in its own colours (its DESIGN.md tokens). */
+.pina-demo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  padding: 58px 20px 24px;
+  background: #f6f6f7;
+  color: #0a0a0a;
+}
+.pina-demo-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 600;
+}
+.pina-demo-brand img {
+  border-radius: 8px;
+}
+.pina-demo-lede {
+  margin: 4px 0 0;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.pina-demo-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px #ececee;
+}
+.pina-demo-label {
+  margin: 0;
+  color: #52525b;
+  font-size: 14px;
+}
+.pina-demo-pay {
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.pina-demo-range {
+  width: 100%;
+  margin: 6px 0 0;
+  accent-color: #0a0a0a;
+  cursor: pointer;
+}
+.pina-demo-range-ends {
+  display: flex;
+  justify-content: space-between;
+  color: #8a8a93;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.pina-demo-result {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+.pina-demo-net {
+  margin: 0;
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.pina-demo-net span {
+  color: #52525b;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.pina-demo-kept {
+  margin: 0;
+  color: #52525b;
+  font-size: 15px;
+}
+.pina-demo-kept strong {
+  color: #0a0a0a;
+  font-weight: 600;
+}
+.pina-demo-bar {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+}
+.pina-demo-bar span {
+  min-width: 2px;
+  transition: flex-grow 220ms var(--showcase-out);
+}
+.pina-demo-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 15px;
+}
+.pina-demo-rows li {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+.pina-demo-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.pina-demo-amount {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The portfolio, in miniature: this site's own tokens, so it follows the theme. */
+.pf-demo {
+  height: 100%;
+  padding: 64px 24px 24px;
+  background: var(--paper);
+  color: var(--fg);
+}
+.pf-demo-avatar {
+  display: block;
+  border-radius: 50%;
+}
+.pf-demo-name {
+  margin: 20px 0 0;
+  font-size: 17px;
+  font-weight: 500;
+}
+.pf-demo-role {
+  margin: 2px 0 0;
+  color: var(--fg-2);
+  font-size: 16px;
+}
+.pf-demo-tabs {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  margin-top: 28px;
+}
+.pf-demo-pill,
+.pf-demo-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: var(--surface-fill);
+  background-image: var(--surface-bg);
+  box-shadow: var(--surface-ring), var(--surface-lift);
+}
+.pf-demo-pill {
+  height: 100%;
+  border-radius: 999px;
+  transition:
+    transform var(--dur-morph) var(--ease-morph),
+    width var(--dur-morph) var(--ease-morph);
+}
+.pf-demo-tab {
+  position: relative;
+  padding: 7px 14px;
+  border-radius: 999px;
+  color: var(--fg-3);
+  font-size: 15px;
+  transition: color 150ms var(--ease);
+}
+.pf-demo-tab[aria-selected="true"] {
+  color: var(--fg);
+}
+.pf-demo-listwrap {
+  position: relative;
+  margin: 24px -16px 0;
+}
+.pf-demo-glow {
+  border-radius: 14px;
+  opacity: 0;
+  transition:
+    transform var(--dur-morph) var(--ease-morph),
+    width var(--dur-morph) var(--ease-morph),
+    height var(--dur-morph) var(--ease-morph),
+    opacity 150ms var(--ease);
+}
+.pf-demo-glow[data-on] {
+  opacity: 1;
+}
+.pf-demo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  animation: showcase-in 260ms var(--showcase-out) both;
+}
+.pf-demo-row {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: fit-content;
+  padding: 12px 16px;
+  border-radius: 14px;
+  cursor: pointer;
+}
+.pf-demo-row-title {
+  font-size: 16px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.pf-demo-row-sub {
+  color: var(--fg-2);
+  font-size: 16px;
+}
+.pf-demo-row-meta {
+  color: var(--fg-3);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phone-demo,
+  .showcase-preview,
+  .pf-demo-list {
+    animation-name: showcase-fade;
+  }
+  .pina-demo-bar span,
+  .pf-demo-pill,
+  .pf-demo-glow {
+    transition-duration: 0s;
+  }
+}

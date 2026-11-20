@@ -478,6 +478,10 @@ html.has-smooth-cursor select,
 html.has-smooth-cursor [contenteditable] {
   cursor: auto !important;
 }
+/* A range slider is dragged, not typed in: the custom hand, no native cursor. */
+html.has-smooth-cursor input[type="range"] {
+  cursor: none !important;
+}
 
 /*
  * Dragging. While anything is held (.is-grabbing, set by lib/grabbing from
@@ -739,6 +743,99 @@ html:not(.has-smooth-cursor) [data-clickable] {
   transition:
     opacity 140ms var(--ease),
     transform 180ms var(--ease);
+}
+
+/*
+ * Copy affordance on a contact row (LinkCopy in TabbedIndex). Sits in the
+ * row's 40px right padding, so revealing it shifts nothing.
+ */
+.link-copy {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  display: flex;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 160ms var(--ease);
+}
+
+li:hover > .link-copy,
+.link-copy:focus-within,
+.link-copy:has([data-copied]) {
+  opacity: 1;
+}
+
+/* Nothing hovers on a touch screen: keep it findable, just quiet. */
+@media (hover: none) {
+  .link-copy {
+    opacity: 0.6;
+  }
+}
+
+/*
+ * "Copied", on the same surface as the tool badges' names. Rises out of a
+ * slight blur when the button flips to its check, and sinks back with it.
+ *
+ * Phones: above the button. Wider screens: out past the row's right edge,
+ * in the empty space beside it, so it never sits on the row's highlight.
+ */
+.link-copy-pill {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-fg);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  filter: blur(2px);
+  transform: translate(-50%, 4px) scale(0.94);
+  transition:
+    opacity 160ms var(--ease),
+    filter 160ms var(--ease),
+    transform 200ms var(--ease);
+}
+
+.link-copy:has([data-copied]) .link-copy-pill {
+  opacity: 1;
+  filter: blur(0);
+  transform: translate(-50%, 0) scale(1);
+  transition:
+    opacity 140ms var(--ease),
+    filter 140ms var(--ease),
+    transform 260ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@media (min-width: 640px) {
+  .link-copy-pill {
+    bottom: auto;
+    top: 50%;
+    left: calc(100% + 10px);
+    transform: translate(-6px, -50%) scale(0.94);
+  }
+  .link-copy:has([data-copied]) .link-copy-pill {
+    transform: translate(0, -50%) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link-copy-pill,
+  .link-copy:has([data-copied]) .link-copy-pill {
+    filter: none;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) and (min-width: 640px) {
+  .link-copy-pill,
+  .link-copy:has([data-copied]) .link-copy-pill {
+    transform: translate(0, -50%);
+  }
 }
 
 .tool-badge:has(:focus-visible)::after {

@@ -1,4 +1,30 @@
 {
+  "/images/business-card/archicoders-back.webp": {
+    "width": 1050,
+    "height": 600,
+    "hash": "e7feff7c482ff4bc",
+    "widths": [
+      64,
+      128,
+      256,
+      480,
+      960,
+      1050
+    ]
+  },
+  "/images/business-card/archicoders-front.webp": {
+    "width": 1050,
+    "height": 600,
+    "hash": "4915e904ef890db1",
+    "widths": [
+      64,
+      128,
+      256,
+      480,
+      960,
+      1050
+    ]
+  },
   "/images/certifications/Github_Copilot_badge.png": {
     "width": 340,
     "height": 340,
@@ -56,6 +82,84 @@
       128,
       256,
       300
+    ]
+  },
+  "/images/lanyard/fearex-back.webp": {
+    "width": 1024,
+    "height": 1440,
+    "hash": "8bf61ab534a88496",
+    "widths": [
+      64,
+      128,
+      256,
+      480,
+      960,
+      1024
+    ]
+  },
+  "/images/lanyard/fearex-front.webp": {
+    "width": 1024,
+    "height": 1440,
+    "hash": "77cd3c14d95abcc6",
+    "widths": [
+      64,
+      128,
+      256,
+      480,
+      960,
+      1024
+    ]
+  },
+  "/images/lanyard/fearex-strap.png": {
+    "width": 1536,
+    "height": 192,
+    "hash": "8d578d1c692c6d59",
+    "widths": [
+      64,
+      128,
+      256,
+      480,
+      960,
+      1536
+    ]
+  },
+  "/images/lanyard/trends-back.png": {
+    "width": 1024,
+    "height": 1440,
+    "hash": "779c607c410b4f5a",
+    "widths": [
+      64,
+      128,
+      256,
+      480,
+      960,
+      1024
+    ]
+  },
+  "/images/lanyard/trends-front.png": {
+    "width": 1024,
+    "height": 1440,
+    "hash": "acf89b53f60319d3",
+    "widths": [
+      64,
+      128,
+      256,
+      480,
+      960,
+      1024
+    ]
+  },
+  "/images/lanyard/trends-strap.png": {
+    "width": 1536,
+    "height": 192,
+    "hash": "1ce932e5a5c2b8cd",
+    "widths": [
+      64,
+      128,
+      256,
+      480,
+      960,
+      1536
     ]
   },
   "/images/other/heyyo.png": {

@@ -24,6 +24,8 @@ const INTERACTIVE = [
   "[role='menuitemradio']",
   // The audio waveform seeks on press.
   "[role='slider']",
+  // A native range slider is a control to drag, not a field to type in.
+  "input[type='range']",
   "[data-keycap]",
   // Pointer affordance without link semantics, e.g. the placeholder articles.
   "[data-clickable]",
@@ -47,7 +49,7 @@ const TEXT_REGION =
   "[data-cursor='text'], .article-body, .article-header, .article-dek, .article-title, .table-scroll, table, time, .article-eyebrow, .updated-at, .document-reading";
 
 /** Fields always get the I-beam, wherever they are. */
-const FIELD = "input:not([type='checkbox']):not([type='radio']), textarea, [contenteditable]";
+const FIELD = "input:not([type='checkbox']):not([type='radio']):not([type='range']), textarea, [contenteditable]";
 
 /*
  * Vertical allowance around each line of text. A character's box is its

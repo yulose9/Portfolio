@@ -97,7 +97,7 @@
         {
           "title": "AI Specialist",
           "company": "FEAREX Technologies",
-          "year": "2026 — Present",
+          "year": "2026-Present",
           "icon": "robot",
           "href": "https://fearextechnologies.com",
           "lanyard": {
@@ -109,7 +109,7 @@
         {
           "title": "Solutions Architect (AWS & RHEL)",
           "company": "Trends and Technologies",
-          "year": "2024 — 2026",
+          "year": "2024-2026",
           "icon": "hardhat",
           "href": "https://www.trends.com.ph/",
           "image": "/images/company-logos/trends-and-technologies.png",
@@ -123,7 +123,7 @@
         {
           "title": "Design Intern (UI/UX)",
           "company": "Archicoders",
-          "year": "2023 — 2024",
+          "year": "2023-2024",
           "icon": "palette",
           "href": "https://archicoders.com/",
           "image": "/images/company-logos/archicoders.jpg",

@@ -25,8 +25,17 @@ function subscribe(listener: () => void) {
   };
 }
 
-export default function AnalyticsPrivacy() {
+/**
+ * `compact`: one quiet line with short labels and no bullets, for tight
+ * places (the /projects panel). The full labels are the site footer's.
+ */
+export default function AnalyticsPrivacy({ compact = false }: { compact?: boolean }) {
   const disabled = useSyncExternalStore(subscribe, readPreference, () => false);
+  const dot = compact ? null : (
+    <span className="text-[color:var(--line-strong)] select-none" aria-hidden="true">
+      •
+    </span>
+  );
 
   return (
     <nav
@@ -37,29 +46,23 @@ export default function AnalyticsPrivacy() {
         href="/privacy"
         className="transition-colors hover:text-[color:var(--fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--focus)] rounded px-1 py-0.5"
       >
-        Privacy Policy
+        {compact ? "Privacy" : "Privacy Policy"}
       </Link>
-      <span className="text-[color:var(--line-strong)] select-none" aria-hidden="true">
-        •
-      </span>
+      {dot}
       <Link
         href="/terms"
         className="transition-colors hover:text-[color:var(--fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--focus)] rounded px-1 py-0.5"
       >
-        Terms &amp; Conditions
+        {compact ? "Terms" : <>Terms &amp; Conditions</>}
       </Link>
-      <span className="text-[color:var(--line-strong)] select-none" aria-hidden="true">
-        •
-      </span>
+      {dot}
       <Link
         href="/cookies"
         className="transition-colors hover:text-[color:var(--fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--focus)] rounded px-1 py-0.5"
       >
-        Cookie Policy
+        {compact ? "Cookies" : "Cookie Policy"}
       </Link>
-      <span className="text-[color:var(--line-strong)] select-none" aria-hidden="true">
-        •
-      </span>
+      {dot}
       <button
         type="button"
         className="cursor-pointer transition-colors hover:text-[color:var(--fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--focus)] rounded px-1 py-0.5"
@@ -87,7 +90,7 @@ export default function AnalyticsPrivacy() {
         }}
         aria-pressed={disabled}
       >
-        {disabled ? "Analytics off for this browser" : "Opt out of analytics"}
+        {disabled ? (compact ? "Analytics off" : "Analytics off for this browser") : "Opt out of analytics"}
       </button>
     </nav>
   );

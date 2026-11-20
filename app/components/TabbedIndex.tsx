@@ -15,6 +15,7 @@ import {
 import { haptic } from "../lib/haptics";
 import { responsiveImage } from "../lib/images";
 import { ShowcaseProvider, showcaseKey, useShowcase } from "./lanyard/LanyardStage";
+import { CopyButton } from "./kit/inputs/copy-button";
 import AboutMenu from "./menu/AboutMenu";
 import RowMenu from "./menu/RowMenu";
 import { playSound } from "./ui/sound";
@@ -1080,6 +1081,44 @@ function PostRow({ title, date, href, ruled }: Post & { ruled: boolean }) {
   );
 }
 
+/** Contact links worth copying rather than only opening. */
+const COPYABLE = new Set<NonNullable<NonNullable<Tab["links"]>[number]["icon"]>>([
+  "email",
+  "github",
+  "linkedin",
+]);
+
+/*
+ * A quiet copy affordance at the end of a contact row.
+ *
+ * It lives in the row's own right padding, absolutely placed, so showing it
+ * moves nothing and the row highlight already frames it. Hidden until the row
+ * is hovered or focused (on touch screens, where nothing hovers, it rests at
+ * low opacity instead). Pressing it is the kit CopyButton, glyph swap and all,
+ * plus a "Copied" pill above it on the site's tooltip surface; the pill is
+ * driven by the button's own [data-copied], so there is no second timer.
+ *
+ * Email copies the bare address, profiles copy their full URL.
+ */
+function LinkCopy({ link }: { link: NonNullable<Tab["links"]>[number] }) {
+  const value = link.href.replace(/^mailto:/, "");
+  const what = link.icon === "email" ? "email address" : `${link.label} link`;
+  return (
+    <span className="link-copy">
+      <CopyButton
+        value={value}
+        label={`Copy ${what}`}
+        copiedLabel={`Copied ${what}`}
+        timeout={1600}
+        onClick={haptic}
+      />
+      <span className="link-copy-pill" aria-hidden="true">
+        Copied
+      </span>
+    </span>
+  );
+}
+
 function LinkList({
   links,
   start,
@@ -1142,6 +1181,7 @@ function LinkList({
                   link.href.replace(/^mailto:/, "").replace(/^https?:\/\/(www\.)?/, "")}
               </span>
             </a>
+            {link.icon && COPYABLE.has(link.icon) ? <LinkCopy link={link} /> : null}
           </li>
         ))}
       </ul>
