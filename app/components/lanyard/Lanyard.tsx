@@ -2,10 +2,11 @@
 
 /*
  * Lanyard by React Bits (https://reactbits.dev/components/lanyard),
- * MIT + Commons Clause, © David Haz. Vendored, with three local additions:
+ * MIT + Commons Clause, © David Haz. Vendored, with local additions:
  *  - `drop`: bump it to drop the card in from above the frame (dropFromAbove);
  *  - the card hover/hold drives the site's own cursor (data-cursor + holdGrabbing);
- * both marked `local:` below. LanyardStage wraps it.
+ *  - shaders compile asynchronously before the first frame (compileAsync);
+ * each marked `local:` below. LanyardStage wraps it.
  */
 
 import { useEffect, useRef } from 'react';
@@ -1101,6 +1102,8 @@ const Lanyard = ({
     let dropAge = Infinity;
     let visible = true;
     let alive = true;
+    // local: no frame is drawn until the shaders are compiled (see below).
+    let warm = false;
     let placed = false;
     let hovering = false;
     let press: Press | null = null;
@@ -1325,6 +1328,7 @@ const Lanyard = ({
     };
 
     const render = () => {
+      if (!warm) return;
       cardGroup.position.copy(sim.body.position);
       cardGroup.quaternion.copy(sim.body.quaternion);
       updateBand();
@@ -1512,6 +1516,21 @@ const Lanyard = ({
 
     applyRef.current = apply;
     resize();
+
+    // local: compile every shader before the first frame, without blocking.
+    // Drawing first would compile them synchronously on the main thread in one
+    // long freeze (worst on Windows, where they go through Direct3D);
+    // compileAsync lets the browser compile them in parallel
+    // (KHR_parallel_shader_compile) while the page stays responsive.
+    renderer
+      .compileAsync(scene, camera)
+      .catch(() => undefined)
+      .then(() => {
+        warm = true;
+        if (!alive) return;
+        render();
+        start();
+      });
 
     return () => {
       alive = false;

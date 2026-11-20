@@ -99,7 +99,12 @@
           "company": "FEAREX Technologies",
           "year": "2026 — Present",
           "icon": "robot",
-          "href": "https://fearextechnologies.com"
+          "href": "https://fearextechnologies.com",
+          "lanyard": {
+            "front": "/images/lanyard/fearex-front.webp",
+            "back": "/images/lanyard/fearex-back.webp",
+            "strap": "/images/lanyard/fearex-strap.png"
+          }
         },
         {
           "title": "Solutions Architect (AWS & RHEL)",
@@ -122,7 +127,11 @@
           "icon": "palette",
           "href": "https://archicoders.com/",
           "image": "/images/company-logos/archicoders.jpg",
-          "fit": "contain"
+          "fit": "contain",
+          "card": {
+            "front": "/images/business-card/archicoders-front.webp",
+            "back": "/images/business-card/archicoders-back.webp"
+          }
         }
       ]
     },

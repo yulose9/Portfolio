@@ -14,8 +14,14 @@ import {
 import { createPortal } from "react-dom";
 
 import type { Entry } from "../../site-content";
+import BusinessCardStage, { loadTiltedCard } from "./BusinessCardStage";
 
 export type Badge = NonNullable<Entry["lanyard"]>;
+export type Card = NonNullable<Entry["card"]>;
+
+/** The key a row's showcase (badge or card) is shown under, if it has one. */
+export const showcaseKey = (entry: Entry | undefined) =>
+  entry?.lanyard?.front ?? entry?.card?.front ?? null;
 
 const loadLanyard = () => import("./Lanyard");
 const Lanyard = dynamic(loadLanyard, { ssr: false });
@@ -56,7 +62,7 @@ type Controller = {
 };
 
 const LanyardContext = createContext<Controller | null>(null);
-export const useLanyard = () => useContext(LanyardContext);
+export const useShowcase = () => useContext(LanyardContext);
 
 function useController(): Controller {
   const [shown, setShown] = useState<string | null>(null);
@@ -118,17 +124,21 @@ function useController(): Controller {
  * the textures upload off the hover path). Waits for the browser to go idle
  * after load so none of it competes with the page's own first paint.
  */
-function usePreload(badges: Badge[], room: boolean) {
+function usePreload(badges: Badge[], cards: Card[], room: boolean) {
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    if (!room || !badges.length) return;
+    if (!room || (!badges.length && !cards.length)) return;
     let live = true;
     const idle =
       window.requestIdleCallback ??
       ((cb: () => void) => window.setTimeout(cb, 600));
     const cancel = window.cancelIdleCallback ?? window.clearTimeout;
     const handle = idle(() => {
-      const images = badges.flatMap((b) => [b.front, b.back, b.strap]).map(
+      const sources = [
+        ...badges.flatMap((b) => [b.front, b.back, b.strap]),
+        ...cards.flatMap((c) => [c.front, c.back]),
+      ];
+      const images = sources.map(
         (src) => {
           const img = new Image();
           img.decoding = "async";
@@ -136,40 +146,70 @@ function usePreload(badges: Badge[], room: boolean) {
           return img.decode().catch(() => undefined);
         }
       );
-      Promise.all([loadLanyard(), ...images]).then(() => live && setReady(true));
+      const modules = [
+        ...(badges.length ? [loadLanyard()] : []),
+        ...(cards.length ? [loadTiltedCard()] : []),
+      ];
+      Promise.all([...modules, ...images]).then(() => live && setReady(true));
     });
     return () => {
       live = false;
       cancel(handle as number);
     };
-  }, [badges, room]);
+  }, [badges, cards, room]);
   return ready;
 }
 
 /**
- * Owns the badges for the whole index, so the scene is mounted once at page
- * level (warm before the Work tab is even opened) instead of per list.
+ * Owns every row showcase on the index (ID badges and business cards), so
+ * each is mounted once at page level, warm before the Work tab is even
+ * opened, and one controller decides which is up.
  */
-export function LanyardProvider({
+export function ShowcaseProvider({
   badges,
+  cards,
   children,
 }: {
   badges: Badge[];
+  cards: Card[];
   children: React.ReactNode;
 }) {
   const controller = useController();
   const room = useRoom();
-  const ready = usePreload(badges, room);
+  const ready = usePreload(badges, cards, room);
+
+  /*
+   * One scene for every badge. Only one is ever up, and each WebGL scene is
+   * its own GPU context with its own buffers and shader compile, none of it
+   * shareable; two IDs as two scenes doubled the start-up freeze. So the one
+   * scene keeps the last badge it showed and swaps the faces and strap when a
+   * different one is asked for (the images are already decoded, see
+   * usePreload).
+   */
+  const activeBadge = badges.find((b) => b.front === controller.shown);
+  const [lastBadge, setLastBadge] = useState<string | undefined>(undefined);
+  if (activeBadge && activeBadge.front !== lastBadge) setLastBadge(activeBadge.front);
+  const badge = activeBadge ?? badges.find((b) => b.front === lastBadge) ?? badges[0];
 
   return (
     <LanyardContext.Provider value={controller}>
       {children}
-      {ready && room
-        ? badges.map((badge) => (
+      {ready && room && badge
+        ? (
             <Stage
-              key={badge.front}
               badge={badge}
-              shown={controller.shown === badge.front}
+              shown={activeBadge !== undefined}
+              onEnter={controller.engage}
+              onLeave={controller.disengage}
+            />
+          )
+        : null}
+      {ready && room
+        ? cards.map((card) => (
+            <BusinessCardStage
+              key={card.front}
+              card={card}
+              shown={controller.shown === card.front}
               onEnter={controller.engage}
               onLeave={controller.disengage}
             />
@@ -183,10 +223,10 @@ export function LanyardProvider({
  * The hanging ID badge.
  *
  * Fixed to the strip right of the content column, its strap running off the
- * top edge so it reads as hanging from the browser's own chrome. Showing it is
- * CSS (.lanyard-stage.is-shown): lowered in on an overshooting curve, as if
- * the strap caught its weight, while it dissolves out of a blur. Hiding is the
- * dissolve alone, and it jumps back up only once invisible.
+ * top edge so it reads as hanging from the browser's own chrome. Each time it
+ * comes up it is dropped from above the frame by the simulation itself, while
+ * CSS (.lanyard-stage.is-shown) dissolves it out of a blur; hiding is the
+ * dissolve alone.
  *
  * Shown, it takes the pointer: drag it, throw it, click to flip, exactly as on
  * React Bits. Hidden, it lets every click through and the breeze stops, so the
@@ -215,12 +255,16 @@ function Stage({
   // Every time it comes up it is dropped in afresh: bumping `drop` tells the
   // simulation to lift the card above the frame and let it fall (see
   // dropFromAbove in Lanyard.tsx). Counted during render, on the edge.
+  // A new drop each time it comes up, and each time it switches to a
+  // different badge while up (so going Trends -> FEAREX swaps the faces and
+  // drops the new one in, rather than repainting a hanging card in place).
   const up = shown && painted;
   const [drop, setDrop] = useState(0);
-  const [wasUp, setWasUp] = useState(false);
-  if (up !== wasUp) {
-    setWasUp(up);
-    if (up) setDrop(drop + 1);
+  const [dropped, setDropped] = useState<string | null>(null);
+  const want = up ? badge.front : null;
+  if (want !== dropped) {
+    setDropped(want);
+    if (want) setDrop(drop + 1);
   }
 
   // Portalled to <body>: the tab panels animate with transforms, and a fixed

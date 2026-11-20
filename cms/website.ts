@@ -106,6 +106,17 @@ export function validateWebsite(value: unknown): WebsiteContent {
                       },
                     }
                   : {}),
+                ...(item.card &&
+                typeof item.card === "object" &&
+                websiteUrl(item.card.front, true) &&
+                websiteUrl(item.card.back, true)
+                  ? {
+                      card: {
+                        front: websiteUrl(item.card.front, true),
+                        back: websiteUrl(item.card.back, true),
+                      },
+                    }
+                  : {}),
               })),
           }
         : {}),

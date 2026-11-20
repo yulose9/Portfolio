@@ -28,6 +28,11 @@ export type Entry = {
    * front/back are 1024×1440 PNGs, strap is a 1536×192 seamless tile.
    */
   lanyard?: { front: string; back: string; strap: string };
+  /**
+   * A business card that materialises on hover, tilts toward the pointer and
+   * flips on click. front/back are 1050×600 (3.5×2 in at 300 DPI).
+   */
+  card?: { front: string; back: string };
 };
 
 export type Link = {

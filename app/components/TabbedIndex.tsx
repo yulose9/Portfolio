@@ -14,7 +14,7 @@ import {
 } from "@phosphor-icons/react";
 import { haptic } from "../lib/haptics";
 import { responsiveImage } from "../lib/images";
-import { LanyardProvider, useLanyard } from "./lanyard/LanyardStage";
+import { ShowcaseProvider, showcaseKey, useShowcase } from "./lanyard/LanyardStage";
 import AboutMenu from "./menu/AboutMenu";
 import RowMenu from "./menu/RowMenu";
 import { playSound } from "./ui/sound";
@@ -151,18 +151,18 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
     }
   }, [active.id, tabs]);
 
-  // Every ID badge on the page, mounted once here so it is warm before the
-  // tab that lists it is even opened.
-  const badges = useMemo(
-    () =>
-      tabs.flatMap((tab) =>
-        (tab.items ?? []).flatMap((item) => (item.lanyard ? [item.lanyard] : []))
-      ),
-    [tabs]
-  );
+  // Every row showcase on the page (ID badges, business cards), mounted once
+  // here so it is warm before the tab that lists it is even opened.
+  const { badges, cards } = useMemo(() => {
+    const items = tabs.flatMap((tab) => tab.items ?? []);
+    return {
+      badges: items.flatMap((item) => (item.lanyard ? [item.lanyard] : [])),
+      cards: items.flatMap((item) => (item.card ? [item.card] : [])),
+    };
+  }, [tabs]);
 
   return (
-    <LanyardProvider badges={badges}>
+    <ShowcaseProvider badges={badges} cards={cards}>
     <div className="rhythm-12 flex w-full flex-col items-start gap-12">
       {/* tab-scroller: on phones five tabs outrun the column, so the rail
           scrolls sideways there (see globals.css). Desktop is unaffected. */}
@@ -341,7 +341,7 @@ export default function TabbedIndex({ tabs }: { tabs: Tab[] }) {
 
       <TabArchive tabs={tabs} activeId={active.id} />
     </div>
-    </LanyardProvider>
+    </ShowcaseProvider>
   );
 }
 
@@ -482,6 +482,11 @@ const PARAGRAPH_BREAK = "\n\n";
  */
 const PREVIEW_ROOM = "(hover: hover) and (pointer: fine) and (min-width: 1280px)";
 
+/** Menu aim (EntryList): how long a crossed row must hold, and what counts as heading right. */
+const AIM_MS = 220;
+/** Heading right enough to aim: horizontal travel at least this times vertical (~63 deg). */
+const AIM_SLOPE = 0.5;
+
 /**
  * The row level with the pinned preview, as the page scrolls.
  *
@@ -617,46 +622,111 @@ function EntryList({ items, kind }: { items: Entry[]; kind: string }) {
   // A row being pointed at or focused is a deliberate choice, so it outranks
   // whichever row happens to be scrolled level with the frame.
   const target = hovered ?? beside;
-  // A row with an ID badge shows the hanging lanyard instead of the frame, and
-  // only on a deliberate hover or focus, never just for being scrolled level.
+  // A row with a showcase (ID badge, business card) shows that instead of the
+  // frame, and only on a deliberate hover or focus, never for being scrolled
+  // level with it.
   const targetItem = target === null ? undefined : items[target];
-  const wantedSrc = targetItem?.lanyard ? undefined : targetItem?.image;
+  const wantedSrc = showcaseKey(targetItem) ? undefined : targetItem?.image;
   const previewSrc = useDecodedSrc(wantedSrc, imgRefs);
 
   // The stack of preview images, in list order. Narrowed so image is a string.
   const withImages = items.filter(
     (item): item is Entry & { image: string } =>
-      Boolean(item.image) && !item.lanyard
+      Boolean(item.image) && !showcaseKey(item)
   );
 
-  // The badge (mounted page-wide by LanyardProvider) follows the row hover.
-  // Leaving the list from a badge row does not drop the highlight yet: the
-  // pointer may be on its way to the card, and the row stays selected for as
-  // long as the badge is up. The controller hands it back via `leave`.
-  const lanyard = useLanyard();
-  // Switching tabs unmounts the list; the badge must not outlive it.
-  const hoverRow = lanyard?.hoverRow;
+  // The showcase (mounted page-wide by ShowcaseProvider) follows the row
+  // hover. Leaving the list from a showcase row does not drop the highlight
+  // yet: the pointer may be on its way to it, and the row stays selected for
+  // as long as it is up. The controller hands it back via `leave`.
+  const showcase = useShowcase();
+  // Switching tabs unmounts the list; the showcase must not outlive it.
+  const hoverRow = showcase?.hoverRow;
   useEffect(() => () => hoverRow?.(null), [hoverRow]);
-  const pointRow = (index: number) => {
+  const commitRow = (index: number) => {
     enter(index);
-    lanyard?.hoverRow(items[index]?.lanyard?.front ?? null);
+    showcase?.hoverRow(showcaseKey(items[index]));
+  };
+
+  /*
+   * Menu aim. With a showcase up beside the column, the way to it often runs
+   * diagonally across other rows, and switching on every row crossed would
+   * swap it out from under the pointer before it arrives. So while one is up
+   * and the pointer comes into a different row heading right (toward it,
+   * straight across or on a diagonal), that row only takes over if the
+   * pointer is still on it after AIM_MS; leaving it sooner means it was only
+   * passed through. Moving up or down the list switches at once, as does
+   * keyboard focus.
+   *
+   * Direction, not speed: the first move after resting on a row comes after a
+   * long pause, so any speed measured across it reads as standing still.
+   */
+  const last = useRef<{ x: number; y: number } | null>(null);
+  const pending = useRef<{ index: number; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const cancelPending = () => {
+    if (pending.current) clearTimeout(pending.current.timer);
+    pending.current = null;
+  };
+  useEffect(() => cancelPending, []);
+  const pointRow = (index: number, event?: React.PointerEvent) => {
+    cancelPending();
+    const current = showcase?.shown ?? null;
+    const from = last.current;
+    const dx = event && from ? event.clientX - from.x : 0;
+    const dy = event && from ? event.clientY - from.y : 0;
+    const aiming = dx > 0 && dx >= Math.abs(dy) * AIM_SLOPE;
+    if (event) last.current = { x: event.clientX, y: event.clientY };
+    if (aiming && current && showcaseKey(items[index]) !== current) {
+      pending.current = {
+        index,
+        timer: setTimeout(() => {
+          pending.current = null;
+          commitRow(index);
+        }, AIM_MS),
+      };
+      return;
+    }
+    commitRow(index);
+  };
+  // While a crossed row is on hold, still moving toward the showcase keeps it
+  // on hold; resting (the timer runs out) or turning away hands it over.
+  const trackAim = (event: React.PointerEvent) => {
+    const from = last.current;
+    last.current = { x: event.clientX, y: event.clientY };
+    const held = pending.current;
+    if (!held || !from) return;
+    const dx = event.clientX - from.x;
+    const dy = event.clientY - from.y;
+    if (dx === 0 && dy === 0) return;
+    clearTimeout(held.timer);
+    if (dx > 0 && dx >= Math.abs(dy) * AIM_SLOPE) {
+      held.timer = setTimeout(() => {
+        pending.current = null;
+        commitRow(held.index);
+      }, AIM_MS);
+    } else {
+      pending.current = null;
+      commitRow(held.index);
+    }
   };
 
   return (
     <div
       className="relative w-full"
       {...wrapperProps}
+      onPointerMove={trackAim}
       onPointerLeave={(event) => {
-        const badge = hovered === null ? undefined : items[hovered]?.lanyard;
-        if (badge && lanyard) lanyard.leaveList(badge.front, leave);
+        cancelPending();
+        const key = hovered === null ? null : showcaseKey(items[hovered]);
+        if (key && showcase) showcase.leaveList(key, leave);
         else {
-          lanyard?.hoverRow(null);
+          showcase?.hoverRow(null);
           wrapperProps.onPointerLeave(event);
         }
       }}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null))
-          lanyard?.hoverRow(null);
+          showcase?.hoverRow(null);
         wrapperProps.onBlur(event);
       }}
     >
@@ -693,7 +763,10 @@ function EntryList({ items, kind }: { items: Entry[]; kind: string }) {
               // relative keeps it painting above the highlight.
               className="panel-chunk relative w-fit"
               style={{ "--i": index } as React.CSSProperties}
-              onPointerEnter={() => pointRow(index)}
+              onPointerEnter={(event) => pointRow(index, event)}
+              onPointerLeave={() => {
+                if (pending.current?.index === index) cancelPending();
+              }}
               onFocus={() => pointRow(index)}
             >
               <RowMenu entry={item} kind={kind}>
