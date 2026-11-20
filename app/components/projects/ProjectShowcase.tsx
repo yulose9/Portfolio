@@ -23,6 +23,8 @@ export type { ShowcaseProfile, ShowcaseProject } from "./ShowcasePanels";
 
 /** Cards around the ring, at least: the assets repeat until it is this full. */
 const MIN_SLOTS = 14;
+/** How long each home photo shows before the next dissolves in, in ms. */
+const PHOTO_EVERY = 5000;
 
 /*
  * Which project is showing lives in the URL (?project=<slug>), not in React
@@ -108,6 +110,32 @@ export default function ProjectShowcase({
     return null;
   };
   const [live, setLive] = useState<number | null>(null);
+
+  /*
+   * The home card's photos. A click on the centred card, or every few
+   * seconds on its own, dissolves to another one at random, never the one
+   * just shown. It holds still while the pointer is on the ring (someone is
+   * looking or dragging), while the tab is hidden, and always under reduced
+   * motion, where a click still changes it.
+   */
+  const photos = profile.photos;
+  const [photo, setPhoto] = useState(0);
+  const holdPhotos = useRef(false);
+  const nextPhoto = useCallback(() => {
+    if (photos.length < 2) return;
+    setPhoto((now) => {
+      const pick = Math.floor(Math.random() * (photos.length - 1));
+      return pick >= now ? pick + 1 : pick;
+    });
+  }, [photos.length]);
+  useEffect(() => {
+    if (photos.length < 2) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = setInterval(() => {
+      if (!holdPhotos.current && document.visibilityState === "visible") nextPhoto();
+    }, PHOTO_EVERY);
+    return () => clearInterval(id);
+  }, [photos.length, nextPhoto]);
   // Opened from the panel's button (a keyboard path): take focus into the demo.
   const [focusDemo, setFocusDemo] = useState(false);
   const slots = useMemo<RingSlot[]>(() => {
@@ -189,6 +217,11 @@ export default function ProjectShowcase({
       event.preventDefault();
       haptic();
       setLive(i);
+      return;
+    }
+    if (slots[i].project === null) {
+      haptic();
+      nextPhoto();
     }
   };
 
@@ -294,6 +327,12 @@ export default function ProjectShowcase({
         aria-roledescription="carousel"
         aria-label={`Screens from ${current ? current.title : "all projects"}. Use the left and right arrow keys to browse.`}
         onPointerDown={onPointerDown}
+        onPointerEnter={() => {
+          holdPhotos.current = true;
+        }}
+        onPointerLeave={() => {
+          holdPhotos.current = false;
+        }}
         onKeyDown={(event) => {
           if (event.key === "Escape") setLive(null);
           else onKeyDown(event);
@@ -302,7 +341,25 @@ export default function ProjectShowcase({
         <div className="showcase-ring">
           {slots.map((slot, i) => {
             const project = projects.find((p) => p.slug === slot.project);
-            const image = (
+            // The home card: every photo stacked, the current one showing.
+            const image = slot.project === null ? (
+              photos.map((src, k) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={src}
+                  className="showcase-photo"
+                  data-on={k === photo ? "" : undefined}
+                  src={src}
+                  alt=""
+                  width={393}
+                  height={852}
+                  draggable={false}
+                  decoding="async"
+                  loading={i < 6 ? "eager" : "lazy"}
+                  fetchPriority={k === 0 ? (i === 0 ? "high" : undefined) : "low"}
+                />
+              ))
+            ) : (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={slot.src}

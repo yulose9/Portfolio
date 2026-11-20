@@ -721,8 +721,29 @@ html:has(.project-showcase) .showcase-legal .site-compliance-footer {
   /* The press lives on the screen: the card's own transform is the ring's. */
   transition: scale 150ms var(--showcase-out);
 }
-.showcase-card[data-centre]:active > img {
+/*
+ * The press shrinks a screenshot. Never the photo card: a stack of photos
+ * scaling down shows the card's edge and the photos behind round it, so a
+ * click there only dissolves to the next photo.
+ */
+.showcase-card[data-centre]:active > img:not(.showcase-photo) {
   scale: 0.98;
+}
+
+/*
+ * The home card's photos, stacked; the current one is opaque and the rest
+ * wait at zero. A dissolve, opacity only, so the incoming photo and the
+ * outgoing one cross without anything moving.
+ */
+.showcase-card > .showcase-photo {
+  position: absolute;
+  inset: 0;
+  object-position: center 20%;
+  opacity: 0;
+  transition: opacity 600ms var(--ease-soft, ease);
+}
+.showcase-card > .showcase-photo[data-on] {
+  opacity: 1;
 }
 
 @keyframes showcase-in {
@@ -1207,6 +1228,9 @@ a.showcase-preview:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .showcase-card > .showcase-photo {
+    transition-duration: 0s;
+  }
   .phone-demo,
   .showcase-preview,
   .pf-demo-list {

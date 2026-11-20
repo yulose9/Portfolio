@@ -45,6 +45,8 @@ export type ShowcaseProfile = {
   role: string;
   email: string;
   avatar: string;
+  /** The home card's photos, dissolved between (at least one). */
+  photos: string[];
   place: string;
   timeZone: string;
 };

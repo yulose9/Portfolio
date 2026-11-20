@@ -1,0 +1,421 @@
+/*
+ * /writing, the index (app/components/writing/WritingFront.tsx).
+ *
+ * Read like a newsroom front page: the newest post large on the left, the
+ * next few as compact rows with small pictures on the right, and the archive
+ * below. Built from the home page's own parts, so it reads as the same site:
+ *
+ *   - rows share one travelling glass highlight (.list-highlight, via
+ *     HighlightList and useTravellingHighlight);
+ *   - the year filter is the home tabs' travelling glass pill (.tab-rail);
+ *   - an emoji tile is the home tool badge's glass;
+ *   - blocks arrive with the home panels' entrance (.panel-chunk).
+ *
+ * Space does the grouping; no cards, no rules between rows. Every colour is a
+ * site token, so dark mode is the tokens' job.
+ *
+ * Corners, one rule each: controls are pills (the year tabs); the row glass is
+ * 24px (concentric round its 10px thumbnails); the featured picture and its
+ * link are 16px.
+ */
+
+.wi {
+  max-width: calc(1120px + 6rem);
+  margin-inline: auto;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+
+.wi-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+.wi-title {
+  margin: 0;
+  color: var(--fg);
+  font-size: 2.5rem;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.wi-dek {
+  max-width: 60ch;
+  margin: 0;
+  color: var(--fg-2);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+.wi-meta {
+  display: flex;
+  gap: 0.875rem;
+  margin: 0;
+  color: var(--fg-3);
+  font-size: 0.8125rem;
+}
+.wi-meta a {
+  /* 24px tall target (WCAG 2.5.8) without moving the line. */
+  display: inline-block;
+  margin-block: -2px;
+  padding-block: 2px;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: color 150ms var(--ease);
+}
+
+/* The line under a title: date, tag, reading time, spaced (no separators to
+   strand at the start of a wrapped line). */
+.wi-meta-line,
+.wi-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.125rem 0.875rem;
+  color: var(--fg-3);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Rows with the travelling highlight ───────────────────────────────── */
+
+/*
+ * The wrapper is the highlight's offsetParent and reaches 1rem past the
+ * column on each side, so the glass has room round the text while the text
+ * stays on the column's edge.
+ */
+.wi-hl {
+  position: relative;
+  margin-inline: -1rem;
+}
+.wi-hl > ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.wi-hl li > a,
+.wi-hl li > span {
+  position: relative;
+  z-index: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+/*
+ * Concentric with the thumbnails inside: a 10px picture inset about 16px from
+ * the glass edge wants a ~24px outer corner. (Home's text-only rows use 14px;
+ * there is nothing nested in them.)
+ */
+.wi-hl > .list-highlight,
+.wi-side-row,
+.wi-row {
+  border-radius: 24px;
+}
+
+/* ── Latest: one large, a few small ───────────────────────────────────── */
+
+.wi-latest {
+  display: grid;
+  gap: 2.5rem;
+  margin-top: 3rem;
+}
+@media (min-width: 900px) {
+  .wi-latest {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 4rem;
+    align-items: start;
+  }
+  /* The first side row's text lines up with the featured post's first line. */
+  .wi-latest .wi-hl {
+    margin-top: -1rem;
+  }
+}
+
+.wi-feature {
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-radius: 16px;
+  color: inherit;
+  text-decoration: none;
+}
+.wi-feature-title {
+  margin: 0;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  transition: text-decoration-color 150ms var(--ease);
+  color: var(--fg);
+  font-size: 1.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+.wi-feature-dek {
+  margin: 0;
+  color: var(--fg-2);
+  font-size: 1rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.wi-side-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1.25rem;
+  align-items: start;
+  padding: 1rem;
+  color: inherit;
+  text-decoration: none;
+}
+.wi-side-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+}
+.wi-side-title {
+  margin: 0;
+  color: var(--fg);
+  font-size: 1.125rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-wrap: balance;
+}
+.wi-side-dek {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--fg-2);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* ── Pictures ─────────────────────────────────────────────────────────── */
+
+.wi-media {
+  position: relative;
+  display: block;
+  flex: none;
+  width: 96px;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  object-fit: cover;
+  /* A hairline in pure black (white in dark) so a light photo keeps its edge. */
+  outline: 1px solid oklch(0 0 0 / 0.1);
+  outline-offset: -1px;
+  transition: scale 150ms var(--ease);
+}
+:root[data-theme="dark"] .wi-media {
+  outline-color: oklch(1 0 0 / 0.1);
+}
+.wi-media-large {
+  width: 100%;
+  max-height: 44svh;
+  aspect-ratio: 16 / 9;
+  margin-top: 0.75rem;
+  border-radius: 16px;
+}
+/* Pressing a post presses its picture. */
+.wi-feature:active .wi-media,
+.wi-hl a:active .wi-media {
+  scale: 0.98;
+}
+
+/* No cover: the post's emoji on the home tool badges' glass. */
+.wi-media-icon {
+  display: grid;
+  place-items: center;
+  outline: 0;
+  background-color: var(--surface-fill);
+  background-image: var(--surface-bg);
+  box-shadow: var(--surface-ring), var(--surface-lift);
+  font-size: 2.75rem;
+  line-height: 1;
+}
+.wi-media-icon::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--surface-sheen);
+  pointer-events: none;
+}
+.wi-media-large.wi-media-icon {
+  font-size: 6rem;
+}
+/* Forced colours drop box-shadow, which is the glass's only edge. */
+@media (forced-colors: active) {
+  .wi-media-icon {
+    border: 1px solid CanvasText;
+  }
+}
+
+/* ── Archive ──────────────────────────────────────────────────────────── */
+
+.wi-archive {
+  margin-top: 5rem;
+}
+.wi-archive-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+.wi-section-title {
+  margin: 0;
+  color: var(--fg-3);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Year filter: the home tabs, smaller. The glass pill is .tab-rail. */
+.wi-years {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.wi-year {
+  touch-action: manipulation;
+  position: relative;
+  z-index: 1;
+  padding: 0.375rem 0.75rem;
+  border: 0;
+  border-radius: 99px;
+  background: none;
+  color: var(--fg-3);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  transition: color 150ms var(--ease);
+}
+.wi-year[aria-pressed="true"] {
+  color: var(--fg);
+}
+.wi-year:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.wi-row {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr) auto;
+  gap: 1.5rem;
+  align-items: start;
+  padding: 1.25rem 1rem;
+  color: inherit;
+  text-decoration: none;
+}
+.wi-row-date {
+  padding-top: 0.2rem;
+  color: var(--fg-3);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+.wi-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+}
+.wi-row-title {
+  margin: 0;
+  color: var(--fg);
+  font-size: 1.125rem;
+  font-weight: 500;
+  line-height: 1.4;
+  text-wrap: balance;
+}
+.wi-row-dek {
+  max-width: 68ch;
+  color: var(--fg-2);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+.wi-row-media .wi-media {
+  width: 72px;
+}
+/* A long archive: rows past the first screenfuls skip rendering until near. */
+.wi-rows > li:nth-child(n + 21) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
+}
+.wi-row-note .wi-row-title {
+  color: var(--fg-2);
+}
+
+/* Focus, for every link on the page. The glass highlight follows focus too. */
+.wi-feature:focus-visible,
+.wi-side-row:focus-visible,
+.wi-row:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.wi-feature:focus-visible {
+  outline-offset: 6px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .wi-meta a:hover {
+    color: var(--fg);
+  }
+  .wi-year:hover {
+    color: var(--fg);
+  }
+  /* The lead's whole block is the link; its title underlines to say so. */
+  .wi-feature:hover .wi-feature-title {
+    text-decoration-color: currentColor;
+  }
+}
+
+/* Phones: the date moves above the title, the picture stays at the side. */
+@media (max-width: 640px) {
+  .wi-title {
+    font-size: 2rem;
+  }
+  .wi-feature-title {
+    font-size: 1.5rem;
+  }
+  .wi-archive-head {
+    flex-wrap: wrap;
+  }
+  .wi-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "date media"
+      "main media";
+    gap: 0.375rem 1rem;
+  }
+  .wi-row-date {
+    grid-area: date;
+    padding-top: 0;
+    font-size: 0.8125rem;
+  }
+  .wi-row-main {
+    grid-area: main;
+  }
+  .wi-row-media {
+    grid-area: media;
+  }
+  .wi-media:not(.wi-media-large) {
+    width: 72px;
+  }
+  .wi-row-media .wi-media {
+    width: 64px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wi-media {
+    transition-duration: 0s;
+  }
+}

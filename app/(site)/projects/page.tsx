@@ -25,7 +25,20 @@ const exists = (file: string) => fs.existsSync(path.join(process.cwd(), "public"
  *   <slug>-icon.png                            its site's icon, 128×128
  * Without screens the cover stands in; without an icon the panel uses a
  * case-study glyph.
+ *
+ * The home card's photos, in the same folder:
+ *   me-1.webp … me-12.webp  portraits at 1179×2556 (the card's 393×852 at 3×)
+ * The card dissolves between them; without any, the profile photo stands in.
  */
+function photosOfMe() {
+  const photos: string[] = [];
+  for (let i = 1; i <= 12; i++) {
+    const file = `/images/projects/me-${i}.webp`;
+    if (exists(file)) photos.push(file);
+  }
+  return photos;
+}
+
 function screensFor(slug: string) {
   const screens: string[] = [];
   for (let i = 1; i <= 6; i++) {
@@ -58,9 +71,12 @@ export default function Projects() {
     role: site.profile.rolePrefix.replace(/\s+at$/i, ""),
     email,
     avatar: site.profile.photo || "/avatar-1024.webp",
+    photos: [],
     place: site.profile.location,
     timeZone: "Asia/Manila",
   };
+  profile.photos = photosOfMe();
+  if (!profile.photos.length) profile.photos = [profile.avatar];
 
   const projects: ShowcaseProject[] = publishedProjects()
     .filter((p) => !p.parentId)
