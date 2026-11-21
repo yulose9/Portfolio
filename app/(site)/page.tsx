@@ -12,8 +12,13 @@ import type { Metadata } from "next";
 
 import { FEED, homeGraph, jsonLd } from "../constants/seo";
 import { publishedPosts } from "../lib/writing";
-import { publishedProjects } from "../lib/projects";
+import fs from "node:fs";
+import path from "node:path";
+import { projectYears, publishedProjects } from "../lib/projects";
 import { TABS, type Tab } from "../site-content";
+
+/** A file under public/, if it is there (checked at build). */
+const asset = (file: string) => (fs.existsSync(path.join(process.cwd(), "public", file)) ? file : undefined);
 
 // The calendar day in Manila, which is the day the post says it went out.
 const manilaDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" });
@@ -37,7 +42,21 @@ function withWriting(tabs: Tab[]): Tab[] {
           })),
         }
       : tab.id === "projects"
-        ? { ...tab, items: projects.map(p => ({ title: p.title, year: p.project?.timeframe ?? "", href: `/projects/${p.slug}`, image: p.cover?.src })), links: [{ label: "All projects", href: "/projects" }] }
+        ? {
+            ...tab,
+            // Each project: its own icon beside the name, its years, and its
+            // desktop screenshot as the preview that follows the cursor. The
+            // icon is the one /projects uses; the preview is the live site captured at
+            // a desktop size (public/images/projects/<slug>-desktop.webp).
+            items: projects.map((p) => ({
+              title: p.title,
+              year: projectYears(p.project?.timeframe ?? "", p.publishedAt.slice(0, 4)),
+              href: `/projects/${p.slug}`,
+              favicon: asset(`/images/projects/${p.slug}-icon.png`),
+              preview: asset(`/images/projects/${p.slug}-desktop.webp`) ?? p.cover?.src,
+            })),
+            links: [{ label: "All projects", href: "/projects" }],
+          }
         : tab
   );
 }

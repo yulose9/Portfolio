@@ -79,6 +79,14 @@ export function validateWebsite(value: unknown): WebsiteContent {
                 title: text(item.title),
                 company: text(item.company),
                 year: text(item.year, 80),
+                ...(item.mark &&
+                typeof item.mark === "object" &&
+                websiteUrl(item.mark.light, true) &&
+                websiteUrl(item.mark.dark, true)
+                  ? { mark: { light: websiteUrl(item.mark.light, true), dark: websiteUrl(item.mark.dark, true) } }
+                  : {}),
+                // One or two sentences under the role (Work rows).
+                ...(item.description ? { description: text(item.description, 400) } : {}),
                 href: websiteUrl(item.href),
                 image: websiteUrl(item.image, true),
                 fit:

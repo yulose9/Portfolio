@@ -33,6 +33,21 @@ export type Entry = {
    * flips on click. front/back are 1050×600 (3.5×2 in at 300 DPI).
    */
   card?: { front: string; back: string };
+  /**
+   * The company's logo (Work rows), one file per theme: dark ink for the
+   * light theme, white for the dark. Wordmarks are fine; the row gives them a
+   * fixed height and their own width.
+   */
+  mark?: { light: string; dark: string };
+  /** One or two plain sentences under the role (Work). */
+  description?: string;
+  /** The site's own icon (favicon), shown beside a project's name. */
+  favicon?: string;
+  /**
+   * A phone-screen image that follows the cursor while the row is hovered
+   * (Projects), in place of the frame beside the column.
+   */
+  preview?: string;
 };
 
 export type Link = {

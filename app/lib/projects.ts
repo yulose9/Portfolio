@@ -21,3 +21,15 @@ export async function projectTree(post: Post) {
   const pages = [...publishedProjects(), ...pagedPosts()];
   return markdownToTree(post.body, [], id => pages.find(p => p.id === id));
 }
+
+/**
+ * A project's years from its timeframe, as the home page and /projects show
+ * them: "Idea in 2024 · … · Launched Oct 21, 2026" → "2024-2026" (a plain
+ * hyphen, like the Work list), one year alone, or the fallback when the
+ * timeframe names none.
+ */
+export function projectYears(timeframe: string, fallback: string) {
+  const years = [...new Set(timeframe.match(/\b(19|20)\d{2}\b/g) ?? [])].sort();
+  if (!years.length) return fallback;
+  return years.length === 1 ? years[0] : `${years[0]}-${years[years.length - 1]}`;
+}

@@ -7,7 +7,7 @@ import ProjectShowcase, {
   type ShowcaseProfile,
   type ShowcaseProject,
 } from "../../components/projects/ProjectShowcase";
-import { publishedProjects } from "../../lib/projects";
+import { projectYears, publishedProjects } from "../../lib/projects";
 import { SITE_SOCIAL_CARDS, pageSocialMetadata } from "../../lib/site-social";
 
 export const metadata: Metadata = {
@@ -48,16 +48,6 @@ function screensFor(slug: string) {
   return screens;
 }
 
-/**
- * "Idea in 2024 · … · Launched Oct 21, 2026" → "2024-2026": a plain hyphen,
- * the way the Work list on the home page writes its ranges.
- */
-function yearsOf(timeframe: string, fallback: string) {
-  const years = [...new Set(timeframe.match(/\b(19|20)\d{2}\b/g) ?? [])].sort();
-  if (!years.length) return fallback;
-  return years.length === 1 ? years[0] : `${years[0]}-${years[years.length - 1]}`;
-}
-
 export default function Projects() {
   const site = publishedWebsite;
   const email =
@@ -89,7 +79,7 @@ export default function Projects() {
         title: project.title,
         role: details?.role || "Project",
         timeframe: details?.timeframe ?? "",
-        years: yearsOf(details?.timeframe ?? "", project.publishedAt.slice(0, 4)),
+        years: projectYears(details?.timeframe ?? "", project.publishedAt.slice(0, 4)),
         dek: project.dek,
         tools: details?.tools ?? [],
         links: (details?.links ?? []).filter((link) => link.href.startsWith("http")),

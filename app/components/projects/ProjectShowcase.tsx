@@ -190,10 +190,29 @@ export default function ProjectShowcase({
     if (aimedProject() !== view) go(nearest(view), { quiet: true });
   }, [view, aimedProject, go, jump, nearest]);
 
+  /*
+   * On a phone the ring sits above the words, so a change made from the words
+   * (choosing a project, trying a preview) would happen off-screen. Bring the
+   * ring into view when it isn't already; the pinned bar is cleared by the
+   * stage's scroll-margin.
+   */
+  const showRing = () => {
+    if (!window.matchMedia("(max-width: 1023px)").matches) return;
+    const stage = stageRef.current;
+    if (!stage) return;
+    const box = stage.getBoundingClientRect();
+    if (box.top >= 0 && box.bottom <= window.innerHeight) return;
+    stage.scrollIntoView({
+      block: "start",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    });
+  };
+
   const choose = (slug: string | null) => {
     setLive(null);
     haptic();
     writeProject(slug, "push");
+    showRing();
   };
 
   const preview = (slug: string | null) => {
@@ -300,6 +319,7 @@ export default function ProjectShowcase({
                         if (aimedProject() !== current.slug) go(nearest(current.slug), { quiet: true });
                         setFocusDemo(true);
                         setLive(aimedIndex());
+                        showRing();
                       }
                     : undefined
                 }

@@ -20,6 +20,7 @@ import AboutMenu from "./menu/AboutMenu";
 import RowMenu from "./menu/RowMenu";
 import { playSound } from "./ui/sound";
 import { useTravellingHighlight } from "./useTravellingHighlight";
+import CursorPreview from "./CursorPreview";
 import type { Entry, Post, Tab } from "../site-content";
 
 /**
@@ -546,6 +547,15 @@ function EntryList({ items, kind }: { items: Entry[]; kind: string }) {
 
   const frameRef = useRef<HTMLDivElement>(null);
   const imgRefs = useRef(new Map<string, HTMLImageElement>());
+
+  // Rows with a cursor preview (Projects): the row under the mouse, not
+  // keyboard focus, since there is no pointer to follow then.
+  const previews = items.map((item) => item.preview ?? null);
+  const hasPreviews = previews.some(Boolean);
+  const [pointing, setPointing] = useState<number | null>(null);
+  // Work and Projects rows run the full column width, with the years at the
+  // right edge; certificates keep their shrink-wrapped rows.
+  const wide = kind === "work" || kind === "projects";
   const beside = useRowBesideFrame(rowRefs, frameRef);
 
   // A row being pointed at or focused is a deliberate choice, so it outranks
@@ -646,6 +656,7 @@ function EntryList({ items, kind }: { items: Entry[]; kind: string }) {
       onPointerMove={trackAim}
       onPointerLeave={(event) => {
         cancelPending();
+        setPointing(null);
         const key = hovered === null ? null : showcaseKey(items[hovered]);
         if (key && showcase) showcase.leaveList(key, leave);
         else {
@@ -690,21 +701,32 @@ function EntryList({ items, kind }: { items: Entry[]; kind: string }) {
               // w-fit is what makes the morph legible: each row is only as wide
               // as its own text, so the highlight visibly resizes between rows.
               // relative keeps it painting above the highlight.
-              className="panel-chunk relative w-fit"
+              className={`panel-chunk relative ${wide ? "w-full" : "w-fit"}`}
               style={{ "--i": index } as React.CSSProperties}
-              onPointerEnter={(event) => pointRow(index, event)}
+              onPointerEnter={(event) => {
+                pointRow(index, event);
+                if (event.pointerType === "mouse") setPointing(index);
+              }}
               onPointerLeave={() => {
                 if (pending.current?.index === index) cancelPending();
               }}
               onFocus={() => pointRow(index)}
             >
               <RowMenu entry={item} kind={kind}>
-                <Row {...item} />
+                {kind === "work" ? (
+                  <WorkRow {...item} />
+                ) : kind === "projects" ? (
+                  <ProjectRow {...item} />
+                ) : (
+                  <Row {...item} />
+                )}
               </RowMenu>
             </li>
           ))}
         </ul>
       </div>
+
+      {hasPreviews ? <CursorPreview sources={previews} active={pointing} /> : null}
 
       {/*
         A rail beside the column, as tall as the list, that the frame sticks
@@ -859,6 +881,103 @@ function Row({ title, company, year, href, icon, logo }: Entry) {
       className={shell}
       onClick={haptic}
     >
+      {content}
+    </a>
+  ) : (
+    <span className={`${shell} cursor-default`}>{content}</span>
+  );
+}
+
+/*
+ * A Work row, after haydenbleasel.com/about: the company's logo, the company
+ * with its years at the far right, the position under it, then a sentence or
+ * two of what the work is. The logo is the entry's image (a company logo);
+ * without one, its icon stands in on the same tile.
+ */
+function WorkRow({ title, company, year, href, icon, image, mark, description }: Entry) {
+  const external = href?.startsWith("http");
+  const Icon = icon ? ICONS[icon] : null;
+  const picked = image ? responsiveImage(image) : null;
+
+  const content = (
+    <span className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-start gap-x-4 sm:grid-cols-[3.5rem_minmax(0,1fr)_auto]">
+      <span className="work-logo mt-0.5 flex h-6 items-center">
+        {mark ? (
+          <>
+            {/* One per theme; CSS shows the one that matches (data-theme). */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={mark.light} alt="" height={24} width={56} loading="lazy" decoding="async" className="work-mark work-mark-light" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={mark.dark} alt="" height={24} width={56} loading="lazy" decoding="async" className="work-mark work-mark-dark" />
+          </>
+        ) : image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={picked?.src ?? image}
+            alt=""
+            width={32}
+            height={32}
+            loading="lazy"
+            decoding="async"
+            className="h-6 w-auto max-w-14 rounded object-contain"
+          />
+        ) : Icon ? (
+          <Icon size={18} weight="light" aria-hidden="true" className="text-zinc-500" />
+        ) : null}
+      </span>
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className="text-base leading-6 text-black underline">{company || title}</span>
+        {company ? <span className="text-base leading-6 text-zinc-500">{title}</span> : null}
+        {/* On a phone the years sit here, under the position, so the name keeps its line. */}
+        <span className="text-sm leading-5 tabular-nums text-zinc-400 sm:hidden">
+          {year.replace(/\s*-\s*/g, " - ")}
+        </span>
+        {description ? (
+          <span className="work-desc mt-2 text-sm leading-6 text-zinc-500">{description}</span>
+        ) : null}
+      </span>
+      {/* "2026-Present" reads as "2026 - Present" at the row's edge. */}
+      <span className="mt-0.5 hidden whitespace-nowrap text-sm leading-5 tabular-nums text-zinc-400 sm:block">
+        {year.replace(/\s*-\s*/g, " - ")}
+      </span>
+    </span>
+  );
+
+  const shell = "row-pad block rounded-[14px] px-10 py-4 no-underline";
+  return href ? (
+    <a href={href} target={external ? "_blank" : undefined} rel={external ? "noreferrer" : undefined} className={shell} onClick={haptic}>
+      {content}
+    </a>
+  ) : (
+    <span className={`${shell} cursor-default`}>{content}</span>
+  );
+}
+
+/*
+ * A Projects row, after rog.ie: the project's own icon, its name, and its
+ * years at the far right. Hovering it brings up the cursor preview.
+ */
+function ProjectRow({ title, year, href, favicon }: Entry) {
+  const external = href?.startsWith("http");
+  const content = (
+    <span className="flex items-center gap-3">
+      {favicon ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={favicon} alt="" width={20} height={20} className="project-favicon size-5 shrink-0 rounded-[5px]" />
+      ) : (
+        <span className="grid size-5 shrink-0 place-items-center text-zinc-400">
+          <Palette size={16} weight="light" aria-hidden="true" />
+        </span>
+      )}
+      <span className="min-w-0 flex-1 text-base leading-6 text-black underline">{title}</span>
+      <span className="whitespace-nowrap text-sm leading-5 tabular-nums text-zinc-400">
+        {year.replace(/\s*-\s*/g, " - ")}
+      </span>
+    </span>
+  );
+  const shell = "row-pad block rounded-[14px] px-10 py-4 no-underline";
+  return href ? (
+    <a href={href} target={external ? "_blank" : undefined} rel={external ? "noreferrer" : undefined} className={shell} onClick={haptic}>
       {content}
     </a>
   ) : (

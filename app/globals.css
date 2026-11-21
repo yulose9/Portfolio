@@ -1683,7 +1683,14 @@ li:hover > .link-copy,
    */
   html,
   body {
+    /*
+     * clip, where supported, rather than hidden: hidden on both html and
+     * body makes body a scroll container of its own, and anything
+     * position: sticky (the /projects bar) then sticks to a box that never
+     * scrolls. clip trims the overflow without making a scroll container.
+     */
     overflow-x: hidden;
+    overflow-x: clip;
     overscroll-behavior-x: none;
     max-width: 100%;
   }
@@ -2791,4 +2798,87 @@ main[tabindex="-1"]:focus {
 /* Other people's cursors: hsl(h 65% 45%) reads at 2–3:1 on the dark page. */
 [data-theme="dark"] .peer-cursor .cursor-shape {
   filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.5)) brightness(1.35);
+}
+
+/*
+ * Cursor preview (components/CursorPreview.tsx): the Projects row's screen,
+ * following the pointer: the site as it looks on a desktop. The layer is moved by script; the cards only swap.
+ * Hidden cards wait at half size with a wider tilt, so the shown one grows
+ * out of the corner nearest the pointer and straightens as it arrives. Exits
+ * are quicker than entrances.
+ */
+.cursor-preview {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  pointer-events: none;
+  will-change: transform;
+}
+.cursor-preview-card {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 10px;
+  outline: 1px solid oklch(0 0 0 / 0.1);
+  outline-offset: -1px;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.08),
+    0 18px 40px -16px rgb(0 0 0 / 0.35);
+  transform-origin: 0 100%;
+  opacity: 0;
+  scale: 0.5;
+  rotate: calc(var(--tilt, 0deg) * 1.8);
+  transition:
+    opacity 140ms var(--ease),
+    scale 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    rotate 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cursor-preview-card[data-on] {
+  opacity: 1;
+  scale: 1;
+  rotate: var(--tilt, 0deg);
+  transition-duration: 200ms, 360ms, 360ms;
+}
+:root[data-theme="dark"] .cursor-preview-card {
+  outline-color: oklch(1 0 0 / 0.1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cursor-preview-card,
+  .cursor-preview-card[data-on] {
+    scale: 1;
+    rotate: var(--tilt, 0deg);
+    transition: opacity 160ms ease;
+  }
+}
+
+/*
+ * Work rows (TabbedIndex WorkRow): the company's logo at a fixed height and
+ * its own width, capped at the column. Wordmarks and marks both fit. One file
+ * per theme; only the one matching data-theme shows.
+ */
+.work-mark {
+  display: block;
+  width: auto;
+  max-width: 3.5rem;
+  height: 1.5rem;
+  max-height: 1.5rem;
+  object-fit: contain;
+  object-position: left center;
+}
+.work-mark-dark {
+  display: none;
+}
+:root[data-theme="dark"] .work-mark-light {
+  display: none;
+}
+:root[data-theme="dark"] .work-mark-dark {
+  display: block;
+}
+.work-desc {
+  max-width: 34rem;
+  text-wrap: pretty;
 }

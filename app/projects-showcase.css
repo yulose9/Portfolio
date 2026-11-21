@@ -30,6 +30,12 @@ html:has(.project-showcase) .showcase-legal .site-compliance-footer {
   min-height: 100dvh;
 }
 
+/* The ring's cards are links and buttons too, but a sideways pan on them is
+   the ring's (useRing), so they allow vertical pans only. */
+.showcase .showcase-card {
+  touch-action: pan-y;
+}
+
 /* Everything pressable here draws its own pressed state. */
 .showcase a,
 .showcase button {
@@ -625,6 +631,33 @@ html:has(.project-showcase) .showcase-legal .site-compliance-footer {
   padding: 0;
 }
 
+/*
+ * Phones and tablets: the bar comes first and stays pinned, so the way home
+ * and the ticket are always in reach; then the ring; then the words. The
+ * panel steps aside (display: contents) so its bar, words and footer can be
+ * ordered around the ring. The panel is an unlabelled <section>, so it has no
+ * landmark role to lose.
+ */
+@media (max-width: 1023px) {
+  .showcase-panel {
+    display: contents;
+  }
+  .showcase-bar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    order: -2;
+    background: var(--paper);
+  }
+  .showcase-scroll {
+    border-top: 1px solid var(--line);
+  }
+  /* Scrolling to the ring (Try a preview, choosing a project) clears the bar. */
+  .showcase-stage {
+    scroll-margin-top: 3.5rem;
+  }
+}
+
 /* ── The ring ──────────────────────────────────────────────────────────── */
 
 .showcase-stage {
@@ -661,7 +694,7 @@ html:has(.project-showcase) .showcase-legal .site-compliance-footer {
 
 .showcase-card {
   --shade: 0;
-  position: absolute;
+    position: absolute;
   left: 50%;
   top: 50%;
   display: block;

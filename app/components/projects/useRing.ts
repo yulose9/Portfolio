@@ -236,6 +236,9 @@ export function useRing(slots: RingSlot[], onCentre: (project: string | null) =>
   // leaving it, a second finger is ignored, and once it is really a drag the
   // site's closed hand shows and text selection is off (holdGrabbing).
   const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {
+    // Touch has its own path (below): pointer events alone are fragile there,
+    // because the browser may claim the gesture and cancel them mid-swipe.
+    if (event.pointerType === "touch") return;
     if (event.button > 0 || drag.current) return;
     quiet.current = false;
     drag.current = { id: event.pointerId, x: event.clientX, from: position.current, moved: false, t: event.timeStamp, v: 0 };
@@ -276,6 +279,77 @@ export function useRing(slots: RingSlot[], onCentre: (project: string | null) =>
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", up);
   };
+
+  /*
+   * Swiping on a touch screen. The gesture's direction is decided once it has
+   * moved 8px: sideways turns the ring (and stops the page scrolling under the
+   * finger, which needs a non-passive touchmove), vertical is left to the
+   * page. A touch that starts inside a live demo belongs to the demo.
+   */
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    let touch: { x: number; y: number; from: number; axis: "x" | "y" | null; t: number; v: number } | null = null;
+
+    const start = (event: TouchEvent) => {
+      const target = event.target as Element | null;
+      if (event.touches.length !== 1 || target?.closest?.(".phone-demo")) {
+        touch = null;
+        return;
+      }
+      const point = event.touches[0];
+      touch = { x: point.clientX, y: point.clientY, from: position.current, axis: null, t: event.timeStamp, v: 0 };
+      dragged.current = false;
+    };
+
+    const move = (event: TouchEvent) => {
+      const t = touch;
+      if (!t || event.touches.length !== 1) return;
+      const point = event.touches[0];
+      const dx = point.clientX - t.x;
+      const dy = point.clientY - t.y;
+      if (!t.axis) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        t.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+        if (t.axis === "x") {
+          quiet.current = false;
+          velocity.current = 0;
+          // Holds the spring still while the finger has the ring.
+          drag.current = { id: -1, x: t.x, from: t.from, moved: true, t: event.timeStamp, v: 0 };
+        }
+      }
+      if (t.axis !== "x") return;
+      event.preventDefault();
+      const next = t.from - dx / (width.current * PITCH);
+      const dt = Math.max(1, event.timeStamp - t.t) / 1000;
+      t.v = t.v * 0.6 + ((next - position.current) / dt) * 0.4;
+      t.t = event.timeStamp;
+      position.current = next;
+      target.current = next;
+      wake();
+    };
+
+    const end = () => {
+      const t = touch;
+      touch = null;
+      if (!t || t.axis !== "x") return;
+      drag.current = null;
+      dragged.current = true;
+      velocity.current = t.v;
+      go(Math.round(position.current + Math.max(-2, Math.min(2, t.v * 0.2))));
+    };
+
+    stage.addEventListener("touchstart", start, { passive: true });
+    stage.addEventListener("touchmove", move, { passive: false });
+    stage.addEventListener("touchend", end);
+    stage.addEventListener("touchcancel", end);
+    return () => {
+      stage.removeEventListener("touchstart", start);
+      stage.removeEventListener("touchmove", move);
+      stage.removeEventListener("touchend", end);
+      stage.removeEventListener("touchcancel", end);
+    };
+  }, [go, wake]);
 
   const onKeyDown = (event: React.KeyboardEvent) => {
     const forward = event.key === "ArrowRight" || event.key === "ArrowDown";

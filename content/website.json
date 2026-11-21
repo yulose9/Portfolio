@@ -104,6 +104,11 @@
             "front": "/images/lanyard/fearex-front.webp",
             "back": "/images/lanyard/fearex-back.webp",
             "strap": "/images/lanyard/fearex-strap.png"
+          },
+          "description": "Building agentic AI systems and the infrastructure they run on, with a focus on evaluation and orchestration.",
+          "mark": {
+            "light": "/images/company-logos/fearex-light.svg",
+            "dark": "/images/company-logos/fearex-dark.svg"
           }
         },
         {
@@ -118,6 +123,11 @@
             "front": "/images/lanyard/trends-front.png",
             "back": "/images/lanyard/trends-back.png",
             "strap": "/images/lanyard/trends-strap.png"
+          },
+          "description": "Two years designing solutions across AWS and Red Hat Enterprise Linux.",
+          "mark": {
+            "light": "/images/company-logos/trends-light.svg",
+            "dark": "/images/company-logos/trends-dark.svg"
           }
         },
         {
@@ -131,6 +141,11 @@
           "card": {
             "front": "/images/business-card/archicoders-front.webp",
             "back": "/images/business-card/archicoders-back.webp"
+          },
+          "description": "UI/UX design internship.",
+          "mark": {
+            "light": "/images/company-logos/archicoders-light.svg",
+            "dark": "/images/company-logos/archicoders-dark.svg"
           }
         }
       ]
