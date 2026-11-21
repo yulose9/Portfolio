@@ -24,7 +24,7 @@ export type { ShowcaseProfile, ShowcaseProject } from "./ShowcasePanels";
 /** Cards around the ring, at least: the assets repeat until it is this full. */
 const MIN_SLOTS = 14;
 /** How long each home photo shows before the next dissolves in, in ms. */
-const PHOTO_EVERY = 5000;
+const PHOTO_EVERY = 3000;
 
 /*
  * Which project is showing lives in the URL (?project=<slug>), not in React
@@ -121,12 +121,40 @@ export default function ProjectShowcase({
   const photos = profile.photos;
   const [photo, setPhoto] = useState(0);
   const holdPhotos = useRef(false);
+  /*
+   * A shuffle bag, so the order is random but nothing comes back too soon:
+   * each round deals every photo once, in a fresh random order, before any
+   * repeats. A new round never opens with a photo from the end of the last
+   * one (the most recent half of the photos), so a photo is never seen again
+   * within the next couple of changes. Kept in refs and decided outside
+   * React's state updater, which may run twice.
+   */
+  const bag = useRef<number[]>([]);
+  const recent = useRef<number[]>([0]);
   const nextPhoto = useCallback(() => {
-    if (photos.length < 2) return;
-    setPhoto((now) => {
-      const pick = Math.floor(Math.random() * (photos.length - 1));
-      return pick >= now ? pick + 1 : pick;
-    });
+    const n = photos.length;
+    if (n < 2) return;
+    if (!bag.current.length) {
+      // The round opens with photos not seen recently (picked at random from
+      // those), then the rest follow in random order; built, not retried, so
+      // the guarantee always holds.
+      const keepAway = Math.max(1, Math.floor(n / 2));
+      const avoid = new Set(recent.current.slice(-keepAway));
+      const shuffle = (list: number[]) => {
+        for (let i = list.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [list[i], list[j]] = [list[j], list[i]];
+        }
+        return list;
+      };
+      const all = Array.from({ length: n }, (_, i) => i);
+      const opening = shuffle(all.filter((i) => !avoid.has(i))).slice(0, keepAway);
+      const rest = shuffle(all.filter((i) => !opening.includes(i)));
+      bag.current = [...opening, ...rest];
+    }
+    const next = bag.current.shift()!;
+    recent.current = [...recent.current, next].slice(-n);
+    setPhoto(next);
   }, [photos.length]);
   useEffect(() => {
     if (photos.length < 2) return;

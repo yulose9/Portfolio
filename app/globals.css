@@ -1653,6 +1653,26 @@ li:hover > .link-copy,
     padding-bottom: 0.75rem;
   }
 
+  /*
+   * The row highlight bleeds past the column so the glass has room round the
+   * words: 40px on desktop. A phone's page padding is only 24px, so that
+   * bleed ran off the screen and the edges cut the highlight. Here it bleeds
+   * 16px (the rows' padding shrinks to match, so the text doesn't move), and
+   * the glass sits 8px inside each screen edge, corners intact. Contact rows
+   * keep their right padding: the copy button lives in it.
+   */
+  .list-bleed {
+    margin-left: -1rem;
+    margin-right: -1rem;
+  }
+  .list-bleed .row-pad {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .list-bleed li:has(> .link-copy) .row-pad {
+    padding-right: 2.5rem;
+  }
+
   .footer-gap {
     margin-top: 3rem;
   }

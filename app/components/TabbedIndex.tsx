@@ -681,7 +681,7 @@ function EntryList({ items, kind }: { items: Entry[]; kind: string }) {
         pinned the surface to the text's left edge and pooled all the padding
         on the right.
       */}
-      <div className="relative -mx-10">
+      <div className="list-bleed relative -mx-10">
         {/* Rendered before the list so the positioned rows paint over it. */}
         <div
           ref={highlightRef}
@@ -1183,7 +1183,7 @@ function LinkList({
       unpositioned: if it were the rows' offsetParent, their offsets would be
       measured against it while the highlight sat 40px away.
     */
-    <div className="relative -mx-10" {...wrapperProps}>
+    <div className="list-bleed relative -mx-10" {...wrapperProps}>
       <div
         ref={highlightRef}
         aria-hidden="true"
